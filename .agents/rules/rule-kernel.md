@@ -15,17 +15,19 @@ globs: "engine/state.py, engine/rng.py, engine/primitives.py, engine/core_engine
 ## 2. Déterminisme & PRNG (`engine/rng.py`)
 - PRNG déterministe adressable par compteur : `rand_event(exp_seed, rep_id, source_type, tour, entity_id, draw_idx)`.
 - **Aucun `branch_id`** sur les événements comparables :
-  - Jets de dés indexés par `(DICE, tour, peuple_id)`.
-  - Recyclage Sabotage indexé par `(SABOTAGE_RESHUFFLE, count)` sur le multi-ensemble disponible.
+  - Jets de dés indexés par `(DICE, tour, peuple_id)` (uniquement pour les joueurs ayant tiré une carte Machine).
+  - Mélange du paquet Machine (incluant les cartes Sabotage intégrées définitivement) indexé par `(MACHINE_DECK_SHUFFLE, tour)`.
 
 ## 3. Machine à états suspendable BGA-ready (`engine/core_engine.py`)
 - Interface `step_until_decision() -> DecisionRequest | GameOver` et `apply_choice(choice)`.
 - Le **Coordonnateur du tour** tourne en sens horaire pour trancher les ordres globaux non attribués :
   - Ordre des constructions en **3.1**.
   - Ordre d'activation des machines en Siège en **5**, sous contrainte stricte : **Abatteuse avant Bulldozer sur un même rayon**.
-  - Passe circulaire `PASSER` sur les Sabotages.
 
 ## 4. Invariants métier v5.3
+- **Dés épurés (sans double aux dés)** : seul un joueur ayant pioché une carte Machine lance 2D6 et retient `M = min(D1, D2)` (ou `max` sous Loi). Un joueur tirant une carte Sabotage ou sans carte en pénurie ne lance pas de dés.
+- **Sabotage par dilution permanente** : toutes les cartes Sabotage sont identiques et sans effet propre (réserve illimitée). Acquérir un Sabotage (`4.1`, `4.2`, tuiles) ajoute définitivement `+1` carte Sabotage au paquet Machine (remélangée en **6.3**, allume `3. Sabotage`). Tirer une carte Sabotage en Étape 1 fait perdre l'activation du Contremaître pour le tour.
+- **Siège `T4` & Apprentissage (`A10`)** : une machine en Siège `T4` attaque de manière autonome en **5** même si `T4` est éjectée ; en **6.1**, elle génère normalement de l'Apprentissage sur `T4` si et seulement si `T4` figure encore sur la piste.
 - **Seuil Imprimé fixe** : `P4_2233` `[2, 2, 3, 3]` ou `P5_22233` `[2, 2, 2, 3, 3]`, indépendant du nombre d'Arbres ou de Souches.
 - **Furtivité à 4 emplacements jumeaux** : entrer sur un emplacement tire l'autre pion sur le jumeau de la rive choisie ; retourner `réflexion -> définitif` s'effectue sur place.
 - **Chaîne des 4 parades** (zéro dette, zéro verrouillage) :
@@ -39,6 +41,5 @@ globs: "engine/state.py, engine/rng.py, engine/primitives.py, engine/core_engine
 - **Conditions de fin en 5.3** : Tour 8 atteint, Rêve au rang 1, ou Réveil des Gardiens fixe `min(N, G0, 5)` si `G0 >= 3` (+ exception `R9 B` en **6.2**).
 
 ## 5. Définition exacte des Modes 1 & 2
-- Un **Double `(X, X)`** sans aucun Rêve en piste au début de **3.2** active normalement la carte Machine au rang `M = X`.
-- **Mode 1 (Cœur symétrique)** : 0 tuile `G/R/M`, 0 piste `Bug/Colonie`, Sabotages gouvernés par l'acquéreur, fin au Tour 8.
-- **Mode 2 (Asymétrie à vide)** : tuiles `G/R/M` présentes sans texte ni pouvoir propre, mais fonctions structurelles actives (Nids `+1/+2`, Rêves insérés/avancés/annulant une machine, Gardiens marqués utilisés, fins anticipées `5.3` actives) et Migrations fixées à `A/A`.
+- **Mode 1 (Cœur symétrique)** : 0 tuile `G/R/M`, 0 piste `Bug/Colonie`, Sabotage par dilution permanente du paquet Machine actif (via `4.1`), fin au Tour 8.
+- **Mode 2 (Asymétrie à vide)** : tuiles `G/R/M` présentes sans texte ni pouvoir propre, mais fonctions structurelles actives (Nids `+1/+2`, Rêves insérés/avancés/annulant une machine sur dé `M`, Gardiens marqués utilisés, fins anticipées `5.3` actives) et Migrations fixées à `A/A`.

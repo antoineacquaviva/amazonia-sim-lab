@@ -1,0 +1,289 @@
+{
+  "schema_version": "5.3.1",
+  "description": "Sélection de référence Mode 3 (1 profil épuré par emplacement, Migrations A/A).",
+  "criteres_priorite": [
+    "1. Zéro modification de l'ordre d'attaque ou du secret des paravents",
+    "2. Minimum de dette mémorielle (zéro TransientModifier multi-sous-étapes si évitable)",
+    "3. Effet local borné (préférence A à égalité)"
+  ],
+  "stats": {
+    "total_emplacements": 32,
+    "kept_A": 29,
+    "replaced_A": 3
+  },
+  "ecarts_A": [
+    {
+      "slot": "G5",
+      "chosen": "B",
+      "reason": "Profil A écarté (modificateur transitoire multi-sous-étapes) ; B retenu (loi persistante à surveiller)."
+    },
+    {
+      "slot": "R2",
+      "chosen": "B",
+      "reason": "Profil A écarté (modificateur transitoire multi-sous-étapes) ; B retenu (loi persistante à surveiller, portée globale)."
+    },
+    {
+      "slot": "R5",
+      "chosen": "C",
+      "reason": "Profil A écarté (modifie le secret des paravents / information) ; C retenu (effet local borné)."
+    }
+  ],
+  "selections": {
+    "G1": {
+      "famille": "GARDIEN",
+      "peuple_origine": "M",
+      "profile": "A",
+      "nom": "Le Bond du Jaguar",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G2": {
+      "famille": "GARDIEN",
+      "peuple_origine": "R",
+      "profile": "A",
+      "nom": "L’Étreinte de l’Anaconda",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G3": {
+      "famille": "GARDIEN",
+      "peuple_origine": "M",
+      "profile": "A",
+      "nom": "La Voltige de l’Atèle",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G4": {
+      "famille": "GARDIEN",
+      "peuple_origine": "O",
+      "profile": "A",
+      "nom": "Le Cri d’Alarme de l’Ara",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G5": {
+      "famille": "GARDIEN",
+      "peuple_origine": "R",
+      "profile": "B",
+      "nom": "L’Affût de la Matamata",
+      "kept_A": false,
+      "rationale": "Profil A écarté (modificateur transitoire multi-sous-étapes) ; B retenu (loi persistante à surveiller)."
+    },
+    "G6": {
+      "famille": "GARDIEN",
+      "peuple_origine": "O",
+      "profile": "A",
+      "nom": "L’Œil Double du Toucan",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G7": {
+      "famille": "GARDIEN",
+      "peuple_origine": "M",
+      "profile": "A",
+      "nom": "Le Barrage du Capybara",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G8": {
+      "famille": "GARDIEN",
+      "peuple_origine": "M",
+      "profile": "A",
+      "nom": "Le Sillage du Boto",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G9": {
+      "famille": "GARDIEN",
+      "peuple_origine": "R",
+      "profile": "A",
+      "nom": "Le Guet du Caïman Noir",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G10": {
+      "famille": "GARDIEN",
+      "peuple_origine": "R",
+      "profile": "A",
+      "nom": "La Brume de la Dendrobate",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G11": {
+      "famille": "GARDIEN",
+      "peuple_origine": "O",
+      "profile": "A",
+      "nom": "La Piquée de la Harpie",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G12": {
+      "famille": "GARDIEN",
+      "peuple_origine": "O",
+      "profile": "A",
+      "nom": "Le Chant de l’Ibijau",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G13": {
+      "famille": "GARDIEN",
+      "peuple_origine": "M",
+      "profile": "A",
+      "nom": "La Brèche du Tamanoir",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G14": {
+      "famille": "GARDIEN",
+      "peuple_origine": "R",
+      "profile": "A",
+      "nom": "L’Écaille du Téju",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "G15": {
+      "famille": "GARDIEN",
+      "peuple_origine": "O",
+      "profile": "A",
+      "nom": "L’Envol du Batará Suiveur",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R1": {
+      "famille": "REVE",
+      "peuple_origine": "H",
+      "profile": "A",
+      "nom": "Le Tambour des Deux Mondes",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R2": {
+      "famille": "REVE",
+      "peuple_origine": "E",
+      "profile": "B",
+      "nom": "Le Voile de l’Oubli",
+      "kept_A": false,
+      "rationale": "Profil A écarté (modificateur transitoire multi-sous-étapes) ; B retenu (loi persistante à surveiller, portée globale)."
+    },
+    "R3": {
+      "famille": "REVE",
+      "peuple_origine": "H",
+      "profile": "A",
+      "nom": "La Danse des Esprits-Fauves",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R4": {
+      "famille": "REVE",
+      "peuple_origine": "H",
+      "profile": "A",
+      "nom": "Le Sommeil de la Pierre-Serpent",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R5": {
+      "famille": "REVE",
+      "peuple_origine": "H",
+      "profile": "C",
+      "nom": "Le Rêve du nid vide",
+      "kept_A": false,
+      "rationale": "Profil A écarté (modifie le secret des paravents / information) ; C retenu (effet local borné)."
+    },
+    "R6": {
+      "famille": "REVE",
+      "peuple_origine": "H",
+      "profile": "A",
+      "nom": "Le Miel des Ancêtres",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R7": {
+      "famille": "REVE",
+      "peuple_origine": "E",
+      "profile": "A",
+      "nom": "L’Ombre du Maître des Bois",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R8": {
+      "famille": "REVE",
+      "peuple_origine": "E",
+      "profile": "A",
+      "nom": "Le Mirage du Fleuve-Miroir",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R9": {
+      "famille": "REVE",
+      "peuple_origine": "E",
+      "profile": "A",
+      "nom": "L’Écho des Voix Célestes",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "R10": {
+      "famille": "REVE",
+      "peuple_origine": "E",
+      "profile": "A",
+      "nom": "La Nuée des Songes",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "M1": {
+      "famille": "CROISSANCE",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "La Fourmilière Coupe-Feuilles",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "M2": {
+      "famille": "CROISSANCE",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "La Termitière à Glu",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "M3": {
+      "famille": "CROISSANCE",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "La Branche des Guêpes Cazadores",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "M4": {
+      "famille": "CROISSANCE",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "La Ruche des Mélipones",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "M5": {
+      "famille": "CROISSANCE",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "La Clairière du Jardin du Diable",
+      "kept_A": true,
+      "rationale": "Profil A retenu (conforme sans dette ni atteinte au secret/ordre)."
+    },
+    "SLOT_BUG_CERVEAU": {
+      "famille": "MIGRATION",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "Court-circuit d’Apprentissage (Standard)",
+      "kept_A": true,
+      "rationale": "Migration fixée à A selon la référence Mode 3."
+    },
+    "SLOT_COLONISATION_GARDIENS": {
+      "famille": "MIGRATION",
+      "peuple_origine": "I",
+      "profile": "A",
+      "nom": "Carburant Symbiotique (Standard)",
+      "kept_A": true,
+      "rationale": "Migration fixée à A selon la référence Mode 3."
+    }
+  }
+}

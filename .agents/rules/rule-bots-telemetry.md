@@ -8,13 +8,14 @@ globs: "bots/**/*.py, engine/telemetry.py"
 
 ## 1. Modélisation de l'Étape 2 en Temps Réel Libre
 - **Ticks discrets** `t in {1, 2, 3}` pilotés par l'urgence / opportunité privée `U_i in [0, 1]`.
+- Sous paravent en Étape 1/2, un joueur piochant une carte **Sabotage** ne lance pas de dés et sait que sa carte n'active aucune machine : il devient l'émetteur naturel de signaux coopératifs/altruistes au Tick 1 (construction `3.1` ou soutien Furtivité voisin).
 - Résolution par `U_i` décroissant avec bris d'égalité PRNG tournant `hash(seed, tour, sous_etape) % N` (**zéro biais de siège 0**).
 - En **2.2**, jusqu'à `K_max = 4` passes de révision par gain marginal `Delta_V_i > epsilon_r` ; dès qu'une passe produit `0` mouvement, retournement simultané en *définitif*.
 
 ## 2. Hiérarchie des Bots
 - **`B0`** : bot réflexe (`K_max = 0`).
 - **`B1`** : bot découverte (`k = 1`, oubli stochastique si `> 2` lois actives).
-- **`B2`** : bot cœur de cible (`k = 2`), graphe orienté `economie_bot` sur les 12 jetons `RES_*` et `TRIG_1..6` pondéré par le tour `1..8` + lookahead fin de tour.
+- **`B2`** : bot cœur de cible (`k = 2`), graphe orienté `economie_bot` sur les 12 jetons `RES_*` (avec `RES_DILUTION_SABOTAGE` à la place de `RES_CARTE_SABOTAGE` : gain de tempo différé par dilution du paquet Machine remélangé en `6.3`, pondéré fortement aux Tours 1..5 et faiblement aux Tours 7..8) et `TRIG_1..6` pondéré par le tour `1..8` + lookahead fin de tour.
 - **`B3`** : bot bonus IS-MCTS / Rolling Horizon sur `state.clone()`.
 
 ## 3. Formules exactes des 4 capteurs (`engine/telemetry.py`)
