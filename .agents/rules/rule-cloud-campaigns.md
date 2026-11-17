@@ -27,3 +27,7 @@ globs: "campaigns/**/*.py, scripts_cloud/**/*.py, Dockerfile*"
 
 ## 4. Micro-Forks
 - Séparation stricte entre le lot de sélection des coups candidats et le lot d'évaluation apparié (`C_prive`, écart `g`, courbe d'inversion `rho_delta`).
+
+## 5. Verrouillage Zéro Facturation API Gemini / LLM
+- **Interdiction absolue** d'installer `google-genai`, `google-generativeai` ou `vertexai`, de lire une variable `GEMINI_API_KEY`, ou d'effectuer le moindre appel HTTP vers une API LLM payante depuis un script Python (`scripts_cloud/`, `campaigns/`, etc.).
+- Toute analyse éditoriale passe exclusivement par Antigravity en local et par le glisser-déposer manuel des synthèses `digest_*.json` (`< 30 Ko`) dans l'interface Gemini web.

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
 import sys
@@ -24,6 +23,7 @@ from campaigns.worker_main import build_palier2_work_units
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.effects.registry import list_registered_tiles
 from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES
+from scripts_cloud.studio_paths import find_gcloud, find_uv
 
 REGION = "europe-west9"
 IMAGE_URI = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
@@ -41,35 +41,7 @@ LOCAL_RUN_DIR = ROOT / ".tmp_runs" / "palier2_coeur_muet"
 LOCAL_SHARDS_DIR = LOCAL_RUN_DIR / "shards"
 PARQUET_PATH = LOCAL_RUN_DIR / "cells.parquet"
 DIGEST_PATH = ROOT / "data" / "digest_palier2_coeur_muet.json"
-
-
-def _find_uv() -> str:
-    found = shutil.which("uv")
-    if found:
-        return found
-    candidate = Path.home() / ".local" / "bin" / "uv.exe"
-    if candidate.exists():
-        return str(candidate)
-    raise FileNotFoundError("Impossible de trouver 'uv'.")
-
-
-def _find_gcloud() -> str:
-    for candidate_name in ("gcloud.cmd", "gcloud"):
-        found = shutil.which(candidate_name)
-        if found:
-            return found
-    local_app_data = os.environ.get("LOCALAPPDATA", "")
-    fallback = (
-        Path(local_app_data)
-        / "Google"
-        / "Cloud SDK"
-        / "google-cloud-sdk"
-        / "bin"
-        / "gcloud.cmd"
-    )
-    if fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError("Impossible de trouver 'gcloud'.")
+DIGESTS_COPY_PATH = ROOT / "data" / "digests" / "digest_palier2_coeur_muet.json"
 
 
 def _run(cmd: list[str]) -> None:
@@ -96,8 +68,8 @@ def preflight_check_and_quote() -> tuple[int, float]:
     for slot_id, _ in LOT_01_PROFILES:
         assert slot_id in present_slots, f"Tuile {slot_id} absente des tables miroirs !"
 
-    # Micro-tir local de 20 parties sous PyPy 3.11 avec garde-fou max_steps=2000 (< 1 s après JIT)
-    uv_bin = _find_uv()
+    # Micro-tir local de 20 parties sous PyPy 3.11 avec garde-fou max_steps=2000 (< 1,5 s après JIT)
+    uv_bin = find_uv()
     micro_code = (
         "import time; import engine.effects; "
         "from bots import play_game_b2; "
@@ -132,28 +104,23 @@ def preflight_check_and_quote() -> tuple[int, float]:
     gps_per_vcpu = 20.0 / max(0.05, micro_sec)
     est_compute_sec = total_games / (TASK_COUNT * int(CPU_PER_TASK) * gps_per_vcpu)
 
-    print("\n=== DEVIS 5 LIGNES — CAMPAGNE PALIER 2 (`palier2_coeur_muet`) ===")
+    print("\n=== DEVIS DE VALIDATION (5 LIGNES) ===")
     print(
-        f"1. Objectif & Plan CRN : Validation K_max=3 vs K_max=0 (B0/B1/B2, Modes 1/2/3 Lot 01 + 4 capteurs), "
-        f"Micro-Forks 2.2 sans biais et Sequential Halving des 128 châssis sur {len(blocks)} blocs miroirs ({len(blocks)*2} tables, N=3..6)."
+        "1. Question testée                   : La révision muette du 2e Défenseur sous paravent aide-t-elle vraiment "
+        "l'équipe à sauver la forêt, et quelles variantes de règles de base sont les plus équilibrées ?"
     )
     print(
-        f"2. Volume exact        : {total_games} parties/rollouts ({coop_games} matrice coop + "
-        f"{fork_games} rollouts micro-forks + {halving_games} Sequential Halving 128->64->32->16) en {TASK_COUNT} shards."
+        "2. Ce qu'on compare                  : Joueurs sans révision vs avec révision (réflexe, découverte, expérimenté), "
+        "jeu sans tuiles / tuiles muettes / 8 premières tuiles actives, et tri des 128 réglages de règles."
     )
     print(
-        f"3. Cible Cloud         : Cloud Run Jobs ({REGION}, {TASK_COUNT} tâches × {CPU_PER_TASK} vCPU, "
-        f"{MEMORY_PER_TASK}, --workers={CPU_PER_TASK}, max_steps=2000)."
+        f"3. Tables & nombre de joueurs couverts: {len(blocks) * 2} tables circulaires (avec leurs miroirs inversés) "
+        "couvrant 3, 4, 5 et 6 joueurs."
     )
     print(
-        f"4. Temps & Coût estimés: ~{est_compute_sec:.1f}s CPU/worker (~{est_compute_sec + 20:.0f}s murale, "
-        f"micro-tir PyPy 20 parties = {micro_sec:.3f}s) — Coût estimé : 0,00 € (niveau gratuit Cloud Run)."
+        f"4. Volume & durée estimée            : {total_games} parties simulées — attente estimée ~{est_compute_sec + 20:.0f} secondes."
     )
-    print(
-        f"5. Sorties             : {GCS_PREFIX}/, {PARQUET_PATH.relative_to(ROOT).as_posix()} "
-        f"et {DIGEST_PATH.relative_to(ROOT).as_posix()} (< 30 Ko).\n",
-        flush=True,
-    )
+    print("5. Coût estimé                       : 0 € (inclus dans le palier gratuit).\n", flush=True)
     return total_games, micro_sec
 
 
@@ -426,10 +393,12 @@ def synthesize_with_duckdb(job_wall_sec: float, expected_total_games: int) -> di
     }
 
     DIGEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    DIGESTS_COPY_PATH.parent.mkdir(parents=True, exist_ok=True)
     raw_json = json.dumps(digest, indent=2, ensure_ascii=False) + "\n"
     encoded = raw_json.encode("utf-8")
     assert len(encoded) < 30_000, f"Digest trop volumineux : {len(encoded)} >= 30000 octets"
     DIGEST_PATH.write_text(raw_json, encoding="utf-8", newline="\n")
+    DIGESTS_COPY_PATH.write_text(raw_json, encoding="utf-8", newline="\n")
 
     print("\n=== SYNTHÈSE DUCKDB PALIER 2 — MATRICE COOPÉRATIVE & TÉLÉMÉTRIE ===")
     con.sql(
@@ -460,7 +429,7 @@ def synthesize_with_duckdb(job_wall_sec: float, expected_total_games: int) -> di
 
 def main() -> int:
     expected_games, _ = preflight_check_and_quote()
-    gcloud = _find_gcloud()
+    gcloud = find_gcloud()
 
     # 1. Build & Push de l'image PyPy 3.11 mise à jour (engine + bots + campaigns + Lot 01)
     _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])

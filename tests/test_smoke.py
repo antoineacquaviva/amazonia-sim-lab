@@ -1,23 +1,15 @@
-"""Tests smoke du Palier 0 : garde-fou AST et disponibilité PyPy 3.11."""
+"""Tests smoke : garde-fou AST, garde Zéro-API-LLM, portabilité Linux/Windows et PyPy 3.11."""
 
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
-from verify_lot import check_effect_source
+import pytest
 
-
-def _find_uv() -> str:
-    found = shutil.which("uv")
-    if found:
-        return found
-    candidate = Path.home() / ".local" / "bin" / "uv.exe"
-    if candidate.exists():
-        return str(candidate)
-    raise FileNotFoundError("Impossible de trouver l'exécutable 'uv'.")
+from scripts_cloud.studio_paths import find_uv, resolve_studio_dir
+from verify_lot import check_effect_source, check_zero_llm_api_source
 
 
 def test_ast_rejects_buf_access() -> None:
@@ -51,8 +43,37 @@ def test_ast_accepts_valid_stateless_effect() -> None:
     assert check_effect_source(src, "valid.py") == []
 
 
+def test_zero_llm_api_guard_rejects_paid_sdks_and_key() -> None:
+    mod_genai = "google." + "genai"
+    mod_vertex = "vertex" + "ai"
+    key_tok = "GEMINI_" + "API_KEY"
+
+    assert check_zero_llm_api_source(f"import {mod_genai}\n", "bad1.py")
+    assert check_zero_llm_api_source("from google import genai\n", "bad2.py")
+    assert check_zero_llm_api_source(f"import {mod_vertex}\n", "bad3.py")
+    assert check_zero_llm_api_source(f"import os\nk = os.environ.get('{key_tok}')\n", "bad4.py")
+    assert check_zero_llm_api_source("import json\nx = 1 + 2\n", "clean.py") == []
+
+
+def test_portable_studio_dir_resolution(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake_repo = tmp_path / "amazonia-sim-lab"
+    fake_studio = tmp_path / "amazonia-doc-studio"
+    fake_repo.mkdir()
+    fake_studio.mkdir()
+
+    monkeypatch.delenv("AMAZONIA_STUDIO_DIR", raising=False)
+    assert resolve_studio_dir(fake_repo) == fake_studio.resolve()
+
+    custom_studio = tmp_path / "custom-studio"
+    custom_studio.mkdir()
+    monkeypatch.setenv("AMAZONIA_STUDIO_DIR", str(custom_studio))
+    assert resolve_studio_dir(fake_repo) == custom_studio.resolve()
+
+
 def test_pypy_311_available_via_uv() -> None:
-    uv_bin = _find_uv()
+    uv_bin = find_uv()
     env = os.environ.copy()
     proc = subprocess.run(
         [

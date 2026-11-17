@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts_cloud.studio_paths import resolve_studio_dir
+
 DATA_DIR = ROOT / "data"
-STUDIO_JS = Path(r"C:\Dev\Jeu\amazonia-doc-studio\data\amazonia_data_v5_3.js")
 LOCK_FILE = DATA_DIR / "studio_lock.json"
 SPEC_FILE = DATA_DIR / "spec_formelle_v5_3.json"
 CATALOG_FILE = DATA_DIR / "catalog_v5_3.json"
@@ -36,14 +41,18 @@ TRIG_VOCAB = frozenset({f"TRIG_{i}" for i in range(1, 7)})
 
 
 def _load_studio_js_objects() -> dict[str, Any]:
-    if not STUDIO_JS.exists():
-        raise FileNotFoundError(f"Fichier Studio introuvable : {STUDIO_JS}")
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_3.js"
+    if not studio_js_path.exists():
+        raise FileNotFoundError(
+            f"Fichier Studio introuvable : {studio_js_path} "
+            "(définissez AMAZONIA_STUDIO_DIR ou placez amazonia-doc-studio à côté du dépôt)"
+        )
     js_script = (
         "const fs = require('fs');\n"
         "const vm = require('vm');\n"
         "const ctx = { window: {} };\n"
         "vm.createContext(ctx);\n"
-        f"const src = fs.readFileSync({json.dumps(str(STUDIO_JS))}, 'utf8');\n"
+        f"const src = fs.readFileSync({json.dumps(studio_js_path.as_posix())}, 'utf8');\n"
         "const res = vm.runInContext("
         "src + '\\n;({ PEUPLES, MATRICE_PAIRES, CHASSIS_AXES_SPEC, CATALOGUE_TUILES });', ctx);\n"
         "process.stdout.write(JSON.stringify(res));\n"

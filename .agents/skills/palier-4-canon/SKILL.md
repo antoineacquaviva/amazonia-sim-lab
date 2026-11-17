@@ -1,11 +1,10 @@
 ---
 name: palier-4-canon
 description: >-
-  Implémente et orchestre au Palier 4 la convergence vers le Canon Unique de 32 profils via
-  campaigns/map_elites.py sur Google Cloud Batch Spot (Sequential Halving des châssis, archive
-  MAP-Elites 2D Complexité x Entropie optimisant la CVaR_20% inter-tables avec mutations guidées
-  par régression de Shapley d'ordre 2, puis validation croisée B0 < B1 < B2 et B3 Rolling Horizon).
-  Utiliser lorsque les 100 profils sont validés et que l'auteur lance le Palier 4.
+  Cherche et valide la sélection canonique finale des 32 tuiles du jeu et le meilleur réglage
+  de règles une fois les 100 tuiles codées : utiliser dès que l'auteur demande de chercher
+  la sélection canonique de 32 tuiles, de trouver le meilleur assemblage équilibré sur toutes
+  les tables de 3 à 6 joueurs, ou de lancer le Palier 4.
 ---
 
 # Skill `palier-4-canon` — Convergence vers le Canon Unique (32 Profils)

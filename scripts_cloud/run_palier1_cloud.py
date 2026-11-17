@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import subprocess
+import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -14,6 +14,11 @@ from typing import Any
 import duckdb
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts_cloud.studio_paths import find_gcloud
+
 REGION = "europe-west9"
 IMAGE_URI = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
 JOB_NAME = "amazonia-palier1"
@@ -27,25 +32,6 @@ LOCAL_RUN_DIR = ROOT / ".tmp_runs" / "palier1_baseline"
 LOCAL_SHARDS_DIR = LOCAL_RUN_DIR / "shards"
 PARQUET_PATH = LOCAL_RUN_DIR / "palier1_b0_cells.parquet"
 DIGEST_PATH = ROOT / "data" / "digest_palier1_b0.json"
-
-
-def _find_gcloud() -> str:
-    for candidate_name in ("gcloud.cmd", "gcloud"):
-        found = shutil.which(candidate_name)
-        if found:
-            return found
-    local_app_data = os.environ.get("LOCALAPPDATA", "")
-    fallback = (
-        Path(local_app_data)
-        / "Google"
-        / "Cloud SDK"
-        / "google-cloud-sdk"
-        / "bin"
-        / "gcloud.cmd"
-    )
-    if fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError("Impossible de trouver 'gcloud'.")
 
 
 def _run(cmd: list[str]) -> None:
@@ -251,7 +237,7 @@ def synthesize_with_duckdb(job_wall_sec: float) -> dict[str, Any]:
 
 
 def main() -> int:
-    gcloud = _find_gcloud()
+    gcloud = find_gcloud()
 
     # 1. Build & Push de l'image PyPy 3.11 via Cloud Build
     _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])

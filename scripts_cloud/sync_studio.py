@@ -4,21 +4,35 @@ from __future__ import annotations
 
 import hashlib
 import json
+import sys
 import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts_cloud.studio_paths import resolve_studio_dir
+
 DATA_DIR = ROOT / "data"
-STUDIO_LOCAL_DATA = Path(r"C:\Dev\Jeu\amazonia-doc-studio\data")
 STUDIO_RAW_BASE = "https://raw.githubusercontent.com/antoineacquaviva/amazonia-doc-studio/main/data"
 STUDIO_JSON_FILES = ("catalog_v5_3.json", "spec_formelle_v5_3.json")
 LOCK_FILE = DATA_DIR / "studio_lock.json"
 
 
+def _portable_source_label(local_path: Path) -> str:
+    try:
+        rel_sibling = local_path.resolve().relative_to(ROOT.resolve().parent)
+        return f"../{rel_sibling.as_posix()}"
+    except ValueError:
+        return local_path.as_posix()
+
+
 def _read_source_bytes(filename: str) -> tuple[bytes, str]:
-    local_path = STUDIO_LOCAL_DATA / filename
+    studio_data_dir = resolve_studio_dir(ROOT) / "data"
+    local_path = studio_data_dir / filename
     if local_path.exists():
-        return local_path.read_bytes(), str(local_path)
+        return local_path.read_bytes(), _portable_source_label(local_path)
     url = f"{STUDIO_RAW_BASE}/{filename}"
     with urllib.request.urlopen(url, timeout=30) as resp:
         return resp.read(), url

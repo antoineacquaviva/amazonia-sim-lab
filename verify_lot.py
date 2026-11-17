@@ -1,9 +1,10 @@
-"""Garde-fou local de validation de lot pour amazonia-sim-lab."""
+"""Garde-fou local de validation de lot pour amazonia-sim-lab (Windows 11 & Ubuntu Linux)."""
 
 from __future__ import annotations
 
 import ast
 import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -13,7 +14,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
 EFFECTS_DIR = ROOT / "engine" / "effects"
+PYPROJECT_FILE = ROOT / "pyproject.toml"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
+
+_SKIP_DIRS: frozenset[str] = frozenset(
+    {".git", ".venv", ".tmp_runs", "__pycache__", ".pytest_cache", ".ruff_cache"}
+)
+_FORBIDDEN_LLM_MODULES: tuple[str, ...] = (
+    "google.genai",
+    "google.generativeai",
+    "google_genai",
+    "vertexai",
+)
+_FORBIDDEN_GOOGLE_SUBMODULES: frozenset[str] = frozenset({"genai", "generativeai"})
+_FORBIDDEN_API_KEY_TOKEN: str = "GEMINI_API_KEY"
+_FORBIDDEN_PACKAGES: tuple[str, ...] = (
+    "google-genai",
+    "google-generativeai",
+    "google-cloud-aiplatform",
+)
 
 
 def _is_immutable_expr(node: ast.AST | None) -> bool:
@@ -99,6 +118,57 @@ def check_effect_source(source: str, filename: str = "<string>") -> list[str]:
     return visitor.errors
 
 
+def _is_forbidden_llm_module(mod_name: str) -> bool:
+    return any(
+        mod_name == forbidden or mod_name.startswith(forbidden + ".")
+        for forbidden in _FORBIDDEN_LLM_MODULES
+    )
+
+
+def check_zero_llm_api_source(source: str, filename: str = "<string>") -> list[str]:
+    """Vérifie qu'une source Python n'importe aucun SDK LLM payant ni ne lit la clé API Gemini."""
+    tree = ast.parse(source, filename=filename)
+    errors: list[str] = []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if _is_forbidden_llm_module(alias.name):
+                    errors.append(
+                        f"{filename}:{node.lineno}: import SDK LLM payant interdit ('{alias.name}')"
+                    )
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            if _is_forbidden_llm_module(mod):
+                errors.append(
+                    f"{filename}:{node.lineno}: import SDK LLM payant interdit ('{mod}')"
+                )
+            elif mod == "google":
+                for alias in node.names:
+                    if alias.name in _FORBIDDEN_GOOGLE_SUBMODULES:
+                        errors.append(
+                            f"{filename}:{node.lineno}: import 'google.{alias.name}' interdit"
+                        )
+        elif isinstance(node, ast.Name) and node.id == _FORBIDDEN_API_KEY_TOKEN:
+            errors.append(
+                f"{filename}:{node.lineno}: référence interdite à '{_FORBIDDEN_API_KEY_TOKEN}'"
+            )
+        elif isinstance(node, ast.Attribute) and node.attr == _FORBIDDEN_API_KEY_TOKEN:
+            errors.append(
+                f"{filename}:{node.lineno}: attribut interdit '{_FORBIDDEN_API_KEY_TOKEN}'"
+            )
+        elif (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and _FORBIDDEN_API_KEY_TOKEN in node.value
+        ):
+            errors.append(
+                f"{filename}:{node.lineno}: chaîne interdite contenant '{_FORBIDDEN_API_KEY_TOKEN}'"
+            )
+
+    return errors
+
+
 def verify_kernel_locks() -> None:
     """Vérifie les empreintes SHA-256 listées dans contracts/kernel_locks.sha256."""
     if not LOCKS_FILE.exists():
@@ -109,7 +179,7 @@ def verify_kernel_locks() -> None:
         if line.strip() and not line.strip().startswith("#")
     ]
     if not lines:
-        print("[1/6] kernel_locks.sha256 vide (Palier 0) : OK")
+        print("[1/7] kernel_locks.sha256 vide (Palier 0) : OK")
         return
 
     for line in lines:
@@ -126,7 +196,7 @@ def verify_kernel_locks() -> None:
                 f"VIOLATION kernel_locks.sha256 sur {rel_path}: "
                 f"attendu {expected_hash}, obtenu {actual_hash}"
             )
-    print(f"[1/6] kernel_locks.sha256 ({len(lines)} fichiers) : OK")
+    print(f"[1/7] kernel_locks.sha256 ({len(lines)} fichiers) : OK")
 
 
 def verify_effects_ast() -> None:
@@ -139,16 +209,48 @@ def verify_effects_ast() -> None:
         all_errors.extend(check_effect_source(source, rel))
     if all_errors:
         raise RuntimeError("Erreurs AST dans engine/effects/ :\n" + "\n".join(all_errors))
-    print(f"[2/6] AST engine/effects/ ({len(py_files)} fichiers) : OK")
+    print(f"[2/7] AST engine/effects/ ({len(py_files)} fichiers) : OK")
+
+
+def verify_zero_llm_api_billing() -> None:
+    """Échoue immédiatement si un fichier Python ou pyproject.toml référence une API LLM payante."""
+    all_errors: list[str] = []
+    scanned_py = 0
+
+    for py_file in sorted(ROOT.rglob("*.py")):
+        if any(part in _SKIP_DIRS for part in py_file.parts):
+            continue
+        if py_file.resolve() == Path(__file__).resolve():
+            continue
+        scanned_py += 1
+        rel = py_file.relative_to(ROOT).as_posix()
+        source = py_file.read_text(encoding="utf-8")
+        all_errors.extend(check_zero_llm_api_source(source, rel))
+
+    if PYPROJECT_FILE.exists():
+        pyproject_txt = PYPROJECT_FILE.read_text(encoding="utf-8").lower()
+        for pkg in _FORBIDDEN_PACKAGES:
+            if pkg in pyproject_txt:
+                all_errors.append(f"pyproject.toml: dépendance LLM payante interdite ('{pkg}')")
+
+    if all_errors:
+        raise RuntimeError(
+            "VIOLATION Zéro-Facturation API LLM :\n" + "\n".join(all_errors)
+        )
+    print(f"[3/7] Garde Zéro-API-LLM ({scanned_py} fichiers Python) : OK")
 
 
 def _find_uv() -> str:
     found = shutil.which("uv")
     if found:
         return found
-    candidate = Path.home() / ".local" / "bin" / "uv.exe"
-    if candidate.exists():
-        return str(candidate)
+    bin_names = ("uv.exe", "uv") if os.name == "nt" else ("uv",)
+    home = Path.home()
+    for folder in (home / ".local" / "bin", home / ".cargo" / "bin"):
+        for bname in bin_names:
+            cand = folder / bname
+            if cand.exists():
+                return str(cand)
     raise FileNotFoundError("Impossible de trouver l'exécutable 'uv'.")
 
 
@@ -161,12 +263,13 @@ def run_tool(step_label: str, cmd: list[str]) -> None:
 def main() -> int:
     verify_kernel_locks()
     verify_effects_ast()
-    run_tool("[3/6] ruff", [sys.executable, "-m", "ruff", "check", "."])
-    run_tool("[4/6] pyright", [sys.executable, "-m", "pyright"])
-    run_tool("[5/6] pytest", [sys.executable, "-m", "pytest", "-q"])
+    verify_zero_llm_api_billing()
+    run_tool("[4/7] ruff", [sys.executable, "-m", "ruff", "check", "."])
+    run_tool("[5/7] pyright", [sys.executable, "-m", "pyright"])
+    run_tool("[6/7] pytest", [sys.executable, "-m", "pytest", "-q"])
     uv_bin = _find_uv()
     run_tool(
-        "[6/6] PyPy Invariant Fuzzer",
+        "[7/7] PyPy Invariant Fuzzer",
         [
             uv_bin,
             "run",
@@ -179,7 +282,7 @@ def main() -> int:
             "1000",
         ],
     )
-    print("verify_lot.py : 6/6 PORTES 100% VERT")
+    print("verify_lot.py : 7/7 PORTES 100% VERT")
     return 0
 
 

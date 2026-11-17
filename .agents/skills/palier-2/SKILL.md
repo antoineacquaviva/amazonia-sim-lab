@@ -1,11 +1,10 @@
 ---
 name: palier-2
 description: >-
-  Exécute de bout en bout le Palier 2 en autonomie : implémente engine/telemetry.py
-  (4 capteurs cognitifs), les bots coopératifs muets B1 et B2 (Ticks 1..3, révision 2.2,
-  graphe economie_bot), campaigns/designs.py (blocs miroirs et micro-forks), le Lot 01
-  pilote des 8 primitives, et le tir Cloud Run Jobs produisant data/digest_palier2_coeur_muet.json.
-  Utiliser lorsque l'auteur demande de lancer ou compléter le Palier 2.
+  Construit et valide le Palier 2 du simulateur (joueurs virtuels coopératifs muets, capteurs
+  de charge mentale et premier lot pilote de tuiles) : utiliser dès que l'auteur demande de
+  passer à l'étape suivante du simulateur après le socle, de coder les joueurs virtuels et
+  la coopération sous paravent, ou de lancer le Palier 2.
 ---
 
 # Skill `palier-2` — Exécution Autonome du Palier 2

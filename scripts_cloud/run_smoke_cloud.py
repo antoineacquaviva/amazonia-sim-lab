@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-import os
-import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import duckdb
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from scripts_cloud.studio_paths import find_gcloud
+
 REGION = "europe-west9"
 IMAGE_URI = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
 JOB_NAME = "amazonia-smoke"
@@ -18,32 +22,13 @@ LOCAL_DIR = ROOT / ".tmp_runs" / "smoke"
 LOCAL_SHARD = LOCAL_DIR / "shard_00.jsonl.gz"
 
 
-def _find_gcloud() -> str:
-    for candidate_name in ("gcloud.cmd", "gcloud"):
-        found = shutil.which(candidate_name)
-        if found:
-            return found
-    local_app_data = os.environ.get("LOCALAPPDATA", "")
-    fallback = (
-        Path(local_app_data)
-        / "Google"
-        / "Cloud SDK"
-        / "google-cloud-sdk"
-        / "bin"
-        / "gcloud.cmd"
-    )
-    if fallback.exists():
-        return str(fallback)
-    raise FileNotFoundError("Impossible de trouver 'gcloud'.")
-
-
 def _run(cmd: list[str]) -> None:
     print(f"$ {' '.join(cmd)}")
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
 def main() -> int:
-    gcloud = _find_gcloud()
+    gcloud = find_gcloud()
 
     _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])
     _run(

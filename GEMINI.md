@@ -23,4 +23,5 @@
 ## Loi martiale
 1. **Mémoire de session** : Lire `STATUS.md` en début de session et le mettre à jour en fin de session.
 2. **Scellement du noyau** : Interdiction absolue de modifier un fichier listé dans `contracts/kernel_locks.sha256` sans approbation explicite de l'auteur.
-3. **Porte de validation** : Exécuter `uv run python verify_lot.py` et obtenir **100 % vert** (SHA-256, AST, `ruff`, `pyright`, `pytest`) avant de conclure toute tâche.
+3. **Porte de validation** : Exécuter `uv run python verify_lot.py` et obtenir **100 % vert** (SHA-256, AST, garde Zéro-API-LLM, `ruff`, `pyright`, `pytest`, fuzzer PyPy) avant de conclure toute tâche.
+4. **Verrouillage Zéro Facturation API Gemini** : Interdiction stricte d'installer `google-genai` / `google-generativeai` / `vertexai`, de lire `GEMINI_API_KEY` ou d'effectuer le moindre appel HTTP vers une API LLM payante depuis un script Python. Toute interprétation passe exclusivement par Antigravity en local et par le dépôt manuel des fichiers `digest_*.json` dans Gemini web.

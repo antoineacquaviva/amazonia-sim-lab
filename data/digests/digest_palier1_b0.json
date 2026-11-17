@@ -1,0 +1,498 @@
+{
+  "campaign": "palier1_baseline_b0",
+  "generated_at_utc": "2026-11-17T16:31:26Z",
+  "cloud_run_job": {
+    "job_name": "amazonia-palier1",
+    "region": "europe-west9",
+    "image": "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest",
+    "tasks": 10,
+    "cpu_per_task": 2,
+    "memory_per_task": "1Gi",
+    "job_wall_sec_including_scheduling": 36.239,
+    "max_worker_compute_sec": 18.567,
+    "mean_worker_compute_sec": 17.179,
+    "sum_worker_games_per_sec": 5866.3,
+    "effective_cluster_compute_games_per_sec": 5385.8,
+    "end_to_end_job_games_per_sec": 2759.5
+  },
+  "totals": {
+    "total_games": 100000,
+    "n_shards": 10,
+    "n_cells": 180,
+    "parquet_archive": ".tmp_runs/palier1_baseline/palier1_b0_cells.parquet"
+  },
+  "by_mode": [
+    {
+      "mode": 1,
+      "n_games": 50000,
+      "mean_score_arbres": 24.764,
+      "mean_ratio_arbres": 0.4866,
+      "mean_tours": 8.0,
+      "count_tour_8": 50000,
+      "count_reve_rang_1": 0,
+      "count_reveil_gardiens": 0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 2,
+      "n_games": 50000,
+      "mean_score_arbres": 34.398,
+      "mean_ratio_arbres": 0.6583,
+      "mean_tours": 6.219,
+      "count_tour_8": 17885,
+      "count_reve_rang_1": 28845,
+      "count_reveil_gardiens": 3270,
+      "pct_tour_8": 35.77,
+      "pct_reve_rang_1": 57.69,
+      "pct_reveil_gardiens": 6.54
+    }
+  ],
+  "by_mode_and_n_players": [
+    {
+      "mode": 1,
+      "n_players": 3,
+      "n_games": 12500,
+      "mean_score_arbres": 16.723,
+      "mean_ratio_arbres": 0.4924,
+      "mean_p20_ratio": 0.3945,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "n_players": 4,
+      "n_games": 12500,
+      "mean_score_arbres": 21.99,
+      "mean_ratio_arbres": 0.4852,
+      "mean_p20_ratio": 0.3973,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "n_players": 5,
+      "n_games": 12500,
+      "mean_score_arbres": 27.487,
+      "mean_ratio_arbres": 0.4852,
+      "mean_p20_ratio": 0.406,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "n_players": 6,
+      "n_games": 12500,
+      "mean_score_arbres": 32.858,
+      "mean_ratio_arbres": 0.4836,
+      "mean_p20_ratio": 0.411,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 2,
+      "n_players": 3,
+      "n_games": 12500,
+      "mean_score_arbres": 18.651,
+      "mean_ratio_arbres": 0.5504,
+      "mean_p20_ratio": 0.4352,
+      "mean_tours": 7.576,
+      "pct_tour_8": 75.98,
+      "pct_reve_rang_1": 23.98,
+      "pct_reveil_gardiens": 0.04
+    },
+    {
+      "mode": 2,
+      "n_players": 4,
+      "n_games": 12500,
+      "mean_score_arbres": 28.589,
+      "mean_ratio_arbres": 0.6342,
+      "mean_p20_ratio": 0.5172,
+      "mean_tours": 6.664,
+      "pct_tour_8": 39.14,
+      "pct_reve_rang_1": 53.95,
+      "pct_reveil_gardiens": 6.9
+    },
+    {
+      "mode": 2,
+      "n_players": 5,
+      "n_games": 12500,
+      "mean_score_arbres": 37.059,
+      "mean_ratio_arbres": 0.6578,
+      "mean_p20_ratio": 0.5533,
+      "mean_tours": 6.15,
+      "pct_tour_8": 25.08,
+      "pct_reve_rang_1": 61.24,
+      "pct_reveil_gardiens": 13.68
+    },
+    {
+      "mode": 2,
+      "n_players": 6,
+      "n_games": 12500,
+      "mean_score_arbres": 53.294,
+      "mean_ratio_arbres": 0.7909,
+      "mean_p20_ratio": 0.7326,
+      "mean_tours": 4.488,
+      "pct_tour_8": 2.88,
+      "pct_reve_rang_1": 91.58,
+      "pct_reveil_gardiens": 5.54
+    }
+  ],
+  "by_mode_and_chassis": [
+    {
+      "mode": 1,
+      "chassis_id": 0,
+      "p_max": 4,
+      "n_games": 10000,
+      "mean_score_arbres": 23.922,
+      "mean_ratio_arbres": 0.5324,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "chassis_id": 1,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 36.639,
+      "mean_ratio_arbres": 0.6792,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "chassis_id": 4,
+      "p_max": 4,
+      "n_games": 10000,
+      "mean_score_arbres": 12.883,
+      "mean_ratio_arbres": 0.2872,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "chassis_id": 5,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 26.908,
+      "mean_ratio_arbres": 0.4989,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 1,
+      "chassis_id": 127,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 23.47,
+      "mean_ratio_arbres": 0.4352,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "mode": 2,
+      "chassis_id": 0,
+      "p_max": 4,
+      "n_games": 10000,
+      "mean_score_arbres": 32.162,
+      "mean_ratio_arbres": 0.6959,
+      "mean_tours": 6.211,
+      "pct_tour_8": 34.62,
+      "pct_reve_rang_1": 57.28,
+      "pct_reveil_gardiens": 8.1
+    },
+    {
+      "mode": 2,
+      "chassis_id": 1,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 42.552,
+      "mean_ratio_arbres": 0.7759,
+      "mean_tours": 6.212,
+      "pct_tour_8": 33.97,
+      "pct_reve_rang_1": 56.85,
+      "pct_reveil_gardiens": 9.18
+    },
+    {
+      "mode": 2,
+      "chassis_id": 4,
+      "p_max": 4,
+      "n_games": 10000,
+      "mean_score_arbres": 24.581,
+      "mean_ratio_arbres": 0.5178,
+      "mean_tours": 6.479,
+      "pct_tour_8": 41.37,
+      "pct_reve_rang_1": 53.78,
+      "pct_reveil_gardiens": 4.85
+    },
+    {
+      "mode": 2,
+      "chassis_id": 5,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 36.304,
+      "mean_ratio_arbres": 0.6531,
+      "mean_tours": 6.408,
+      "pct_tour_8": 37.72,
+      "pct_reve_rang_1": 55.64,
+      "pct_reveil_gardiens": 6.64
+    },
+    {
+      "mode": 2,
+      "chassis_id": 127,
+      "p_max": 5,
+      "n_games": 10000,
+      "mean_score_arbres": 36.393,
+      "mean_ratio_arbres": 0.649,
+      "mean_tours": 5.787,
+      "pct_tour_8": 31.17,
+      "pct_reve_rang_1": 64.9,
+      "pct_reveil_gardiens": 3.93
+    }
+  ],
+  "mode2_tables": [
+    {
+      "n_players": 3,
+      "table_id": "H-E-I",
+      "mirror_pair_id": "H-E-I-I-E-H",
+      "n_games": 2080,
+      "mean_ratio_arbres": 0.6617,
+      "pct_reve_rang_1": 56.92,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 3,
+      "table_id": "I-E-H",
+      "mirror_pair_id": "H-E-I-I-E-H",
+      "n_games": 2080,
+      "mean_ratio_arbres": 0.6693,
+      "pct_reve_rang_1": 58.27,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 3,
+      "table_id": "I-E-M",
+      "mirror_pair_id": "I-E-M-M-E-I",
+      "n_games": 2085,
+      "mean_ratio_arbres": 0.5312,
+      "pct_reve_rang_1": 14.05,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 3,
+      "table_id": "M-E-I",
+      "mirror_pair_id": "I-E-M-M-E-I",
+      "n_games": 2085,
+      "mean_ratio_arbres": 0.5355,
+      "pct_reve_rang_1": 14.82,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 3,
+      "table_id": "M-R-O",
+      "mirror_pair_id": "M-R-O-O-R-M",
+      "n_games": 2085,
+      "mean_ratio_arbres": 0.4511,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.14
+    },
+    {
+      "n_players": 3,
+      "table_id": "O-R-M",
+      "mirror_pair_id": "M-R-O-O-R-M",
+      "n_games": 2085,
+      "mean_ratio_arbres": 0.4541,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.1
+    },
+    {
+      "n_players": 4,
+      "table_id": "E-H-O-M",
+      "mirror_pair_id": "E-H-O-M-M-O-H-E",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7227,
+      "pct_reve_rang_1": 81.98,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 4,
+      "table_id": "I-H-R-M",
+      "mirror_pair_id": "I-H-R-M-M-R-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.5424,
+      "pct_reve_rang_1": 24.77,
+      "pct_reveil_gardiens": 14.08
+    },
+    {
+      "n_players": 4,
+      "table_id": "M-O-H-E",
+      "mirror_pair_id": "E-H-O-M-M-O-H-E",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7203,
+      "pct_reve_rang_1": 81.15,
+      "pct_reveil_gardiens": 0.0
+    },
+    {
+      "n_players": 4,
+      "table_id": "M-R-H-I",
+      "mirror_pair_id": "I-H-R-M-M-R-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.5515,
+      "pct_reve_rang_1": 27.9,
+      "pct_reveil_gardiens": 13.54
+    },
+    {
+      "n_players": 5,
+      "table_id": "I-H-E-O-M",
+      "mirror_pair_id": "I-H-E-O-M-M-O-E-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7395,
+      "pct_reve_rang_1": 82.85,
+      "pct_reveil_gardiens": 8.74
+    },
+    {
+      "n_players": 5,
+      "table_id": "I-H-O-R-M",
+      "mirror_pair_id": "I-H-O-R-M-M-R-O-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.5676,
+      "pct_reve_rang_1": 37.02,
+      "pct_reveil_gardiens": 19.55
+    },
+    {
+      "n_players": 5,
+      "table_id": "M-O-E-H-I",
+      "mirror_pair_id": "I-H-E-O-M-M-O-E-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7528,
+      "pct_reve_rang_1": 85.57,
+      "pct_reveil_gardiens": 7.52
+    },
+    {
+      "n_players": 5,
+      "table_id": "M-R-O-H-I",
+      "mirror_pair_id": "I-H-O-R-M-M-R-O-H-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.5713,
+      "pct_reve_rang_1": 39.52,
+      "pct_reveil_gardiens": 18.91
+    },
+    {
+      "n_players": 6,
+      "table_id": "E-R-I-O-H-M",
+      "mirror_pair_id": "E-R-I-O-H-M-M-H-O-I-R-E",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.8115,
+      "pct_reve_rang_1": 94.56,
+      "pct_reveil_gardiens": 3.01
+    },
+    {
+      "n_players": 6,
+      "table_id": "I-E-H-O-R-M",
+      "mirror_pair_id": "I-E-H-O-R-M-M-R-O-H-E-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7688,
+      "pct_reve_rang_1": 88.06,
+      "pct_reveil_gardiens": 7.94
+    },
+    {
+      "n_players": 6,
+      "table_id": "M-H-O-I-R-E",
+      "mirror_pair_id": "E-R-I-O-H-M-M-H-O-I-R-E",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.8124,
+      "pct_reve_rang_1": 95.01,
+      "pct_reveil_gardiens": 3.23
+    },
+    {
+      "n_players": 6,
+      "table_id": "M-R-O-H-E-I",
+      "mirror_pair_id": "I-E-H-O-R-M-M-R-O-H-E-I",
+      "n_games": 3125,
+      "mean_ratio_arbres": 0.7709,
+      "pct_reve_rang_1": 88.7,
+      "pct_reveil_gardiens": 7.97
+    }
+  ],
+  "worker_shards": [
+    {
+      "task_index": 0,
+      "games": 10000,
+      "compute_sec": 18.4792,
+      "games_per_sec": 541.15
+    },
+    {
+      "task_index": 1,
+      "games": 10000,
+      "compute_sec": 18.294,
+      "games_per_sec": 546.63
+    },
+    {
+      "task_index": 2,
+      "games": 10000,
+      "compute_sec": 15.27,
+      "games_per_sec": 654.88
+    },
+    {
+      "task_index": 3,
+      "games": 10000,
+      "compute_sec": 17.0608,
+      "games_per_sec": 586.14
+    },
+    {
+      "task_index": 4,
+      "games": 10000,
+      "compute_sec": 17.9435,
+      "games_per_sec": 557.31
+    },
+    {
+      "task_index": 5,
+      "games": 10000,
+      "compute_sec": 17.6396,
+      "games_per_sec": 566.91
+    },
+    {
+      "task_index": 6,
+      "games": 10000,
+      "compute_sec": 18.5675,
+      "games_per_sec": 538.57
+    },
+    {
+      "task_index": 7,
+      "games": 10000,
+      "compute_sec": 17.5187,
+      "games_per_sec": 570.82
+    },
+    {
+      "task_index": 8,
+      "games": 10000,
+      "compute_sec": 17.1275,
+      "games_per_sec": 583.86
+    },
+    {
+      "task_index": 9,
+      "games": 10000,
+      "compute_sec": 13.8887,
+      "games_per_sec": 720.01
+    }
+  ]
+}

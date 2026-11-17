@@ -1,10 +1,9 @@
 ---
 name: code-lot
 description: >-
-  Usine en session courte (~15 min) un lot stateless de profils de tuiles (Lot 01 à Lot 11)
-  selon contracts/LOTS_PLAN.md : génère engine/effects/lot_XX.py et tests/temoins/test_lot_XX.py,
-  étend le fuzzer PyPy, valide verify_lot.py à 100 % vert et met à jour STATUS.md.
-  Utiliser dès que l'auteur demande de coder, usiner ou livrer un Lot XX de tuiles.
+  Code et valide un lot de tuiles du jeu (Lot 01 à Lot 11) avec ses tests témoins :
+  utiliser dès que l'auteur demande de coder le prochain lot de tuiles, d'avancer sur
+  l'implémentation des tuiles (Gardiens, Rêves, Croissance, Migrations), ou nomme un Lot XX.
 ---
 
 # Skill `code-lot` — Usinage Stateless d'un Lot (`Lot 01` .. `Lot 11`)
@@ -16,7 +15,7 @@ Pour préserver une fenêtre de contexte chirurgicale, **ne lire que** :
 3. Les fiches JSON exactes des seuls profils du `Lot XX` extraites de `data/spec_bundle_v5_3_1.json` via une commande Python ciblée (ne **jamais** charger les 100 profils en texte brut dans le prompt).
 
 Commande type d'extraction ciblée d'un lot :
-```powershell
+```bash
 uv run python -c "import json; ct=json.load(open('data/spec_bundle_v5_3_1.json', encoding='utf-8'))['catalogue_tuiles']; pairs=[('G1','B'),('G2','B')]; print(json.dumps({f'{s}:{p}': {'peuple_origine': ct[s]['peuple_origine'], **ct[s]['profils'][p]} for s,p in pairs}, ensure_ascii=False, indent=2))"
 ```
 
