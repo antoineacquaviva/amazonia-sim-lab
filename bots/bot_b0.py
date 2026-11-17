@@ -451,7 +451,13 @@ def choose_b0(state: GameState, decision: DecisionRequest) -> Any:
     return BotB0.choose(obs, decision, state.cfg)
 
 
-def play_game_b0(state: GameState, *, max_steps: int = 2000, chassis_id: int = -1) -> GameOver:
+def play_game_b0(
+    state: GameState,
+    *,
+    max_steps: int = 2000,
+    chassis_id: int = -1,
+    telemetry: Any | None = None,
+) -> GameOver:
     """Exécute une partie complète pilotée par B0 jusqu'à GameOver avec garde-fou max_steps."""
     steps = 0
     while True:
@@ -465,8 +471,10 @@ def play_game_b0(state: GameState, *, max_steps: int = 2000, chassis_id: int = -
                 f"step={state.step}, continuation={state._continuation!r}, "
                 f"state_hex={state.raw_used_bytes().hex()}"
             )
-        out = step_until_decision(state, max_internal_steps=max(2000, max_steps))
+        out = step_until_decision(
+            state, max_internal_steps=max(2000, max_steps), telemetry=telemetry
+        )
         if isinstance(out, GameOver):
             return out
         choice = choose_b0(state, out)
-        apply_choice(state, choice)
+        apply_choice(state, choice, telemetry=telemetry)

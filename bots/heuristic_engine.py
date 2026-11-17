@@ -1,0 +1,1126 @@
+"""Moteur heuristique B1 (Découverte, k=1) et B2 (Cœur de cible, k=2, graphe economie_bot)."""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, ClassVar
+
+from bots.belief_and_ticks import (
+    BeliefSummary,
+    build_belief_summary,
+    resolve_step2_full_with_ticks,
+)
+from engine.core_engine import (
+    DEC_CHOIX_CASE_GARDIEN,
+    DEC_COLONIE_A_OPEN,
+    DEC_LIBERATION_BATISSEUR_3_1,
+    DEC_MIGRATION_INSECTE_4_3,
+    DEC_ORDRE_ATTAQUE_5_1,
+    DEC_ORDRE_CONSTRUCTION_3_1,
+    DEC_ORDRE_NID_4_2,
+    DEC_ORDRE_SIEGE_5_2,
+    DEC_PLACEMENT_NID_3_1,
+    DEC_POSE_DEFENSEUR_1,
+    DEC_POSE_DEFENSEUR_2,
+    DEC_RETRAIT_APPRENTISSAGE_6_1,
+    DEC_REVISION_DEFENSEUR_2,
+    apply_choice,
+    step_until_decision,
+)
+from engine.primitives import DEC_EFFET_TUILE, DecisionRequest, GameOver
+from engine.rng import SRC_BOT_TIEBREAK, rand_u64
+from engine.state import (
+    FAMILLE_CROISSANCE,
+    FAMILLE_REVE,
+    LISIERE_CONSTRUCTED,
+    LISIERE_UNCONSTRUCTED,
+    MACHINE_ABATTEUSE,
+    MACHINE_BULLDOZER,
+    MACHINE_STATUS_RETIRED,
+    MACHINE_STATUS_SIEGE,
+    MAX_P,
+    PIEGE_ACTIF,
+    PIEGE_AUCUN,
+    STEP_2_1_DEF1,
+    STEP_2_2_DEF2,
+    SYNERGY_META,
+    TRACK_LEN,
+    GameConfig,
+    GameState,
+    PlayerObservation,
+    is_reve_code,
+    is_tactique_code,
+)
+
+__all__ = (
+    "ALL_12_RESOURCES",
+    "BotB1",
+    "BotB2",
+    "EconomieNode",
+    "choose_b1",
+    "choose_b2",
+    "count_active_laws_from_obs",
+    "get_economie_catalog",
+    "play_game_b1",
+    "play_game_b2",
+    "score_target_b1",
+    "score_target_b2",
+)
+
+ALL_12_RESOURCES: tuple[str, ...] = (
+    "RES_INSECTE",
+    "RES_PIEGE",
+    "RES_DEFENSEUR",
+    "RES_JETON_BLEU",
+    "RES_JETON_ROUGE",
+    "RES_APPRENTISSAGE",
+    "RES_SEUIL_PARADE",
+    "RES_DILUTION_SABOTAGE",
+    "RES_SOUCHE",
+    "RES_ARBRE",
+    "RES_POSITION_MACHINE",
+    "RES_POSITION_PISTE",
+)
+
+# Courbe temporelle de RES_DILUTION_SABOTAGE (Tours 1..8) :
+# forte aux Tours 1..5 (nombreux remélanges 6.3 restants), faible au Tour 7, nulle au Tour 8.
+_SABOTAGE_TOUR_WEIGHT: tuple[float, ...] = (
+    95.0,  # index 0 (inutilisé)
+    95.0,  # Tour 1
+    88.0,  # Tour 2
+    78.0,  # Tour 3
+    68.0,  # Tour 4
+    56.0,  # Tour 5
+    32.0,  # Tour 6
+    12.0,  # Tour 7
+    2.0,   # Tour 8 (uniquement déclencheur 3 résiduel, 0 remélange futur)
+)
+
+
+@dataclass(frozen=True, slots=True)
+class EconomieNode:
+    """Nœud immuable du graphe orienté `economie_bot` extrait de spec_bundle_v5_3_1.json."""
+
+    slot_id: str
+    profile: str
+    famille: str
+    peuple_origine: str
+    role: str
+    portee: str
+    is_law: bool
+    cablage: tuple[int, ...]
+    inputs_requis: tuple[str, ...]
+    outputs_produits: tuple[str, ...]
+
+
+class _EconomieStore:
+    cache: ClassVar[dict[tuple[str, str], EconomieNode] | None] = None
+    last_b1_obs: ClassVar[PlayerObservation | None] = None
+    last_b1_laws: ClassVar[int] = 0
+    last_b2_obs: ClassVar[PlayerObservation | None] = None
+    last_b2_res: ClassVar[dict[str, float]] = {}
+    last_b2_trigs: ClassVar[tuple[float, ...]] = ()
+
+
+def get_economie_catalog() -> dict[tuple[str, str], EconomieNode]:
+    """Charge une seule fois le graphe orienté `economie_bot` depuis `data/spec_bundle_v5_3_1.json`."""
+    if _EconomieStore.cache is not None:
+        return _EconomieStore.cache
+
+    spec_path = Path(__file__).resolve().parent.parent / "data" / "spec_bundle_v5_3_1.json"
+    raw = json.loads(spec_path.read_text(encoding="utf-8"))
+    cat = raw["catalogue_tuiles"]
+    nodes: dict[tuple[str, str], EconomieNode] = {}
+
+    for slot_id, slot_val in cat.items():
+        fam = str(slot_val.get("famille", ""))
+        orig = str(slot_val.get("peuple_origine", ""))
+        for prof_key, prof_val in slot_val.get("profils", {}).items():
+            eb = prof_val.get("economie_bot") or {}
+            prim_str = str(prof_val.get("primitive", "")).upper()
+            fen_str = str(prof_val.get("fenetre", "")).upper()
+            is_law = ("MOD_LOI_DU_COEUR" in prim_str) or ("LOI" in fen_str)
+            cab_raw = prof_val.get("cablage") or []
+            cablage = tuple(int(x) for x in cab_raw) if isinstance(cab_raw, list) else ()
+            nodes[(slot_id, prof_key)] = EconomieNode(
+                slot_id=slot_id,
+                profile=prof_key,
+                famille=fam,
+                peuple_origine=orig,
+                role=str(eb.get("role", "MODULATEUR")),
+                portee=str(eb.get("portee", "LOCAL_RAYON")),
+                is_law=is_law,
+                cablage=cablage,
+                inputs_requis=tuple(str(x) for x in eb.get("inputs_requis", [])),
+                outputs_produits=tuple(str(x) for x in eb.get("outputs_produits", [])),
+            )
+
+    _EconomieStore.cache = nodes
+    return nodes
+
+
+def _tiebreak(cfg: GameConfig, obs: PlayerObservation, opt_idx: int, salt: int = 0) -> int:
+    return rand_u64(
+        cfg.exp_seed,
+        cfg.rep_id,
+        SRC_BOT_TIEBREAK,
+        obs.tour,
+        obs.observer_seat,
+        ((obs.step + salt) * 37 + opt_idx) & 0xFFFFFFFF,
+    )
+
+
+def count_active_laws_from_obs(obs: PlayerObservation, cfg: GameConfig) -> int:
+    """Compte les Lois `MOD_LOI_DU_COEUR` actives sur le plateau uniquement depuis `obs` et `cfg`."""
+    if obs.mode < 3:
+        return 0
+    if _EconomieStore.last_b1_obs is obs:
+        return _EconomieStore.last_b1_laws
+    econ = get_economie_catalog()
+    count = 0
+
+    for mig_slot in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
+        prof = cfg.profile_for_slot(mig_slot)
+        if prof is not None:
+            node = econ.get((mig_slot, prof))
+            if node is not None and node.is_law:
+                count += 1
+
+    for g_obs in obs.piste_gardiens:
+        if g_obs.tile_id is not None:
+            prof = cfg.profile_for_slot(g_obs.tile_id)
+            if prof is not None:
+                node = econ.get((g_obs.tile_id, prof))
+                if node is not None and node.is_law:
+                    count += 1
+
+    for t_obs in obs.piste_tactiques:
+        if is_reve_code(t_obs.code):
+            prof = cfg.profile_for_slot(t_obs.tile_id)
+            if prof is not None:
+                node = econ.get((t_obs.tile_id, prof))
+                if node is not None and node.is_law:
+                    count += 1
+
+    for lis in obs.lisieres:
+        if lis.tile_id.startswith("M") and lis.status == LISIERE_CONSTRUCTED:
+            prof = cfg.profile_for_slot(lis.tile_id)
+            if prof is not None:
+                node = econ.get((lis.tile_id, prof))
+                if node is not None and node.is_law:
+                    count += 1
+
+    _EconomieStore.last_b1_obs = obs
+    _EconomieStore.last_b1_laws = count
+    return count
+
+
+def _b1_forgetting_penalty(
+    obs: PlayerObservation, cfg: GameConfig, active_laws: int, item_salt: int
+) -> float:
+    """Oubli stochastique contrôlé de B1 via rng.py dès que > 2 lois sont actives simultanément."""
+    if active_laws <= 2:
+        return 0.0
+    excess = active_laws - 2
+    # Probabilité d'oubli bornée : 22 % par loi excédentaire au-delà de 2 (plafond 66 %)
+    threshold_permille = min(660, excess * 220)
+    roll = (
+        rand_u64(
+            cfg.exp_seed,
+            cfg.rep_id,
+            SRC_BOT_TIEBREAK,
+            obs.tour,
+            obs.observer_seat + 64,
+            item_salt & 0xFFFFFFFF,
+        )
+        % 1000
+    )
+    if roll < threshold_permille:
+        # Perturbation d'évaluation due à l'oubli de la loi par un joueur Découverte (B1)
+        sign = 1.0 if (roll & 1) else -1.0
+        return sign * (55.0 + 25.0 * excess)
+    return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Graphe dynamique B2 (`economie_bot` k=2 + Lookahead 5.1 -> 6.2)
+# ---------------------------------------------------------------------------
+
+
+def _compute_b2_resource_and_trigger_values(
+    obs: PlayerObservation, cfg: GameConfig, _belief: BeliefSummary
+) -> tuple[dict[str, float], tuple[float, ...]]:
+    """Calcule dynamiquement la valeur des 12 `RES_*` et la propagation k=2 des `TRIG_1..6`."""
+    if _EconomieStore.last_b2_obs is obs:
+        return _EconomieStore.last_b2_res, _EconomieStore.last_b2_trigs
+
+    n = obs.n_players
+    p_max = cfg.p_max
+    tour = min(8, max(1, obs.tour))
+    machines = obs.machines
+    gardiens = obs.piste_gardiens
+
+    # Pression globale sur les Arbres et risque de Routes
+    fragile_parcels = 0
+    total_souches = 0
+    total_insects = 0
+    total_rouges = 0
+    for r in range(n):
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            m_obs = machines[r * 2 + mt]
+            if m_obs.status != MACHINE_STATUS_RETIRED and m_obs.position > 0:
+                total_rouges += m_obs.rouges
+        for p in range(1, p_max + 1):
+            if obs.is_route(r, p):
+                continue
+            arb = obs.parcel_arbres(r, p)
+            sch = obs.parcel_souches(r, p)
+            total_souches += sch
+            total_insects += obs.parcel_insectes(r, p)
+            if arb <= 1:
+                fragile_parcels += 1
+
+    # Proximité des victoires anticipées en 5.3 (Sommeil Rêve rang 1 / Réveil Gardiens)
+    best_reve_rank = 99
+    for r_idx in range(TRACK_LEN):
+        t_code, _, _ = obs.tactique_code_bugs_app(r_idx)
+        if is_reve_code(t_code):
+            best_reve_rank = min(best_reve_rank, r_idx + 1)
+            break
+
+    used_g = 0
+    avail_g = 0
+    for c in range(TRACK_LEN):
+        g_slot = gardiens[c]
+        if g_slot.gardien_num > 0:
+            if g_slot.used_this_turn:
+                used_g += 1
+            else:
+                avail_g += 1
+
+    reve_push_mult = 1.65 if best_reve_rank <= 3 else (1.25 if best_reve_rank <= 5 else 1.0)
+    reveil_bonus = (
+        85.0
+        if (obs.seuil_reveil >= 3 and used_g + avail_g >= obs.seuil_reveil)
+        else (30.0 if obs.seuil_reveil >= 3 else 0.0)
+    )
+
+    res_val: dict[str, float] = {
+        "RES_ARBRE": 95.0 + 6.0 * fragile_parcels,
+        "RES_SOUCHE": 42.0 + (18.0 if tour >= 6 else 6.0),
+        "RES_DEFENSEUR": 68.0 + 4.0 * fragile_parcels,
+        "RES_PIEGE": 76.0 + 3.5 * total_rouges,
+        "RES_INSECTE": 52.0 if total_insects < 2 * n else 34.0,
+        "RES_SEUIL_PARADE": 62.0 + 4.0 * fragile_parcels,
+        "RES_JETON_BLEU": 64.0 + (22.0 if tour <= 6 else 8.0),
+        "RES_JETON_ROUGE": 58.0 + 4.0 * max(0, 8 - tour),
+        "RES_APPRENTISSAGE": (48.0 * reve_push_mult) if tour <= 7 else 8.0,
+        "RES_DILUTION_SABOTAGE": _SABOTAGE_TOUR_WEIGHT[tour],
+        "RES_POSITION_MACHINE": 70.0 + 4.0 * fragile_parcels,
+        "RES_POSITION_PISTE": 78.0 * reve_push_mult,
+    }
+
+    # Propagation k = 2 sur les déclencheurs TRIG_1..6 des Gardiens présents sur la piste
+    trig_val = [12.0] * (TRACK_LEN + 1)
+    if obs.mode >= 2:
+        econ = get_economie_catalog()
+        for c in range(1, TRACK_LEN + 1):
+            g_slot = gardiens[c - 1]
+            if g_slot.gardien_num > 0 and not g_slot.used_this_turn and g_slot.tile_id is not None:
+                v_open = 38.0 + reveil_bonus
+                if obs.mode >= 3:
+                    prof = cfg.profile_for_slot(g_slot.tile_id)
+                    node = econ.get((g_slot.tile_id, prof or "A"))
+                    if node is not None:
+                        v_open += sum(
+                            res_val.get(out_tok, 20.0) * 0.45 for out_tok in node.outputs_produits
+                        )
+                trig_val[c] = v_open
+
+        resonance_4 = trig_val[4] if obs.gardien_available_at_case(4) else 0.0
+        for c in range(1, TRACK_LEN + 1):
+            if c != 4 and obs.gardien_available_at_case(c):
+                trig_val[c] += 0.55 * resonance_4
+            if obs.mode >= 3:
+                g_slot = gardiens[c - 1]
+                if g_slot.tile_id is not None and not g_slot.used_this_turn:
+                    prof = cfg.profile_for_slot(g_slot.tile_id)
+                    node = econ.get((g_slot.tile_id, prof or "A"))
+                    if node is not None:
+                        for out_tok in node.outputs_produits:
+                            if out_tok.startswith("TRIG_"):
+                                t_idx = int(out_tok[5:])
+                                if t_idx != c and 1 <= t_idx <= 6:
+                                    trig_val[c] += 0.40 * trig_val[t_idx]
+
+    trigs_tuple = tuple(trig_val[1:])
+    _EconomieStore.last_b2_obs = obs
+    _EconomieStore.last_b2_res = res_val
+    _EconomieStore.last_b2_trigs = trigs_tuple
+    return res_val, trigs_tuple
+
+
+def _score_tile_construction_b2(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    tile_id: str,
+    res_val: dict[str, float],
+    trig_vals: tuple[float, ...],
+) -> float:
+    fam, _, _ = SYNERGY_META[tile_id]
+    tour = obs.tour
+    # Valeur structurelle Mode 2+ (victoire Rêve, production Nid, Réveil Gardien)
+    if fam == FAMILLE_REVE:
+        # Construire 1 à 2 Rêves tôt ouvre la condition Sommeil et annule des dés M !
+        reves_on_track = sum(1 for t in obs.piste_tactiques if is_reve_code(t.code))
+        struct_v = 195.0 if reves_on_track == 0 else (140.0 if reves_on_track == 1 else 85.0)
+        if tour >= 7 and reves_on_track == 0:
+            struct_v *= 0.45
+    elif fam == FAMILLE_CROISSANCE:
+        struct_v = 165.0 if tour <= 5 else 90.0
+    else:
+        g_on_track = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0)
+        struct_v = 145.0 if (obs.seuil_reveil >= 3 and g_on_track < obs.seuil_reveil) else 105.0
+
+    if obs.mode < 3:
+        return struct_v
+
+    econ = get_economie_catalog()
+    prof = cfg.profile_for_slot(tile_id) or "A"
+    node = econ.get((tile_id, prof))
+    if node is None:
+        return struct_v
+
+    econ_bonus = 0.0
+    for out_tok in node.outputs_produits:
+        if out_tok in res_val:
+            econ_bonus += 0.55 * res_val[out_tok]
+        elif out_tok.startswith("TRIG_"):
+            t_i = int(out_tok[5:]) - 1
+            if 0 <= t_i < 6:
+                econ_bonus += 0.50 * trig_vals[t_i]
+
+    # Pénalité légère si un input matériel rare (ex: RES_PIEGE / RES_INSECTE) est totalement absent du plateau
+    if "RES_INSECTE" in node.inputs_requis and fam != FAMILLE_CROISSANCE:
+        has_any_ins = any(
+            obs.parcel_insectes(r, p) > 0
+            for r in range(obs.n_players)
+            for p in range(1, cfg.p_max + 1)
+        )
+        if not has_any_ins:
+            econ_bonus -= 30.0
+
+    if node.is_law and tour <= 5:
+        econ_bonus += 35.0
+    return struct_v + econ_bonus
+
+
+# ---------------------------------------------------------------------------
+# Fonctions de score de cibles Défenseurs pour B1 (k=1) et B2 (k=2)
+# ---------------------------------------------------------------------------
+
+
+def score_target_b1(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+    target: tuple[Any, ...],
+    is_first_defender: bool,
+) -> float:
+    """Évaluation tactique 1-coup de B1 (+ oubli stochastique si > 2 lois actives)."""
+    _ = is_first_defender
+    active_laws = count_active_laws_from_obs(obs, cfg)
+    kind = target[0]
+
+    if kind == "FORET":
+        _, r, p = target
+        r_i, p_i = int(r), int(p)
+        idx = r_i * MAX_P + (p_i - 1)
+        defs = obs.parcel_defenseurs(r_i, p_i)
+        ins = obs.parcel_insectes(r_i, p_i)
+        cur_def = defs + ins
+        s_prob = belief.parcel_strike_prob[idx]
+        seuil_e = belief.parcel_expected_seuil[idx]
+        arbres = obs.parcel_arbres(r_i, p_i)
+        souches = obs.parcel_souches(r_i, p_i)
+
+        score = 95.0
+        # Armer un Piège inerte sur parcelle menacée
+        if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and cur_def == 0:
+            score += 420.0 + 260.0 * min(1.5, s_prob)
+        # Activer un Nid en forêt
+        if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
+            score += 470.0
+        # Parer une frappe attendue (exactement sur la marge du seuil ou en soutien d'insectes)
+        if s_prob > 0.08 and cur_def < seuil_e:
+            gap = seuil_e - cur_def
+            reach_mult = 1.0 if gap <= 1.25 else (0.58 if gap <= 2.25 else 0.25)
+            urgency = 580.0 * min(1.6, s_prob) * reach_mult
+            # Danger vital de création de Route Forestière (0/0) par Bulldozer ou dernier Arbre
+            if arbres <= 1 and (belief.parcel_bulldo_prob[idx] > 0.15 or souches == 0):
+                urgency += 175.0 * min(1.2, s_prob)
+            if r_i == obs.observer_seat:
+                urgency += 40.0
+            score += urgency
+
+        score += _b1_forgetting_penalty(obs, cfg, active_laws, 100 + idx)
+        return score
+
+    if kind == "LISIERE":
+        _, slot_idx = target
+        s_idx = int(slot_idx)
+        if obs.mode < 2 or s_idx >= 2 * obs.n_players:
+            return 0.0
+        tile_id, st_l, constructors = obs.lisiere_tile_info(s_idx)
+        if st_l != LISIERE_UNCONSTRUCTED:
+            return 0.0
+        fam, _, _ = SYNERGY_META[tile_id]
+        fam_bonus = 95.0 if fam == FAMILLE_REVE else (80.0 if fam == FAMILLE_CROISSANCE else 60.0)
+        if constructors == 1:
+            base_l = 610.0 + fam_bonus
+        elif belief.drew_sabotage_or_none and obs.tour <= 7:
+            # Émetteur altruiste Sabotage au Tick 1 : ouvre prioritairement un chantier coopératif !
+            base_l = 525.0 + fam_bonus
+        else:
+            base_l = 255.0 + fam_bonus
+        return base_l + _b1_forgetting_penalty(obs, cfg, active_laws, 300 + s_idx)
+
+    if kind == "FURTIVITE":
+        _, l_idx, p, rive = target
+        l_i, p_i, rv = int(l_idx), int(p), int(rive)
+        nb_d, f_ins = obs.furtivite_defs_and_ins(l_i, p_i)
+        t_ray = l_i if rv == 0 else (l_i + 1) % obs.n_players
+        idx = t_ray * MAX_P + (p_i - 1)
+
+        has_m = any(
+            obs.machine_pos_status(t_ray, mt)[0] == p_i
+            and obs.machine_pos_status(t_ray, mt)[1] != MACHINE_STATUS_RETIRED
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+        )
+        partner_ready = (nb_d == 1) or (f_ins >= 1)
+        useful_trap = (not has_m) and obs.parcel_piege(t_ray, p_i) == PIEGE_AUCUN
+        # Un Sabotage 4.1 ne passe que si la machine présente n'est PAS en Siège et a une chance d'être inactive
+        has_siege = any(
+            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_SIEGE)
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+        )
+        useful_sab = (
+            has_m
+            and (not has_siege)
+            and belief.parcel_strike_prob[idx] < 0.85
+            and obs.tour <= 6
+        )
+
+        if partner_ready and (useful_trap or useful_sab):
+            base_f = 545.0 if useful_trap else 515.0
+        elif belief.drew_sabotage_or_none and (useful_trap or useful_sab):
+            base_f = 435.0 if useful_trap else 405.0
+        else:
+            base_f = 135.0
+        return base_f + _b1_forgetting_penalty(obs, cfg, active_laws, 500 + l_i * 10 + p_i)
+
+    return 0.0
+
+
+def score_target_b2(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+    target: tuple[Any, ...],
+    is_first_defender: bool,
+) -> float:
+    """Évaluation B2 (`k=2`) : graphe orienté `economie_bot` (12 `RES_*`, `TRIG_1..6`) + lookahead 5.1->6.2."""
+    _ = is_first_defender
+    res_val, trig_vals = _compute_b2_resource_and_trigger_values(obs, cfg, belief)
+    kind = target[0]
+
+    if kind == "FORET":
+        _, r, p = target
+        r_i, p_i = int(r), int(p)
+        idx = r_i * MAX_P + (p_i - 1)
+        defs = obs.parcel_defenseurs(r_i, p_i)
+        ins = obs.parcel_insectes(r_i, p_i)
+        cur_def = defs + ins
+        s_prob = belief.parcel_strike_prob[idx]
+        seuil_e = belief.parcel_expected_seuil[idx]
+        arbres = obs.parcel_arbres(r_i, p_i)
+        souches = obs.parcel_souches(r_i, p_i)
+
+        score = 90.0
+        trig_1_v = trig_vals[0]  # 1. Parade
+
+        # 1. Armement d'un Piège Embuscade : pare n'importe quel Seuil + épargne les Insectes + allume TRIG_1
+        if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and cur_def == 0:
+            saved_ins_v = min(3, ins) * res_val["RES_INSECTE"] * 0.4
+            score += 410.0 + s_prob * (310.0 + trig_1_v + saved_ins_v)
+
+        # 2. Activation d'un Nid en 4.2 : produit +1/+2 Insectes + TRIG_6 + pouvoir du Nid
+        if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
+            prod_cnt = 1 if ins <= 1 else 2
+            score += 360.0 + prod_cnt * res_val["RES_INSECTE"] + 0.85 * trig_vals[5]
+
+        # 3. Lookahead 5.1 -> 6.2 sur les dégâts évités (Arbres, Route 0/0 ET Apprentissage Contremaître !)
+        if s_prob > 0.05:
+            piege_armed = obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and cur_def >= 1
+            if not piege_armed and cur_def < seuil_e:
+                gap = seuil_e - cur_def
+                # Atteindre exactement le seuil pare la frappe, évite +1 Apprentissage en 6.1 et allume TRIG_1 !
+                if gap <= 1.25:
+                    expected_trees_saved = min(2.0, float(max(1, arbres)))
+                    route_catastrophe = (
+                        220.0
+                        if (arbres <= 1 and (belief.parcel_bulldo_prob[idx] > 0.12 or souches == 0))
+                        else 0.0
+                    )
+                    app_denial = 0.75 * res_val["RES_APPRENTISSAGE"]
+                    score += s_prob * (
+                        expected_trees_saved * res_val["RES_ARBRE"] * 2.4
+                        + route_catastrophe
+                        + app_denial
+                        + 0.8 * trig_1_v
+                    )
+                elif gap <= 2.25:
+                    # Premier pilier d'une défense à 2 pions (signal de coordination vers le voisin)
+                    score += s_prob * (230.0 + 0.45 * res_val["RES_ARBRE"])
+            elif not piege_armed and cur_def >= seuil_e and ins > 0 and defs < seuil_e:
+                # Épargner 1 Insecte qui aurait été défaussé par la parade classique !
+                score += s_prob * (0.85 * res_val["RES_INSECTE"])
+
+        # Valeur de Repousse Finale de préserver au moins 1 Souche hors Route
+        if arbres == 0 and souches >= 1 and belief.parcel_bulldo_prob[idx] > 0.15 and cur_def < seuil_e:
+            score += belief.parcel_bulldo_prob[idx] * 210.0
+
+        return score
+
+    if kind == "LISIERE":
+        _, slot_idx = target
+        s_idx = int(slot_idx)
+        if obs.mode < 2 or s_idx >= 2 * obs.n_players:
+            return 0.0
+        tile_id, st_l, constructors = obs.lisiere_tile_info(s_idx)
+        if st_l != LISIERE_UNCONSTRUCTED:
+            return 0.0
+
+        tile_v = _score_tile_construction_b2(obs, cfg, tile_id, res_val, trig_vals)
+        # Bonus à N=3 : 1 bâtisseur sera libéré immédiatement en forêt en 3.1 !
+        lib_bonus = 0.45 * res_val["RES_DEFENSEUR"] if obs.n_players == 3 else 0.0
+        if constructors == 1:
+            return 470.0 + tile_v * 1.25 + lib_bonus
+        if belief.drew_sabotage_or_none:
+            return 390.0 + tile_v * 1.15 + lib_bonus
+        return 185.0 + tile_v * 0.90 + lib_bonus
+
+    if kind == "FURTIVITE":
+        _, l_idx, p, rive = target
+        l_i, p_i, rv = int(l_idx), int(p), int(rive)
+        nb_d, f_ins = obs.furtivite_defs_and_ins(l_i, p_i)
+        t_ray = l_i if rv == 0 else (l_i + 1) % obs.n_players
+        idx = t_ray * MAX_P + (p_i - 1)
+
+        has_m = any(
+            obs.machine_pos_status(t_ray, mt)[0] == p_i
+            and obs.machine_pos_status(t_ray, mt)[1] != MACHINE_STATUS_RETIRED
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+        )
+        has_siege = any(
+            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_SIEGE)
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+        )
+        partner_ready = (nb_d == 1) or (f_ins >= 1)
+
+        action_v = 0.0
+        if not has_m and obs.parcel_piege(t_ray, p_i) == PIEGE_AUCUN:
+            # 4.1 Poser un Piège + allumer TRIG_2
+            s_future = 1.0 + 0.8 * belief.parcel_strike_prob[idx]
+            action_v = res_val["RES_PIEGE"] * s_future + 0.85 * trig_vals[1]
+        elif has_m and not has_siege:
+            # 4.1 Saboter le chantier (dilution permanente en 6.3 + TRIG_3) pondéré par P(machine inactive)
+            p_inactive = max(0.0, 1.0 - min(1.0, belief.parcel_strike_prob[idx]))
+            action_v = p_inactive * (res_val["RES_DILUTION_SABOTAGE"] * 1.45 + 0.90 * trig_vals[2])
+
+        if action_v <= 5.0:
+            return 85.0
+        if partner_ready:
+            return 415.0 + action_v * 1.35
+        if belief.drew_sabotage_or_none:
+            return 320.0 + action_v * 1.15
+        return 145.0 + action_v * 0.75
+
+    return 0.0
+
+
+# ---------------------------------------------------------------------------
+# Politique complète hors Étape 2 (Étapes 3, 4, 5, 6 et Effets de tuiles)
+# ---------------------------------------------------------------------------
+
+
+def _score_effect_option(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+    decision: DecisionRequest,
+    opt: Any,
+    *,
+    is_b2: bool,
+) -> float:
+    """Évalue génériquement une option de `DEC_EFFET_TUILE` (Lot 01..10) sur `PlayerObservation`."""
+    slot_id = str(decision.context.get("slot_id", ""))
+    kind_hint = str(decision.context.get("effect_kind", ""))
+
+    if opt == "PASSER":
+        # Pour un sacrifice (ex: G4 A), ne sacrifier que si le gain dépasse nettement la valeur de G4 en piste !
+        if "SACRIFICE" in kind_hint or slot_id == "G4":
+            g_used = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0 and g.used_this_turn)
+            near_reveil = obs.seuil_reveil >= 3 and g_used >= obs.seuil_reveil - 1
+            return 520.0 if near_reveil else 240.0
+        return 25.0
+
+    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe ou G2:A Recul)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and kind_hint in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL")
+    ):
+        rm, mt = int(opt[0]), int(opt[1])
+        m_obs = obs.machines[rm * 2 + mt]
+        sc = 150.0 + m_obs.position * 45.0 + m_obs.rouges * 55.0
+        if mt == MACHINE_BULLDOZER:
+            sc += 30.0
+        if is_b2 and kind_hint == "MACHINE_SURCHAUFFE" and obs.tour <= 6:
+            sc += 40.0  # -1 Apprentissage durable en 6.1 !
+        return sc
+
+    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil ou G7:A Piège sur Souche)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and 0 <= opt[0] < obs.n_players
+        and 1 <= opt[1] <= cfg.p_max
+    ):
+        r_p, p_p = int(opt[0]), int(opt[1])
+        idx = r_p * MAX_P + (p_p - 1)
+        s_prob = belief.parcel_strike_prob[idx]
+        defs = obs.parcel_defenseurs(r_p, p_p) + obs.parcel_insectes(r_p, p_p)
+        sc = 120.0 + s_prob * 300.0 + p_p * 15.0
+        if kind_hint == "PIEGE_SOUCHE" and defs >= 1:
+            sc += 220.0  # Embuscade immédiatement armée !
+        elif kind_hint == "MOD_SEUIL_PARCELLE" and 0 < defs < belief.parcel_expected_seuil[idx]:
+            sc += 200.0
+        return sc
+
+    # 3. Décalage lecture dé M `(seat, delta_m)` (ex: G6:A)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 2
+        and kind_hint == "SHIFT_LECTURE_M"
+    ):
+        s_id, d_m = int(opt[0]), int(opt[1])
+        h = obs.hand_of(s_id)
+        if h.lecture_m is None or h.card is None or not (1 <= h.card <= 2 * obs.n_players):
+            return 40.0
+        old_m = h.lecture_m
+        new_m = max(1, min(6, old_m + d_m))
+        if new_m == old_m:
+            return 5.0
+        old_code, _, _ = obs.tactique_code_bugs_app(old_m - 1)
+        new_code, _, _ = obs.tactique_code_bugs_app(new_m - 1)
+        # Décaler une carte Machine sur un Rêve l'annule ET ouvre/avance le Rêve : jackpot !
+        if is_reve_code(new_code) and not is_reve_code(old_code):
+            return 750.0
+        if is_reve_code(old_code) and not is_reve_code(new_code):
+            return -200.0
+        if is_tactique_code(old_code) and is_tactique_code(new_code):
+            # Préférer T1/T2 (douces) à T6/T3/T4/T5 (violentes)
+            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
+            return 150.0 + (danger_t[old_code] - danger_t[new_code]) * 4.0
+        return 80.0
+
+    # 4. Déplacement d'un Défenseur `(src_spec, (dst_r, dst_p))` (ex: G4:A Sacrifice)
+    if isinstance(opt, tuple) and len(opt) == 2 and isinstance(opt[1], tuple) and len(opt[1]) == 2:
+        src_spec, (dst_r, dst_p) = opt
+        dr, dp = int(dst_r), int(dst_p)
+        dst_idx = dr * MAX_P + (dp - 1)
+        dst_gain = score_target_b2(obs, cfg, belief, ("FORET", dr, dp), False)
+        src_loss = 120.0
+        if isinstance(src_spec, tuple) and len(src_spec) >= 3 and src_spec[0] == "FORET":
+            sr, sp = int(src_spec[1]), int(src_spec[2])
+            src_idx = sr * MAX_P + (sp - 1)
+            src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
+        return dst_gain - src_loss + belief.parcel_strike_prob[dst_idx] * 90.0
+
+    # 5. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
+    if isinstance(opt, int) and 1 <= opt <= 6:
+        if is_b2:
+            _, trig_vals = _compute_b2_resource_and_trigger_values(obs, cfg, belief)
+            return 200.0 + trig_vals[opt - 1] * 2.0
+        return 200.0 + (7 - opt) * 15.0
+
+    return 100.0
+
+
+def _choose_policy(
+    obs: PlayerObservation,
+    decision: DecisionRequest,
+    cfg: GameConfig,
+    *,
+    is_b2: bool,
+) -> Any:
+    opts = decision.options
+    assert len(opts) >= 1
+    if len(opts) == 1:
+        return opts[0]
+
+    dtype = decision.decision_type
+    scorer = score_target_b2 if is_b2 else score_target_b1
+    belief = build_belief_summary(obs, cfg)
+
+    if dtype == DEC_POSE_DEFENSEUR_1:
+        best_opt = opts[0]
+        best_sc = scorer(obs, cfg, belief, opts[0], True)
+        best_tb = -1
+        best_i = 0
+        for i in range(1, len(opts)):
+            sc = scorer(obs, cfg, belief, opts[i], True)
+            if sc > best_sc + 1e-9:
+                best_sc, best_opt, best_i, best_tb = sc, opts[i], i, -1
+            elif abs(sc - best_sc) <= 1e-9:
+                if best_tb < 0:
+                    best_tb = _tiebreak(cfg, obs, best_i, 1)
+                tb = _tiebreak(cfg, obs, i, 1)
+                if tb > best_tb:
+                    best_tb, best_opt, best_i = tb, opts[i], i
+        return best_opt
+
+    if dtype == DEC_POSE_DEFENSEUR_2:
+        prefer_kind = "POSER_REFLEXION" if cfg.max_revision_passes > 0 else "POSER_DEFINITIF"
+        filtered = [(i, o) for i, o in enumerate(opts) if o[0] == prefer_kind]
+        if not filtered:
+            filtered = list(enumerate(opts))
+        best_i, best_opt = filtered[0]
+        best_sc = scorer(obs, cfg, belief, best_opt[1], False)
+        best_tb = -1
+        for i, opt in filtered[1:]:
+            sc = scorer(obs, cfg, belief, opt[1], False)
+            if sc > best_sc + 1e-9:
+                best_sc, best_opt, best_i, best_tb = sc, opt, i, -1
+            elif abs(sc - best_sc) <= 1e-9:
+                if best_tb < 0:
+                    best_tb = _tiebreak(cfg, obs, best_i, 2)
+                tb = _tiebreak(cfg, obs, i, 2)
+                if tb > best_tb:
+                    best_tb, best_opt, best_i = tb, opt, i
+        return best_opt
+
+    if dtype == DEC_REVISION_DEFENSEUR_2:
+        pass_idx = int(decision.context.get("pass", 1))
+        eps = (24.0 if is_b2 else 32.0) + (pass_idx - 1) * 12.0
+        move_opts = [(i, o) for i, o in enumerate(opts) if o[0] == "DEPLACER_REFLEXION"]
+        if not move_opts:
+            for o in opts:
+                if o[0] == "GARDER_REFLEXION":
+                    return o
+            return opts[0]
+        best_i, best_mv = move_opts[0]
+        best_sc = scorer(obs, cfg, belief, best_mv[1], False)
+        for i, mv in move_opts[1:]:
+            sc = scorer(obs, cfg, belief, mv[1], False)
+            if sc > best_sc:
+                best_sc, best_mv, best_i = sc, mv, i
+        _ = best_i
+        if best_sc > 520.0 + eps:
+            return best_mv
+        for o in opts:
+            if o[0] == "GARDER_REFLEXION":
+                return o
+        return opts[0]
+
+    if dtype == DEC_EFFET_TUILE:
+        best_e = opts[0]
+        best_sc = _score_effect_option(obs, cfg, belief, decision, opts[0], is_b2=is_b2)
+        best_tb = -1
+        best_i = 0
+        for i in range(1, len(opts)):
+            sc = _score_effect_option(obs, cfg, belief, decision, opts[i], is_b2=is_b2)
+            if sc > best_sc + 1e-9:
+                best_sc, best_e, best_i, best_tb = sc, opts[i], i, -1
+            elif abs(sc - best_sc) <= 1e-9:
+                if best_tb < 0:
+                    best_tb = _tiebreak(cfg, obs, best_i, 7)
+                tb = _tiebreak(cfg, obs, i, 7)
+                if tb > best_tb:
+                    best_tb, best_e, best_i = tb, opts[i], i
+        return best_e
+
+    if dtype == DEC_COLONIE_A_OPEN:
+        if "OUVRIR" in opts:
+            case_c = int(decision.context.get("case", 1))
+            if obs.gardien_available_at_case(case_c):
+                return "OUVRIR"
+        return "PASSER" if "PASSER" in opts else opts[0]
+
+    if dtype == DEC_ORDRE_CONSTRUCTION_3_1:
+        res_val, trig_vals = (
+            _compute_b2_resource_and_trigger_values(obs, cfg, belief)
+            if is_b2
+            else ({}, (20.0,) * 6)
+        )
+        best_s = opts[0]
+        best_sc = -1e9
+        for slot_idx in opts:
+            tid, _, _ = obs.lisiere_tile_info(int(slot_idx))
+            if is_b2:
+                sc = _score_tile_construction_b2(obs, cfg, tid, res_val, trig_vals)
+            else:
+                fam, _, _ = SYNERGY_META[tid]
+                sc = 300.0 if fam == FAMILLE_REVE else (200.0 if fam == FAMILLE_CROISSANCE else 100.0)
+            if sc > best_sc:
+                best_sc, best_s = sc, slot_idx
+        return best_s
+
+    if dtype == DEC_CHOIX_CASE_GARDIEN:
+        # Placer un Gardien Loi ou clé sur les déclencheurs les plus fréquents (1: Parade, 6: Insecte, 4: Résonance, 2: Piège)
+        case_weights = {1: 95.0, 6: 88.0, 4: 82.0, 2: 76.0, 5: 68.0, 3: 58.0}
+        tid = str(decision.context.get("tile_id", ""))
+        if is_b2 and obs.mode >= 3 and tid:
+            econ = get_economie_catalog()
+            node = econ.get((tid, cfg.profile_for_slot(tid) or "A"))
+            if node is not None and node.is_law:
+                # Une Loi gagne son marqueur utilisé dès que sa case s'allume -> case 1 ou 4 idéale pour le Réveil !
+                case_weights = {1: 110.0, 4: 105.0, 6: 95.0, 2: 85.0, 5: 75.0, 3: 65.0}
+        return max(opts, key=lambda c: (case_weights.get(int(c), 50.0), _tiebreak(cfg, obs, int(c), 3)))
+
+    if dtype == DEC_PLACEMENT_NID_3_1:
+        def _nid_parcel_sc(rp: tuple[int, int]) -> tuple[float, int]:
+            r_n, p_n = int(rp[0]), int(rp[1])
+            idx = r_n * MAX_P + (p_n - 1)
+            # B2 évite les parcelles directement sur la trajectoire immédiate d'une machine et vise près du cœur (Migration 4.3 !)
+            safety = -180.0 * belief.parcel_strike_prob[idx]
+            depth_v = p_n * 65.0 + obs.parcel_arbres(r_n, p_n) * 18.0
+            return (depth_v + safety, _tiebreak(cfg, obs, idx, 4))
+
+        return max(opts, key=_nid_parcel_sc)
+
+    if dtype == DEC_LIBERATION_BATISSEUR_3_1:
+        def _lib_sc(opt: tuple[int, int, int, int]) -> tuple[float, int]:
+            _, _, r_l, p_l = opt
+            sc = scorer(obs, cfg, belief, ("FORET", int(r_l), int(p_l)), False)
+            return (sc, _tiebreak(cfg, obs, int(r_l) * 10 + int(p_l), 5))
+
+        return max(opts, key=_lib_sc)
+
+    if dtype == DEC_MIGRATION_INSECTE_4_3:
+        src = decision.context.get("source", ("FORET", 0, 1))
+        src_kind, src_a, src_p = src
+        if src_kind == "FORET":
+            sr, sp = int(src_a), int(src_p)
+            sr_idx = sr * MAX_P + (sp - 1)
+            # Garder un Piège armé ou une parade vitale sur la parcelle source !
+            if (
+                obs.parcel_piege(sr, sp) == PIEGE_ACTIF
+                and obs.parcel_defenseurs(sr, sp) == 0
+                and obs.parcel_insectes(sr, sp) == 1
+            ):
+                return ("RESTER",)
+            if (
+                is_b2
+                and belief.parcel_strike_prob[sr_idx] >= 0.85
+                and obs.parcel_defenseurs(sr, sp) + obs.parcel_insectes(sr, sp)
+                == int(belief.parcel_expected_seuil[sr_idx])
+            ):
+                return ("RESTER",)
+
+        def _mig_sc(mv: tuple[Any, ...]) -> float:
+            mk = mv[0]
+            if mk == "COLONIE":
+                c_num = int(mv[1])
+                if obs.gardien_available_at_case(c_num):
+                    return 560.0 if is_b2 else 500.0
+                return 240.0
+            if mk == "BUG":
+                c_num = int(mv[1])
+                t_code, t_bugs, _ = obs.tactique_code_bugs_app(c_num - 1)
+                if is_tactique_code(t_code) and t_bugs == 0:
+                    # B2 cible en priorité les Tactiques dangereuses (T6, T3) ou placées juste à droite d'un Rêve !
+                    right_of_reve = (
+                        c_num >= 2 and is_reve_code(obs.tactique_code_bugs_app(c_num - 2)[0])
+                    )
+                    danger_b = 110.0 if t_code in (3, 6) else 45.0
+                    return 410.0 + danger_b + (95.0 if (is_b2 and right_of_reve) else 0.0)
+                return 190.0
+            if mk == "FORET":
+                dr, dp = int(mv[1]), int(mv[2])
+                d_idx = dr * MAX_P + (dp - 1)
+                if (
+                    obs.parcel_piege(dr, dp) == PIEGE_ACTIF
+                    and obs.parcel_defenseurs(dr, dp) + obs.parcel_insectes(dr, dp) == 0
+                ):
+                    return 520.0
+                if belief.parcel_strike_prob[d_idx] >= 0.75 and (
+                    obs.parcel_defenseurs(dr, dp) + obs.parcel_insectes(dr, dp)
+                    < belief.parcel_expected_seuil[d_idx]
+                ):
+                    return 390.0
+                if obs.mode >= 2 and src_kind == "FORET" and dp > int(src_p):
+                    return 310.0
+                return 95.0
+            if mk == "FURTIVITE":
+                fl, fp = int(mv[1]), int(mv[2])
+                nb_d, f_ins = obs.furtivite_defs_and_ins(fl, fp)
+                return 260.0 if (nb_d == 1 and f_ins == 0) else 90.0
+            return 160.0  # RESTER
+
+        best_mv = opts[0]
+        best_m_sc = _mig_sc(opts[0])
+        for idx_m in range(1, len(opts)):
+            sc = _mig_sc(opts[idx_m])
+            if sc > best_m_sc:
+                best_m_sc, best_mv = sc, opts[idx_m]
+        return best_mv
+
+    if dtype == DEC_RETRAIT_APPRENTISSAGE_6_1:
+        # B2 retire en priorité l'Apprentissage de la Tactique en tête menaçant de faire reculer un Rêve
+        # ou d'amener T6/T3 vers la gauche (et épargne un Bug si la Tactique tombe à 0 !).
+        best_r = opts[0]
+        best_r_sc = -1.0
+        for opt in opts:
+            if opt == "PASSER":
+                sc = 0.0
+            else:
+                r_idx = int(opt)
+                t_code, bugs, app = obs.tactique_code_bugs_app(r_idx)
+                saves_bug = 95.0 if (app == 1 and bugs > 0) else 0.0
+                pushes_reve = (
+                    140.0
+                    if (r_idx >= 1 and is_reve_code(obs.tactique_code_bugs_app(r_idx - 1)[0]))
+                    else 0.0
+                )
+                danger_t = 75.0 if t_code in (3, 6) else 25.0
+                sc = 120.0 + app * 30.0 + (saves_bug + pushes_reve + danger_t if is_b2 else 0.0)
+            if sc > best_r_sc:
+                best_r_sc, best_r = sc, opt
+        return best_r
+
+    if dtype in (DEC_ORDRE_ATTAQUE_5_1, DEC_ORDRE_SIEGE_5_2, DEC_ORDRE_NID_4_2):
+        # Choix déterministe sans biais
+        return max(opts, key=lambda o: _tiebreak(cfg, obs, hash(o) & 0xFFFF, 9))
+
+    return max(opts, key=lambda o: _tiebreak(cfg, obs, hash(o) & 0xFFFF, 11))
+
+
+class BotB1:
+    """Bot Découverte B1 (`k = 1`, oubli stochastique si `> 2` lois actives)."""
+
+    @staticmethod
+    def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:
+        return _choose_policy(obs, decision, cfg, is_b2=False)
+
+
+class BotB2:
+    """Bot Cœur de cible B2 (`k = 2`, graphe `economie_bot` 12 `RES_*` + `TRIG_1..6` + lookahead)."""
+
+    @staticmethod
+    def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:
+        return _choose_policy(obs, decision, cfg, is_b2=True)
+
+
+def choose_b1(state: GameState, decision: DecisionRequest) -> Any:
+    """Point d'entrée isolé B1 : extrait uniquement PlayerObservation pour `decision.decideur`."""
+    obs = state.get_observation(decision.decideur)
+    return BotB1.choose(obs, decision, state.cfg)
+
+
+def choose_b2(state: GameState, decision: DecisionRequest) -> Any:
+    """Point d'entrée isolé B2 : extrait uniquement PlayerObservation pour `decision.decideur`."""
+    obs = state.get_observation(decision.decideur)
+    return BotB2.choose(obs, decision, state.cfg)
+
+
+def _play_game_cooperative(
+    state: GameState,
+    *,
+    is_b2: bool,
+    k_max_passes: int | None = None,
+    max_steps: int = 2000,
+    chassis_id: int = -1,
+    telemetry: Any | None = None,
+) -> GameOver:
+    scorer = score_target_b2 if is_b2 else score_target_b1
+    chooser = choose_b2 if is_b2 else choose_b1
+    steps = 0
+
+    while True:
+        steps += 1
+        if steps > max_steps:
+            cfg = state.cfg
+            raise RuntimeError(
+                f"Garde-fou max_steps={max_steps} dépassé ({'B2' if is_b2 else 'B1'}) : "
+                f"mode={cfg.mode}, chassis_id={chassis_id}, n_players={cfg.n_players}, "
+                f"exp_seed={cfg.exp_seed}, rep_id={cfg.rep_id}, tour={state.tour}, "
+                f"step={state.step}, continuation={state._continuation!r}"
+            )
+        out = step_until_decision(
+            state, max_internal_steps=max(2000, max_steps), telemetry=telemetry
+        )
+        if isinstance(out, GameOver):
+            return out
+
+        if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_POSE_DEFENSEUR_1,
+            DEC_POSE_DEFENSEUR_2,
+        ):
+            resolve_step2_full_with_ticks(
+                state,
+                scorer,
+                k_max_passes=k_max_passes,
+                epsilon_base=24.0 if is_b2 else 32.0,
+                epsilon_step=12.0,
+                telemetry=telemetry,
+            )
+            continue
+
+        choice = chooser(state, out)
+        apply_choice(state, choice, telemetry=telemetry)
+
+
+def play_game_b1(
+    state: GameState,
+    *,
+    k_max_passes: int | None = None,
+    max_steps: int = 2000,
+    chassis_id: int = -1,
+    telemetry: Any | None = None,
+) -> GameOver:
+    """Exécute une partie complète pilotée par B1 (Ticks 1..3 + révision 2.2) sous garde-fou max_steps."""
+    return _play_game_cooperative(
+        state,
+        is_b2=False,
+        k_max_passes=k_max_passes,
+        max_steps=max_steps,
+        chassis_id=chassis_id,
+        telemetry=telemetry,
+    )
+
+
+def play_game_b2(
+    state: GameState,
+    *,
+    k_max_passes: int | None = None,
+    max_steps: int = 2000,
+    chassis_id: int = -1,
+    telemetry: Any | None = None,
+) -> GameOver:
+    """Exécute une partie complète pilotée par B2 (Ticks 1..3 + révision 2.2 + economie_bot)."""
+    return _play_game_cooperative(
+        state,
+        is_b2=True,
+        k_max_passes=k_max_passes,
+        max_steps=max_steps,
+        chassis_id=chassis_id,
+        telemetry=telemetry,
+    )

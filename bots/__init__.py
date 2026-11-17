@@ -3,9 +3,23 @@
 from __future__ import annotations
 
 from bots.bot_b0 import BotB0, choose_b0, play_game_b0
+from bots.heuristic_engine import (
+    BotB1,
+    BotB2,
+    choose_b1,
+    choose_b2,
+    play_game_b1,
+    play_game_b2,
+)
 
 __all__ = (
     "BotB0",
+    "BotB1",
+    "BotB2",
     "choose_b0",
+    "choose_b1",
+    "choose_b2",
     "play_game_b0",
+    "play_game_b1",
+    "play_game_b2",
 )

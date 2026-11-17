@@ -387,6 +387,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `CAUSE_TOUR_8: str = 'TOUR_8_ATTEINT'`
 - `CAUSE_REVE_RANG_1: str = 'REVE_RANG_1'`
 - `CAUSE_REVEIL_GARDIENS: str = 'REVEIL_GARDIENS'`
+- `DEC_EFFET_TUILE: str = 'EFFET_TUILE'`
 - `PRIM_MOD_SEUIL: str = 'MOD_SEUIL'`
 - `PRIM_CREATION_ENTITE: str = 'CREATION_ENTITE'`
 - `PRIM_DEPLACEMENT: str = 'DEPLACEMENT'`
@@ -401,21 +402,27 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `HOOK_3_1_CONSTRUCTION: str = 'HOOK_3_1_CONSTRUCTION'`
 - `HOOK_3_2_REVELATION: str = 'HOOK_3_2_REVELATION'`
 - `HOOK_3_2_OUVERTURE_REVE: str = 'HOOK_3_2_OUVERTURE_REVE'`
+- `HOOK_3_2_APRES_REVELATION: str = 'HOOK_3_2_APRES_REVELATION'`
 - `HOOK_GARDIEN_OUVERTURE: str = 'HOOK_GARDIEN_OUVERTURE'`
 - `HOOK_4_1_FURTIVITE: str = 'HOOK_4_1_FURTIVITE'`
 - `HOOK_4_2_NID_APRES_PROD: str = 'HOOK_4_2_NID_APRES_PROD'`
 - `HOOK_4_3_COLONIE_FIN: str = 'HOOK_4_3_COLONIE_FIN'`
+- `HOOK_5_LAW_QUERY: str = 'HOOK_5_LAW_QUERY'`
 - `HOOK_5_PARADE_JAGUAR: str = 'HOOK_5_PARADE_JAGUAR'`
 - `HOOK_5_PARADE_HARPIE: str = 'HOOK_5_PARADE_HARPIE'`
 - `HOOK_5_SEUIL_PARADE: str = 'HOOK_5_SEUIL_PARADE'`
 - `HOOK_5_DEFENSE_PARCELLE: str = 'HOOK_5_DEFENSE_PARCELLE'`
+- `HOOK_5_APRES_PARADE_PIEGE: str = 'HOOK_5_APRES_PARADE_PIEGE'`
+- `HOOK_5_PARADE_CLASSIQUE: str = 'HOOK_5_PARADE_CLASSIQUE'`
 - `HOOK_5_TERRASSEMENT: str = 'HOOK_5_TERRASSEMENT'`
 - `HOOK_5_CONTACT_NID: str = 'HOOK_5_CONTACT_NID'`
+- `HOOK_5_FIN_ATTAQUE_MACHINE: str = 'HOOK_5_FIN_ATTAQUE_MACHINE'`
 - `HOOK_5_3_PRE_RETRAIT: str = 'HOOK_5_3_PRE_RETRAIT'`
 - `HOOK_6_1_REDUCTION_VOLONTAIRE: str = 'HOOK_6_1_REDUCTION_VOLONTAIRE'`
 - `HOOK_6_1_BUG: str = 'HOOK_6_1_BUG'`
 - `HOOK_6_2_AVANCEMENT: str = 'HOOK_6_2_AVANCEMENT'`
 - `HOOK_REPOUSSE_FINALE: str = 'HOOK_REPOUSSE_FINALE'`
+- `HOOK_EFFECT_RESUME: str = 'HOOK_EFFECT_RESUME'`
 - `EffectHandler = Callable[[GameState, str, dict[str, Any]], Any]`
 
 ### Fonctions publiques
@@ -424,14 +431,16 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `get_tile_registration(slot_id: str, profile: str) -> TileRegistration | None`
 - `list_registered_tiles() -> tuple[tuple[str, str], ...]`
 - `clear_tile_registry() -> None`
-- `dispatch_hook(state: GameState, hook_name: str, ctx: dict[str, Any] | None=None) -> list[Any]` — Exécute le bus de hooks pour les tuiles en jeu ayant un profil actif. En Mode 1 : retourne immédiatement []. En Mode 2 : neutralise les textes de G/R/M (profile_for_slot -> None) tout en laissant passer les hooks structurels et Migration A/A.
+- `has_pending_decision(state: GameState) -> bool` — Retourne True si une DecisionRequest est déjà en tête de la pile de continuation.
+- `push_effect_decision(state: GameState, decideur: int, options: Sequence[Any], context: dict[str, Any], *, slot_id: str, profile: str, resume_tag: str='RESUME', resume_payload: tuple[Any, ...]=(), decision_type: str=DEC_EFFET_TUILE) -> DecisionRequest` — Suspend proprement un effet de tuile sur une DecisionRequest gouvernée par `decideur`.
+- `dispatch_hook(state: GameState, hook_name: str, ctx: dict[str, Any] | None=None) -> list[Any]` — Exécute le bus de hooks pour les tuiles en jeu ayant un profil actif. En Mode 1 : retourne immédiatement []. En Mode 2 : neutralise les textes de G/R/M (profile_for_slot -> None) tout en laissant passer les hooks structurels et Migration A/A. Si un handler suspend via push_effect_decision, met en file les handlers restants.
 - `prim_mod_seuil(state: GameState, delta: int, *, ray: int | None=None, p: int | None=None, m_type: int | None=None) -> None` — Primitive 1 : MOD_SEUIL — modifie le Seuil de Parade (parcelle, rayon, machine ou global).
 - `prim_creation_entite(state: GameState, entity_type: str, *, ray: int=0, p: int=1, lisiere: int | None=None, count: int=1, light_trigger: bool=True) -> None` — Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Sabotage ou Arbre (Repousse).
 - `apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool` — Règle A16 : tout mouvement entrant d'une machine sur un Nid non protégé le renvoie en lisière (reconstructible) et défausse tous les Insectes locaux.
-- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, m_type: int=0, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine ou Défenseur.
+- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, m_type: int=0, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine ou Défenseur.
 - `prim_mod_puissance(state: GameState, ray: int, m_type: int, *, delta_rouges: int=0, delta_bleus: int=0, flip_rouge_to_bleu: int=0) -> None` — Primitive 4 : MOD_PUISSANCE — ajuste les jetons Puissance rouges et bleus Surchauffe.
 - `prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None` — Primitive 5 : MOD_APPRENTISSAGE — ajoute ou retire des jetons Apprentissage.
-- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0) -> bool` — Primitive 6 : PERMUTATION_PISTE — échange sur piste centrale, avancée Rêve ou lecture M.
+- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 6 : PERMUTATION_PISTE — échange sur piste centrale, avancée Rêve ou lecture M.
 - `prim_partage_info_etat_gardien(state: GameState, action: str, *, case_1_6: int=1, new_face: int=2) -> bool` — Primitive 7 : PARTAGE_INFO_ETAT_GARDIEN — états Gardiens & ouverture paravents.
 - `prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool=True) -> bool` — Primitive 8 : MOD_LOI_DU_COEUR — point d'entrée typé des Lois passives/temporaires.
 

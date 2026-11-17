@@ -1,4 +1,4 @@
-"""Worker Cloud PyPy 3.11 stdlib pure pour amazonia-sim-lab (Smoke & Campagne Palier 1)."""
+"""Worker Cloud PyPy 3.11 stdlib pure pour amazonia-sim-lab (Smoke, Palier 1 & Palier 2)."""
 
 from __future__ import annotations
 
@@ -15,9 +15,21 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+import engine.effects  # noqa: F401
 from bots.bot_b0 import play_game_b0
+from bots.heuristic_engine import play_game_b1, play_game_b2
+from campaigns.designs import (
+    MANDATORY_6_CIRCLES,
+    MirrorBlock,
+    mirror_peuples,
+    paired_mirror_blocks,
+    run_micro_fork_on_config,
+    sequential_halving_select,
+)
+from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
-from engine.state import STATE_BUF_SIZE, GameConfig, GameState
+from engine.state import PEUPLES_ORDER, STATE_BUF_SIZE, GameConfig, GameState
+from engine.telemetry import TelemetryTracker
 
 METADATA_TOKEN_URL: str = (
     "http://metadata.google.internal/computeMetadata/v1/"
@@ -26,16 +38,10 @@ METADATA_TOKEN_URL: str = (
 BUCKET_NAME: str = "amazonia-sim-runs"
 SMOKE_OBJECT_NAME: str = "smoke/shard_00.jsonl.gz"
 PALIER1_PREFIX: str = "palier1_baseline"
+PALIER2_PREFIX: str = "palier2_coeur_muet"
 
-# Châssis contrastés du Palier 1 :
-# 0   : Référence P4_2233 standard
-# 1   : P5_22233 standard
-# 4   : P4_2233 + Offset_Seuil_Parade = +1
-# 5   : P5_22233 + Offset_Seuil_Parade = +1
-# 127 : Tous axes alternatifs activés (P5, PAR_DE_M_DESIGNE, Offset +1, ALEATOIRE, DEPASSEMENT, ARRACHE_1_SOUCHE, MUTUALISATION)
 PALIER1_CHASSIS_IDS: tuple[int, ...] = (0, 1, 4, 5, 127)
 
-# Blocs en paires miroirs (Cercle, Cercle_Miroir) incluant les 6 cercles de couverture complète
 PALIER1_TABLES_BY_N: dict[int, tuple[tuple[str, tuple[str, ...]], ...]] = {
     3: (
         ("M-E-I", ("M", "E", "I")),
@@ -66,6 +72,14 @@ PALIER1_TABLES_BY_N: dict[int, tuple[tuple[str, tuple[str, ...]], ...]] = {
 }
 
 CellSpec = tuple[int, int, int, str, tuple[str, ...], int, int, int]
+
+PALIER2_POLICIES: tuple[tuple[str, str, int], ...] = (
+    ("B0_K0", "B0", 0),
+    ("B1_K0", "B1", 0),
+    ("B1_K3", "B1", 3),
+    ("B2_K0", "B2", 0),
+    ("B2_K3", "B2", 3),
+)
 
 
 def _fetch_gcp_access_token() -> str:
@@ -147,6 +161,18 @@ def _quantile_sorted(sorted_vals: list[float], q: float) -> float:
     hi = min(len(sorted_vals) - 1, lo + 1)
     frac = pos - lo
     return sorted_vals[lo] * (1.0 - frac) + sorted_vals[hi] * frac
+
+
+def _cvar_bottom_sorted(sorted_vals: list[float], alpha: float = 0.20) -> float:
+    if not sorted_vals:
+        return 0.0
+    k = max(1, round(len(sorted_vals) * alpha))
+    return sum(sorted_vals[:k]) / k
+
+
+# ---------------------------------------------------------------------------
+# Campagne Palier 1 (conservée intacte)
+# ---------------------------------------------------------------------------
 
 
 def build_palier1_cells(total_games: int = 100_000, exp_seed: int = 20261117) -> list[CellSpec]:
@@ -347,6 +373,611 @@ def run_campaign_palier1(
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Campagne Palier 2 : Cœur Coopératif Muet, Micro-Forks, Lot 01 & 128 Châssis
+# ---------------------------------------------------------------------------
+
+
+def _make_cfg_with_mode(
+    chassis_id: int,
+    *,
+    n_players: int,
+    mode: int,
+    peuples: tuple[str, ...],
+    exp_seed: int,
+    rep_id: int,
+    coordonnateur_initial: int,
+    max_revision_passes: int,
+) -> GameConfig:
+    base = GameConfig.from_chassis_index(
+        chassis_id,
+        n_players=n_players,
+        mode=mode,
+        peuples=peuples,
+        exp_seed=exp_seed,
+        rep_id=rep_id,
+        coordonnateur_initial=coordonnateur_initial,
+        max_revision_passes=max_revision_passes,
+    )
+    if mode < 3:
+        return base
+    return GameConfig(
+        n_players=base.n_players,
+        mode=mode,
+        peuples=base.peuples,
+        exp_seed=base.exp_seed,
+        rep_id=base.rep_id,
+        coordonnateur_initial=base.coordonnateur_initial,
+        max_revision_passes=base.max_revision_passes,
+        p_max=base.p_max,
+        regle_ouverture_reve_multiple=base.regle_ouverture_reve_multiple,
+        offset_seuil_parade=base.offset_seuil_parade,
+        mise_en_place_tactiques=base.mise_en_place_tactiques,
+        declenchement_fin_de_piste=base.declenchement_fin_de_piste,
+        role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
+        synergie_binome_machines=base.synergie_binome_machines,
+        tile_profiles=LOT_01_PROFILES,
+    )
+
+
+def _canonical_rot(peuples: tuple[str, ...]) -> tuple[str, ...]:
+    rmap = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}
+    b = min(range(len(peuples)), key=lambda i: rmap[peuples[i]])
+    return peuples[b:] + peuples[:b]
+
+
+def build_palier2_work_units(
+    *,
+    reps_per_table_coop: int = 12,
+    forks_per_table: int = 2,
+    halving_cohorts: int = 16,
+    exp_seed: int = 20262201,
+) -> list[dict[str, Any]]:
+    """Construit les unités de travail parallélisables des 3 volets du Palier 2."""
+    blocks: tuple[MirrorBlock, ...] = paired_mirror_blocks(
+        blocks_per_n=2, reps_per_side=reps_per_table_coop, exp_seed=exp_seed
+    )
+    units: list[dict[str, Any]] = []
+
+    # Volet A : COOP_MATRIX (Modes 1, 2, 3 x B0_K0, B1_K0, B1_K3, B2_K0, B2_K3 sur blocs miroirs CRN)
+    for mode in (1, 2, 3):
+        for pol_id, bot_name, k_max in PALIER2_POLICIES:
+            for blk in blocks:
+                for is_mirror, (tid, peuples) in enumerate(
+                    ((blk.circle_id, blk.peuples), (blk.mirror_id, blk.mirror_peuples))
+                ):
+                    units.append(
+                        {
+                            "unit_kind": "COOP_MATRIX",
+                            "mode": mode,
+                            "policy_id": pol_id,
+                            "bot_name": bot_name,
+                            "k_max": k_max,
+                            "block_id": blk.block_id,
+                            "n_players": blk.n_players,
+                            "table_id": tid,
+                            "mirror_pair_id": f"{blk.circle_id}__{blk.mirror_id}",
+                            "is_mirror": bool(is_mirror),
+                            "peuples": peuples,
+                            "exp_seed": exp_seed,
+                            "rep_ids": blk.rep_ids,
+                        }
+                    )
+
+    # Volet B : MICRO_FORK (Modes 1, 2, 3 x B1, B2 sur ancres Tour 2 & Tour 3, sélection != évaluation)
+    for mode in (1, 2, 3):
+        for bot_name in ("B1", "B2"):
+            for blk in blocks:
+                for tid, peuples in ((blk.circle_id, blk.peuples), (blk.mirror_id, blk.mirror_peuples)):
+                    units.append(
+                        {
+                            "unit_kind": "MICRO_FORK",
+                            "mode": mode,
+                            "bot_name": bot_name,
+                            "block_id": blk.block_id,
+                            "n_players": blk.n_players,
+                            "table_id": tid,
+                            "mirror_pair_id": f"{blk.circle_id}__{blk.mirror_id}",
+                            "peuples": peuples,
+                            "exp_seed": exp_seed + 100_000,
+                            "rep_ids": blk.rep_ids[:forks_per_table],
+                        }
+                    )
+
+    # Volet C : CHASSIS_HALVING (128 châssis répartis en 16 cohortes équilibrées : 8 -> 4 -> 2 -> 1)
+    assert 128 % halving_cohorts == 0
+    for cohort_idx in range(halving_cohorts):
+        cohort_chassis = tuple(range(cohort_idx, 128, halving_cohorts))
+        units.append(
+            {
+                "unit_kind": "CHASSIS_HALVING",
+                "cohort_id": cohort_idx,
+                "chassis_ids": cohort_chassis,
+                "exp_seed": exp_seed + 300_000,
+            }
+        )
+
+    return units
+
+
+def _execute_coop_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    t0 = time.perf_counter()
+    mode = int(unit["mode"])
+    pol_id = str(unit["policy_id"])
+    bot_name = str(unit["bot_name"])
+    k_max = int(unit["k_max"])
+    n_pl = int(unit["n_players"])
+    peuples = tuple(unit["peuples"])
+    exp_seed = int(unit["exp_seed"])
+    rep_ids: tuple[int, ...] = tuple(unit["rep_ids"])
+    n_reps = len(rep_ids)
+
+    ratios: list[float] = []
+    sum_arbres = 0
+    sum_ratio = 0.0
+    sum_sq_ratio = 0.0
+    sum_tours = 0
+    cnt_t8 = 0
+    cnt_reve = 0
+    cnt_reveil = 0
+
+    sum_mem_debt = 0
+    sum_law_mean = 0.0
+    max_law_max = 0
+    sum_fiddliness = 0.0
+    sum_cascade_sweeps = 0
+    sum_mid_combat = 0
+
+    for idx_r, rep_id in enumerate(rep_ids):
+        cfg = _make_cfg_with_mode(
+            0,
+            n_players=n_pl,
+            mode=mode,
+            peuples=peuples,
+            exp_seed=exp_seed,
+            rep_id=rep_id,
+            coordonnateur_initial=idx_r % n_pl,
+            max_revision_passes=k_max,
+        )
+        trk = TelemetryTracker()
+        st = GameState(cfg)
+        if bot_name == "B0":
+            res = play_game_b0(st, max_steps=2000, chassis_id=0, telemetry=trk)
+        elif bot_name == "B1":
+            res = play_game_b1(
+                st, k_max_passes=k_max, max_steps=2000, chassis_id=0, telemetry=trk
+            )
+        else:
+            res = play_game_b2(
+                st, k_max_passes=k_max, max_steps=2000, chassis_id=0, telemetry=trk
+            )
+
+        rt = res.ratio_arbres
+        ratios.append(rt)
+        sum_arbres += res.score_arbres
+        sum_ratio += rt
+        sum_sq_ratio += rt * rt
+        sum_tours += res.tour_fin
+        if res.cause_fin == CAUSE_TOUR_8:
+            cnt_t8 += 1
+        elif res.cause_fin == CAUSE_REVE_RANG_1:
+            cnt_reve += 1
+        elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
+            cnt_reveil += 1
+
+        ts = trk.summary()
+        sum_mem_debt += ts.mem_debt_score
+        sum_law_mean += ts.law_stack_mean
+        max_law_max = max(max_law_max, ts.law_stack_max)
+        sum_fiddliness += ts.fiddliness_ratio
+        sum_cascade_sweeps += ts.cascade_sweeps
+        sum_mid_combat += ts.mid_combat_interrupts
+
+    ratios.sort()
+    cpu_sec = time.perf_counter() - t0
+    return [
+        {
+            "record_type": "COOP_MATRIX",
+            "mode": mode,
+            "policy_id": pol_id,
+            "bot_name": bot_name,
+            "k_max": k_max,
+            "chassis_id": 0,
+            "halving_round": 0,
+            "selected_next": True,
+            "block_id": int(unit["block_id"]),
+            "n_players": n_pl,
+            "p_max": 4,
+            "table_id": str(unit["table_id"]),
+            "mirror_pair_id": str(unit["mirror_pair_id"]),
+            "n_games": n_reps,
+            "sum_arbres": sum_arbres,
+            "sum_ratio_arbres": round(sum_ratio, 6),
+            "sum_sq_ratio_arbres": round(sum_sq_ratio, 6),
+            "mean_ratio_arbres": round(sum_ratio / n_reps, 6),
+            "cvar20_ratio": round(_cvar_bottom_sorted(ratios, 0.20), 6),
+            "p50_ratio": round(_quantile_sorted(ratios, 0.50), 6),
+            "sum_tours": sum_tours,
+            "mean_tours": round(sum_tours / n_reps, 6),
+            "count_tour_8": cnt_t8,
+            "count_reve_rang_1": cnt_reve,
+            "count_reveil_gardiens": cnt_reveil,
+            "mean_mem_debt": round(sum_mem_debt / n_reps, 4),
+            "mean_law_stack": round(sum_law_mean / n_reps, 5),
+            "max_law_stack": max_law_max,
+            "mean_fiddliness": round(sum_fiddliness / n_reps, 4),
+            "mean_cascade_sweeps": round(sum_cascade_sweeps / n_reps, 4),
+            "mean_mid_combat_interrupts": round(sum_mid_combat / n_reps, 4),
+            "fork_anchors": 0,
+            "fork_diverged": 0,
+            "sum_delta_v_neg": 0.0,
+            "sum_c_prive": 0.0,
+            "sum_g_naive": 0.0,
+            "sum_g_unbiased": 0.0,
+            "sum_rho_delta": 0.0,
+            "cell_cpu_sec": round(cpu_sec, 4),
+        }
+    ]
+
+
+def _execute_micro_fork_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    t0 = time.perf_counter()
+    mode = int(unit["mode"])
+    bot_name = str(unit["bot_name"])
+    is_b2 = bot_name == "B2"
+    n_pl = int(unit["n_players"])
+    peuples = tuple(unit["peuples"])
+    exp_seed = int(unit["exp_seed"])
+    rep_ids: tuple[int, ...] = tuple(unit["rep_ids"])
+
+    n_sel = 3
+    n_eval = 4
+    rollouts_per_anchor = n_sel * 2 + n_eval * 3  # 18 rollouts par ancre
+
+    anchors_done = 0
+    diverged_cnt = 0
+    sum_dv = 0.0
+    sum_cp = 0.0
+    sum_gn = 0.0
+    sum_gu = 0.0
+    sum_rho = 0.0
+    sum_v_k3 = 0.0
+
+    for idx_r, rep_id in enumerate(rep_ids):
+        anchor_tour = 2 if (idx_r % 2 == 0) else 3
+        cfg = _make_cfg_with_mode(
+            0,
+            n_players=n_pl,
+            mode=mode,
+            peuples=peuples,
+            exp_seed=exp_seed,
+            rep_id=rep_id,
+            coordonnateur_initial=idx_r % n_pl,
+            max_revision_passes=3,
+        )
+        rec = run_micro_fork_on_config(
+            cfg,
+            target_tour=anchor_tour,
+            is_b2=is_b2,
+            n_selection_rollouts=n_sel,
+            n_eval_rollouts=n_eval,
+        )
+        if rec is None:
+            rec = run_micro_fork_on_config(
+                cfg,
+                target_tour=1,
+                is_b2=is_b2,
+                n_selection_rollouts=n_sel,
+                n_eval_rollouts=n_eval,
+            )
+        if rec is not None:
+            anchors_done += 1
+            if rec.diverged_in_2_2:
+                diverged_cnt += 1
+            sum_dv += rec.delta_v_negociation
+            sum_cp += rec.c_prive
+            sum_gn += rec.g_naive_selection
+            sum_gu += rec.g_unbiased_eval
+            sum_rho += rec.rho_delta
+            sum_v_k3 += rec.v_k3_priv_eval
+
+    cpu_sec = time.perf_counter() - t0
+    total_rollouts = anchors_done * rollouts_per_anchor
+    denom = max(1, anchors_done)
+    return [
+        {
+            "record_type": "MICRO_FORK",
+            "mode": mode,
+            "policy_id": f"{bot_name}_FORK",
+            "bot_name": bot_name,
+            "k_max": 3,
+            "chassis_id": 0,
+            "halving_round": 0,
+            "selected_next": True,
+            "block_id": int(unit["block_id"]),
+            "n_players": n_pl,
+            "p_max": 4,
+            "table_id": str(unit["table_id"]),
+            "mirror_pair_id": str(unit["mirror_pair_id"]),
+            "n_games": total_rollouts,
+            "sum_arbres": 0,
+            "sum_ratio_arbres": round(sum_v_k3, 6),
+            "sum_sq_ratio_arbres": 0.0,
+            "mean_ratio_arbres": round(sum_v_k3 / denom, 6),
+            "cvar20_ratio": 0.0,
+            "p50_ratio": 0.0,
+            "sum_tours": 0,
+            "mean_tours": 0.0,
+            "count_tour_8": 0,
+            "count_reve_rang_1": 0,
+            "count_reveil_gardiens": 0,
+            "mean_mem_debt": 0.0,
+            "mean_law_stack": 0.0,
+            "max_law_stack": 0,
+            "mean_fiddliness": 0.0,
+            "mean_cascade_sweeps": 0.0,
+            "mean_mid_combat_interrupts": 0.0,
+            "fork_anchors": anchors_done,
+            "fork_diverged": diverged_cnt,
+            "sum_delta_v_neg": round(sum_dv, 6),
+            "sum_c_prive": round(sum_cp, 6),
+            "sum_g_naive": round(sum_gn, 6),
+            "sum_g_unbiased": round(sum_gu, 6),
+            "sum_rho_delta": round(sum_rho, 6),
+            "cell_cpu_sec": round(cpu_sec, 4),
+        }
+    ]
+
+
+def _execute_halving_cohort_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    """Exécute 3 rounds de Sequential Halving (8 -> 4 -> 2 -> 1) en Modes 1 & 2 sur les 6 cercles miroirs."""
+    cohort_id = int(unit["cohort_id"])
+    active_chassis: tuple[int, ...] = tuple(int(c) for c in unit["chassis_ids"])
+    base_seed = int(unit["exp_seed"])
+
+    # 12 tables = les 6 cercles obligatoires de couverture complète + leurs 6 miroirs exacts
+    mirror_tables: list[tuple[int, str, tuple[str, ...]]] = []
+    for _, p_tup in MANDATORY_6_CIRCLES:
+        c_a = _canonical_rot(p_tup)
+        c_b = _canonical_rot(mirror_peuples(c_a))
+        mirror_tables.append((len(c_a), "-".join(c_a), c_a))
+        mirror_tables.append((len(c_b), "-".join(c_b), c_b))
+
+    # Budgets doublants par round : Round 1 (1 rep/table = 24 parties/châssis),
+    # Round 2 (2 reps/table = 48 parties/châssis), Round 3 (4 reps/table = 96 parties/châssis)
+    round_specs: tuple[tuple[int, int, int], ...] = (
+        (1, 1, max(1, len(active_chassis) // 2)),
+        (2, 2, max(1, len(active_chassis) // 4)),
+        (3, 4, max(1, len(active_chassis) // 8)),
+    )
+
+    out_records: list[dict[str, Any]] = []
+    for r_num, reps_per_tbl, keep_k in round_specs:
+        round_seed = base_seed + r_num * 50_000
+        composite_scores: dict[int, float] = {}
+        staged_rows: list[tuple[int, dict[str, Any]]] = []
+
+        for ch_id in active_chassis:
+            mode_scores: list[float] = []
+            for mode in (1, 2):
+                t_c = time.perf_counter()
+                ratios: list[float] = []
+                sum_arbres = 0
+                sum_ratio = 0.0
+                sum_sq_ratio = 0.0
+                sum_tours = 0
+                cnt_t8 = 0
+                cnt_reve = 0
+                cnt_reveil = 0
+                sum_fidd = 0.0
+                p_max_val = 4
+
+                rep_seq = 0
+                for n_pl, _tid, peuples in mirror_tables:
+                    for rep_off in range(reps_per_tbl):
+                        cfg = _make_cfg_with_mode(
+                            ch_id,
+                            n_players=n_pl,
+                            mode=mode,
+                            peuples=peuples,
+                            exp_seed=round_seed,
+                            rep_id=rep_seq,
+                            coordonnateur_initial=rep_off % n_pl,
+                            max_revision_passes=3,
+                        )
+                        p_max_val = cfg.p_max
+                        trk = TelemetryTracker()
+                        res = play_game_b2(
+                            GameState(cfg),
+                            k_max_passes=3,
+                            max_steps=2000,
+                            chassis_id=ch_id,
+                            telemetry=trk,
+                        )
+                        rep_seq += 1
+                        rt = res.ratio_arbres
+                        ratios.append(rt)
+                        sum_arbres += res.score_arbres
+                        sum_ratio += rt
+                        sum_sq_ratio += rt * rt
+                        sum_tours += res.tour_fin
+                        if res.cause_fin == CAUSE_TOUR_8:
+                            cnt_t8 += 1
+                        elif res.cause_fin == CAUSE_REVE_RANG_1:
+                            cnt_reve += 1
+                        elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
+                            cnt_reveil += 1
+                        sum_fidd += trk.summary().fiddliness_ratio
+
+                ratios.sort()
+                n_g = len(ratios)
+                mean_rt = sum_ratio / n_g
+                cvar20_rt = _cvar_bottom_sorted(ratios, 0.20)
+                # Critère éditorial d'équilibre de châssis : proximité d'un taux d'Arbres sauvés sain (~0.62)
+                # pénalisant l'écrasement (trop dur < 0.35) comme la trivialité (> 0.88) + bonus CVaR_20%
+                balance_fitness = 1.0 - abs(mean_rt - 0.62) + 0.35 * cvar20_rt
+                if mode == 2:
+                    # Bonus de diversité des 3 fins en Mode 2 (ni 100 % Tour 8 ni 100 % Rêve précoce)
+                    p_t8 = cnt_t8 / n_g
+                    p_rv = cnt_reve / n_g
+                    p_gd = cnt_reveil / n_g
+                    active_ends = sum(1 for px in (p_t8, p_rv, p_gd) if px >= 0.05)
+                    balance_fitness += 0.08 * active_ends
+                mode_scores.append(balance_fitness)
+
+                rec_row: dict[str, Any] = {
+                    "record_type": "CHASSIS_HALVING",
+                    "mode": mode,
+                    "policy_id": "B2_K3",
+                    "bot_name": "B2",
+                    "k_max": 3,
+                    "chassis_id": ch_id,
+                    "halving_round": r_num,
+                    "selected_next": False,
+                    "block_id": cohort_id,
+                    "n_players": 0,
+                    "p_max": p_max_val,
+                    "table_id": "MANDATORY_6_MIRRORS",
+                    "mirror_pair_id": f"COHORT_{cohort_id:02d}",
+                    "n_games": n_g,
+                    "sum_arbres": sum_arbres,
+                    "sum_ratio_arbres": round(sum_ratio, 6),
+                    "sum_sq_ratio_arbres": round(sum_sq_ratio, 6),
+                    "mean_ratio_arbres": round(mean_rt, 6),
+                    "cvar20_ratio": round(cvar20_rt, 6),
+                    "p50_ratio": round(_quantile_sorted(ratios, 0.50), 6),
+                    "sum_tours": sum_tours,
+                    "mean_tours": round(sum_tours / n_g, 6),
+                    "count_tour_8": cnt_t8,
+                    "count_reve_rang_1": cnt_reve,
+                    "count_reveil_gardiens": cnt_reveil,
+                    "mean_mem_debt": 0.0,
+                    "mean_law_stack": 0.0,
+                    "max_law_stack": 0,
+                    "mean_fiddliness": round(sum_fidd / n_g, 4),
+                    "mean_cascade_sweeps": 0.0,
+                    "mean_mid_combat_interrupts": 0.0,
+                    "fork_anchors": 0,
+                    "fork_diverged": 0,
+                    "sum_delta_v_neg": 0.0,
+                    "sum_c_prive": 0.0,
+                    "sum_g_naive": 0.0,
+                    "sum_g_unbiased": 0.0,
+                    "sum_rho_delta": 0.0,
+                    "cell_cpu_sec": round(time.perf_counter() - t_c, 4),
+                }
+                staged_rows.append((ch_id, rec_row))
+
+            composite_scores[ch_id] = sum(mode_scores) / len(mode_scores)
+
+        kept_set = set(sequential_halving_select(composite_scores, keep_count=keep_k))
+        for ch_id, rec_row in staged_rows:
+            rec_row["selected_next"] = ch_id in kept_set
+            out_records.append(rec_row)
+        active_chassis = tuple(sorted(kept_set))
+
+    return out_records
+
+
+def _execute_palier2_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    kind = str(unit["unit_kind"])
+    if kind == "COOP_MATRIX":
+        return _execute_coop_unit(unit)
+    if kind == "MICRO_FORK":
+        return _execute_micro_fork_unit(unit)
+    if kind == "CHASSIS_HALVING":
+        return _execute_halving_cohort_unit(unit)
+    raise ValueError(f"Unité Palier 2 inconnue : {kind}")
+
+
+def run_campaign_palier2(
+    *,
+    reps_per_table_coop: int = 12,
+    forks_per_table: int = 2,
+    halving_cohorts: int = 16,
+    task_index: int | None = None,
+    task_count: int | None = None,
+    workers: int | None = None,
+    local_out_dir: str | None = None,
+) -> int:
+    """Exécute la tranche `task_index / task_count` de la campagne scientifique Palier 2."""
+    if task_index is None:
+        task_index = int(
+            os.environ.get("CLOUD_RUN_TASK_INDEX", os.environ.get("TASK_INDEX", "0"))
+        )
+    if task_count is None:
+        task_count = int(
+            os.environ.get("CLOUD_RUN_TASK_COUNT", os.environ.get("TASK_COUNT", "1"))
+        )
+    assert 0 <= task_index < task_count
+
+    all_units = build_palier2_work_units(
+        reps_per_table_coop=reps_per_table_coop,
+        forks_per_table=forks_per_table,
+        halving_cohorts=halving_cohorts,
+    )
+    my_units = [u for idx, u in enumerate(all_units) if idx % task_count == task_index]
+    n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
+
+    t0 = time.perf_counter()
+    nested: list[list[dict[str, Any]]]
+    if n_procs > 1 and len(my_units) > 1:
+        with multiprocessing.Pool(processes=min(n_procs, len(my_units))) as pool:
+            nested = pool.map(_execute_palier2_unit, my_units)
+    else:
+        nested = [_execute_palier2_unit(u) for u in my_units]
+
+    records = [row for sub in nested for row in sub]
+    wall_sec = time.perf_counter() - t0
+    task_games = sum(int(r["n_games"]) for r in records)
+    task_gps = task_games / wall_sec if wall_sec > 0 else 0.0
+
+    for rec in records:
+        rec["task_index"] = task_index
+        rec["task_count"] = task_count
+        rec["task_workers"] = n_procs
+        rec["task_games"] = task_games
+        rec["task_wall_sec"] = round(wall_sec, 4)
+        rec["task_games_per_sec"] = round(task_gps, 2)
+        rec["python_impl"] = platform.python_implementation()
+
+    raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
+    compressed = gzip.compress(raw_jsonl)
+    shard_filename = f"shard_{task_index:02d}.jsonl.gz"
+
+    if local_out_dir is not None:
+        out_path = Path(local_out_dir) / shard_filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(compressed)
+        dest_uri = str(out_path)
+    else:
+        object_name = f"{PALIER2_PREFIX}/{shard_filename}"
+        token = _fetch_gcp_access_token()
+        _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
+
+    print(
+        json.dumps(
+            {
+                "status": "PALIER2_SHARD_OK",
+                "task_index": task_index,
+                "task_count": task_count,
+                "workers": n_procs,
+                "units": len(my_units),
+                "rows": len(records),
+                "games": task_games,
+                "wall_sec": round(wall_sec, 3),
+                "games_per_sec": round(task_gps, 1),
+                "dest": dest_uri,
+                "compressed_bytes": len(compressed),
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Amazonia Sim Lab PyPy Worker")
     parser.add_argument(
@@ -359,7 +990,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exécute la campagne baseline Palier 1 (100k parties B0 Modes 1 & 2).",
     )
+    parser.add_argument(
+        "--campaign-palier2",
+        action="store_true",
+        help="Exécute la campagne Palier 2 (B0/B1/B2 K=0 vs K=3, Micro-Forks, Lot 01 & 128 châssis).",
+    )
     parser.add_argument("--total-games", type=int, default=100_000)
+    parser.add_argument("--reps-coop", type=int, default=12)
+    parser.add_argument("--forks-per-table", type=int, default=2)
+    parser.add_argument("--halving-cohorts", type=int, default=16)
     parser.add_argument("--task-index", type=int, default=None)
     parser.add_argument("--task-count", type=int, default=None)
     parser.add_argument("--workers", type=int, default=None)
@@ -371,6 +1010,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.campaign_palier1:
         return run_campaign_palier1(
             total_games=args.total_games,
+            task_index=args.task_index,
+            task_count=args.task_count,
+            workers=args.workers,
+            local_out_dir=args.local_out_dir,
+        )
+    if args.campaign_palier2:
+        return run_campaign_palier2(
+            reps_per_table_coop=args.reps_coop,
+            forks_per_table=args.forks_per_table,
+            halving_cohorts=args.halving_cohorts,
             task_index=args.task_index,
             task_count=args.task_count,
             workers=args.workers,

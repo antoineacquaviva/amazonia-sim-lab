@@ -14,15 +14,20 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import engine.effects  # noqa: F401
 from bots.bot_b0 import choose_b0
+from bots.heuristic_engine import play_game_b1, play_game_b2
 from engine.core_engine import apply_choice, step_until_decision
+from engine.effects.registry import list_registered_tiles
 from engine.primitives import GameOver
+from engine.rng import SRC_TACTICS_SETUP, rand_below
 from engine.state import (
     PEUPLES_ORDER,
     TRACK_LEN,
     GameConfig,
     GameState,
 )
+from engine.telemetry import TelemetryTracker
 
 
 def _check_board_invariants(state: GameState) -> None:
@@ -64,39 +69,93 @@ def _check_board_invariants(state: GameState) -> None:
         assert state.get_colonie_at_case(c) >= 0
 
 
+def _pick_registered_tile_profiles(
+    game_idx: int,
+    by_slot: dict[str, list[str]],
+) -> tuple[tuple[str, str], ...]:
+    selected: list[tuple[str, str]] = []
+    for idx_s, (slot_id, profs) in enumerate(sorted(by_slot.items())):
+        pick = rand_below(len(profs), 777_000, game_idx, SRC_TACTICS_SETUP, 0, idx_s, 0)
+        selected.append((slot_id, profs[pick]))
+    return tuple(selected)
+
+
 def _fuzz_range(bounds: tuple[int, int, int]) -> int:
-    start_idx, end_idx, half = bounds
+    start_idx, end_idx, total = bounds
     rotations = tuple(PEUPLES_ORDER[rot:] + PEUPLES_ORDER[:rot] for rot in range(6))
 
+    by_slot: dict[str, list[str]] = {}
+    for s_id, prof in list_registered_tiles():
+        by_slot.setdefault(s_id, []).append(prof)
+
+    t1 = (total * 35) // 100
+    t2 = (total * 70) // 100
+
     for game_idx in range(start_idx, end_idx):
-        mode = 1 if game_idx < half else 2
+        mode = 1 if game_idx < t1 else (2 if game_idx < t2 else 3)
         n_players = 3 + (game_idx % 4)
         chassis_id = (game_idx * 17) & 127
         peuples = rotations[game_idx % 6][:n_players]
+        bot_sel = game_idx % 5  # 0,1,2 -> B0 ; 3 -> B1 ; 4 -> B2
 
-        cfg = GameConfig.from_chassis_index(
+        base_cfg = GameConfig.from_chassis_index(
             chassis_id,
             n_players=n_players,
             mode=mode,
             peuples=peuples,
             exp_seed=900_000 + mode * 10_000,
             rep_id=game_idx,
-            max_revision_passes=0,
+            max_revision_passes=0 if bot_sel < 3 else 3,
         )
+        if mode == 3:
+            t_profs = _pick_registered_tile_profiles(game_idx, by_slot)
+            cfg = GameConfig(
+                n_players=base_cfg.n_players,
+                mode=3,
+                peuples=base_cfg.peuples,
+                exp_seed=base_cfg.exp_seed,
+                rep_id=base_cfg.rep_id,
+                coordonnateur_initial=base_cfg.coordonnateur_initial,
+                max_revision_passes=base_cfg.max_revision_passes,
+                p_max=base_cfg.p_max,
+                regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
+                offset_seuil_parade=base_cfg.offset_seuil_parade,
+                mise_en_place_tactiques=base_cfg.mise_en_place_tactiques,
+                declenchement_fin_de_piste=base_cfg.declenchement_fin_de_piste,
+                role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
+                synergie_binome_machines=base_cfg.synergie_binome_machines,
+                tile_profiles=t_profs,
+            )
+        else:
+            cfg = base_cfg
+
         state = GameState(cfg)
+        trk = TelemetryTracker() if (game_idx % 20 == 0) else None
+
+        if bot_sel == 3:
+            over = play_game_b1(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            _check_board_invariants(state)
+            assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
+            continue
+
+        if bot_sel == 4:
+            over = play_game_b2(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            _check_board_invariants(state)
+            assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
+            continue
+
         steps = 0
         last_checked_tour = 0
 
         while True:
             steps += 1
-            assert steps < 2000, f"Non-terminaison sur game_idx={game_idx}"
-            out = step_until_decision(state)
+            assert steps <= 2000, f"Non-terminaison sur game_idx={game_idx}"
+            out = step_until_decision(state, max_internal_steps=2000, telemetry=trk)
 
             if state.tour != last_checked_tour:
                 _check_board_invariants(state)
                 last_checked_tour = state.tour
 
-            # Contrôle périodique d'égalité stricte de clone()
             if steps == 3 and (game_idx % 50 == 0):
                 snap = state.raw_used_bytes()
                 cloned = state.clone()
@@ -112,19 +171,18 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 break
 
             choice = choose_b0(state, out)
-            apply_choice(state, choice)
+            apply_choice(state, choice, telemetry=trk)
 
     return end_idx - start_idx
 
 
 def run_fuzzer(total_games: int = 1000, workers: int | None = None) -> tuple[float, float]:
-    """Joue `total_games` parties (50% Mode 1, 50% Mode 2) sur N=3..6 et châssis 0..127."""
-    half = total_games // 2
+    """Joue `total_games` parties (Modes 1, 2, 3 ; B0, B1, B2) sur N=3..6 et châssis 0..127."""
     n_workers = workers if workers is not None else min(4, max(1, os.cpu_count() or 1))
     t0 = time.perf_counter()
 
     if n_workers <= 1 or total_games < 200:
-        _fuzz_range((0, total_games, half))
+        _fuzz_range((0, total_games, total_games))
     else:
         chunk = total_games // n_workers
         rem = total_games % n_workers
@@ -133,7 +191,7 @@ def run_fuzzer(total_games: int = 1000, workers: int | None = None) -> tuple[flo
         for w in range(n_workers):
             nxt = cur + chunk + (1 if w < rem else 0)
             if nxt > cur:
-                chunks.append((cur, nxt, half))
+                chunks.append((cur, nxt, total_games))
             cur = nxt
         with multiprocessing.Pool(processes=len(chunks)) as pool:
             done = sum(pool.map(_fuzz_range, chunks))
