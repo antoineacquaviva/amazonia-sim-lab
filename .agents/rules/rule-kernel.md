@@ -7,8 +7,8 @@ globs: "engine/state.py, engine/rng.py, engine/primitives.py, engine/core_engine
 # Règles du Noyau (`engine/`)
 
 ## 1. Représentation de l'état (`engine/state.py`)
-- `GameState` est scellé avec `__slots__ = ("_buf", "cfg", "_rng_state")` sur un `bytearray(256)` alloué séquentiellement via `_Layout.alloc()` — **zéro magic number**.
-- `clone()` s'effectue par copie brute `bytearray(self._buf)`.
+- `GameState` est scellé avec `__slots__ = ("_buf", "_continuation", "cfg")` sur un `bytearray(384)` (`STATE_BUF_SIZE = 384`, 6 cache lines) alloué séquentiellement via `_Layout.alloc()` — **zéro magic number**.
+- `clone()` s'effectue par copie brute `bytearray(self._buf)` et copie légère de `_continuation`.
 - Une plage dédiée d'octets transitoires de tour est remise à zéro systématiquement en sous-étape **6.2**.
 - **Isolation État Public / Privé** : `get_observation(seat_id)` masque strictement les informations privées tant que les paravents sont fermés (avant **3.2**, hors cas explicite du sacrifice `G4 B`).
 

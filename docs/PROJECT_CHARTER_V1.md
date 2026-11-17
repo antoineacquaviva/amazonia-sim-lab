@@ -23,6 +23,6 @@ Simulateur Monte-Carlo Macro/Micro pour **Amazonia : Dernier Rempart** (règles 
   - **Rapatriement & Synthèse** : téléchargement local des shards et requête directe via `DuckDB`.
 
 ## 4. Garde-fous d'ingénierie
-- **Noyau scellé** (`contracts/kernel_locks.sha256`) : `state.py`, `rng.py`, `primitives.py`, `core_engine.py` verrouillés par empreinte SHA-256 après le Palier 1.
+- **Noyau scellé** (`contracts/kernel_locks.sha256`) : `state.py` (`bytearray(384)`, 6 cache lines), `rng.py`, `primitives.py`, `core_engine.py` verrouillés par empreinte SHA-256 après le Palier 1.
 - **Effets stateless** : chaque profil dans `engine/effects/` passe uniquement par l'API publique `contracts/core_state_api.md` (vérification AST dans `verify_lot.py`).
 - **Validation systématique** : `uv run python verify_lot.py` doit être 100 % vert avant toute clôture de lot.

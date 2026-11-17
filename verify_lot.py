@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -108,7 +109,7 @@ def verify_kernel_locks() -> None:
         if line.strip() and not line.strip().startswith("#")
     ]
     if not lines:
-        print("[1/5] kernel_locks.sha256 vide (Palier 0) : OK")
+        print("[1/6] kernel_locks.sha256 vide (Palier 0) : OK")
         return
 
     for line in lines:
@@ -125,7 +126,7 @@ def verify_kernel_locks() -> None:
                 f"VIOLATION kernel_locks.sha256 sur {rel_path}: "
                 f"attendu {expected_hash}, obtenu {actual_hash}"
             )
-    print(f"[1/5] kernel_locks.sha256 ({len(lines)} fichiers) : OK")
+    print(f"[1/6] kernel_locks.sha256 ({len(lines)} fichiers) : OK")
 
 
 def verify_effects_ast() -> None:
@@ -138,7 +139,17 @@ def verify_effects_ast() -> None:
         all_errors.extend(check_effect_source(source, rel))
     if all_errors:
         raise RuntimeError("Erreurs AST dans engine/effects/ :\n" + "\n".join(all_errors))
-    print(f"[2/5] AST engine/effects/ ({len(py_files)} fichiers) : OK")
+    print(f"[2/6] AST engine/effects/ ({len(py_files)} fichiers) : OK")
+
+
+def _find_uv() -> str:
+    found = shutil.which("uv")
+    if found:
+        return found
+    candidate = Path.home() / ".local" / "bin" / "uv.exe"
+    if candidate.exists():
+        return str(candidate)
+    raise FileNotFoundError("Impossible de trouver l'exécutable 'uv'.")
 
 
 def run_tool(step_label: str, cmd: list[str]) -> None:
@@ -150,10 +161,25 @@ def run_tool(step_label: str, cmd: list[str]) -> None:
 def main() -> int:
     verify_kernel_locks()
     verify_effects_ast()
-    run_tool("[3/5] ruff", [sys.executable, "-m", "ruff", "check", "."])
-    run_tool("[4/5] pyright", [sys.executable, "-m", "pyright"])
-    run_tool("[5/5] pytest", [sys.executable, "-m", "pytest", "-q"])
-    print("verify_lot.py : 100% VERT")
+    run_tool("[3/6] ruff", [sys.executable, "-m", "ruff", "check", "."])
+    run_tool("[4/6] pyright", [sys.executable, "-m", "pyright"])
+    run_tool("[5/6] pytest", [sys.executable, "-m", "pytest", "-q"])
+    uv_bin = _find_uv()
+    run_tool(
+        "[6/6] PyPy Invariant Fuzzer",
+        [
+            uv_bin,
+            "run",
+            "--no-project",
+            "--python",
+            "pypy@3.11",
+            "python",
+            "scripts_cloud/fuzz_invariants.py",
+            "--games",
+            "1000",
+        ],
+    )
+    print("verify_lot.py : 6/6 PORTES 100% VERT")
     return 0
 
 
