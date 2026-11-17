@@ -1,0 +1,11 @@
+steps:
+  - name: "gcr.io/cloud-builders/docker"
+    args:
+      - "build"
+      - "-f"
+      - "Dockerfile.worker"
+      - "-t"
+      - "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
+      - "."
+images:
+  - "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"

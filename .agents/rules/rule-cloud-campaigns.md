@@ -1,0 +1,29 @@
+---
+trigger: glob
+description: Règles des workers Cloud PyPy, plans d'expérience et optimisation MAP-Elites
+globs: "campaigns/**/*.py, scripts_cloud/**/*.py, Dockerfile*"
+---
+
+# Règles Cloud & Campagnes (`campaigns/`, `scripts_cloud/`)
+
+## 1. Runtime Worker Cloud (`Dockerfile.worker`)
+- Base `pypy:3.11-slim`, **zéro `pip install` C++** (stdlib PyPy pure uniquement).
+- Upload GCS via `urllib.request` et jeton OAuth2 récupéré depuis le serveur de métadonnées GCP (`http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token`).
+- Pré-agrégation en RAM par `(chassis, set_tuiles, table)` écrite en shards `jsonl.gz` sur `gs://amazonia-sim-runs`.
+
+## 2. Échantillonnage Macro & Sequential Halving
+- Blocs indépendants en paires `(Cercle, Cercle_Miroir)` (`paired_mirror_blocks`), incluant obligatoirement les 6 cercles de couverture complète :
+  `M-E-I`, `M-R-O`, `H-E-I`, `M-R-H-I`, `M-O-E-H-I`, `M-H-O-I-R-E`.
+- Intervalles de confiance calculés **uniquement inter-blocs**.
+- Tri des **128 châssis** par *Sequential Halving*.
+
+## 3. Mode 4 : Recherche du Canon Unique (32 tuiles)
+- **Interdiction absolue** d'un algorithme génétique optimisant la moyenne brute.
+- Implémenter **`MAP-Elites` 2D** :
+  - **Axe X** : charge cognitive (`mem_debt + law_stack`).
+  - **Axe Y** : entropie de Shannon des 3 fins.
+  - **Objectif** : maximiser la **`CVaR_20%`** (ratio d'Arbres sauvés sur les 20 % pires tables circulaires).
+  - **Mutation** : opérateur guidé par régression de **Shapley d'ordre 2**.
+
+## 4. Micro-Forks
+- Séparation stricte entre le lot de sélection des coups candidats et le lot d'évaluation apparié (`C_prive`, écart `g`, courbe d'inversion `rho_delta`).
