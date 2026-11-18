@@ -975,6 +975,7 @@ def _resolve_machine_targets_from(
                     "ray": ray,
                     "target_p": target_p,
                     "local_defs": local_defs,
+                    "manque": manque,
                     "ins_to_discard": ins_to_discard,
                 }
                 dispatch_hook(state, HOOK_5_PARADE_CLASSIQUE, pc_ctx)
@@ -2336,11 +2337,15 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
             _transition_step(state, STEP_4_3_MIGRATION)
             return None
         eligible_nids: list[int] = []
+        m3_b_auto = state.cfg.mode >= 3 and state.cfg.profile_for_slot("M3") == "B"
         for m_num in range(1, 6):
             pos_info = state.get_nid_position(m_num)
             if pos_info is not None:
                 r, p, active_turn = pos_info
-                if not active_turn and state.get_parcel_defenseurs(r, p) >= 1:
+                if not active_turn and (
+                    state.get_parcel_defenseurs(r, p) >= 1
+                    or (m3_b_auto and m_num == 3 and state.get_parcel_insectes(r, p) >= 2)
+                ):
                     eligible_nids.append(m_num)
         if not eligible_nids:
             _transition_step(state, STEP_4_3_MIGRATION)
