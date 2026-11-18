@@ -1789,6 +1789,11 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
         state._continuation.pop(0)
         return _begin_single_construction(state, slot_idx)
 
+    if tag == "CONSTRUCT_SLOT_PAID":
+        slot_idx = int(top[1])
+        state._continuation.pop(0)
+        return _finish_single_construction_after_cost(state, slot_idx)
+
     if tag == "CHECK_LIBERATION_3_1":
         slot_idx = int(top[1])
         state._continuation.pop(0)
@@ -1845,7 +1850,18 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
         if not eligible_cases:
             _transition_step(state, STEP_5_1_TACTIQUES)
             return None
-        c_num = eligible_cases[0]
+        first_item = eligible_cases[0]
+        if isinstance(first_item, tuple) and first_item[0] == "AUTO":
+            c_num = int(first_item[1])
+            state._continuation.insert(0, ("COLONIE_SCAN_4_3", c_num + 1))
+            sweep_frame = ("SWEEP_GARDIENS_NOW",)
+            state._continuation.insert(0, sweep_frame)
+            prim_partage_info_etat_gardien(state, "MARK_GARDIEN_OPENED", case_1_6=c_num)
+            if state._continuation and state._continuation[0] == sweep_frame:
+                state._continuation.pop(0)
+                sweep_gardiens(state)
+            return None
+        c_num = int(first_item)
         g_num, _, _ = state.get_gardien_at_case(c_num)
         gov = _governor_for_peuple(state, "I")
         req = DecisionRequest(
@@ -2027,6 +2043,44 @@ def _run_step_6_2(state: GameState) -> GameOver | None:
     return None
 
 
+def _is_hybrid_construct_3_1_active(state: GameState) -> bool:
+    if state.cfg.mode < 3 or state.cfg.profile_for_slot("G13") != "B":
+        return False
+    for c in range(1, TRACK_LEN + 1):
+        if state.get_gardien_at_case(c)[0] == 13:
+            return True
+    return False
+
+
+def _is_2cran_migration_4_3_active(state: GameState) -> bool:
+    if state.cfg.mode < 3 or state.cfg.profile_for_slot("G15") != "B":
+        return False
+    for c in range(1, TRACK_LEN + 1):
+        if state.get_gardien_at_case(c)[0] == 15:
+            return True
+    return False
+
+
+def _lisiere_has_furtivite_insect(state: GameState, l_idx: int) -> bool:
+    for p in range(1, state.cfg.p_max + 1):
+        if state.get_furtivite_insectes(l_idx, p) >= 1:
+            return True
+    return False
+
+
+def _is_slot_ready_for_construction_3_1(
+    state: GameState, slot_idx: int, *, hybrid_active: bool
+) -> bool:
+    st, nb = state.get_lisiere_tile_state(slot_idx)
+    if st != LISIERE_UNCONSTRUCTED:
+        return False
+    if nb == 2:
+        return True
+    if hybrid_active and nb == 1:
+        return _lisiere_has_furtivite_insect(state, slot_idx // 2)
+    return False
+
+
 def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
     """Exécute un pas de l'étape principale state.step."""
     n = state.cfg.n_players
@@ -2142,11 +2196,13 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
         if state.cfg.mode == 1:
             _transition_step(state, STEP_3_2_REVEAL)
             return None
+        hybrid_active = _is_hybrid_construct_3_1_active(state)
         ready_slots = [
             (state.coordonnateur * 2 + off) % (2 * n)
             for off in range(2 * n)
-            if state.get_lisiere_tile_state((state.coordonnateur * 2 + off) % (2 * n))
-            == (LISIERE_UNCONSTRUCTED, 2)
+            if _is_slot_ready_for_construction_3_1(
+                state, (state.coordonnateur * 2 + off) % (2 * n), hybrid_active=hybrid_active
+            )
         ]
         if not ready_slots:
             _transition_step(state, STEP_3_2_REVEAL)
@@ -2307,9 +2363,35 @@ def step_until_decision(
 def _begin_single_construction(state: GameState, slot_idx: int) -> DecisionRequest | None:
     """Construit la tuile en lisière `slot_idx` (suspend si un choix de gouverneur est requis)."""
     st, nb = state.get_lisiere_tile_state(slot_idx)
-    if st != LISIERE_UNCONSTRUCTED or nb < 2:
+    if st != LISIERE_UNCONSTRUCTED:
         return None
+    if nb == 1:
+        if not _is_hybrid_construct_3_1_active(state):
+            return None
+        l_idx = slot_idx // 2
+        if not _lisiere_has_furtivite_insect(state, l_idx):
+            return None
+        state._continuation.insert(0, ("CONSTRUCT_SLOT_PAID", slot_idx))
+        dispatch_hook(
+            state,
+            HOOK_3_1_CONSTRUCTION,
+            {
+                "target_slot_id": state.cfg.lisiere_slots[slot_idx],
+                "slot_idx": slot_idx,
+                "hybrid_pay": True,
+                "lisiere": l_idx,
+            },
+        )
+        return None
+    if nb < 2:
+        return None
+    return _finish_single_construction_after_cost(state, slot_idx)
 
+
+def _finish_single_construction_after_cost(
+    state: GameState, slot_idx: int
+) -> DecisionRequest | None:
+    _, nb = state.get_lisiere_tile_state(slot_idx)
     tile_id = state.cfg.lisiere_slots[slot_idx]
     fam, orig_code, num = SYNERGY_META[tile_id]
     gov = _governor_for_peuple(state, orig_code)
@@ -2509,10 +2591,11 @@ def apply_choice(
             _resolve_nid_block(state, int(choice))
             return
 
-        if tag == "APPLY_MIGRATION_4_3":
+        if tag in ("APPLY_MIGRATION_4_3", "APPLY_MIGRATION_4_3_CRAN2"):
             _, src = state._continuation.pop(0)
             loc_type, idx_a, src_p = src
             dst_kind = choice[0]
+            new_wheel_src: tuple[str, int, int] | None = None
             if dst_kind != "RESTER":
                 src_kwargs: dict[str, Any] = (
                     {"src_lisiere": idx_a, "src_p": src_p}
@@ -2527,6 +2610,7 @@ def apply_choice(
                         dst_p=int(choice[2]),
                         **src_kwargs,
                     )
+                    new_wheel_src = ("FORET", int(choice[1]), int(choice[2]))
                 elif dst_kind == "FURTIVITE":
                     prim_deplacement(
                         state,
@@ -2535,6 +2619,7 @@ def apply_choice(
                         dst_p=int(choice[2]),
                         **src_kwargs,
                     )
+                    new_wheel_src = ("FURTIVITE", int(choice[1]), int(choice[2]))
                 elif dst_kind in ("BUG", "COLONIE"):
                     prim_deplacement(
                         state,
@@ -2543,8 +2628,26 @@ def apply_choice(
                         global_case=int(choice[1]),
                         **src_kwargs,
                     )
-                # Règle spéciale 4.3 : déplacer (+1 dans prim_deplacement) + coucher suivi + redresser = 3 ops
-                _record_phys_ops(state, 2)
+                if tag == "APPLY_MIGRATION_4_3":
+                    # Règle spéciale 4.3 : déplacer (+1 dans prim_deplacement) + coucher suivi + redresser = 3 ops
+                    _record_phys_ops(state, 2)
+                if (
+                    tag == "APPLY_MIGRATION_4_3"
+                    and new_wheel_src is not None
+                    and _is_2cran_migration_4_3_active(state)
+                ):
+                    moves_2 = _list_insect_1cran_moves(state, new_wheel_src)
+                    if len(moves_2) > 1:
+                        gov = _governor_for_peuple(state, "I")
+                        req_2 = DecisionRequest(
+                            decideur=gov,
+                            decision_type=DEC_MIGRATION_INSECTE_4_3,
+                            options=moves_2,
+                            context={"source": new_wheel_src, "cran": 2},
+                        )
+                        state._continuation.insert(0, ("APPLY_MIGRATION_4_3_CRAN2", new_wheel_src))
+                        state._continuation.insert(0, ("WAIT_DECISION", req_2))
+                        return
             assert state._continuation and state._continuation[0][0] == "MIGRATION_QUEUE_4_3"
             _, q_tup, cur = state._continuation[0]
             state._continuation[0] = ("MIGRATION_QUEUE_4_3", q_tup, cur + 1)
