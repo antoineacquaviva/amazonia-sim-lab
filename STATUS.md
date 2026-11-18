@@ -9,7 +9,7 @@
 - [x] **Kit d'Autonomie (Paliers 2–4)** : Plan canonique 11 lots (`contracts/LOTS_PLAN.md` + `tests/test_lots_plan.py` couvrant 100/100 profils), 5 skills déclenchées en français naturel (`.agents/skills/{palier-2,code-lot,run-campaign,sync-evolution,palier-4-canon}/SKILL.md`), garde Zéro-API-LLM, portabilité Windows/Ubuntu et `USAGE.md`.
 - [x] **Palier 2** : Bots `B1/B2` (Ticks 1..3 + révision 2.2 + graphe `economie_bot`), 4 capteurs `telemetry.py`, Forks Micro (`designs.py`), Lot Pilote `Lot 01` et tir Cloud `digest_palier2_coeur_muet.json`.
   - [x] **Lot 01 (Pilote 8 Primitives — 8 profils)** : `G1:A`, `G2:A`, `G4:A`, `G6:A`, `G7:A`, `G10:A`, `R5:A`, `G9:C`.
-- [ ] **Palier 3** : Usinage stateless des 90 profils restants (`Lots 02..10`, en plus des `2` du socle et `8` du `Lot 01` = `100` profils) + consolidation `Lot 11` & tir Cloud Mode 3.
+- [x] **Palier 3** : Usinage stateless des 90 profils restants (`Lots 02..10`, en plus des `2` du socle et `8` du `Lot 01` = `100` profils) + consolidation `Lot 11` & tir Cloud Mode 3.
   - [x] **Lot 02 (10 profils — Gardiens G1..G5)** : `G1:B`, `G2:B`, `G2:C`, `G3:A`, `G3:B`, `G3:C`, `G3:D`, `G4:B`, `G5:A`, `G5:B`.
   - [x] **Lot 03 (10 profils — Gardiens G5..G9)** : `G5:C`, `G6:B`, `G6:C`, `G7:B`, `G7:C`, `G7:D`, `G8:A`, `G8:B`, `G9:A`, `G9:B`.
   - [x] **Lot 04 (10 profils — Gardiens G10..G12)** : `G10:B`, `G10:C`, `G10:D`, `G11:A`, `G11:B`, `G11:C`, `G11:D`, `G12:A`, `G12:B`, `G12:C`.
@@ -19,7 +19,7 @@
   - [x] **Lot 08 (9 profils — Rêves R8..R10)** : `R8:A..D`, `R9:A..B`, `R10:A,B,D`.
   - [x] **Lot 09 (12 profils — Croissance M1..M3)** : `M1:A..D`, `M2:A..D`, `M3:A..D`.
   - [x] **Lot 10 (7 profils — Croissance M4..M5)** : `M4:A,B,D`, `M5:A..D`.
-  - [ ] **Lot 11 (Consolidation Catalogue 100/100 & Mode 3)** : Audit automatisé `100/100` `@register_tile` + `tests/temoins/` + validation Cloud `mode3_reference.json`.
+  - [x] **Lot 11 (Consolidation Catalogue 100/100 & Mode 3)** : Audit automatisé `100/100` `@register_tile` + `tests/temoins/` + validation Cloud `mode3_reference.json`.
 - [ ] **Palier 4** : Campagnes Cloud Batch Spot (`Sequential Halving` 128 châssis + `MAP-Elites / CVaR_20% / Shapley` Canon Unique 32 tuiles + validation `B0 < B1 < B2` / `B3`).
 
 ## Notes de session
@@ -46,4 +46,5 @@
 - *2026-11-18* : **Palier 3 — Lot 08 terminé (`81/100` profils, `31/31` Rêves livrés)** : zéro retouche noyau requise, implémentation stateless de `engine/effects/lot_08.py` (`R8:A..D`, `R9:A..B`, `R10:A,B,D`) + `tests/temoins/test_lot_08.py` (`9/9` témoins déterministes, `158` tests `pytest`, `verify_lot.py` `7/7` vert).
 - *2026-11-18* : **Palier 3 — Lot 09 terminé (`93/100` profils, Croissance `M1..M3` livrée)** : pré-commit noyau approuvé re-scellé (`M3:B` autonome en `4.2`, `manque` dans `pc_ctx` pour `M3:C` ; `state.py` `384B`, `rng.py` et `primitives.py` intacts), puis implémentation stateless de `engine/effects/lot_09.py` (`M1:A..D`, `M2:A..D`, `M3:A..D`) + `tests/temoins/test_lot_09.py` (`12/12` témoins déterministes, `171` tests `pytest`, `verify_lot.py` `7/7` vert).
 - *2026-11-18* : **Palier 3 — Lot 10 terminé (`100/100` profils, Croissance `M4..M5` livrée)** : pré-commit noyau approuvé re-scellé (`phase=APPLIED` dans `APPLY_MIGRATION_4_3` pour `M5:B` ; `state.py` `384B`, `rng.py` et `primitives.py` intacts), puis implémentation stateless de `engine/effects/lot_10.py` (`M4:A,B,D`, `M5:A..D`) + `tests/temoins/test_lot_10.py` (`7/7` témoins déterministes, `179` tests `pytest`, `verify_lot.py` `7/7` vert). Prêt pour **Lot 11** (audit `100/100` & Mode 3).
+- *2026-11-18* : **Palier 3 — Lot 11 terminé (Audit `100/100` & Mode 3)** : `tests/temoins/test_lot_11_audit.py` validant la couverture exacte `100/100` contre `data/spec_bundle_v5_3_1.json`, l'intégrité des 32 tuiles de `engine/effects/mode3_reference.json` et une partie complète Mode 3 (`183` tests `pytest`, `verify_lot.py` `7/7` vert). **Palier 3 clôturé**, prêt pour le **Palier 4**.
 
