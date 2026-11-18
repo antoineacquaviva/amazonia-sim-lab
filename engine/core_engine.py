@@ -10,6 +10,7 @@ from engine.primitives import (
     CAUSE_TOUR_8,
     HOOK_1_3_LECTURE_DE,
     HOOK_2_1_DEBUT,
+    HOOK_2_1_PORTEE_DEF1,
     HOOK_3_1_CONSTRUCTION,
     HOOK_3_2_APRES_REVELATION,
     HOOK_3_2_OUVERTURE_REVE,
@@ -355,7 +356,13 @@ def list_legal_targets(
     p_max = state.cfg.p_max
     own_spot = _current_def_canonical_spot(state, seat, 1) if exclude_own_def2 else None
 
-    if is_first_defender:
+    use_global = not is_first_defender
+    if is_first_defender and state.cfg.mode >= 3:
+        portee_ctx: dict[str, Any] = {"seat": seat, "global_range": False}
+        dispatch_hook(state, HOOK_2_1_PORTEE_DEF1, portee_ctx)
+        use_global = bool(portee_ctx.get("global_range"))
+
+    if not use_global:
         rays, lisieres, lis_slots = _DEF1_LOCAL_RANGES[(n, seat)]
     else:
         rays = _RAYS_BY_N[n]
@@ -403,7 +410,7 @@ def list_legal_targets(
                 targets.append(cand_l)
 
     # Repli exceptionnel si 100 % du territoire local d'un siège est intégralement rasé/plein
-    if not targets and is_first_defender:
+    if not targets and not use_global:
         return list_legal_targets(state, seat, is_first_defender=False, exclude_own_def2=False)
 
     return tuple(targets)

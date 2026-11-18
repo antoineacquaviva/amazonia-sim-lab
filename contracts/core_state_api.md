@@ -399,6 +399,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `ALL_PRIMITIVES: tuple[str, ...] = ...`
 - `HOOK_1_3_LECTURE_DE: str = 'HOOK_1_3_LECTURE_DE'`
 - `HOOK_2_1_DEBUT: str = 'HOOK_2_1_DEBUT'`
+- `HOOK_2_1_PORTEE_DEF1: str = 'HOOK_2_1_PORTEE_DEF1'`
 - `HOOK_3_1_CONSTRUCTION: str = 'HOOK_3_1_CONSTRUCTION'`
 - `HOOK_3_2_REVELATION: str = 'HOOK_3_2_REVELATION'`
 - `HOOK_3_2_OUVERTURE_REVE: str = 'HOOK_3_2_OUVERTURE_REVE'`
