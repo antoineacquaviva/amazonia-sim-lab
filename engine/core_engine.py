@@ -636,12 +636,9 @@ def _move_all_builders_to_nid_parcel(state: GameState, slot_idx: int, ray: int, 
     _record_phys_ops(state, 1 + max(nb, len(tracked)))
 
 
-def _liberation_options_n3(
+def _valid_adjacent_first_parcels_3_1(
     state: GameState, slot_idx: int
-) -> tuple[tuple[int, int, int, int], ...]:
-    """Options de libération d'1 bâtisseur à N=3 : (b_seat, b_def_idx, ray, p_first)."""
-    if state.cfg.n_players != 3:
-        return ()
+) -> tuple[tuple[int, int], ...]:
     lisiere_idx = slot_idx // 2
     r0 = lisiere_idx
     r1 = (lisiere_idx + 1) % state.cfg.n_players
@@ -650,6 +647,14 @@ def _liberation_options_n3(
         p_first = state.first_non_razed_from_border(r)
         if p_first is not None and (r, p_first) not in valid_rays:
             valid_rays.append((r, p_first))
+    return tuple(valid_rays)
+
+
+def _liberation_options_one(
+    state: GameState, slot_idx: int
+) -> tuple[tuple[int, int, int, int], ...]:
+    """Options de libération d'1 bâtisseur : (b_seat, b_def_idx, ray, p_first)."""
+    valid_rays = _valid_adjacent_first_parcels_3_1(state, slot_idx)
     if not valid_rays:
         return ()
 
@@ -1797,7 +1802,38 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
     if tag == "CHECK_LIBERATION_3_1":
         slot_idx = int(top[1])
         state._continuation.pop(0)
-        lib_opts = _liberation_options_n3(state, slot_idx)
+        lib_mode = "ONE" if n == 3 else "NONE"
+        if state.cfg.mode >= 3:
+            lib_ctx: dict[str, Any] = {
+                "liberation_query": True,
+                "constructed_slot_id": state.cfg.lisiere_slots[slot_idx],
+                "slot_idx": slot_idx,
+                "n_players": n,
+                "liberate_mode": lib_mode,
+            }
+            dispatch_hook(state, HOOK_3_1_CONSTRUCTION, lib_ctx)
+            lib_mode = str(lib_ctx.get("liberate_mode", lib_mode))
+
+        if lib_mode == "NONE":
+            return None
+
+        if lib_mode == "ALL_BY_OWNER":
+            if not _valid_adjacent_first_parcels_3_1(state, slot_idx):
+                return None
+            tracked_b = _tracked_builders_on_slot(state, slot_idx)
+            _, nb_b = state.get_lisiere_tile_state(slot_idx)
+            untracked_cnt = max(0, nb_b - len(tracked_b))
+            builders_q: tuple[tuple[int, int], ...] = (
+                *tracked_b,
+                *((-1, 0) for _ in range(untracked_cnt)),
+            )
+            if builders_q:
+                state._continuation.insert(
+                    0, ("LIBERATION_ALL_QUEUE_3_1", slot_idx, builders_q, 0)
+                )
+            return None
+
+        lib_opts = _liberation_options_one(state, slot_idx)
         if len(lib_opts) == 1:
             _apply_builder_liberation(state, slot_idx, lib_opts[0])
         elif len(lib_opts) > 1:
@@ -1814,6 +1850,59 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             state._continuation.insert(0, ("WAIT_DECISION", req))
             return req
         return None
+
+    if tag == "LIBERATION_ALL_QUEUE_3_1":
+        _, slot_idx_raw, builders_q_raw, cursor_raw = state._continuation.pop(0)
+        slot_idx = int(slot_idx_raw)
+        builders_q = tuple(builders_q_raw)
+        cursor = int(cursor_raw)
+        if cursor >= len(builders_q):
+            return None
+        valid_rays = _valid_adjacent_first_parcels_3_1(state, slot_idx)
+        if not valid_rays:
+            return None
+        b_seat, b_def = builders_q[cursor]
+        still_present = False
+        if b_seat >= 0:
+            raw_loc = state.get_player_def_loc_raw(b_seat, b_def)
+            if raw_loc != 0:
+                dk, da, _, _ = state.decode_def_loc(raw_loc)
+                still_present = dk == "LISIERE" and da == slot_idx
+        else:
+            still_present = state.get_lisiere_tile_state(slot_idx)[1] >= 1
+
+        if not still_present:
+            if cursor + 1 < len(builders_q):
+                state._continuation.insert(
+                    0, ("LIBERATION_ALL_QUEUE_3_1", slot_idx, builders_q, cursor + 1)
+                )
+            return None
+
+        owner_opts = tuple((b_seat, b_def, r, p_first) for r, p_first in valid_rays)
+        if len(owner_opts) == 1:
+            _apply_builder_liberation(state, slot_idx, owner_opts[0])
+            if cursor + 1 < len(builders_q):
+                state._continuation.insert(
+                    0, ("LIBERATION_ALL_QUEUE_3_1", slot_idx, builders_q, cursor + 1)
+                )
+            return None
+
+        tile_id = state.cfg.lisiere_slots[slot_idx]
+        _, orig, _ = SYNERGY_META[tile_id]
+        dec_owner = b_seat if 0 <= b_seat < n else _governor_for_peuple(state, orig)
+        req_owner = DecisionRequest(
+            decideur=dec_owner,
+            decision_type=DEC_LIBERATION_BATISSEUR_3_1,
+            options=owner_opts,
+            context={"slot_idx": slot_idx, "tile_id": tile_id, "builder_index": cursor},
+        )
+        if cursor + 1 < len(builders_q):
+            state._continuation.insert(
+                0, ("LIBERATION_ALL_QUEUE_3_1", slot_idx, builders_q, cursor + 1)
+            )
+        state._continuation.insert(0, ("APPLY_LIBERATION_3_1", slot_idx))
+        state._continuation.insert(0, ("WAIT_DECISION", req_owner))
+        return req_owner
 
     if tag == "MIGRATION_QUEUE_4_3":
         queue_tuple: tuple[tuple[str, int, int], ...] = top[1]
@@ -1986,6 +2075,16 @@ def _run_step_6_1(state: GameState) -> None:
             dmg_cnt, gained_red, _ = state.get_machine_turn_stats(r, mt)
             _, bleus = state.get_machine_tokens(r, mt)
             gain = max(0, dmg_cnt + (1 if gained_red else 0) - bleus)
+            if gain > 0 and state.cfg.mode >= 3:
+                mg_ctx: dict[str, Any] = {
+                    "phase": "MACHINE_GAIN",
+                    "ray": r,
+                    "m_type": mt,
+                    "tactique_code": target_t_code,
+                    "gain": gain,
+                }
+                dispatch_hook(state, HOOK_6_1_REDUCTION_VOLONTAIRE, mg_ctx)
+                gain = max(0, int(mg_ctx.get("gain", gain)))
             if gain > 0:
                 prim_mod_apprentissage(state, t_rank, gain)
 
