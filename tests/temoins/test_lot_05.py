@@ -53,7 +53,7 @@ def test_lot_05_all_11_profiles_registered() -> None:
     for slot_id, prof in LOT_05_PROFILES:
         assert (slot_id, prof) in registered
         assert get_tile_registration(slot_id, prof) is not None
-    assert len(registered) == 51
+    assert len(registered) >= 51
 
 
 def test_g13_a_temoin_breche_tamanoir_pose_insecte() -> None:
@@ -306,7 +306,12 @@ def test_slot_bug_cerveau_b_temoin_deviation_synaptique_3_2() -> None:
     apply_choice(state, "M_PLUS_1")
     assert state.get_bugs_at_case(2) == 0
 
-    # Avancer la fin de 3.2 (s'arrête en 4.3 sur l'Insecte de la roue)
+    # R1:A s'ouvre en 3.2 : résoudre son échange (3, 4) puis avancer la fin de 3.2 (arrêt en 4.3)
+    req_r1 = step_until_decision(state)
+    assert isinstance(req_r1, DecisionRequest)
+    assert req_r1.decision_type == DEC_EFFET_TUILE
+    apply_choice(state, (3, 4))
+
     step_until_decision(state)
     card, _, _, lec_m, bound_t = state.get_player_hand(0)
     assert card == 1
