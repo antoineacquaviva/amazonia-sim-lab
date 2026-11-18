@@ -882,6 +882,108 @@ def _score_effect_option(
             return 340.0 + (7 - case_v) * 15.0
         return 290.0 + (7 - case_v) * 10.0
 
+    # 6h. Pose d'Insecte La Brèche du Tamanoir `("FORET" | "FURTIVITE", idx_a, p)` (G13:A)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 3
+        and isinstance(opt[0], str)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and kind_hint == "BRECHE_TAMANOIR_INSECTE"
+    ):
+        loc_g13, idx_a, p_g13 = opt[0], opt[1], opt[2]
+        if loc_g13 == "FURTIVITE":
+            nb_d, f_ins = obs.furtivite_defs_and_ins(idx_a, p_g13)
+            return 360.0 if (nb_d == 1 and f_ins == 0) else 150.0
+        idx_f = idx_a * MAX_P + (p_g13 - 1)
+        return 190.0 + belief.parcel_strike_prob[idx_f] * 260.0
+
+    # 6i. Écaille du Téju `(r, src_p, dst_p)` (G14:A) ou Porteurs du Téju `(r, src_p, dst_p)` (G14:D)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 3
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and kind_hint in ("ECAILLE_TEJU_CONVERSION_PIEGE", "PORTEURS_TEJU_DEPLACER_INSECTE")
+    ):
+        r_t, src_p, dst_p = int(opt[0]), int(opt[1]), int(opt[2])
+        src_idx = r_t * MAX_P + (src_p - 1)
+        dst_idx = r_t * MAX_P + (dst_p - 1)
+        src_defs = obs.parcel_defenseurs(r_t, src_p) + obs.parcel_insectes(r_t, src_p)
+        dst_defs = obs.parcel_defenseurs(r_t, dst_p) + obs.parcel_insectes(r_t, dst_p)
+        if kind_hint == "ECAILLE_TEJU_CONVERSION_PIEGE":
+            # Ne pas consommer le dernier pion qui devait armer le Piège !
+            rem_on_dst = (dst_defs - 1) if src_p == dst_p else dst_defs
+            arm_bonus = 240.0 if rem_on_dst >= 1 else -90.0
+            return (
+                180.0
+                + arm_bonus
+                + belief.parcel_strike_prob[dst_idx] * 280.0
+                - (140.0 if src_defs == 1 and obs.parcel_piege(r_t, src_p) == PIEGE_ACTIF else 0.0)
+            )
+        # G14:D : envoyer l'Insecte armer un Piège désarmé (dst_defs == 0)
+        arm_d_bonus = 290.0 if dst_defs == 0 else 70.0
+        disarm_pen = 220.0 if (src_defs == 1 and obs.parcel_piege(r_t, src_p) == PIEGE_ACTIF) else 0.0
+        return (
+            160.0
+            + arm_d_bonus
+            - disarm_pen
+            + (belief.parcel_strike_prob[dst_idx] - belief.parcel_strike_prob[src_idx]) * 220.0
+        )
+
+    # 6j. Le ventre plein Face 1 / Face 2 `p` sur le rayon des Reptiles (G14:C)
+    if isinstance(opt, int) and kind_hint in ("VENTRE_PLEIN_NOURRIR_F1", "VENTRE_PLEIN_PIEGE_F2"):
+        r_rep = int(decision.context.get("ray", 0))
+        p_rep = int(opt)
+        idx_rep = r_rep * MAX_P + (p_rep - 1)
+        defs_rep = obs.parcel_defenseurs(r_rep, p_rep) + obs.parcel_insectes(r_rep, p_rep)
+        if kind_hint == "VENTRE_PLEIN_NOURRIR_F1":
+            return 220.0 - belief.parcel_strike_prob[idx_rep] * 150.0 + (45.0 if defs_rep >= 2 else 0.0)
+        return 210.0 + belief.parcel_strike_prob[idx_rep] * 270.0 + (180.0 if defs_rep >= 1 else 0.0)
+
+    # 6k. Envol du Batará Suiveur `(loc, idx_a, p, track, case_1_6)` (G15:A)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 5
+        and isinstance(opt[0], str)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and isinstance(opt[3], str)
+        and isinstance(opt[4], int)
+        and kind_hint == "BATARA_MIGRATION_DIRECTE"
+    ):
+        loc_b, idx_b, p_b, trk_b, c_b = opt[0], opt[1], opt[2], opt[3], opt[4]
+        src_pen = 0.0
+        if loc_b == "FORET":
+            src_pen = belief.parcel_strike_prob[idx_b * MAX_P + (p_b - 1)] * 130.0
+        if trk_b == "COLONIE":
+            has_g = obs.gardien_available_at_case(c_b)
+            return 240.0 + (130.0 if has_g else 20.0) - src_pen
+        t_code, bugs_c, app_c = obs.tactique_code_bugs_app(c_b - 1)
+        is_t = 1 <= t_code <= 6
+        return 210.0 + (95.0 if is_t and bugs_c == 0 else 20.0) + app_c * 35.0 - src_pen
+
+    # 6l. Déviation Synaptique `"M_MOINS_1" | "M_PLUS_1"` en 3.2 (SLOT_BUG_CERVEAU:B)
+    if (
+        isinstance(opt, str)
+        and opt in ("M_MOINS_1", "M_PLUS_1")
+        and kind_hint == "BUG_DEVIATION_SYNAPTIQUE_3_2"
+    ):
+        old_m = int(decision.context.get("case", 1))
+        d_m = -1 if opt == "M_MOINS_1" else 1
+        new_m = max(1, min(6, old_m + d_m))
+        old_c, _, _ = obs.tactique_code_bugs_app(old_m - 1)
+        new_c, _, _ = obs.tactique_code_bugs_app(new_m - 1)
+        if is_reve_code(new_c) and not is_reve_code(old_c):
+            return 760.0
+        if is_reve_code(old_c) and not is_reve_code(new_c):
+            return -200.0
+        if is_tactique_code(old_c) and is_tactique_code(new_c):
+            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
+            return 35.0 + (danger_t[old_c] - danger_t[new_c]) * 4.0
+        return 20.0
+
     # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
     if isinstance(opt, int) and 1 <= opt <= 6:
         if is_b2:
