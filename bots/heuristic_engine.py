@@ -713,6 +713,19 @@ def _score_effect_option(
             sc += 220.0  # Embuscade immédiatement armée !
         elif kind_hint == "MOD_SEUIL_PARCELLE" and 0 < defs < belief.parcel_expected_seuil[idx]:
             sc += 200.0
+        elif kind_hint in ("HARPIE_MOD_SEUIL_F1", "HARPIE_AUTO_PARADE_F2"):
+            if obs.parcel_defenseurs(r_p, p_p) >= 2:
+                sc += 240.0
+        elif kind_hint == "SENTINELLE_EMBUSCADE_G10D":
+            # Armer en priorité une parcelle piégée encore désarmée (0 Défenseur, 0 Insecte)
+            sc += 280.0 if defs == 0 else 60.0
+        elif kind_hint == "CONVERSION_INSECTE_SABOTAGE_G10C":
+            # Sacrifier un Insecte là où la frappe est improbable ou déjà couverte
+            sc = 210.0 - s_prob * 180.0 + (45.0 if defs >= 2 else 0.0)
+        elif kind_hint == "CONVERSION_PIEGE_REVE_G12C":
+            reve_r = int(decision.context.get("reve_rank", 2))
+            win_bonus = 600.0 if reve_r == 1 else 240.0
+            sc = 150.0 + win_bonus - s_prob * 160.0
         return sc
 
     # 3. Décalage lecture dé M `(seat, delta_m)` (ex: G6:A)
@@ -843,6 +856,31 @@ def _score_effect_option(
     # 6d. Sacrifice d'ouverture anticipée des paravents (ex: G4:B)
     if opt == "SACRIFIER_G4_PARAVENTS":
         return 310.0 if obs.tour >= 6 else 180.0
+
+    # 6e. Loi 5.3 du Puits `(act, r, mt, p)` : retourner Rouge en Bleu vaut double (Seuil -2 + -1 App 6.1) (G10:B)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 4
+        and kind_hint == "PUITS_PIEGE_PUISSANCE_5_3"
+    ):
+        return 360.0 if opt[0] == "SURCHAUFFE_BLEU" else 220.0
+
+    # 6f. Avancement d'un Rêve `r_idx` vers la gauche (G12:A) : privilégier le Rêve le plus proche du Rang 1
+    if isinstance(opt, int) and kind_hint == "ADVANCE_REVE_G12A":
+        return 750.0 if opt == 1 else (380.0 - opt * 40.0)
+
+    # 6g. Relais du Vent `("FLIP_FACE2" | "OPEN_SLOT", case_c)` (G12:B)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], str)
+        and isinstance(opt[1], int)
+        and kind_hint == "VENT_RELAIS_GARDIEN_G12B"
+    ):
+        act_v, case_v = opt[0], opt[1]
+        if act_v == "OPEN_SLOT":
+            return 340.0 + (7 - case_v) * 15.0
+        return 290.0 + (7 - case_v) * 10.0
 
     # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
     if isinstance(opt, int) and 1 <= opt <= 6:
