@@ -677,13 +677,14 @@ def _score_effect_option(
             return 520.0 if near_reveil else 240.0
         return 25.0
 
-    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe, G1:B -2 Seuil, G2:A Recul)
+    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe, G1:B -2 Seuil, G2:A Recul, G9:B -1 Rouge)
     if (
         isinstance(opt, tuple)
         and len(opt) == 2
         and isinstance(opt[0], int)
         and isinstance(opt[1], int)
-        and kind_hint in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL", "MOD_SEUIL_MACHINE")
+        and kind_hint
+        in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL", "MOD_SEUIL_MACHINE", "REMOVE_RED_R_H")
     ):
         rm, mt = int(opt[0]), int(opt[1])
         m_obs = obs.machines[rm * 2 + mt]
@@ -694,7 +695,7 @@ def _score_effect_option(
             sc += 40.0  # -1 Apprentissage durable en 6.1 !
         return sc
 
-    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil, G5:A Matamata ou G7:A Piège sur Souche)
+    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil, G5:A Matamata, G7:A Souche ou G7:D Habité)
     if (
         isinstance(opt, tuple)
         and len(opt) == 2
@@ -708,7 +709,7 @@ def _score_effect_option(
         s_prob = belief.parcel_strike_prob[idx]
         defs = obs.parcel_defenseurs(r_p, p_p) + obs.parcel_insectes(r_p, p_p)
         sc = 120.0 + s_prob * 300.0 + p_p * 15.0
-        if kind_hint == "PIEGE_SOUCHE" and defs >= 1:
+        if kind_hint in ("PIEGE_SOUCHE", "PIEGE_HABITE_G7D") and defs >= 1:
             sc += 220.0  # Embuscade immédiatement armée !
         elif kind_hint == "MOD_SEUIL_PARCELLE" and 0 < defs < belief.parcel_expected_seuil[idx]:
             sc += 200.0
@@ -772,7 +773,74 @@ def _score_effect_option(
             + (dst_p - src_p) * 35.0
         )
 
-    # 6. Sacrifice d'ouverture anticipée des paravents (ex: G4:B)
+    # 5b. Échange atomique Vol en ciseaux `(src_ray, p, dst_rive)` (G6:C)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 3
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and kind_hint == "ECHANGE_CISEAUX_G6C"
+    ):
+        src_r, p_c, dst_rv = opt
+        l_c = int(decision.context.get("lisiere", src_r))
+        t_ray = l_c if dst_rv == 0 else (l_c + 1) % obs.n_players
+        nb_d, _ = obs.furtivite_defs_and_ins(l_c, p_c)
+        binome_bonus = 240.0 if nb_d == 1 else 60.0
+        trap_bonus = 140.0 if obs.parcel_piege(t_ray, p_c) == PIEGE_AUCUN else 20.0
+        return 120.0 + binome_bonus + trap_bonus
+
+    # 5c. Sillage du Boto `(ray, m_type, delta_dir)` (G8:A)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 3
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and kind_hint == "CIBLAGE_BOTO_G8A"
+    ):
+        r_b, mt_b, d_dir = opt
+        m_obs = obs.machines[r_b * 2 + mt_b]
+        p_pos = m_obs.position
+        idx_pos = r_b * MAX_P + max(0, p_pos - 1)
+        active_w = belief.parcel_strike_prob[idx_pos]
+        # Décaler vers la bordure (-1) en bordure p=1 fait souvent tomber SUR_PLACE dans le vide !
+        void_bonus = 180.0 if (d_dir == -1 and p_pos == 1) else (45.0 if d_dir == -1 else 0.0)
+        return 140.0 + active_w * 320.0 + void_bonus + (25.0 if mt_b == MACHINE_BULLDOZER else 0.0)
+
+    # 6. Choix en 1.3 de retenir max(D1, D2) derrière paravent (G6:B)
+    if opt == "RETENIR_MAX" and kind_hint == "CHOIX_DE_M_1_3":
+        min_m = int(decision.context.get("min_m", 1))
+        max_m = int(decision.context.get("max_m", 1))
+        old_c, _, _ = obs.tactique_code_bugs_app(min_m - 1)
+        new_c, _, _ = obs.tactique_code_bugs_app(max_m - 1)
+        if is_reve_code(new_c) and not is_reve_code(old_c):
+            return 720.0
+        if is_reve_code(old_c) and not is_reve_code(new_c):
+            return 10.0
+        if is_tactique_code(old_c) and is_tactique_code(new_c):
+            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
+            return 85.0 + (danger_t[old_c] - danger_t[new_c]) * 3.5
+        return 70.0
+
+    # 6b. Choix 4.1 entre PIEGE sous machine (G7:B) et SABOTAGE
+    if opt in ("PIEGE", "SABOTAGE") and kind_hint == "FURTIVITE_PIEGE_OU_SABOTAGE":
+        r_f = int(decision.context.get("ray", 0))
+        p_f = int(decision.context.get("p", 1))
+        has_sup = obs.parcel_defenseurs(r_f, p_f) + obs.parcel_insectes(r_f, p_f) >= 1
+        if opt == "PIEGE":
+            return 340.0 if has_sup else 210.0
+        return 260.0 if obs.tour <= 6 else 180.0
+
+    # 6c. Inversion Bulldozer avant Abatteuse sur rayon `r` (G8:B)
+    if isinstance(opt, int) and kind_hint == "INVERSION_BOTO_G8B":
+        bu_obs = obs.machines[opt * 2 + MACHINE_BULLDOZER]
+        p_bu = bu_obs.position
+        if 1 <= p_bu <= cfg.p_max and obs.parcel_souches(opt, p_bu) == 0:
+            return 360.0  # 0 Souche à terrasser si le Bulldozer passe avant l'Abatteuse !
+        return 60.0
+
+    # 6d. Sacrifice d'ouverture anticipée des paravents (ex: G4:B)
     if opt == "SACRIFIER_G4_PARAVENTS":
         return 310.0 if obs.tour >= 6 else 180.0
 

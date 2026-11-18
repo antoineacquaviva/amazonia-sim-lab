@@ -433,6 +433,8 @@ def g3_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 @register_tile("G3", "B", hooks=(HOOK_4_1_FURTIVITE,))
 def g3_b_handler(state: GameState, _hook: str, ctx: dict[str, Any]) -> None:
     """Loi 4.1 : 1/tour, après l'action d'un binôme sur lisière M ou O, 1 Défenseur glisse en face."""
+    if ctx.get("phase") == "PRE":
+        return
     if state.has_slot_used_once_per_turn("G3"):
         return
 
