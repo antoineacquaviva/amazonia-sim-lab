@@ -2736,6 +2736,16 @@ def apply_choice(
                         global_case=int(choice[1]),
                         **src_kwargs,
                     )
+                    if (
+                        state.cfg.mode >= 3
+                        and loc_type == "FORET"
+                        and src_p != state.last_non_razed_parcel(idx_a)
+                    ):
+                        dispatch_hook(
+                            state,
+                            HOOK_4_3_MIGRATION_DESTS,
+                            {"phase": "APPLIED", "src": src, "choice": choice, "opts": []},
+                        )
                 if tag == "APPLY_MIGRATION_4_3":
                     # Règle spéciale 4.3 : déplacer (+1 dans prim_deplacement) + coucher suivi + redresser = 3 ops
                     _record_phys_ops(state, 2)
