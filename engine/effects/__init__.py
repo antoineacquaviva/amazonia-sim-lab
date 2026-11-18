@@ -14,6 +14,7 @@ from engine.effects import (
     lot_07,
     lot_08,
     lot_09,
+    lot_10,
 )
 from engine.effects.registry import list_registered_tiles
 
@@ -28,6 +29,7 @@ __all__ = (
     "lot_07",
     "lot_08",
     "lot_09",
+    "lot_10",
 )
 
 LOADED_LOT_MODULES: tuple[str, ...] = (
@@ -40,6 +42,7 @@ LOADED_LOT_MODULES: tuple[str, ...] = (
     "engine.effects.lot_07",
     "engine.effects.lot_08",
     "engine.effects.lot_09",
+    "engine.effects.lot_10",
 )
 
 

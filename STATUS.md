@@ -18,7 +18,7 @@
   - [x] **Lot 07 (10 profils — Rêves R5..R7 hors R5_A)** : `R5:B..D`, `R6:A..D`, `R7:A..C`.
   - [x] **Lot 08 (9 profils — Rêves R8..R10)** : `R8:A..D`, `R9:A..B`, `R10:A,B,D`.
   - [x] **Lot 09 (12 profils — Croissance M1..M3)** : `M1:A..D`, `M2:A..D`, `M3:A..D`.
-  - [ ] **Lot 10 (7 profils — Croissance M4..M5)** : `M4:A,B,D`, `M5:A..D`.
+  - [x] **Lot 10 (7 profils — Croissance M4..M5)** : `M4:A,B,D`, `M5:A..D`.
   - [ ] **Lot 11 (Consolidation Catalogue 100/100 & Mode 3)** : Audit automatisé `100/100` `@register_tile` + `tests/temoins/` + validation Cloud `mode3_reference.json`.
 - [ ] **Palier 4** : Campagnes Cloud Batch Spot (`Sequential Halving` 128 châssis + `MAP-Elites / CVaR_20% / Shapley` Canon Unique 32 tuiles + validation `B0 < B1 < B2` / `B3`).
 
@@ -45,4 +45,5 @@
 - *2026-11-18* : **Palier 3 — Lot 07 terminé (`72/100` profils)** : pré-commit noyau approuvé re-scellé (`HOOK_4_3_MIGRATION_DESTS` dans `_list_insect_1cran_moves` pour les Lois `4.3` `R6:D` et `R7:C` ; `state.py` `384B` et `rng.py` intacts), puis implémentation stateless de `engine/effects/lot_07.py` (`R5:B..D`, `R6:A..D`, `R7:A..C`) + `tests/temoins/test_lot_07.py` (`10/10` témoins déterministes, `148` tests `pytest`, `verify_lot.py` `7/7` vert).
 - *2026-11-18* : **Palier 3 — Lot 08 terminé (`81/100` profils, `31/31` Rêves livrés)** : zéro retouche noyau requise, implémentation stateless de `engine/effects/lot_08.py` (`R8:A..D`, `R9:A..B`, `R10:A,B,D`) + `tests/temoins/test_lot_08.py` (`9/9` témoins déterministes, `158` tests `pytest`, `verify_lot.py` `7/7` vert).
 - *2026-11-18* : **Palier 3 — Lot 09 terminé (`93/100` profils, Croissance `M1..M3` livrée)** : pré-commit noyau approuvé re-scellé (`M3:B` autonome en `4.2`, `manque` dans `pc_ctx` pour `M3:C` ; `state.py` `384B`, `rng.py` et `primitives.py` intacts), puis implémentation stateless de `engine/effects/lot_09.py` (`M1:A..D`, `M2:A..D`, `M3:A..D`) + `tests/temoins/test_lot_09.py` (`12/12` témoins déterministes, `171` tests `pytest`, `verify_lot.py` `7/7` vert).
+- *2026-11-18* : **Palier 3 — Lot 10 terminé (`100/100` profils, Croissance `M4..M5` livrée)** : pré-commit noyau approuvé re-scellé (`phase=APPLIED` dans `APPLY_MIGRATION_4_3` pour `M5:B` ; `state.py` `384B`, `rng.py` et `primitives.py` intacts), puis implémentation stateless de `engine/effects/lot_10.py` (`M4:A,B,D`, `M5:A..D`) + `tests/temoins/test_lot_10.py` (`7/7` témoins déterministes, `179` tests `pytest`, `verify_lot.py` `7/7` vert). Prêt pour **Lot 11** (audit `100/100` & Mode 3).
 
