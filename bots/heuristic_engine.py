@@ -677,24 +677,24 @@ def _score_effect_option(
             return 520.0 if near_reveil else 240.0
         return 25.0
 
-    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe ou G2:A Recul)
+    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe, G1:B -2 Seuil, G2:A Recul)
     if (
         isinstance(opt, tuple)
         and len(opt) == 2
         and isinstance(opt[0], int)
         and isinstance(opt[1], int)
-        and kind_hint in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL")
+        and kind_hint in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL", "MOD_SEUIL_MACHINE")
     ):
         rm, mt = int(opt[0]), int(opt[1])
         m_obs = obs.machines[rm * 2 + mt]
-        sc = 150.0 + m_obs.position * 45.0 + m_obs.rouges * 55.0
+        sc = 150.0 + m_obs.position * 45.0 + (m_obs.rouges + m_obs.bleus) * 45.0
         if mt == MACHINE_BULLDOZER:
             sc += 30.0
         if is_b2 and kind_hint == "MACHINE_SURCHAUFFE" and obs.tour <= 6:
             sc += 40.0  # -1 Apprentissage durable en 6.1 !
         return sc
 
-    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil ou G7:A Piège sur Souche)
+    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil, G5:A Matamata ou G7:A Piège sur Souche)
     if (
         isinstance(opt, tuple)
         and len(opt) == 2
@@ -741,20 +741,42 @@ def _score_effect_option(
             return 150.0 + (danger_t[old_code] - danger_t[new_code]) * 4.0
         return 80.0
 
-    # 4. Déplacement d'un Défenseur `(src_spec, (dst_r, dst_p))` (ex: G4:A Sacrifice)
+    # 4. Déplacement d'un Défenseur `(src_spec, (dst_r, dst_p))` (ex: G3:A/C/D, G4:A)
     if isinstance(opt, tuple) and len(opt) == 2 and isinstance(opt[1], tuple) and len(opt[1]) == 2:
         src_spec, (dst_r, dst_p) = opt
         dr, dp = int(dst_r), int(dst_p)
         dst_idx = dr * MAX_P + (dp - 1)
         dst_gain = score_target_b2(obs, cfg, belief, ("FORET", dr, dp), False)
-        src_loss = 120.0
+        src_loss = 80.0
         if isinstance(src_spec, tuple) and len(src_spec) >= 3 and src_spec[0] == "FORET":
             sr, sp = int(src_spec[1]), int(src_spec[2])
             src_idx = sr * MAX_P + (sp - 1)
             src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
         return dst_gain - src_loss + belief.parcel_strike_prob[dst_idx] * 90.0
 
-    # 5. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
+    # 5. Déplacement groupé d'Insectes `(r, src_p, dst_p)` (ex: G2:C)
+    if (
+        isinstance(opt, tuple)
+        and len(opt) == 3
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and isinstance(opt[2], int)
+        and kind_hint == "MOVE_ALL_INSECTES"
+    ):
+        r_i, src_p, dst_p = opt
+        src_idx = r_i * MAX_P + (src_p - 1)
+        dst_idx = r_i * MAX_P + (dst_p - 1)
+        return (
+            100.0
+            + (belief.parcel_strike_prob[dst_idx] - belief.parcel_strike_prob[src_idx]) * 260.0
+            + (dst_p - src_p) * 35.0
+        )
+
+    # 6. Sacrifice d'ouverture anticipée des paravents (ex: G4:B)
+    if opt == "SACRIFIER_G4_PARAVENTS":
+        return 310.0 if obs.tour >= 6 else 180.0
+
+    # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
     if isinstance(opt, int) and 1 <= opt <= 6:
         if is_b2:
             _, trig_vals = _compute_b2_resource_and_trigger_values(obs, cfg, belief)

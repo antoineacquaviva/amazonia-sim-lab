@@ -14,10 +14,10 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import engine.effects  # noqa: F401
 from bots.bot_b0 import choose_b0
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from engine.core_engine import apply_choice, step_until_decision
+from engine.effects import load_all_effects, lot_01, lot_02  # noqa: F401
 from engine.effects.registry import list_registered_tiles
 from engine.primitives import GameOver
 from engine.rng import SRC_TACTICS_SETUP, rand_below
