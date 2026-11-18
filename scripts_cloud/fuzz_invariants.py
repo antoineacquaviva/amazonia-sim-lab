@@ -27,6 +27,7 @@ from engine.effects import (  # noqa: F401
     lot_06,
     lot_07,
     lot_08,
+    lot_09,
 )
 from engine.effects.registry import list_registered_tiles
 from engine.primitives import GameOver

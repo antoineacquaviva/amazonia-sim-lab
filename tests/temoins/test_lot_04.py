@@ -113,7 +113,7 @@ def test_g10_b_temoin() -> None:
 def test_g10_c_temoin() -> None:
     """G10:C — En 4.2, l’Insecte produit par un Nid peut payer ce coût après le bloc indivisible du Nid pour diluer durablement le paquet Machine."""
     state = _make_mode3_state(
-        (("G10", "C"), ("G1", "A")),
+        (("G10", "C"), ("G1", "A"), ("M1", "B")),
         peuples=("M", "O", "R", "I"),
     )
     # G10:C câblé sur 6. Insecte ; G1:A témoin sur 3. Sabotage

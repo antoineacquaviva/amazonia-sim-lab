@@ -185,7 +185,7 @@ def test_r6_a_temoin_miel_ancetres_pose_insecte_hi_3_2() -> None:
 
 def test_r6_b_temoin_miel_ancetres_active_nid_insectes_sans_bloquer_4_2() -> None:
     """Témoin R6:B : déclenche la création d'Insectes d'1 Nid en 3.2 (+1/+2, allume 6) sans bloquer 4.2."""
-    state = _make_state(("R6", "B"), peuples=("M", "R", "H", "I"))
+    state = _make_state(("R6", "B"), ("M1", "B"), peuples=("M", "R", "H", "I"))
     i_seat = state.cfg.seat_of_peuple("I")
     assert i_seat is not None
 
