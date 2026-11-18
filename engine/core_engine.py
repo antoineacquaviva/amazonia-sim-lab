@@ -19,6 +19,7 @@ from engine.primitives import (
     HOOK_4_1_FURTIVITE,
     HOOK_4_2_NID_APRES_PROD,
     HOOK_4_3_COLONIE_FIN,
+    HOOK_4_3_MIGRATION_DESTS,
     HOOK_5_3_PRE_RETRAIT,
     HOOK_5_APRES_PARADE_PIEGE,
     HOOK_5_CIBLAGE_MACHINE,
@@ -1282,6 +1283,9 @@ def _list_insect_1cran_moves(
                 cand_f = ("FORET", adj_ray, p)
                 if cand_f not in opts:
                     opts.append(cand_f)
+
+    if state.cfg.mode >= 3:
+        dispatch_hook(state, HOOK_4_3_MIGRATION_DESTS, {"src": src, "opts": opts})
 
     return tuple(opts)
 

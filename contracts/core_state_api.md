@@ -408,6 +408,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `HOOK_4_1_FURTIVITE: str = 'HOOK_4_1_FURTIVITE'`
 - `HOOK_4_2_NID_APRES_PROD: str = 'HOOK_4_2_NID_APRES_PROD'`
 - `HOOK_4_3_COLONIE_FIN: str = 'HOOK_4_3_COLONIE_FIN'`
+- `HOOK_4_3_MIGRATION_DESTS: str = 'HOOK_4_3_MIGRATION_DESTS'`
 - `HOOK_5_DEBUT: str = 'HOOK_5_DEBUT'`
 - `HOOK_5_ORDRE_RAYON: str = 'HOOK_5_ORDRE_RAYON'`
 - `HOOK_5_CIBLAGE_MACHINE: str = 'HOOK_5_CIBLAGE_MACHINE'`
