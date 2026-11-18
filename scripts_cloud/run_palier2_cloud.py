@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -19,10 +18,12 @@ if str(ROOT) not in sys.path:
 
 import engine.effects  # noqa: F401
 from campaigns.designs import inter_block_ci95, paired_mirror_blocks
+from campaigns.digest_builder import write_digest_and_prompt_files
 from campaigns.worker_main import build_palier2_work_units
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.effects.registry import list_registered_tiles
 from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES
+from scripts_cloud.publish_digest import publish_campaign_digest
 from scripts_cloud.studio_paths import find_gcloud, find_uv
 
 REGION = "europe-west9"
@@ -392,13 +393,13 @@ def synthesize_with_duckdb(job_wall_sec: float, expected_total_games: int) -> di
         "worker_shards": task_rows,
     }
 
-    DIGEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DIGESTS_COPY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    raw_json = json.dumps(digest, indent=2, ensure_ascii=False) + "\n"
-    encoded = raw_json.encode("utf-8")
-    assert len(encoded) < 30_000, f"Digest trop volumineux : {len(encoded)} >= 30000 octets"
-    DIGEST_PATH.write_text(raw_json, encoding="utf-8", newline="\n")
-    DIGESTS_COPY_PATH.write_text(raw_json, encoding="utf-8", newline="\n")
+    digest_path, prompt_path, digest = write_digest_and_prompt_files(
+        "palier2_coeur_muet",
+        digest,
+        chassis_ids=(0,),
+        tested_tiles=LOT_01_PROFILES,
+    )
+    encoded = digest_path.read_bytes()
 
     print("\n=== SYNTHÈSE DUCKDB PALIER 2 — MATRICE COOPÉRATIVE & TÉLÉMÉTRIE ===")
     con.sql(
@@ -421,8 +422,9 @@ def synthesize_with_duckdb(job_wall_sec: float, expected_total_games: int) -> di
     ).show()
 
     print(
-        f"Digest écrit : {DIGEST_PATH.relative_to(ROOT).as_posix()} ({len(encoded)} octets < 30 Ko)"
+        f"Digest écrit : {digest_path.relative_to(ROOT).as_posix()} ({len(encoded)} octets < 35 Ko)"
     )
+    print(f"Dossier Gemini : {prompt_path.relative_to(ROOT).as_posix()}")
     con.close()
     return digest
 
@@ -486,8 +488,14 @@ def main() -> int:
     LOCAL_SHARDS_DIR.mkdir(parents=True, exist_ok=True)
     _run([gcloud, "storage", "cp", f"{GCS_PREFIX}/shard_*.jsonl.gz", str(LOCAL_SHARDS_DIR)])
 
-    # 6. Agrégation DuckDB, archive Parquet ZSTD & génération de data/digest_palier2_coeur_muet.json
-    synthesize_with_duckdb(job_wall_sec=job_wall_sec, expected_total_games=expected_games)
+    # 6. Agrégation DuckDB, archive Parquet ZSTD & publication auto-portante (Drive + Mobile + Presse-papiers)
+    digest = synthesize_with_duckdb(job_wall_sec=job_wall_sec, expected_total_games=expected_games)
+    publish_campaign_digest(
+        "palier2_coeur_muet",
+        digest,
+        chassis_ids=(0,),
+        tested_tiles=LOT_01_PROFILES,
+    )
     return 0
 
 

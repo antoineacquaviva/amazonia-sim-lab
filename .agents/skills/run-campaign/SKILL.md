@@ -39,12 +39,22 @@ Toujours présenter ce devis simple de **5 lignes** en français naturel avant d
 
 ---
 
-## 4. Synthèse Analytique DuckDB & Fichier `digest_<nom_campagne>.json` (`< 30 Ko`)
-Avec **CPython 3.12 + DuckDB** (`uv run python ...`) :
+## 4. Synthèse Analytique DuckDB & Dossier Auto-Portant (`< 35 Ko`)
+Avec **CPython 3.12 + DuckDB** (`uv run python ...`) et `campaigns/digest_builder.py` :
 1. Archiver les données détaillées en `.tmp_runs/<nom_campagne>/cells.parquet` (compression ZSTD).
 2. Calculer les indicateurs utiles à l'auteur :
-   - Taux moyen d'Arbres sauvés, médiane et **pire quintile des tables (`20 %` les plus dures)**,
+   - Taux moyen d'Arbres sauvés, médiane et **pire quintile des tables (`CVaR_20%`, `20 %` les plus dures)**,
    - Durée moyenne en tours et répartition des 3 fins (*Fin du Tour 8*, *Rêve au rang 1*, *Réveil des Gardiens*),
    - Charge mentale mesurée par les 4 capteurs (éléments à retenir, lois simultanées, manipulations par décision, cascades),
-   - Marge d'incertitude à `95 %` entre tables miroirs.
-3. Écrire `data/digests/digest_<nom_campagne>.json` (UTF-8 sans BOM, LF, **strictement `< 30 Ko`**) prêt à être glissé dans un chat Gemini web.
+   - Marge d'incertitude inter-blocs à `95 %` entre tables miroirs et *seeds* de forks.
+3. Appeler `write_digest_and_prompt_files("<nom_campagne>", ...)` depuis `campaigns/digest_builder.py` pour générer systématiquement (UTF-8 sans BOM, LF, **strictement `< 35 Ko`**) :
+   - `data/digests/digest_<nom_campagne>.json` embarquant `"active_core_rules"` (version, `studio_sha256`, 7 axes des châssis utilisés, `tactiques` `T1..T6`, `machine_deck_rules`, résumé formel `spec_formelle` Étapes 1 à 6 / Furtivité / Parades & Pièges / Sabotage par dilution / Apprentissage / Fins `5.3`) et `"tested_tiles_rules"` (`slot`, `profil`, `nom`, `famille`, `texte` des tuiles évaluées),
+   - `data/digests/PROMPT_GEMINI_<nom_campagne>.md` encapsulant l'en-tête éditorial `amazonia-analyste-editorial` et le bloc JSON complet.
+
+---
+
+## 5. Pont Zéro-Friction Mobile Android & PC (`scripts_cloud/publish_digest.py`)
+En fin de chaque campagne, appeler automatiquement `uv run python scripts_cloud/publish_digest.py --campaign <nom_campagne>` (ou `publish_campaign_digest(...)`) qui assure simultanément sans aucune API LLM payante :
+1. **Google Drive (`Amazonia_Digests`)** : téléversement de `PROMPT_GEMINI_<nom_campagne>.md` (et `.txt`) pour ouverture en 1 geste dans l'application Gemini Android via `+ -> Google Drive -> Récents`.
+2. **Page Mobile 1-Tap (`last_digest.html` -> `gs://amazonia-sim-runs/mobile/latest.html`)** : bouton **« 📋 Copier tout le dossier pour l'app Gemini »** + téléchargement direct, avec affichage de l'URL signée 7 jours et du QR code ASCII dans le terminal.
+3. **Presse-papiers PC automatique** : copie UTF-8 du contenu de `PROMPT_GEMINI_<nom_campagne>.md` pour un simple `Ctrl+V` immédiat dans Gemini web.

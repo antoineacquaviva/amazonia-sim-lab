@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import shutil
 import subprocess
 import sys
@@ -17,6 +16,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from campaigns.digest_builder import write_digest_and_prompt_files
+from campaigns.worker_main import PALIER1_CHASSIS_IDS
+from scripts_cloud.publish_digest import publish_campaign_digest
 from scripts_cloud.studio_paths import find_gcloud
 
 REGION = "europe-west9"
@@ -31,7 +33,7 @@ GCS_PREFIX = "gs://amazonia-sim-runs/palier1_baseline"
 LOCAL_RUN_DIR = ROOT / ".tmp_runs" / "palier1_baseline"
 LOCAL_SHARDS_DIR = LOCAL_RUN_DIR / "shards"
 PARQUET_PATH = LOCAL_RUN_DIR / "palier1_b0_cells.parquet"
-DIGEST_PATH = ROOT / "data" / "digest_palier1_b0.json"
+DIGEST_PATH = ROOT / "data" / "digests" / "digest_palier1_b0.json"
 
 
 def _run(cmd: list[str]) -> None:
@@ -203,11 +205,13 @@ def synthesize_with_duckdb(job_wall_sec: float) -> dict[str, Any]:
         "worker_shards": task_rows,
     }
 
-    DIGEST_PATH.parent.mkdir(parents=True, exist_ok=True)
-    raw_json = json.dumps(digest, indent=2, ensure_ascii=False) + "\n"
-    encoded = raw_json.encode("utf-8")
-    assert len(encoded) < 20_000, f"Digest trop volumineux : {len(encoded)} >= 20000 octets"
-    DIGEST_PATH.write_text(raw_json, encoding="utf-8", newline="\n")
+    digest_path, prompt_path, digest = write_digest_and_prompt_files(
+        "palier1_b0",
+        digest,
+        chassis_ids=PALIER1_CHASSIS_IDS,
+        tested_tiles=(),
+    )
+    encoded = digest_path.read_bytes()
 
     print("\n=== SYNTHÈSE DUCKDB PALIER 1 (100 000 PARTIES B0) ===")
     con.sql(
@@ -229,8 +233,9 @@ def synthesize_with_duckdb(job_wall_sec: float) -> dict[str, Any]:
     ).show()
 
     print(
-        f"Digest écrit : {DIGEST_PATH.relative_to(ROOT).as_posix()} ({len(encoded)} octets < 20 Ko)"
+        f"Digest écrit : {digest_path.relative_to(ROOT).as_posix()} ({len(encoded)} octets < 35 Ko)"
     )
+    print(f"Dossier Gemini : {prompt_path.relative_to(ROOT).as_posix()}")
     print(f"Archive Parquet : {PARQUET_PATH.relative_to(ROOT).as_posix()}")
     con.close()
     return digest
@@ -282,8 +287,14 @@ def main() -> int:
     LOCAL_SHARDS_DIR.mkdir(parents=True, exist_ok=True)
     _run([gcloud, "storage", "cp", f"{GCS_PREFIX}/shard_*.jsonl.gz", str(LOCAL_SHARDS_DIR)])
 
-    # 5. Agrégation DuckDB, export Parquet & génération de data/digest_palier1_b0.json
-    synthesize_with_duckdb(job_wall_sec=job_wall_sec)
+    # 5. Agrégation DuckDB, export Parquet & publication auto-portante (Drive + Mobile + Presse-papiers)
+    digest = synthesize_with_duckdb(job_wall_sec=job_wall_sec)
+    publish_campaign_digest(
+        "palier1_b0",
+        digest,
+        chassis_ids=PALIER1_CHASSIS_IDS,
+        tested_tiles=(),
+    )
     return 0
 
 

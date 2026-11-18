@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Amazonia Sim Lab — palier1_baseline_b0</title>
+  <style>
+    :root {
+      --bg: #0f1f17;
+      --card: #172e23;
+      --accent: #34d399;
+      --accent-dark: #059669;
+      --text: #ecfdf5;
+      --muted: #a7f3d0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid #264a39;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+    }
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 6px 0;
+      color: var(--accent);
+    }
+    .meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 16px 14px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: center;
+      color: #06281b;
+      background: var(--accent);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+    }
+    .btn-primary:active {
+      background: var(--accent-dark);
+      color: #ffffff;
+    }
+    .btn-secondary {
+      display: inline-block;
+      width: 100%;
+      padding: 12px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-align: center;
+      color: var(--text);
+      background: #214031;
+      border: 1px solid #35634d;
+      border-radius: 10px;
+      text-decoration: none;
+      cursor: pointer;
+      margin-bottom: 14px;
+    }
+    .status {
+      min-height: 22px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    textarea {
+      width: 100%;
+      height: 240px;
+      background: #09140e;
+      color: #d1fae5;
+      border: 1px solid #2d5440;
+      border-radius: 10px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🌿 Amazonia : Dernier Rempart</h1>
+    <div class="meta">
+      Campagne : <strong>palier1_baseline_b0</strong> · Règles cœur <strong>v5.3.1</strong><br>
+      Généré (UTC) : 2026-11-17T16:31:26Z · Fichier : <code>digest_palier1_b0.json</code>
+    </div>
+    <button id="copyBtn" class="btn-primary" type="button" onclick="copyDossier()">
+      📋 Copier tout le dossier pour l'app Gemini
+    </button>
+    <div id="statusMsg" class="status"></div>
+    <button class="btn-secondary" type="button" onclick="downloadMarkdown()">
+      ⬇️ Télécharger PROMPT_GEMINI_palier1_b0.md
+    </button>
+    <textarea id="promptBox" readonly>Dossier de simulation Amazonia : Dernier Rempart — utilise les règles cœur et statistiques ci-dessous comme unique vérité terrain.
+
+```json
+{
+  &quot;campaign&quot;: &quot;palier1_baseline_b0&quot;,
+  &quot;generated_at_utc&quot;: &quot;2026-11-17T16:31:26Z&quot;,
+  &quot;active_core_rules&quot;: {
+    &quot;version&quot;: &quot;5.3.1&quot;,
+    &quot;source_studio_version&quot;: &quot;v5.3&quot;,
+    &quot;studio_sha256&quot;: {
+      &quot;catalog_v5_3.json&quot;: &quot;8f9ef62b478ccef35ca3b850d647d9e125b60834f1b8e1bbdcd92cc197d76c09&quot;,
+      &quot;spec_formelle_v5_3.json&quot;: &quot;cd264fcf967df6f9bf61a4a8ef39b64be5576be2111d73a811afd5e1753602b6&quot;
+    },
+    &quot;chassis_7_axes&quot;: [
+      {
+        &quot;chassis_id&quot;: 0,
+        &quot;p_max&quot;: 4,
+        &quot;regle_ouverture_reve_multiple&quot;: &quot;UNIQUE_PAR_TOUR&quot;,
+        &quot;offset_seuil_parade&quot;: 0,
+        &quot;mise_en_place_tactiques&quot;: &quot;ORDRE_FIXE_T1_T6&quot;,
+        &quot;declenchement_fin_de_piste&quot;: &quot;ARRIVEE_DERNIERE_PARCELLE&quot;,
+        &quot;role_abatteuse_fin_de_piste&quot;: &quot;STANDARD_COUPE_ARBRE&quot;,
+        &quot;synergie_binome_machines&quot;: &quot;INDIVIDUELLE&quot;
+      },
+      {
+        &quot;chassis_id&quot;: 1,
+        &quot;p_max&quot;: 5,
+        &quot;regle_ouverture_reve_multiple&quot;: &quot;UNIQUE_PAR_TOUR&quot;,
+        &quot;offset_seuil_parade&quot;: 0,
+        &quot;mise_en_place_tactiques&quot;: &quot;ORDRE_FIXE_T1_T6&quot;,
+        &quot;declenchement_fin_de_piste&quot;: &quot;ARRIVEE_DERNIERE_PARCELLE&quot;,
+        &quot;role_abatteuse_fin_de_piste&quot;: &quot;STANDARD_COUPE_ARBRE&quot;,
+        &quot;synergie_binome_machines&quot;: &quot;INDIVIDUELLE&quot;
+      },
+      {
+        &quot;chassis_id&quot;: 4,
+        &quot;p_max&quot;: 4,
+        &quot;regle_ouverture_reve_multiple&quot;: &quot;UNIQUE_PAR_TOUR&quot;,
+        &quot;offset_seuil_parade&quot;: 1,
+        &quot;mise_en_place_tactiques&quot;: &quot;ORDRE_FIXE_T1_T6&quot;,
+        &quot;declenchement_fin_de_piste&quot;: &quot;ARRIVEE_DERNIERE_PARCELLE&quot;,
+        &quot;role_abatteuse_fin_de_piste&quot;: &quot;STANDARD_COUPE_ARBRE&quot;,
+        &quot;synergie_binome_machines&quot;: &quot;INDIVIDUELLE&quot;
+      },
+      {
+        &quot;chassis_id&quot;: 5,
+        &quot;p_max&quot;: 5,
+        &quot;regle_ouverture_reve_multiple&quot;: &quot;UNIQUE_PAR_TOUR&quot;,
+        &quot;offset_seuil_parade&quot;: 1,
+        &quot;mise_en_place_tactiques&quot;: &quot;ORDRE_FIXE_T1_T6&quot;,
+        &quot;declenchement_fin_de_piste&quot;: &quot;ARRIVEE_DERNIERE_PARCELLE&quot;,
+        &quot;role_abatteuse_fin_de_piste&quot;: &quot;STANDARD_COUPE_ARBRE&quot;,
+        &quot;synergie_binome_machines&quot;: &quot;INDIVIDUELLE&quot;
+      },
+      {
+        &quot;chassis_id&quot;: 127,
+        &quot;p_max&quot;: 5,
+        &quot;regle_ouverture_reve_multiple&quot;: &quot;PAR_DE_M_DESIGNE&quot;,
+        &quot;offset_seuil_parade&quot;: 1,
+        &quot;mise_en_place_tactiques&quot;: &quot;ALEATOIRE&quot;,
+        &quot;declenchement_fin_de_piste&quot;: &quot;DEPASSEMENT_DERNIERE_PARCELLE&quot;,
+        &quot;role_abatteuse_fin_de_piste&quot;: &quot;ARRACHE_1_SOUCHE_SI_SANS_ARBRE&quot;,
+        &quot;synergie_binome_machines&quot;: &quot;MUTUALISATION_PUISSANCE_MEME_PARCELLE&quot;
+      }
+    ],
+    &quot;tactiques&quot;: [
+      {
+        &quot;id&quot;: &quot;T1&quot;,
+        &quot;nom&quot;: &quot;Sur place&quot;,
+        &quot;cibles&quot;: [
+          &quot;SUR_PLACE&quot;
+        ],
+        &quot;avancee&quot;: 0,
+        &quot;gain_rouge&quot;: 0,
+        &quot;mod_seuil&quot;: 0,
+        &quot;est_siege_profil&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;T2&quot;,
+        &quot;nom&quot;: &quot;Devant&quot;,
+        &quot;cibles&quot;: [
+          &quot;DEVANT&quot;
+        ],
+        &quot;avancee&quot;: 0,
+        &quot;gain_rouge&quot;: 0,
+        &quot;mod_seuil&quot;: 0,
+        &quot;est_siege_profil&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;T3&quot;,
+        &quot;nom&quot;: &quot;En avançant&quot;,
+        &quot;cibles&quot;: [
+          &quot;SUR_PLACE&quot;,
+          &quot;DEVANT&quot;
+        ],
+        &quot;avancee&quot;: 1,
+        &quot;gain_rouge&quot;: 0,
+        &quot;mod_seuil&quot;: -1,
+        &quot;est_siege_profil&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;T4&quot;,
+        &quot;nom&quot;: &quot;Sur place +&quot;,
+        &quot;cibles&quot;: [
+          &quot;SUR_PLACE&quot;
+        ],
+        &quot;avancee&quot;: 0,
+        &quot;gain_rouge&quot;: 1,
+        &quot;mod_seuil&quot;: -1,
+        &quot;est_siege_profil&quot;: true
+      },
+      {
+        &quot;id&quot;: &quot;T5&quot;,
+        &quot;nom&quot;: &quot;Devant +&quot;,
+        &quot;cibles&quot;: [
+          &quot;DEVANT&quot;
+        ],
+        &quot;avancee&quot;: 0,
+        &quot;gain_rouge&quot;: 1,
+        &quot;mod_seuil&quot;: -1,
+        &quot;est_siege_profil&quot;: false
+      },
+      {
+        &quot;id&quot;: &quot;T6&quot;,
+        &quot;nom&quot;: &quot;En avançant +&quot;,
+        &quot;cibles&quot;: [
+          &quot;SUR_PLACE&quot;,
+          &quot;DEVANT&quot;
+        ],
+        &quot;avancee&quot;: 1,
+        &quot;gain_rouge&quot;: 1,
+        &quot;mod_seuil&quot;: -2,
+        &quot;est_siege_profil&quot;: false
+      }
+    ],
+    &quot;machine_damage_rules&quot;: {
+      &quot;ABATTEUSE&quot;: {
+        &quot;arbres_coupes_max&quot;: 2,
+        &quot;souches_retirees&quot;: 0,
+        &quot;arrache_1_souche_si_sans_arbre_en_siege_option&quot;: &quot;ARRACHE_1_SOUCHE_SI_SANS_ARBRE&quot;
+      },
+      &quot;BULLDOZER&quot;: {
+        &quot;arbres_coupes_max&quot;: 1,
+        &quot;retire_toutes_souches_non_protegees&quot;: true,
+        &quot;test_parade_unique&quot;: true
+      },
+      &quot;siege_t4&quot;: {
+        &quot;autonomie_attaque_si_t4_ejectee&quot;: true,
+        &quot;apprentissage_sur_t4_si_presente&quot;: true
+      }
+    },
+    &quot;machine_deck_rules&quot;: {
+      &quot;cartes_machine_par_rayon&quot;: 2,
+      &quot;types_par_rayon&quot;: [
+        &quot;ABATTEUSE&quot;,
+        &quot;BULLDOZER&quot;
+      ],
+      &quot;total_initial_formula&quot;: &quot;2 * N&quot;,
+      &quot;sabotage_dilution_permanente&quot;: true,
+      &quot;sabotage_effet_propre&quot;: null,
+      &quot;sabotage_perd_activation_et_pas_de_des&quot;: true,
+      &quot;remelange_etape&quot;: &quot;6.3&quot;,
+      &quot;penurie_ordre&quot;: &quot;sens_horaire_depuis_plus_arbres_debout&quot;
+    },
+    &quot;spec_formelle&quot;: {
+      &quot;schema_version&quot;: &quot;5.3.1-audit&quot;,
+      &quot;etapes_1_a_6&quot;: {
+        &quot;etape_1_PREPARATION_POSE_FURTIVITE&quot;: &quot;Distribution, Dés secrets et Pose des Défenseurs : Lecture épurée des dés sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Si le rang M porte un Rêve en 3.2, la machine est annulée et le Rêve s’ouvre. Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l&#x27;Ara.&quot;,
+        &quot;etape_2_REVELATION_DES_REVES_FURTIVITE&quot;: &quot;Ouverture des Paravents, Rêves, Dés et Furtivité : Rêve sur dé Machine : annule l&#x27;activation de la machine et peut ouvrir ce Rêve (max 1 ouverture par Rêve et par tour).&quot;,
+        &quot;etape_3_CONSTRUCTION_SYNERGIES&quot;: &quot;Construction obligatoire des Tuiles de Synergie : Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d&#x27;origine. Insertion d&#x27;un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases. Anti-blocage et Nids : pose interdite sur case morte/tuile inconstructible ; 1 seul Nid par parcelle sans machine ; choix du bâtisseur libéré par Peuple d&#x27;origine.&quot;,
+        &quot;etape_4_NIDS_ET_MIGRATION&quot;: &quot;Production des Nids et Migration des Insectes : Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte. Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.&quot;,
+        &quot;etape_5_ATTAQUES_ET_TEST_FIN&quot;: &quot;Attaques des Machines et Vérification de Fin de Partie : Séquence des attaques : Tactiques 1..6 puis Sièges ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d&#x27;un seul tenant. Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque. Pont routier : Routes Forestières systématiquement sautées le long d&#x27;un rayon, mais infranchissables/inoccupables latéralement. Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Siège irréversible maintenu. Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.&quot;,
+        &quot;etape_6_APPRENTISSAGE_ET_MENAGE&quot;: &quot;Apprentissage du Contremaître et Ménage de fin de tour : Cascades de Gardiens : fin complète de l&#x27;effet en cours, marquage immédiat à l&#x27;ouverture, balayage à plat de 1 à 6 sans pile imbriquée. Faces 2 et Lois passives : seule la face visible s&#x27;applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s&#x27;allume.&quot;
+      },
+      &quot;furtivite&quot;: &quot;Furtivité à 4 emplacements (2 jumeaux/rive) : entrer sur la case tire l&#x27;autre jeton sur le jumeau et oriente l&#x27;action unique ; retourner en choix définitif se fait sur place sans déplacement.&quot;,
+      &quot;chaine_parades_et_pieges&quot;: &quot;Matamata et chaîne des parades : Matamata vérifie la présence d&#x27;une Souche à chaque frappe ; ordre Jaguar -&gt; Harpie -&gt; Piège -&gt; Parade classique. | Armement des Pièges : Embuscade dès que Défense totale &gt;= 1 (locale ou à distance) ; tout Piège ayant paré &gt;= 1 fois dans le tour est retiré en fin d&#x27;attaques. | Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés. | Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.&quot;,
+      &quot;sabotage_par_dilution&quot;: &quot;Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.&quot;,
+      &quot;apprentissage&quot;: &quot;Apprentissage : dommage réel requis (&gt;= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d&#x27;étape. | Autonomie et Apprentissage du Siège : l’attaque d’une machine en Siège reste active même si la tuile T4 est éjectée ; en 6.1, une machine en Siège génère normalement ses jetons d’Apprentissage sur T4 tant que T4 figure sur la Piste des Tactiques (ignorés si T4 est éjectée).&quot;,
+      &quot;fins_5_3&quot;: &quot;Seuil de Réveil fixe : calculé à la mise en place (inactif si &lt; 3 Gardiens en jeu) ; retour en lisière efface le marqueur. | Test de fin de partie : maintenu en fin d&#x27;attaques (saut Apprentissage), avec déclenchement en fin d&#x27;Apprentissage si L&#x27;Écho des Voix Célestes amène son Rêve en case 1.&quot;
+    }
+  },
+  &quot;tested_tiles_rules&quot;: [],
+  &quot;cloud_run_job&quot;: {
+    &quot;job_name&quot;: &quot;amazonia-palier1&quot;,
+    &quot;region&quot;: &quot;europe-west9&quot;,
+    &quot;image&quot;: &quot;europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest&quot;,
+    &quot;tasks&quot;: 10,
+    &quot;cpu_per_task&quot;: 2,
+    &quot;memory_per_task&quot;: &quot;1Gi&quot;,
+    &quot;job_wall_sec_including_scheduling&quot;: 36.239,
+    &quot;max_worker_compute_sec&quot;: 18.567,
+    &quot;mean_worker_compute_sec&quot;: 17.179,
+    &quot;sum_worker_games_per_sec&quot;: 5866.3,
+    &quot;effective_cluster_compute_games_per_sec&quot;: 5385.8,
+    &quot;end_to_end_job_games_per_sec&quot;: 2759.5
+  },
+  &quot;totals&quot;: {
+    &quot;total_games&quot;: 100000,
+    &quot;n_shards&quot;: 10,
+    &quot;n_cells&quot;: 180,
+    &quot;parquet_archive&quot;: &quot;.tmp_runs/palier1_baseline/palier1_b0_cells.parquet&quot;
+  },
+  &quot;by_mode&quot;: [
+    {
+      &quot;mode&quot;: 1,
+      &quot;n_games&quot;: 50000,
+      &quot;mean_score_arbres&quot;: 24.764,
+      &quot;mean_ratio_arbres&quot;: 0.4866,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;count_tour_8&quot;: 50000,
+      &quot;count_reve_rang_1&quot;: 0,
+      &quot;count_reveil_gardiens&quot;: 0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;n_games&quot;: 50000,
+      &quot;mean_score_arbres&quot;: 34.398,
+      &quot;mean_ratio_arbres&quot;: 0.6583,
+      &quot;mean_tours&quot;: 6.219,
+      &quot;count_tour_8&quot;: 17885,
+      &quot;count_reve_rang_1&quot;: 28845,
+      &quot;count_reveil_gardiens&quot;: 3270,
+      &quot;pct_tour_8&quot;: 35.77,
+      &quot;pct_reve_rang_1&quot;: 57.69,
+      &quot;pct_reveil_gardiens&quot;: 6.54
+    }
+  ],
+  &quot;by_mode_and_n_players&quot;: [
+    {
+      &quot;mode&quot;: 1,
+      &quot;n_players&quot;: 3,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 16.723,
+      &quot;mean_ratio_arbres&quot;: 0.4924,
+      &quot;mean_p20_ratio&quot;: 0.3945,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;n_players&quot;: 4,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 21.99,
+      &quot;mean_ratio_arbres&quot;: 0.4852,
+      &quot;mean_p20_ratio&quot;: 0.3973,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;n_players&quot;: 5,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 27.487,
+      &quot;mean_ratio_arbres&quot;: 0.4852,
+      &quot;mean_p20_ratio&quot;: 0.406,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;n_players&quot;: 6,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 32.858,
+      &quot;mean_ratio_arbres&quot;: 0.4836,
+      &quot;mean_p20_ratio&quot;: 0.411,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;n_players&quot;: 3,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 18.651,
+      &quot;mean_ratio_arbres&quot;: 0.5504,
+      &quot;mean_p20_ratio&quot;: 0.4352,
+      &quot;mean_tours&quot;: 7.576,
+      &quot;pct_tour_8&quot;: 75.98,
+      &quot;pct_reve_rang_1&quot;: 23.98,
+      &quot;pct_reveil_gardiens&quot;: 0.04
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;n_players&quot;: 4,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 28.589,
+      &quot;mean_ratio_arbres&quot;: 0.6342,
+      &quot;mean_p20_ratio&quot;: 0.5172,
+      &quot;mean_tours&quot;: 6.664,
+      &quot;pct_tour_8&quot;: 39.14,
+      &quot;pct_reve_rang_1&quot;: 53.95,
+      &quot;pct_reveil_gardiens&quot;: 6.9
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;n_players&quot;: 5,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 37.059,
+      &quot;mean_ratio_arbres&quot;: 0.6578,
+      &quot;mean_p20_ratio&quot;: 0.5533,
+      &quot;mean_tours&quot;: 6.15,
+      &quot;pct_tour_8&quot;: 25.08,
+      &quot;pct_reve_rang_1&quot;: 61.24,
+      &quot;pct_reveil_gardiens&quot;: 13.68
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;n_players&quot;: 6,
+      &quot;n_games&quot;: 12500,
+      &quot;mean_score_arbres&quot;: 53.294,
+      &quot;mean_ratio_arbres&quot;: 0.7909,
+      &quot;mean_p20_ratio&quot;: 0.7326,
+      &quot;mean_tours&quot;: 4.488,
+      &quot;pct_tour_8&quot;: 2.88,
+      &quot;pct_reve_rang_1&quot;: 91.58,
+      &quot;pct_reveil_gardiens&quot;: 5.54
+    }
+  ],
+  &quot;by_mode_and_chassis&quot;: [
+    {
+      &quot;mode&quot;: 1,
+      &quot;chassis_id&quot;: 0,
+      &quot;p_max&quot;: 4,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 23.922,
+      &quot;mean_ratio_arbres&quot;: 0.5324,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;chassis_id&quot;: 1,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 36.639,
+      &quot;mean_ratio_arbres&quot;: 0.6792,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;chassis_id&quot;: 4,
+      &quot;p_max&quot;: 4,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 12.883,
+      &quot;mean_ratio_arbres&quot;: 0.2872,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;chassis_id&quot;: 5,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 26.908,
+      &quot;mean_ratio_arbres&quot;: 0.4989,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 1,
+      &quot;chassis_id&quot;: 127,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 23.47,
+      &quot;mean_ratio_arbres&quot;: 0.4352,
+      &quot;mean_tours&quot;: 8.0,
+      &quot;pct_tour_8&quot;: 100.0,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;chassis_id&quot;: 0,
+      &quot;p_max&quot;: 4,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 32.162,
+      &quot;mean_ratio_arbres&quot;: 0.6959,
+      &quot;mean_tours&quot;: 6.211,
+      &quot;pct_tour_8&quot;: 34.62,
+      &quot;pct_reve_rang_1&quot;: 57.28,
+      &quot;pct_reveil_gardiens&quot;: 8.1
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;chassis_id&quot;: 1,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 42.552,
+      &quot;mean_ratio_arbres&quot;: 0.7759,
+      &quot;mean_tours&quot;: 6.212,
+      &quot;pct_tour_8&quot;: 33.97,
+      &quot;pct_reve_rang_1&quot;: 56.85,
+      &quot;pct_reveil_gardiens&quot;: 9.18
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;chassis_id&quot;: 4,
+      &quot;p_max&quot;: 4,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 24.581,
+      &quot;mean_ratio_arbres&quot;: 0.5178,
+      &quot;mean_tours&quot;: 6.479,
+      &quot;pct_tour_8&quot;: 41.37,
+      &quot;pct_reve_rang_1&quot;: 53.78,
+      &quot;pct_reveil_gardiens&quot;: 4.85
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;chassis_id&quot;: 5,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 36.304,
+      &quot;mean_ratio_arbres&quot;: 0.6531,
+      &quot;mean_tours&quot;: 6.408,
+      &quot;pct_tour_8&quot;: 37.72,
+      &quot;pct_reve_rang_1&quot;: 55.64,
+      &quot;pct_reveil_gardiens&quot;: 6.64
+    },
+    {
+      &quot;mode&quot;: 2,
+      &quot;chassis_id&quot;: 127,
+      &quot;p_max&quot;: 5,
+      &quot;n_games&quot;: 10000,
+      &quot;mean_score_arbres&quot;: 36.393,
+      &quot;mean_ratio_arbres&quot;: 0.649,
+      &quot;mean_tours&quot;: 5.787,
+      &quot;pct_tour_8&quot;: 31.17,
+      &quot;pct_reve_rang_1&quot;: 64.9,
+      &quot;pct_reveil_gardiens&quot;: 3.93
+    }
+  ],
+  &quot;mode2_tables&quot;: [
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;H-E-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;H-E-I-I-E-H&quot;,
+      &quot;n_games&quot;: 2080,
+      &quot;mean_ratio_arbres&quot;: 0.6617,
+      &quot;pct_reve_rang_1&quot;: 56.92,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;I-E-H&quot;,
+      &quot;mirror_pair_id&quot;: &quot;H-E-I-I-E-H&quot;,
+      &quot;n_games&quot;: 2080,
+      &quot;mean_ratio_arbres&quot;: 0.6693,
+      &quot;pct_reve_rang_1&quot;: 58.27,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;I-E-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-E-M-M-E-I&quot;,
+      &quot;n_games&quot;: 2085,
+      &quot;mean_ratio_arbres&quot;: 0.5312,
+      &quot;pct_reve_rang_1&quot;: 14.05,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;M-E-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-E-M-M-E-I&quot;,
+      &quot;n_games&quot;: 2085,
+      &quot;mean_ratio_arbres&quot;: 0.5355,
+      &quot;pct_reve_rang_1&quot;: 14.82,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;M-R-O&quot;,
+      &quot;mirror_pair_id&quot;: &quot;M-R-O-O-R-M&quot;,
+      &quot;n_games&quot;: 2085,
+      &quot;mean_ratio_arbres&quot;: 0.4511,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.14
+    },
+    {
+      &quot;n_players&quot;: 3,
+      &quot;table_id&quot;: &quot;O-R-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;M-R-O-O-R-M&quot;,
+      &quot;n_games&quot;: 2085,
+      &quot;mean_ratio_arbres&quot;: 0.4541,
+      &quot;pct_reve_rang_1&quot;: 0.0,
+      &quot;pct_reveil_gardiens&quot;: 0.1
+    },
+    {
+      &quot;n_players&quot;: 4,
+      &quot;table_id&quot;: &quot;E-H-O-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;E-H-O-M-M-O-H-E&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7227,
+      &quot;pct_reve_rang_1&quot;: 81.98,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 4,
+      &quot;table_id&quot;: &quot;I-H-R-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-R-M-M-R-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.5424,
+      &quot;pct_reve_rang_1&quot;: 24.77,
+      &quot;pct_reveil_gardiens&quot;: 14.08
+    },
+    {
+      &quot;n_players&quot;: 4,
+      &quot;table_id&quot;: &quot;M-O-H-E&quot;,
+      &quot;mirror_pair_id&quot;: &quot;E-H-O-M-M-O-H-E&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7203,
+      &quot;pct_reve_rang_1&quot;: 81.15,
+      &quot;pct_reveil_gardiens&quot;: 0.0
+    },
+    {
+      &quot;n_players&quot;: 4,
+      &quot;table_id&quot;: &quot;M-R-H-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-R-M-M-R-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.5515,
+      &quot;pct_reve_rang_1&quot;: 27.9,
+      &quot;pct_reveil_gardiens&quot;: 13.54
+    },
+    {
+      &quot;n_players&quot;: 5,
+      &quot;table_id&quot;: &quot;I-H-E-O-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-E-O-M-M-O-E-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7395,
+      &quot;pct_reve_rang_1&quot;: 82.85,
+      &quot;pct_reveil_gardiens&quot;: 8.74
+    },
+    {
+      &quot;n_players&quot;: 5,
+      &quot;table_id&quot;: &quot;I-H-O-R-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-O-R-M-M-R-O-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.5676,
+      &quot;pct_reve_rang_1&quot;: 37.02,
+      &quot;pct_reveil_gardiens&quot;: 19.55
+    },
+    {
+      &quot;n_players&quot;: 5,
+      &quot;table_id&quot;: &quot;M-O-E-H-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-E-O-M-M-O-E-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7528,
+      &quot;pct_reve_rang_1&quot;: 85.57,
+      &quot;pct_reveil_gardiens&quot;: 7.52
+    },
+    {
+      &quot;n_players&quot;: 5,
+      &quot;table_id&quot;: &quot;M-R-O-H-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-H-O-R-M-M-R-O-H-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.5713,
+      &quot;pct_reve_rang_1&quot;: 39.52,
+      &quot;pct_reveil_gardiens&quot;: 18.91
+    },
+    {
+      &quot;n_players&quot;: 6,
+      &quot;table_id&quot;: &quot;E-R-I-O-H-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;E-R-I-O-H-M-M-H-O-I-R-E&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.8115,
+      &quot;pct_reve_rang_1&quot;: 94.56,
+      &quot;pct_reveil_gardiens&quot;: 3.01
+    },
+    {
+      &quot;n_players&quot;: 6,
+      &quot;table_id&quot;: &quot;I-E-H-O-R-M&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-E-H-O-R-M-M-R-O-H-E-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7688,
+      &quot;pct_reve_rang_1&quot;: 88.06,
+      &quot;pct_reveil_gardiens&quot;: 7.94
+    },
+    {
+      &quot;n_players&quot;: 6,
+      &quot;table_id&quot;: &quot;M-H-O-I-R-E&quot;,
+      &quot;mirror_pair_id&quot;: &quot;E-R-I-O-H-M-M-H-O-I-R-E&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.8124,
+      &quot;pct_reve_rang_1&quot;: 95.01,
+      &quot;pct_reveil_gardiens&quot;: 3.23
+    },
+    {
+      &quot;n_players&quot;: 6,
+      &quot;table_id&quot;: &quot;M-R-O-H-E-I&quot;,
+      &quot;mirror_pair_id&quot;: &quot;I-E-H-O-R-M-M-R-O-H-E-I&quot;,
+      &quot;n_games&quot;: 3125,
+      &quot;mean_ratio_arbres&quot;: 0.7709,
+      &quot;pct_reve_rang_1&quot;: 88.7,
+      &quot;pct_reveil_gardiens&quot;: 7.97
+    }
+  ],
+  &quot;worker_shards&quot;: [
+    {
+      &quot;task_index&quot;: 0,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 18.4792,
+      &quot;games_per_sec&quot;: 541.15
+    },
+    {
+      &quot;task_index&quot;: 1,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 18.294,
+      &quot;games_per_sec&quot;: 546.63
+    },
+    {
+      &quot;task_index&quot;: 2,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 15.27,
+      &quot;games_per_sec&quot;: 654.88
+    },
+    {
+      &quot;task_index&quot;: 3,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 17.0608,
+      &quot;games_per_sec&quot;: 586.14
+    },
+    {
+      &quot;task_index&quot;: 4,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 17.9435,
+      &quot;games_per_sec&quot;: 557.31
+    },
+    {
+      &quot;task_index&quot;: 5,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 17.6396,
+      &quot;games_per_sec&quot;: 566.91
+    },
+    {
+      &quot;task_index&quot;: 6,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 18.5675,
+      &quot;games_per_sec&quot;: 538.57
+    },
+    {
+      &quot;task_index&quot;: 7,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 17.5187,
+      &quot;games_per_sec&quot;: 570.82
+    },
+    {
+      &quot;task_index&quot;: 8,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 17.1275,
+      &quot;games_per_sec&quot;: 583.86
+    },
+    {
+      &quot;task_index&quot;: 9,
+      &quot;games&quot;: 10000,
+      &quot;compute_sec&quot;: 13.8887,
+      &quot;games_per_sec&quot;: 720.01
+    }
+  ]
+}
+```
+</textarea>
+  </div>
+  <script>
+    function copyDossier() {
+      const box = document.getElementById('promptBox');
+      const status = document.getElementById('statusMsg');
+      const text = box.value;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+          status.textContent = "✅ Dossier copié ! Ouvrez l'app Gemini et collez.";
+        }).catch(function() {
+          fallbackCopy(box, status);
+        });
+      } else {
+        fallbackCopy(box, status);
+      }
+    }
+    function fallbackCopy(box, status) {
+      box.focus();
+      box.select();
+      box.setSelectionRange(0, box.value.length);
+      document.execCommand('copy');
+      status.textContent = "✅ Dossier copié ! Ouvrez l'app Gemini et collez.";
+    }
+    function downloadMarkdown() {
+      const text = document.getElementById('promptBox').value;
+      const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "PROMPT_GEMINI_palier1_b0.md";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>

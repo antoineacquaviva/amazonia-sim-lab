@@ -12,9 +12,12 @@ Ouvrez une **nouvelle conversation** par étape pour garder les réponses vives 
 - *« Observe comment tournent les parties à 3 joueurs par rapport à 6 joueurs avec les tuiles actuelles. »*
 - *« Cherche quelles combinaisons de règles donnent le meilleur équilibre entre les 3 fins de partie. »*
 
-## 3. Lire un bilan détaillé dans Gemini web
-À la fin de chaque tir, un fichier léger est créé dans `data/digests/digest_<nom>.json` (ex. `digest_palier2_coeur_muet.json`).
-Ouvrez un **nouveau chat Gemini web**, glissez-y ce fichier `.json` et demandez : *« Analyse ce bilan pour l'équilibrage d'Amazonia »*.
+## 3. Lire un bilan détaillé dans l'application Gemini (Téléphone Android & PC)
+À la fin de chaque tir, le simulateur génère un dossier 100 % auto-portant (règles du cœur + tuiles testées + statistiques) dans `data/digests/digest_<nom>.json` et `data/digests/PROMPT_GEMINI_<nom>.md` (`< 35 Ko`) :
+- **Sur Téléphone Android (2 gestes au choix)** :
+  - **Option A (Google Drive natif)** : dans l'app Gemini, touchez **`+` -> `Google Drive` -> `Récents` -> `PROMPT_GEMINI_<nom>.md`** (ou `.txt` dans le dossier `Amazonia_Digests`).
+  - **Option B (Favori Mobile 1-Tap, même PC éteint)** : ouvrez votre favori mobile **`latest.html`** (ou scannez le QR code affiché dans le terminal), touchez **« 📋 Copier tout le dossier pour l'app Gemini »**, puis collez directement dans l'app Gemini.
+- **Sur PC (Windows 11 / Ubuntu)** : le dossier `PROMPT_GEMINI_<nom>.md` est copié automatiquement dans le presse-papiers en fin de campagne — faites simplement **`Ctrl+V`** dans un nouveau chat Gemini web (ou glissez-y `data/digests/PROMPT_GEMINI_<nom>.md`).
 
 ## 4. Mettre à jour après une retouche dans *Amazonia Doc Studio*
 Dites simplement ici : *« J'ai modifié des règles / des tuiles dans Doc Studio, mets le simulateur à jour. »*

@@ -1,0 +1,1120 @@
+Dossier de simulation Amazonia : Dernier Rempart — utilise les règles cœur et statistiques ci-dessous comme unique vérité terrain.
+
+```json
+{
+  "campaign": "palier2_coeur_muet",
+  "generated_at_utc": "2026-11-17T21:13:55Z",
+  "active_core_rules": {
+    "version": "5.3.1",
+    "source_studio_version": "v5.3",
+    "studio_sha256": {
+      "catalog_v5_3.json": "8f9ef62b478ccef35ca3b850d647d9e125b60834f1b8e1bbdcd92cc197d76c09",
+      "spec_formelle_v5_3.json": "cd264fcf967df6f9bf61a4a8ef39b64be5576be2111d73a811afd5e1753602b6"
+    },
+    "chassis_7_axes": [
+      {
+        "chassis_id": 0,
+        "p_max": 4,
+        "regle_ouverture_reve_multiple": "UNIQUE_PAR_TOUR",
+        "offset_seuil_parade": 0,
+        "mise_en_place_tactiques": "ORDRE_FIXE_T1_T6",
+        "declenchement_fin_de_piste": "ARRIVEE_DERNIERE_PARCELLE",
+        "role_abatteuse_fin_de_piste": "STANDARD_COUPE_ARBRE",
+        "synergie_binome_machines": "INDIVIDUELLE"
+      }
+    ],
+    "tactiques": [
+      {
+        "id": "T1",
+        "nom": "Sur place",
+        "cibles": [
+          "SUR_PLACE"
+        ],
+        "avancee": 0,
+        "gain_rouge": 0,
+        "mod_seuil": 0,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T2",
+        "nom": "Devant",
+        "cibles": [
+          "DEVANT"
+        ],
+        "avancee": 0,
+        "gain_rouge": 0,
+        "mod_seuil": 0,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T3",
+        "nom": "En avançant",
+        "cibles": [
+          "SUR_PLACE",
+          "DEVANT"
+        ],
+        "avancee": 1,
+        "gain_rouge": 0,
+        "mod_seuil": -1,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T4",
+        "nom": "Sur place +",
+        "cibles": [
+          "SUR_PLACE"
+        ],
+        "avancee": 0,
+        "gain_rouge": 1,
+        "mod_seuil": -1,
+        "est_siege_profil": true
+      },
+      {
+        "id": "T5",
+        "nom": "Devant +",
+        "cibles": [
+          "DEVANT"
+        ],
+        "avancee": 0,
+        "gain_rouge": 1,
+        "mod_seuil": -1,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T6",
+        "nom": "En avançant +",
+        "cibles": [
+          "SUR_PLACE",
+          "DEVANT"
+        ],
+        "avancee": 1,
+        "gain_rouge": 1,
+        "mod_seuil": -2,
+        "est_siege_profil": false
+      }
+    ],
+    "machine_damage_rules": {
+      "ABATTEUSE": {
+        "arbres_coupes_max": 2,
+        "souches_retirees": 0,
+        "arrache_1_souche_si_sans_arbre_en_siege_option": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
+      },
+      "BULLDOZER": {
+        "arbres_coupes_max": 1,
+        "retire_toutes_souches_non_protegees": true,
+        "test_parade_unique": true
+      },
+      "siege_t4": {
+        "autonomie_attaque_si_t4_ejectee": true,
+        "apprentissage_sur_t4_si_presente": true
+      }
+    },
+    "machine_deck_rules": {
+      "cartes_machine_par_rayon": 2,
+      "types_par_rayon": [
+        "ABATTEUSE",
+        "BULLDOZER"
+      ],
+      "total_initial_formula": "2 * N",
+      "sabotage_dilution_permanente": true,
+      "sabotage_effet_propre": null,
+      "sabotage_perd_activation_et_pas_de_des": true,
+      "remelange_etape": "6.3",
+      "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout"
+    },
+    "spec_formelle": {
+      "schema_version": "5.3.1-audit",
+      "etapes_1_a_6": {
+        "etape_1_PREPARATION_POSE_FURTIVITE": "Distribution, Dés secrets et Pose des Défenseurs : Lecture épurée des dés sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Si le rang M porte un Rêve en 3.2, la machine est annulée et le Rêve s’ouvre. Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l'Ara.",
+        "etape_2_REVELATION_DES_REVES_FURTIVITE": "Ouverture des Paravents, Rêves, Dés et Furtivité : Rêve sur dé Machine : annule l'activation de la machine et peut ouvrir ce Rêve (max 1 ouverture par Rêve et par tour).",
+        "etape_3_CONSTRUCTION_SYNERGIES": "Construction obligatoire des Tuiles de Synergie : Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d'origine. Insertion d'un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases. Anti-blocage et Nids : pose interdite sur case morte/tuile inconstructible ; 1 seul Nid par parcelle sans machine ; choix du bâtisseur libéré par Peuple d'origine.",
+        "etape_4_NIDS_ET_MIGRATION": "Production des Nids et Migration des Insectes : Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte. Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
+        "etape_5_ATTAQUES_ET_TEST_FIN": "Attaques des Machines et Vérification de Fin de Partie : Séquence des attaques : Tactiques 1..6 puis Sièges ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant. Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque. Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement. Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Siège irréversible maintenu. Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
+        "etape_6_APPRENTISSAGE_ET_MENAGE": "Apprentissage du Contremaître et Ménage de fin de tour : Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée. Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume."
+      },
+      "furtivite": "Furtivité à 4 emplacements (2 jumeaux/rive) : entrer sur la case tire l'autre jeton sur le jumeau et oriente l'action unique ; retourner en choix définitif se fait sur place sans déplacement.",
+      "chaine_parades_et_pieges": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique. | Armement des Pièges : Embuscade dès que Défense totale >= 1 (locale ou à distance) ; tout Piège ayant paré >= 1 fois dans le tour est retiré en fin d'attaques. | Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés. | Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
+      "sabotage_par_dilution": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
+      "apprentissage": "Apprentissage : dommage réel requis (>= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d'étape. | Autonomie et Apprentissage du Siège : l’attaque d’une machine en Siège reste active même si la tuile T4 est éjectée ; en 6.1, une machine en Siège génère normalement ses jetons d’Apprentissage sur T4 tant que T4 figure sur la Piste des Tactiques (ignorés si T4 est éjectée).",
+      "fins_5_3": "Seuil de Réveil fixe : calculé à la mise en place (inactif si < 3 Gardiens en jeu) ; retour en lisière efface le marqueur. | Test de fin de partie : maintenu en fin d'attaques (saut Apprentissage), avec déclenchement en fin d'Apprentissage si L'Écho des Voix Célestes amène son Rêve en case 1."
+    }
+  },
+  "tested_tiles_rules": [
+    {
+      "slot": "G1",
+      "profil": "A",
+      "nom": "Le Bond du Jaguar",
+      "famille": "GARDIEN",
+      "texte": "<strong>Face 1 :</strong> Retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>.<br><strong>Face 2 :</strong> Retournez jusqu’à 2 jetons rouges en bleus <em>Surchauffe</em> (répartis librement entre des machines)."
+    },
+    {
+      "slot": "G2",
+      "profil": "A",
+      "nom": "L’Étreinte de l’Anaconda",
+      "famille": "GARDIEN",
+      "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Siège située sur une parcelle avec au moins 1 Défenseur.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure n’importe quelle machine non en Siège."
+    },
+    {
+      "slot": "G4",
+      "profil": "A",
+      "nom": "Le Cri d’Alarme de l’Ara",
+      "famille": "GARDIEN",
+      "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées (renvoyez G4 sur sa Face 1 en lisière ; il libère sa case et perd son marqueur « utilisé »)."
+    },
+    {
+      "slot": "G6",
+      "profil": "A",
+      "nom": "L’Œil Double du Toucan",
+      "famille": "GARDIEN",
+      "texte": "En 3.2, décalez de -1 ou +1 rang la lecture du dé M d’un joueur sur la Piste des Tactiques."
+    },
+    {
+      "slot": "G7",
+      "profil": "A",
+      "nom": "Le Barrage du Capybara",
+      "famille": "GARDIEN",
+      "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée (déclenche la case 2)."
+    },
+    {
+      "slot": "G10",
+      "profil": "A",
+      "nom": "La Brume de la Dendrobate",
+      "famille": "GARDIEN",
+      "texte": "En 6.1 ce tour-ci, retirez 1 jeton Apprentissage à la tuile Tactique de votre choix."
+    },
+    {
+      "slot": "R5",
+      "profil": "A",
+      "nom": "La Vision des Plumes Claires",
+      "famille": "REVE",
+      "texte": "À l’ouverture en 3.2, ouvrez immédiatement un Gardien disponible sur la Piste des Gardiens."
+    },
+    {
+      "slot": "G9",
+      "profil": "C",
+      "nom": "La Peau de boue",
+      "famille": "GARDIEN",
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Humains, ignorez tous les jetons Puissance rouges d’une machine quand elle frappe la parcelle située devant elle."
+    }
+  ],
+  "cloud_run_job": {
+    "job_name": "amazonia-palier2",
+    "region": "europe-west9",
+    "image": "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest",
+    "tasks": 16,
+    "cpu_per_task": 2,
+    "memory_per_task": "1Gi",
+    "job_wall_sec_including_scheduling": 41.12,
+    "max_worker_compute_sec": 22.011,
+    "mean_worker_compute_sec": 18.792,
+    "sum_worker_games_per_sec": 881.6,
+    "effective_cluster_compute_games_per_sec": 742.5
+  },
+  "totals": {
+    "total_games_and_rollouts": 16344,
+    "n_shards": 16,
+    "lot_01_profiles": [
+      "G1:A",
+      "G2:A",
+      "G4:A",
+      "G6:A",
+      "G7:A",
+      "G10:A",
+      "R5:A",
+      "G9:C"
+    ],
+    "parquet_archive": ".tmp_runs/palier2_coeur_muet/cells.parquet"
+  },
+  "coop_matrix_and_telemetry": [
+    {
+      "mode": 1,
+      "policy_id": "B0_K0",
+      "bot_name": "B0",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.5255,
+      "cvar20_inter_tables": 0.353,
+      "median_ratio_inter_tables": 0.534,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 5.663,
+      "cascade_sweeps": 0.0,
+      "mid_combat_interrupts": 0.0
+    },
+    {
+      "mode": 1,
+      "policy_id": "B1_K0",
+      "bot_name": "B1",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.5758,
+      "cvar20_inter_tables": 0.4147,
+      "median_ratio_inter_tables": 0.5873,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 5.547,
+      "cascade_sweeps": 0.0,
+      "mid_combat_interrupts": 0.0
+    },
+    {
+      "mode": 1,
+      "policy_id": "B1_K3",
+      "bot_name": "B1",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.6233,
+      "cvar20_inter_tables": 0.4937,
+      "median_ratio_inter_tables": 0.6309,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 3.155,
+      "cascade_sweeps": 0.0,
+      "mid_combat_interrupts": 0.0
+    },
+    {
+      "mode": 1,
+      "policy_id": "B2_K0",
+      "bot_name": "B2",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.5614,
+      "cvar20_inter_tables": 0.4102,
+      "median_ratio_inter_tables": 0.5656,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 6.082,
+      "cascade_sweeps": 0.0,
+      "mid_combat_interrupts": 0.0
+    },
+    {
+      "mode": 1,
+      "policy_id": "B2_K3",
+      "bot_name": "B2",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.6052,
+      "cvar20_inter_tables": 0.4483,
+      "median_ratio_inter_tables": 0.62,
+      "mean_tours": 8.0,
+      "pct_tour_8": 100.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 3.672,
+      "cascade_sweeps": 0.0,
+      "mid_combat_interrupts": 0.0
+    },
+    {
+      "mode": 2,
+      "policy_id": "B0_K0",
+      "bot_name": "B0",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.6861,
+      "cvar20_inter_tables": 0.4983,
+      "median_ratio_inter_tables": 0.7043,
+      "mean_tours": 6.347,
+      "pct_tour_8": 43.52,
+      "pct_reve_rang_1": 53.24,
+      "pct_reveil_gardiens": 3.24,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 4.957,
+      "cascade_sweeps": 3.995,
+      "mid_combat_interrupts": 3.144
+    },
+    {
+      "mode": 2,
+      "policy_id": "B1_K0",
+      "bot_name": "B1",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7183,
+      "cvar20_inter_tables": 0.5608,
+      "median_ratio_inter_tables": 0.735,
+      "mean_tours": 6.306,
+      "pct_tour_8": 40.74,
+      "pct_reve_rang_1": 59.26,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 4.782,
+      "cascade_sweeps": 5.208,
+      "mid_combat_interrupts": 3.028
+    },
+    {
+      "mode": 2,
+      "policy_id": "B1_K3",
+      "bot_name": "B1",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7333,
+      "cvar20_inter_tables": 0.6056,
+      "median_ratio_inter_tables": 0.7403,
+      "mean_tours": 6.185,
+      "pct_tour_8": 41.67,
+      "pct_reve_rang_1": 58.33,
+      "pct_reveil_gardiens": 0.0,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 3.132,
+      "cascade_sweeps": 5.56,
+      "mid_combat_interrupts": 2.944
+    },
+    {
+      "mode": 2,
+      "policy_id": "B2_K0",
+      "bot_name": "B2",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7003,
+      "cvar20_inter_tables": 0.5137,
+      "median_ratio_inter_tables": 0.7256,
+      "mean_tours": 5.69,
+      "pct_tour_8": 25.46,
+      "pct_reve_rang_1": 20.83,
+      "pct_reveil_gardiens": 53.7,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 4.84,
+      "cascade_sweeps": 7.046,
+      "mid_combat_interrupts": 2.287
+    },
+    {
+      "mode": 2,
+      "policy_id": "B2_K3",
+      "bot_name": "B2",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7353,
+      "cvar20_inter_tables": 0.597,
+      "median_ratio_inter_tables": 0.7427,
+      "mean_tours": 5.481,
+      "pct_tour_8": 23.61,
+      "pct_reve_rang_1": 22.22,
+      "pct_reveil_gardiens": 54.17,
+      "mem_debt_score": 0.0,
+      "law_stack_mean": 0.0,
+      "law_stack_max": 0,
+      "fiddliness_ratio": 3.266,
+      "cascade_sweeps": 7.13,
+      "mid_combat_interrupts": 2.176
+    },
+    {
+      "mode": 3,
+      "policy_id": "B0_K0",
+      "bot_name": "B0",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7089,
+      "cvar20_inter_tables": 0.4999,
+      "median_ratio_inter_tables": 0.7269,
+      "mean_tours": 6.241,
+      "pct_tour_8": 41.67,
+      "pct_reve_rang_1": 51.85,
+      "pct_reveil_gardiens": 6.48,
+      "mem_debt_score": 2.051,
+      "law_stack_mean": 0.0178,
+      "law_stack_max": 1,
+      "fiddliness_ratio": 4.725,
+      "cascade_sweeps": 3.847,
+      "mid_combat_interrupts": 2.94
+    },
+    {
+      "mode": 3,
+      "policy_id": "B1_K0",
+      "bot_name": "B1",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7441,
+      "cvar20_inter_tables": 0.586,
+      "median_ratio_inter_tables": 0.7609,
+      "mean_tours": 6.185,
+      "pct_tour_8": 37.04,
+      "pct_reve_rang_1": 52.78,
+      "pct_reveil_gardiens": 10.19,
+      "mem_debt_score": 4.06,
+      "law_stack_mean": 0.0172,
+      "law_stack_max": 1,
+      "fiddliness_ratio": 4.582,
+      "cascade_sweeps": 4.486,
+      "mid_combat_interrupts": 2.532
+    },
+    {
+      "mode": 3,
+      "policy_id": "B1_K3",
+      "bot_name": "B1",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7639,
+      "cvar20_inter_tables": 0.6344,
+      "median_ratio_inter_tables": 0.774,
+      "mean_tours": 5.991,
+      "pct_tour_8": 35.65,
+      "pct_reve_rang_1": 52.31,
+      "pct_reveil_gardiens": 12.04,
+      "mem_debt_score": 3.833,
+      "law_stack_mean": 0.0216,
+      "law_stack_max": 1,
+      "fiddliness_ratio": 3.024,
+      "cascade_sweeps": 4.63,
+      "mid_combat_interrupts": 2.449
+    },
+    {
+      "mode": 3,
+      "policy_id": "B2_K0",
+      "bot_name": "B2",
+      "k_max": 0,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7108,
+      "cvar20_inter_tables": 0.5586,
+      "median_ratio_inter_tables": 0.7194,
+      "mean_tours": 5.917,
+      "pct_tour_8": 29.17,
+      "pct_reve_rang_1": 24.54,
+      "pct_reveil_gardiens": 46.3,
+      "mem_debt_score": 3.491,
+      "law_stack_mean": 0.0372,
+      "law_stack_max": 1,
+      "fiddliness_ratio": 4.613,
+      "cascade_sweeps": 7.199,
+      "mid_combat_interrupts": 2.981
+    },
+    {
+      "mode": 3,
+      "policy_id": "B2_K3",
+      "bot_name": "B2",
+      "k_max": 3,
+      "n_games": 216,
+      "mean_ratio_arbres": 0.7283,
+      "cvar20_inter_tables": 0.5927,
+      "median_ratio_inter_tables": 0.7365,
+      "mean_tours": 5.819,
+      "pct_tour_8": 30.09,
+      "pct_reve_rang_1": 25.93,
+      "pct_reveil_gardiens": 43.98,
+      "mem_debt_score": 3.407,
+      "law_stack_mean": 0.0407,
+      "law_stack_max": 1,
+      "fiddliness_ratio": 3.174,
+      "cascade_sweeps": 7.394,
+      "mid_combat_interrupts": 2.894
+    }
+  ],
+  "paired_inter_block_ci95": [
+    {
+      "mode": 1,
+      "comparison": "B1_K3 - B1_K0",
+      "label": "Gain révision 2.2 muette (B1 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.0475,
+      "se_inter_block": 0.01118,
+      "ci95_low": 0.02187,
+      "ci95_high": 0.07313
+    },
+    {
+      "mode": 1,
+      "comparison": "B2_K3 - B2_K0",
+      "label": "Gain révision 2.2 muette (B2 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.04383,
+      "se_inter_block": 0.01005,
+      "ci95_low": 0.0208,
+      "ci95_high": 0.06687
+    },
+    {
+      "mode": 1,
+      "comparison": "B1_K3 - B0_K0",
+      "label": "Progression B1_K3 vs Baseline B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.09778,
+      "se_inter_block": 0.01069,
+      "ci95_low": 0.07328,
+      "ci95_high": 0.12228
+    },
+    {
+      "mode": 1,
+      "comparison": "B2_K3 - B1_K3",
+      "label": "Progression B2_K3 (economie_bot) vs B1_K3",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": -0.01813,
+      "se_inter_block": 0.00654,
+      "ci95_low": -0.03312,
+      "ci95_high": -0.00315
+    },
+    {
+      "mode": 1,
+      "comparison": "B2_K3 - B0_K0",
+      "label": "Gain total cœur coopératif B2_K3 vs B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.07965,
+      "se_inter_block": 0.01104,
+      "ci95_low": 0.05432,
+      "ci95_high": 0.10497
+    },
+    {
+      "mode": 2,
+      "comparison": "B1_K3 - B1_K0",
+      "label": "Gain révision 2.2 muette (B1 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.01495,
+      "se_inter_block": 0.00574,
+      "ci95_low": 0.00178,
+      "ci95_high": 0.02812
+    },
+    {
+      "mode": 2,
+      "comparison": "B2_K3 - B2_K0",
+      "label": "Gain révision 2.2 muette (B2 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.03504,
+      "se_inter_block": 0.00851,
+      "ci95_low": 0.01552,
+      "ci95_high": 0.05456
+    },
+    {
+      "mode": 2,
+      "comparison": "B1_K3 - B0_K0",
+      "label": "Progression B1_K3 vs Baseline B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.04721,
+      "se_inter_block": 0.01216,
+      "ci95_low": 0.01933,
+      "ci95_high": 0.0751
+    },
+    {
+      "mode": 2,
+      "comparison": "B2_K3 - B1_K3",
+      "label": "Progression B2_K3 (economie_bot) vs B1_K3",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.00202,
+      "se_inter_block": 0.03742,
+      "ci95_low": -0.08377,
+      "ci95_high": 0.08782
+    },
+    {
+      "mode": 2,
+      "comparison": "B2_K3 - B0_K0",
+      "label": "Gain total cœur coopératif B2_K3 vs B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.04924,
+      "se_inter_block": 0.04195,
+      "ci95_low": -0.04694,
+      "ci95_high": 0.14541
+    },
+    {
+      "mode": 3,
+      "comparison": "B1_K3 - B1_K0",
+      "label": "Gain révision 2.2 muette (B1 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.01983,
+      "se_inter_block": 0.00548,
+      "ci95_low": 0.00726,
+      "ci95_high": 0.0324
+    },
+    {
+      "mode": 3,
+      "comparison": "B2_K3 - B2_K0",
+      "label": "Gain révision 2.2 muette (B2 K=3 - K=0)",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.01744,
+      "se_inter_block": 0.00995,
+      "ci95_low": -0.00537,
+      "ci95_high": 0.04025
+    },
+    {
+      "mode": 3,
+      "comparison": "B1_K3 - B0_K0",
+      "label": "Progression B1_K3 vs Baseline B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.05499,
+      "se_inter_block": 0.01357,
+      "ci95_low": 0.02389,
+      "ci95_high": 0.0861
+    },
+    {
+      "mode": 3,
+      "comparison": "B2_K3 - B1_K3",
+      "label": "Progression B2_K3 (economie_bot) vs B1_K3",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": -0.0356,
+      "se_inter_block": 0.02346,
+      "ci95_low": -0.08938,
+      "ci95_high": 0.01818
+    },
+    {
+      "mode": 3,
+      "comparison": "B2_K3 - B0_K0",
+      "label": "Gain total cœur coopératif B2_K3 vs B0",
+      "n_mirror_blocks": 9,
+      "mean_delta_ratio": 0.01939,
+      "se_inter_block": 0.02456,
+      "ci95_low": -0.03691,
+      "ci95_high": 0.07569
+    }
+  ],
+  "lot_01_mode3_vs_mode2_b2": {
+    "comparison": "Mode 3 (Lot 01) - Mode 2 (Asymétrie à vide) sous B2_K3",
+    "n_mirror_blocks": 9,
+    "mean_delta_ratio": -0.00703,
+    "se_inter_block": 0.01943,
+    "ci95_low": -0.05159,
+    "ci95_high": 0.03753
+  },
+  "micro_forks_step_2_2": [
+    {
+      "mode": 1,
+      "bot_name": "B1",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 77.78,
+      "mean_delta_v_negociation": 0.0203,
+      "mean_c_prive": 0.03113,
+      "mean_g_naive_selection": 0.04099,
+      "mean_g_unbiased_eval": 0.0031,
+      "mean_rho_delta": 0.4957
+    },
+    {
+      "mode": 1,
+      "bot_name": "B2",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 72.22,
+      "mean_delta_v_negociation": 0.02045,
+      "mean_c_prive": 0.00851,
+      "mean_g_naive_selection": 0.04116,
+      "mean_g_unbiased_eval": 0.01339,
+      "mean_rho_delta": 0.5218
+    },
+    {
+      "mode": 2,
+      "bot_name": "B1",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 66.67,
+      "mean_delta_v_negociation": 0.01156,
+      "mean_c_prive": 0.01181,
+      "mean_g_naive_selection": 0.04566,
+      "mean_g_unbiased_eval": 0.02809,
+      "mean_rho_delta": 0.4817
+    },
+    {
+      "mode": 2,
+      "bot_name": "B2",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 69.44,
+      "mean_delta_v_negociation": 0.00862,
+      "mean_c_prive": 0.00751,
+      "mean_g_naive_selection": 0.02224,
+      "mean_g_unbiased_eval": 0.01253,
+      "mean_rho_delta": 0.7346
+    },
+    {
+      "mode": 3,
+      "bot_name": "B1",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 66.67,
+      "mean_delta_v_negociation": 0.01692,
+      "mean_c_prive": 0.00784,
+      "mean_g_naive_selection": 0.04998,
+      "mean_g_unbiased_eval": 0.03157,
+      "mean_rho_delta": 0.3608
+    },
+    {
+      "mode": 3,
+      "bot_name": "B2",
+      "n_anchors": 36,
+      "total_rollouts": 648,
+      "pct_diverged_in_2_2": 77.78,
+      "mean_delta_v_negociation": 0.02155,
+      "mean_c_prive": -1e-05,
+      "mean_g_naive_selection": 0.03133,
+      "mean_g_unbiased_eval": 0.01836,
+      "mean_rho_delta": 0.5953
+    }
+  ],
+  "chassis_sequential_halving": {
+    "funnel_rounds": [
+      {
+        "halving_round": 1,
+        "n_chassis_evaluated": 128,
+        "n_chassis_kept": 64,
+        "n_games": 3072,
+        "mean_ratio_mode1": 0.525,
+        "mean_ratio_mode2": 0.718
+      },
+      {
+        "halving_round": 2,
+        "n_chassis_evaluated": 64,
+        "n_chassis_kept": 32,
+        "n_games": 3072,
+        "mean_ratio_mode1": 0.5894,
+        "mean_ratio_mode2": 0.7223
+      },
+      {
+        "halving_round": 3,
+        "n_chassis_evaluated": 32,
+        "n_chassis_kept": 16,
+        "n_games": 3072,
+        "mean_ratio_mode1": 0.5712,
+        "mean_ratio_mode2": 0.7466
+      }
+    ],
+    "top_16_finalists": [
+      {
+        "chassis_id": 19,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.7211,
+        "ratio_mode2": 0.8119,
+        "cvar20_mode2": 0.6781,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 36.9,
+        "m2_pct_reveil": 47.6
+      },
+      {
+        "chassis_id": 65,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.6992,
+        "ratio_mode2": 0.7966,
+        "cvar20_mode2": 0.666,
+        "m2_pct_t8": 20.2,
+        "m2_pct_reve": 13.1,
+        "m2_pct_reveil": 66.7
+      },
+      {
+        "chassis_id": 25,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.6703,
+        "ratio_mode2": 0.7618,
+        "cvar20_mode2": 0.5923,
+        "m2_pct_t8": 29.8,
+        "m2_pct_reve": 21.4,
+        "m2_pct_reveil": 48.8
+      },
+      {
+        "chassis_id": 82,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.6198,
+        "ratio_mode2": 0.772,
+        "cvar20_mode2": 0.6069,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 35.7,
+        "m2_pct_reveil": 48.8
+      },
+      {
+        "chassis_id": 91,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.6287,
+        "ratio_mode2": 0.755,
+        "cvar20_mode2": 0.5798,
+        "m2_pct_t8": 23.8,
+        "m2_pct_reve": 31.0,
+        "m2_pct_reveil": 45.2
+      },
+      {
+        "chassis_id": 80,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.6198,
+        "ratio_mode2": 0.7572,
+        "cvar20_mode2": 0.5969,
+        "m2_pct_t8": 17.9,
+        "m2_pct_reve": 21.4,
+        "m2_pct_reveil": 60.7
+      },
+      {
+        "chassis_id": 23,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5821,
+        "ratio_mode2": 0.7689,
+        "cvar20_mode2": 0.5623,
+        "m2_pct_t8": 14.3,
+        "m2_pct_reve": 45.2,
+        "m2_pct_reveil": 40.5
+      },
+      {
+        "chassis_id": 21,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5821,
+        "ratio_mode2": 0.7577,
+        "cvar20_mode2": 0.5623,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 29.8,
+        "m2_pct_reveil": 54.8
+      },
+      {
+        "chassis_id": 31,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5597,
+        "ratio_mode2": 0.7455,
+        "cvar20_mode2": 0.4931,
+        "m2_pct_t8": 14.3,
+        "m2_pct_reve": 40.5,
+        "m2_pct_reveil": 45.2
+      },
+      {
+        "chassis_id": 29,
+        "p_max": 5,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5597,
+        "ratio_mode2": 0.7306,
+        "cvar20_mode2": 0.4949,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 29.8,
+        "m2_pct_reveil": 54.8
+      },
+      {
+        "chassis_id": 58,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5686,
+        "ratio_mode2": 0.7041,
+        "cvar20_mode2": 0.4815,
+        "m2_pct_t8": 26.2,
+        "m2_pct_reve": 31.0,
+        "m2_pct_reveil": 42.9
+      },
+      {
+        "chassis_id": 56,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.5686,
+        "ratio_mode2": 0.6948,
+        "cvar20_mode2": 0.4806,
+        "m2_pct_t8": 28.6,
+        "m2_pct_reve": 26.2,
+        "m2_pct_reveil": 45.2
+      },
+      {
+        "chassis_id": 22,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.474,
+        "ratio_mode2": 0.7071,
+        "cvar20_mode2": 0.4578,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 42.9,
+        "m2_pct_reveil": 41.7
+      },
+      {
+        "chassis_id": 20,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.474,
+        "ratio_mode2": 0.6922,
+        "cvar20_mode2": 0.4578,
+        "m2_pct_t8": 16.7,
+        "m2_pct_reve": 29.8,
+        "m2_pct_reveil": 53.6
+      },
+      {
+        "chassis_id": 30,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.432,
+        "ratio_mode2": 0.6847,
+        "cvar20_mode2": 0.3753,
+        "m2_pct_t8": 15.5,
+        "m2_pct_reve": 41.7,
+        "m2_pct_reveil": 42.9
+      },
+      {
+        "chassis_id": 28,
+        "p_max": 4,
+        "total_games_cumul": 168,
+        "ratio_mode1": 0.432,
+        "ratio_mode2": 0.6623,
+        "cvar20_mode2": 0.3731,
+        "m2_pct_t8": 16.7,
+        "m2_pct_reve": 28.6,
+        "m2_pct_reveil": 54.8
+      }
+    ],
+    "top_16_axis_frequencies": [
+      {
+        "axis": "p_max",
+        "option_0": "4",
+        "count_0_in_top16": 8,
+        "option_1": "5",
+        "count_1_in_top16": 8
+      },
+      {
+        "axis": "regle_ouverture_reve_multiple",
+        "option_0": "UNIQUE_PAR_TOUR",
+        "count_0_in_top16": 8,
+        "option_1": "PAR_DE_M_DESIGNE",
+        "count_1_in_top16": 8
+      },
+      {
+        "axis": "offset_seuil_parade",
+        "option_0": "0",
+        "count_0_in_top16": 8,
+        "option_1": "1",
+        "count_1_in_top16": 8
+      },
+      {
+        "axis": "mise_en_place_tactiques",
+        "option_0": "ORDRE_FIXE_T1_T6",
+        "count_0_in_top16": 8,
+        "option_1": "ALEATOIRE",
+        "count_1_in_top16": 8
+      },
+      {
+        "axis": "declenchement_fin_de_piste",
+        "option_0": "ARRIVEE_DERNIERE_PARCELLE",
+        "count_0_in_top16": 1,
+        "option_1": "DEPASSEMENT_DERNIERE_PARCELLE",
+        "count_1_in_top16": 15
+      },
+      {
+        "axis": "role_abatteuse_fin_de_piste",
+        "option_0": "STANDARD_COUPE_ARBRE",
+        "count_0_in_top16": 14,
+        "option_1": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
+        "count_1_in_top16": 2
+      },
+      {
+        "axis": "synergie_binome_machines",
+        "option_0": "INDIVIDUELLE",
+        "count_0_in_top16": 12,
+        "option_1": "MUTUALISATION_PUISSANCE_MEME_PARCELLE",
+        "count_1_in_top16": 4
+      }
+    ]
+  },
+  "worker_shards": [
+    {
+      "task_index": 0,
+      "games": 1032,
+      "compute_sec": 17.98,
+      "games_per_sec": 57.4
+    },
+    {
+      "task_index": 1,
+      "games": 1032,
+      "compute_sec": 15.117,
+      "games_per_sec": 68.3
+    },
+    {
+      "task_index": 2,
+      "games": 1032,
+      "compute_sec": 18.356,
+      "games_per_sec": 56.2
+    },
+    {
+      "task_index": 3,
+      "games": 1032,
+      "compute_sec": 20.096,
+      "games_per_sec": 51.4
+    },
+    {
+      "task_index": 4,
+      "games": 1032,
+      "compute_sec": 20.343,
+      "games_per_sec": 50.7
+    },
+    {
+      "task_index": 5,
+      "games": 1032,
+      "compute_sec": 22.011,
+      "games_per_sec": 46.9
+    },
+    {
+      "task_index": 6,
+      "games": 1032,
+      "compute_sec": 21.929,
+      "games_per_sec": 47.1
+    },
+    {
+      "task_index": 7,
+      "games": 1032,
+      "compute_sec": 16.276,
+      "games_per_sec": 63.4
+    },
+    {
+      "task_index": 8,
+      "games": 1032,
+      "compute_sec": 16.645,
+      "games_per_sec": 62.0
+    },
+    {
+      "task_index": 9,
+      "games": 1032,
+      "compute_sec": 19.392,
+      "games_per_sec": 53.2
+    },
+    {
+      "task_index": 10,
+      "games": 996,
+      "compute_sec": 15.416,
+      "games_per_sec": 64.6
+    },
+    {
+      "task_index": 11,
+      "games": 996,
+      "compute_sec": 19.926,
+      "games_per_sec": 50.0
+    },
+    {
+      "task_index": 12,
+      "games": 996,
+      "compute_sec": 16.648,
+      "games_per_sec": 59.8
+    },
+    {
+      "task_index": 13,
+      "games": 996,
+      "compute_sec": 20.795,
+      "games_per_sec": 47.9
+    },
+    {
+      "task_index": 14,
+      "games": 1020,
+      "compute_sec": 19.928,
+      "games_per_sec": 51.2
+    },
+    {
+      "task_index": 15,
+      "games": 1020,
+      "compute_sec": 19.809,
+      "games_per_sec": 51.5
+    }
+  ]
+}
+```

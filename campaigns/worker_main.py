@@ -26,6 +26,11 @@ from campaigns.designs import (
     run_micro_fork_on_config,
     sequential_halving_select,
 )
+from campaigns.digest_builder import (
+    build_mobile_one_tap_html,
+    build_prompt_gemini_markdown,
+    build_self_contained_digest,
+)
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
 from engine.state import PEUPLES_ORDER, STATE_BUF_SIZE, GameConfig, GameState
@@ -37,6 +42,7 @@ METADATA_TOKEN_URL: str = (
 )
 BUCKET_NAME: str = "amazonia-sim-runs"
 SMOKE_OBJECT_NAME: str = "smoke/shard_00.jsonl.gz"
+MOBILE_LATEST_OBJECT: str = "mobile/latest.html"
 PALIER1_PREFIX: str = "palier1_baseline"
 PALIER2_PREFIX: str = "palier2_coeur_muet"
 
@@ -93,7 +99,14 @@ def _fetch_gcp_access_token() -> str:
     return str(payload["access_token"])
 
 
-def _upload_gcs_bytes(bucket: str, object_name: str, data: bytes, token: str) -> dict[str, Any]:
+def _upload_gcs_bytes(
+    bucket: str,
+    object_name: str,
+    data: bytes,
+    token: str,
+    *,
+    content_type: str = "application/gzip",
+) -> dict[str, Any]:
     encoded_name = urllib.parse.quote(object_name, safe="")
     url = (
         f"https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o"
@@ -104,12 +117,48 @@ def _upload_gcs_bytes(bucket: str, object_name: str, data: bytes, token: str) ->
         data=data,
         headers={
             "Authorization": f"Bearer {token}",
-            "Content-Type": "application/gzip",
+            "Content-Type": content_type,
         },
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return dict(json.loads(resp.read().decode("utf-8")))
+
+
+def _upload_worker_mobile_latest_html(
+    campaign_slug: str,
+    records: list[dict[str, Any]],
+    *,
+    chassis_ids: tuple[int, ...],
+    tested_tiles: tuple[tuple[str, str], ...],
+    token: str,
+) -> None:
+    """Génère et pousse `gs://amazonia-sim-runs/mobile/latest.html` directement depuis le worker Cloud."""
+    total_games = sum(int(r.get("n_games", 0)) for r in records)
+    stats_payload: dict[str, Any] = {
+        "campaign": campaign_slug,
+        "generated_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "worker_direct_preview": {
+            "task_index": 0,
+            "shard_records": len(records),
+            "shard_games": total_games,
+        },
+        "shard_00_summary": records[:24],
+    }
+    digest = build_self_contained_digest(
+        stats_payload,
+        chassis_ids=chassis_ids,
+        tested_tiles=tested_tiles,
+    )
+    prompt_md = build_prompt_gemini_markdown(digest)
+    html_bytes = build_mobile_one_tap_html(campaign_slug, prompt_md, digest).encode("utf-8")
+    _upload_gcs_bytes(
+        BUCKET_NAME,
+        MOBILE_LATEST_OBJECT,
+        html_bytes,
+        token,
+        content_type="text/html; charset=utf-8",
+    )
 
 
 def _run_jit_microloop(iterations: int = 1_000_000) -> tuple[float, int]:
@@ -350,6 +399,14 @@ def run_campaign_palier1(
         object_name = f"{PALIER1_PREFIX}/{shard_filename}"
         token = _fetch_gcp_access_token()
         _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        if task_index == 0:
+            _upload_worker_mobile_latest_html(
+                "palier1_b0",
+                records,
+                chassis_ids=PALIER1_CHASSIS_IDS,
+                tested_tiles=(),
+                token=token,
+            )
         dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
 
     print(
@@ -954,6 +1011,14 @@ def run_campaign_palier2(
         object_name = f"{PALIER2_PREFIX}/{shard_filename}"
         token = _fetch_gcp_access_token()
         _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        if task_index == 0:
+            _upload_worker_mobile_latest_html(
+                "palier2_coeur_muet",
+                records,
+                chassis_ids=(0,),
+                tested_tiles=LOT_01_PROFILES,
+                token=token,
+            )
         dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
 
     print(
