@@ -1,5 +1,5 @@
 # Scellement SHA-256 du noyau déterministe Palier 1+2 (384 octets) — Loi Martiale GEMINI.md
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
 a87c74418ecfb7a4180937d85e3adc90f590e96c3f5efab518096c6f40349779  engine/state.py
-9658582fb9b54af68bb28390d2819660ec9d61f9155691320184632bc9277f29  engine/primitives.py
-6bf6df2e127b9723b51eddd88226ddde62a1aa779d9ff3096f94af63d6ae0b6f  engine/core_engine.py
+cacc66ca79e56a46b4f5b9e16f1f0d92627ee57a050f77c56849e54c459a12b0  engine/primitives.py
+fe735f0e87ee239d1f54fad6d17980dc49e2f53517e5992ce12584e06598322e  engine/core_engine.py

@@ -8,6 +8,7 @@ from engine.primitives import (
     CAUSE_REVE_RANG_1,
     CAUSE_REVEIL_GARDIENS,
     CAUSE_TOUR_8,
+    DEC_EFFET_TUILE,
     HOOK_1_3_LECTURE_DE,
     HOOK_2_1_DEBUT,
     HOOK_2_1_PORTEE_DEF1,
@@ -20,9 +21,12 @@ from engine.primitives import (
     HOOK_4_3_COLONIE_FIN,
     HOOK_5_3_PRE_RETRAIT,
     HOOK_5_APRES_PARADE_PIEGE,
+    HOOK_5_CIBLAGE_MACHINE,
+    HOOK_5_DEBUT,
     HOOK_5_DEFENSE_PARCELLE,
     HOOK_5_FIN_ATTAQUE_MACHINE,
     HOOK_5_LAW_QUERY,
+    HOOK_5_ORDRE_RAYON,
     HOOK_5_PARADE_CLASSIQUE,
     HOOK_5_PARADE_HARPIE,
     HOOK_5_PARADE_JAGUAR,
@@ -850,6 +854,17 @@ def resolve_single_machine_attack(
                 p_dev = state.next_non_razed_towards_heart(ray, pos)
                 if p_dev is not None:
                     targets.append((c_type, p_dev))
+        if state.cfg.mode >= 3:
+            cib_ctx: dict[str, Any] = {
+                "ray": ray,
+                "m_type": m_type,
+                "pos": pos,
+                "tactique": tactique.tile_id,
+                "is_siege": effective_siege,
+                "targets": targets,
+            }
+            dispatch_hook(state, HOOK_5_CIBLAGE_MACHINE, cib_ctx)
+            targets = list(cib_ctx["targets"])
 
         damaged_parcels = 0
         parried_strikes = 0
@@ -918,6 +933,7 @@ def resolve_single_machine_attack(
                 "ray": ray,
                 "m_type": m_type,
                 "target_p": target_p,
+                "cible_type": c_type,
                 "def_points": local_defs,
                 "ins_points": local_ins,
                 "remote_support": 0,
@@ -1216,6 +1232,29 @@ def _list_insect_1cran_moves(
     return tuple(opts)
 
 
+def _is_ray_bulldozer_first(state: GameState, ray: int) -> bool:
+    if state.cfg.mode < 3:
+        return False
+    ord_ctx: dict[str, Any] = {"ray": ray, "bulldozer_first": False}
+    dispatch_hook(state, HOOK_5_ORDRE_RAYON, ord_ctx)
+    return bool(ord_ctx.get("bulldozer_first"))
+
+
+def _resolve_tactique_5_1_machine(state: GameState, rm: int, mt: int, rank_t_code: int) -> None:
+    _, st, _ = state.get_machine_pos_status(rm, mt)
+    if st == MACHINE_STATUS_SIEGE:
+        resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[4], is_siege=True)
+        return
+    eff_code = rank_t_code
+    t_card = machine_card_code(rm, mt)
+    for s in range(state.cfg.n_players):
+        card, _, _, _, bound_t = state.get_player_hand(s)
+        if card == t_card and is_tactique_code(bound_t):
+            eff_code = bound_t
+            break
+    resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[eff_code])
+
+
 def _eligible_tactique_machines_at_rank(state: GameState, t_code: int) -> list[tuple[int, int]]:
     pending_by_ray: dict[int, list[int]] = {}
     for s in range(state.cfg.n_players):
@@ -1233,6 +1272,20 @@ def _eligible_tactique_machines_at_rank(state: GameState, t_code: int) -> list[t
         mts = pending_by_ray.get(r)
         if not mts:
             continue
+        if _is_ray_bulldozer_first(state, r):
+            if MACHINE_BULLDOZER in mts:
+                eligible.append((r, MACHINE_BULLDOZER))
+                continue
+            bu_pos, bu_st, _ = state.get_machine_pos_status(r, MACHINE_BULLDOZER)
+            _, _, bu_att = state.get_machine_turn_stats(r, MACHINE_BULLDOZER)
+            if (
+                not bu_att
+                and bu_pos > 0
+                and bu_st != MACHINE_STATUS_RETIRED
+                and is_machine_active_this_turn(state, r, MACHINE_BULLDOZER)
+            ):
+                eligible.append((r, MACHINE_BULLDOZER))
+                continue
         if MACHINE_ABATTEUSE in mts:
             eligible.append((r, MACHINE_ABATTEUSE))
         else:
@@ -1249,9 +1302,13 @@ def _eligible_siege_machines(state: GameState) -> list[tuple[int, int]]:
         bu_pos, bu_st, _ = state.get_machine_pos_status(r, MACHINE_BULLDOZER)
         _, _, bu_att = state.get_machine_turn_stats(r, MACHINE_BULLDOZER)
 
-        if ab_st == MACHINE_STATUS_SIEGE and ab_pos > 0 and not ab_att:
+        ab_ok = ab_st == MACHINE_STATUS_SIEGE and ab_pos > 0 and not ab_att
+        bu_ok = bu_st == MACHINE_STATUS_SIEGE and bu_pos > 0 and not bu_att
+        if _is_ray_bulldozer_first(state, r) and bu_ok:
+            eligible.append((r, MACHINE_BULLDOZER))
+        elif ab_ok:
             eligible.append((r, MACHINE_ABATTEUSE))
-        elif bu_st == MACHINE_STATUS_SIEGE and bu_pos > 0 and not bu_att:
+        elif bu_ok:
             eligible.append((r, MACHINE_BULLDOZER))
     return eligible
 
@@ -1314,6 +1371,40 @@ def _run_step_3_2(state: GameState) -> None:
     dispatch_hook(state, HOOK_3_2_REVELATION, {})
 
 
+def _execute_furtivite_4_1_action(
+    state: GameState,
+    l_idx: int,
+    p: int,
+    rive: int,
+    t_ray: int,
+    action_kind: str,
+    consume_ins: bool,
+) -> None:
+    if consume_ins:
+        cur_ins = state.get_furtivite_insectes(l_idx, p)
+        if cur_ins >= 1:
+            state.set_furtivite_insectes(l_idx, p, cur_ins - 1)
+            _record_phys_ops(state, 1)
+    if action_kind == "PIEGE":
+        prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=True)
+    else:
+        prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=True)
+    if state.cfg.mode >= 3:
+        dispatch_hook(
+            state,
+            HOOK_4_1_FURTIVITE,
+            {
+                "lisiere": l_idx,
+                "p": p,
+                "rive": rive,
+                "phase": "POST",
+                "handled": True,
+                "action": action_kind,
+            },
+        )
+    sweep_gardiens(state)
+
+
 def _resolve_single_furtivite_cell_4_1(state: GameState, l_idx: int, p: int) -> None:
     d0 = state.get_furtivite_nb_def_rive(l_idx, p, 0)
     d1 = state.get_furtivite_nb_def_rive(l_idx, p, 1)
@@ -1339,27 +1430,76 @@ def _resolve_single_furtivite_cell_4_1(state: GameState, l_idx: int, p: int) -> 
     if state.is_route_forestiere(t_ray, p):
         return
 
-    ctx_4_1: dict[str, Any] = {"lisiere": l_idx, "p": p, "rive": rive, "handled": False}
+    if state.cfg.mode <= 2:
+        present_m_fast = state.machines_on_parcel(t_ray, p)
+        if not present_m_fast:
+            if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
+                if use_ins:
+                    state.set_furtivite_insectes(l_idx, p, ins - 1)
+                    _record_phys_ops(state, 1)
+                prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=True)
+                sweep_gardiens(state)
+        else:
+            if not any(is_machine_active_this_turn(state, t_ray, mt) for mt in present_m_fast):
+                if use_ins:
+                    state.set_furtivite_insectes(l_idx, p, ins - 1)
+                    _record_phys_ops(state, 1)
+                prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=True)
+                sweep_gardiens(state)
+        return
+
+    ctx_4_1: dict[str, Any] = {
+        "lisiere": l_idx,
+        "p": p,
+        "rive": rive,
+        "phase": "PRE",
+        "handled": False,
+        "allow_piege_under_machine": False,
+        "allow_sabotage_active": False,
+        "keep_insect": False,
+        "decideur_piege": state.coordonnateur,
+    }
     dispatch_hook(state, HOOK_4_1_FURTIVITE, ctx_4_1)
     if ctx_4_1.get("handled"):
         sweep_gardiens(state)
         return
 
     present_m = state.machines_on_parcel(t_ray, p)
+    consume_ins = use_ins and not bool(ctx_4_1.get("keep_insect"))
     if not present_m:
         if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
-            if use_ins:
-                state.set_furtivite_insectes(l_idx, p, ins - 1)
-                _record_phys_ops(state, 1)
-            prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=True)
-            sweep_gardiens(state)
-    else:
-        if not any(is_machine_active_this_turn(state, t_ray, mt) for mt in present_m):
-            if use_ins:
-                state.set_furtivite_insectes(l_idx, p, ins - 1)
-                _record_phys_ops(state, 1)
-            prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=True)
-            sweep_gardiens(state)
+            _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", consume_ins)
+        return
+
+    can_piege = (
+        bool(ctx_4_1.get("allow_piege_under_machine"))
+        and state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN
+    )
+    can_sabotage = bool(ctx_4_1.get("allow_sabotage_active")) or not any(
+        is_machine_active_this_turn(state, t_ray, mt) for mt in present_m
+    )
+    if can_piege and can_sabotage:
+        dec = int(ctx_4_1.get("decideur_piege", state.coordonnateur))
+        req = DecisionRequest(
+            decideur=dec if 0 <= dec < state.cfg.n_players else state.coordonnateur,
+            decision_type=DEC_EFFET_TUILE,
+            options=("PIEGE", "SABOTAGE"),
+            context={
+                "slot_id": "G7",
+                "profile": "B",
+                "effect_kind": "FURTIVITE_PIEGE_OU_SABOTAGE",
+                "ray": t_ray,
+                "p": p,
+            },
+        )
+        state._continuation.insert(
+            0, ("APPLY_FURTIVITE_4_1", l_idx, p, rive, t_ray, int(consume_ins))
+        )
+        state._continuation.insert(0, ("WAIT_DECISION", req))
+    elif can_piege:
+        _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", consume_ins)
+    elif can_sabotage:
+        _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "SABOTAGE", consume_ins)
 
 
 def _run_step_4_1_from(state: GameState, start_flat_idx: int) -> None:
@@ -1440,6 +1580,26 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
     if tag == "SWEEP_GARDIENS_NOW":
         state._continuation.pop(0)
         sweep_gardiens(state)
+        return None
+
+    if tag == "STEP_1_3_HOOK_QUEUE":
+        _, start_seat = state._continuation.pop(0)
+        s_idx = int(start_seat)
+        while s_idx < n:
+            card, _, _, _, _ = state.get_player_hand(s_idx)
+            if 1 <= card <= 12:
+                next_f = ("STEP_1_3_HOOK_QUEUE", s_idx + 1)
+                state._continuation.insert(0, next_f)
+                dispatch_hook(state, HOOK_1_3_LECTURE_DE, {"seat": s_idx})
+                if state._continuation and state._continuation[0] == next_f:
+                    state._continuation.pop(0)
+                    s_idx += 1
+                else:
+                    return None
+            else:
+                s_idx += 1
+        _transition_step(state, STEP_2_1_DEF1)
+        dispatch_hook(state, HOOK_2_1_DEBUT, {})
         return None
 
     if tag == "STEP_3_2_BIND":
@@ -1638,7 +1798,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             return None
         if len(eligible_m) == 1:
             rm, mt = eligible_m[0]
-            resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[code])
+            _resolve_tactique_5_1_machine(state, rm, mt, code)
             return None
         req = DecisionRequest(
             decideur=state.coordonnateur,
@@ -1836,13 +1996,14 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
                 d2 = roll_d6(state.cfg.exp_seed, state.cfg.rep_id, SRC_DICE, state.tour, peuple_id, 1)
                 state.set_player_hand(s, card, d1, d2, min(d1, d2), 0)
                 dice_ops += 2
-                dispatch_hook(state, HOOK_1_3_LECTURE_DE, {"seat": s})
             else:
                 state.set_player_hand(s, card, 0, 0, 0, 0)
         if dice_ops > 0:
             _record_phys_ops(state, dice_ops)
+        if state.cfg.mode >= 3:
+            state._continuation.append(("STEP_1_3_HOOK_QUEUE", 0))
+            return None
         _transition_step(state, STEP_2_1_DEF1)
-        dispatch_hook(state, HOOK_2_1_DEBUT, {})
         return None
 
     if step == STEP_2_1_DEF1:
@@ -1980,6 +2141,8 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
 
     if step == STEP_5_1_TACTIQUES:
         state._continuation.append(("TACTIQUE_RANK_5_1", 0))
+        if state.cfg.mode >= 3:
+            dispatch_hook(state, HOOK_5_DEBUT, {})
         return None
 
     if step == STEP_5_2_SIEGES:
@@ -2320,10 +2483,23 @@ def apply_choice(
                     sweep_gardiens(state)
             return
 
+        if tag == "APPLY_FURTIVITE_4_1":
+            _, l_i, p_i, rive_i, t_ray_i, cons_i = state._continuation.pop(0)
+            _execute_furtivite_4_1_action(
+                state,
+                int(l_i),
+                int(p_i),
+                int(rive_i),
+                int(t_ray_i),
+                str(choice),
+                bool(cons_i),
+            )
+            return
+
         if tag == "APPLY_TACTIQUE_5_1":
             _, t_code = state._continuation.pop(0)
             rm, mt = choice
-            resolve_single_machine_attack(state, int(rm), int(mt), TACTIQUES_SPEC[int(t_code)])
+            _resolve_tactique_5_1_machine(state, int(rm), int(mt), int(t_code))
             return
 
         if tag == "APPLY_SIEGE_5_2":
