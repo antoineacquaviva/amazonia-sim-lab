@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib
 
-from engine.effects import lot_01, lot_02, lot_03, lot_04, lot_05, lot_06
+from engine.effects import lot_01, lot_02, lot_03, lot_04, lot_05, lot_06, lot_07
 from engine.effects.registry import list_registered_tiles
 
 __all__ = (
@@ -15,6 +15,7 @@ __all__ = (
     "lot_04",
     "lot_05",
     "lot_06",
+    "lot_07",
 )
 
 LOADED_LOT_MODULES: tuple[str, ...] = (
@@ -24,6 +25,7 @@ LOADED_LOT_MODULES: tuple[str, ...] = (
     "engine.effects.lot_04",
     "engine.effects.lot_05",
     "engine.effects.lot_06",
+    "engine.effects.lot_07",
 )
 
 
