@@ -361,10 +361,12 @@ def list_legal_targets(
     own_spot = _current_def_canonical_spot(state, seat, 1) if exclude_own_def2 else None
 
     use_global = not is_first_defender
+    extra_targets: tuple[tuple[Any, ...], ...] = ()
     if is_first_defender and state.cfg.mode >= 3:
-        portee_ctx: dict[str, Any] = {"seat": seat, "global_range": False}
+        portee_ctx: dict[str, Any] = {"seat": seat, "global_range": False, "extra_targets": []}
         dispatch_hook(state, HOOK_2_1_PORTEE_DEF1, portee_ctx)
         use_global = bool(portee_ctx.get("global_range"))
+        extra_targets = tuple(portee_ctx.get("extra_targets", ()))
 
     if not use_global:
         rays, lisieres, lis_slots = _DEF1_LOCAL_RANGES[(n, seat)]
@@ -412,6 +414,11 @@ def list_legal_targets(
                 nb = max(0, nb - 1)
             if st == LISIERE_UNCONSTRUCTED and nb < 2:
                 targets.append(cand_l)
+
+    if extra_targets and not use_global:
+        for ext_t in extra_targets:
+            if ext_t not in targets:
+                targets.append(ext_t)
 
     # Repli exceptionnel si 100 % du territoire local d'un siège est intégralement rasé/plein
     if not targets and not use_global:
@@ -824,6 +831,264 @@ def _handle_route_creation(state: GameState, ray: int, razed_p: int) -> None:
         _record_phys_ops(state, ops)
 
 
+def _resolve_machine_targets_from(
+    state: GameState,
+    ray: int,
+    m_type: int,
+    tactique: TactiqueSpec,
+    effective_siege: bool,
+    targets: tuple[tuple[str, int], ...],
+    start_idx: int,
+    damaged_parcels: int,
+    parried_strikes: int,
+    executed_strikes: int,
+) -> None:
+    trk = _get_active_telemetry()
+    aborted_by_jaguar = False
+
+    for t_idx in range(start_idx, len(targets)):
+        c_type, target_p = targets[t_idx]
+        if state.is_route_forestiere(ray, target_p):
+            continue
+        executed_strikes += 1
+        if trk is not None:
+            law_res = dispatch_hook(
+                state,
+                HOOK_5_LAW_QUERY,
+                {
+                    "ray": ray,
+                    "m_type": m_type,
+                    "target_p": target_p,
+                    "cible_type": c_type,
+                    "is_siege": effective_siege,
+                },
+            )
+            trk.on_machine_strike(state, ray, sum(1 for x in law_res if x))
+
+        # Maillon 1 : Bond du Jaguar (Mode 3+)
+        jag_ctx: dict[str, Any] = {
+            "ray": ray,
+            "m_type": m_type,
+            "target_p": target_p,
+            "parried": False,
+        }
+        dispatch_hook(state, HOOK_5_PARADE_JAGUAR, jag_ctx)
+        if jag_ctx.get("parried"):
+            state.light_trigger(1)
+            parried_strikes += 1
+            aborted_by_jaguar = True
+            break
+
+        # Maillon 2 : Piquée de la Harpie (Mode 3+ ou flag PFLAG_AUTO_PARADE_ONCE)
+        if (
+            state.has_parcel_flag_turn(ray, target_p, PFLAG_AUTO_PARADE_ONCE)
+            and state.get_parcel_defenseurs(ray, target_p) >= 2
+        ):
+            state.set_parcel_flag_turn(ray, target_p, PFLAG_AUTO_PARADE_ONCE, False)
+            state.light_trigger(1)
+            parried_strikes += 1
+            continue
+
+        har_ctx: dict[str, Any] = {
+            "ray": ray,
+            "m_type": m_type,
+            "target_p": target_p,
+            "parried": False,
+        }
+        dispatch_hook(state, HOOK_5_PARADE_HARPIE, har_ctx)
+        if har_ctx.get("parried"):
+            state.light_trigger(1)
+            parried_strikes += 1
+            continue
+
+        # Calcul de la Défense totale sur la parcelle à cet instant
+        local_defs = state.get_parcel_defenseurs(ray, target_p)
+        local_ins = state.get_parcel_insectes(ray, target_p)
+        def_ctx: dict[str, Any] = {
+            "ray": ray,
+            "m_type": m_type,
+            "target_p": target_p,
+            "cible_type": c_type,
+            "def_points": local_defs,
+            "ins_points": local_ins,
+            "remote_support": 0,
+        }
+        dispatch_hook(state, HOOK_5_DEFENSE_PARCELLE, def_ctx)
+        def_non_ins = int(def_ctx["def_points"]) + int(def_ctx["remote_support"])
+        total_def = def_non_ins + int(def_ctx["ins_points"])
+
+        # Maillon 3 : Piège Embuscade (armé dès que Défense totale >= 1)
+        piege_st = state.get_parcel_piege(ray, target_p)
+        if piege_st in (PIEGE_ACTIF, PIEGE_DECLENCHE) and total_def >= 1:
+            if piege_st == PIEGE_ACTIF:
+                _record_phys_ops(state, 1)
+            state.set_parcel_piege(ray, target_p, PIEGE_DECLENCHE)
+            state.light_trigger(1)
+            parried_strikes += 1
+            resume_f = (
+                "RESUME_MACHINE_ATTACK_5",
+                ray,
+                m_type,
+                tactique.code,
+                1 if effective_siege else 0,
+                targets,
+                t_idx + 1,
+                damaged_parcels,
+                parried_strikes,
+                executed_strikes,
+            )
+            if state.cfg.mode >= 3:
+                state._continuation.insert(0, resume_f)
+            dispatch_hook(
+                state,
+                HOOK_5_APRES_PARADE_PIEGE,
+                {"ray": ray, "m_type": m_type, "target_p": target_p},
+            )
+            if state.cfg.mode >= 3:
+                if state._continuation and state._continuation[0] == resume_f:
+                    state._continuation.pop(0)
+                else:
+                    return
+            continue
+
+        # Maillon 4 : Parade classique (défausse immédiate des Insectes manquants, zéro dette)
+        seuil = compute_parade_seuil(
+            state,
+            ray,
+            m_type,
+            target_p,
+            tactique,
+            cible_type=c_type,
+            is_siege=effective_siege,
+        )
+        if total_def >= seuil:
+            manque = max(0, seuil - def_non_ins)
+            if manque > 0:
+                ins_to_discard = min(local_ins, manque)
+                pc_ctx: dict[str, Any] = {
+                    "ray": ray,
+                    "target_p": target_p,
+                    "local_defs": local_defs,
+                    "ins_to_discard": ins_to_discard,
+                }
+                dispatch_hook(state, HOOK_5_PARADE_CLASSIQUE, pc_ctx)
+                final_discard = max(0, min(local_ins, int(pc_ctx["ins_to_discard"])))
+                if final_discard > 0:
+                    state.set_parcel_insectes(ray, target_p, local_ins - final_discard)
+                    _record_phys_ops(state, final_discard)
+            state.light_trigger(1)
+            parried_strikes += 1
+            continue
+
+        # Non parée : application des dégâts
+        arbres_before = state.get_parcel_arbres(ray, target_p)
+        souches_before = state.get_parcel_souches(ray, target_p)
+        arbres_after = arbres_before
+        souches_after = souches_before
+        dmg_ops = 0
+
+        if m_type == MACHINE_ABATTEUSE:
+            if arbres_before > 0:
+                cut = min(2, arbres_before)
+                arbres_after -= cut
+                souches_after += cut
+                dmg_ops += cut
+            elif (
+                effective_siege
+                and state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
+                and souches_before > 0
+            ):
+                souches_after -= 1
+                dmg_ops += 1
+        else:
+            cut = min(1, arbres_before)
+            arbres_after -= cut
+            souches_after += cut
+            dmg_ops += cut
+            default_prot = (
+                1 if state.has_parcel_flag_turn(ray, target_p, PFLAG_SANCTUAIRE_SOUCHE) else 0
+            )
+            terr_ctx: dict[str, Any] = {
+                "ray": ray,
+                "target_p": target_p,
+                "souches_after_cut": souches_after,
+                "protected_souches": default_prot,
+            }
+            dispatch_hook(state, HOOK_5_TERRASSEMENT, terr_ctx)
+            new_souches = min(souches_after, max(0, int(terr_ctx["protected_souches"])))
+            dmg_ops += max(0, souches_after - new_souches)
+            souches_after = new_souches
+
+        state.set_parcel_arbres_souches(ray, target_p, arbres_after, souches_after)
+        if dmg_ops > 0:
+            _record_phys_ops(state, dmg_ops)
+        if arbres_after < arbres_before or souches_after < souches_before:
+            damaged_parcels += 1
+
+        if arbres_after == 0 and souches_after == 0:
+            _handle_route_creation(state, ray, target_p)
+
+    all_parried = executed_strikes > 0 and parried_strikes == executed_strikes
+    fin_ctx: dict[str, Any] = {
+        "ray": ray,
+        "m_type": m_type,
+        "tactique": tactique.tile_id,
+        "is_siege": effective_siege,
+        "all_parried": all_parried,
+        "damaged_parcels": damaged_parcels,
+        "allow_advance": True,
+        "allow_red_gain": True,
+    }
+    dispatch_hook(state, HOOK_5_FIN_ATTAQUE_MACHINE, fin_ctx)
+
+    # 3. Avancée éventuelle (T3 / T6) si machine toujours en jeu et hors Siège
+    cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
+    if (
+        not aborted_by_jaguar
+        and bool(fin_ctx["allow_advance"])
+        and cur_st == MACHINE_STATUS_NORMAL
+        and cur_pos > 0
+        and tactique.avancee > 0
+    ):
+        for _ in range(tactique.avancee):
+            cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
+            if cur_st != MACHINE_STATUS_NORMAL or cur_pos == 0:
+                break
+            p_next = state.next_non_razed_towards_heart(ray, cur_pos)
+            if p_next is not None:
+                prim_deplacement(
+                    state,
+                    "MACHINE",
+                    src_ray=ray,
+                    m_type=m_type,
+                    dst_ray=ray,
+                    dst_p=p_next,
+                )
+            else:
+                if state.cfg.declenchement_fin_de_piste == "DEPASSEMENT_DERNIERE_PARCELLE":
+                    state.set_machine_pos_status(ray, m_type, cur_pos, cur_st, True)
+
+    # 4. Gain éventuel de jeton Puissance rouge (T4 / T5 / T6 / Siège)
+    cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
+    gained_red = False
+    if (
+        bool(fin_ctx["allow_red_gain"])
+        and cur_st != MACHINE_STATUS_RETIRED
+        and cur_pos > 0
+        and tactique.gain_rouge > 0
+    ):
+        r_tok, b_tok = state.get_machine_tokens(ray, m_type)
+        if r_tok < 15:
+            state.set_machine_tokens(ray, m_type, r_tok + tactique.gain_rouge, b_tok)
+            _record_phys_ops(state, tactique.gain_rouge)
+            gained_red = True
+
+    state.set_machine_turn_stats(ray, m_type, damaged_parcels, gained_red, True)
+
+    # 5. Fin du bloc machine -> balayage à plat des Gardiens 1 -> 6
+    sweep_gardiens(state)
+
+
 def resolve_single_machine_attack(
     state: GameState,
     ray: int,
@@ -842,7 +1107,6 @@ def resolve_single_machine_attack(
             return
 
         effective_siege = is_siege or st == MACHINE_STATUS_SIEGE
-        trk = _get_active_telemetry()
 
         # 1. Lecture dynamique des cibles depuis la position réelle (en sautant toute Route)
         targets: list[tuple[str, int]] = []
@@ -866,233 +1130,18 @@ def resolve_single_machine_attack(
             dispatch_hook(state, HOOK_5_CIBLAGE_MACHINE, cib_ctx)
             targets = list(cib_ctx["targets"])
 
-        damaged_parcels = 0
-        parried_strikes = 0
-        executed_strikes = 0
-        aborted_by_jaguar = False
-
-        # 2. Résolution séquentielle des frappes
-        for c_type, target_p in targets:
-            if state.is_route_forestiere(ray, target_p):
-                continue
-            executed_strikes += 1
-            if trk is not None:
-                law_res = dispatch_hook(
-                    state,
-                    HOOK_5_LAW_QUERY,
-                    {
-                        "ray": ray,
-                        "m_type": m_type,
-                        "target_p": target_p,
-                        "cible_type": c_type,
-                        "is_siege": effective_siege,
-                    },
-                )
-                trk.on_machine_strike(state, ray, sum(1 for x in law_res if x))
-
-            # Maillon 1 : Bond du Jaguar (Mode 3+)
-            jag_ctx: dict[str, Any] = {
-                "ray": ray,
-                "m_type": m_type,
-                "target_p": target_p,
-                "parried": False,
-            }
-            dispatch_hook(state, HOOK_5_PARADE_JAGUAR, jag_ctx)
-            if jag_ctx.get("parried"):
-                state.light_trigger(1)
-                parried_strikes += 1
-                aborted_by_jaguar = True
-                break
-
-            # Maillon 2 : Piquée de la Harpie (Mode 3+ ou flag PFLAG_AUTO_PARADE_ONCE)
-            if (
-                state.has_parcel_flag_turn(ray, target_p, PFLAG_AUTO_PARADE_ONCE)
-                and state.get_parcel_defenseurs(ray, target_p) >= 2
-            ):
-                state.set_parcel_flag_turn(ray, target_p, PFLAG_AUTO_PARADE_ONCE, False)
-                state.light_trigger(1)
-                parried_strikes += 1
-                continue
-
-            har_ctx: dict[str, Any] = {
-                "ray": ray,
-                "m_type": m_type,
-                "target_p": target_p,
-                "parried": False,
-            }
-            dispatch_hook(state, HOOK_5_PARADE_HARPIE, har_ctx)
-            if har_ctx.get("parried"):
-                state.light_trigger(1)
-                parried_strikes += 1
-                continue
-
-            # Calcul de la Défense totale sur la parcelle à cet instant
-            local_defs = state.get_parcel_defenseurs(ray, target_p)
-            local_ins = state.get_parcel_insectes(ray, target_p)
-            def_ctx: dict[str, Any] = {
-                "ray": ray,
-                "m_type": m_type,
-                "target_p": target_p,
-                "cible_type": c_type,
-                "def_points": local_defs,
-                "ins_points": local_ins,
-                "remote_support": 0,
-            }
-            dispatch_hook(state, HOOK_5_DEFENSE_PARCELLE, def_ctx)
-            def_non_ins = int(def_ctx["def_points"]) + int(def_ctx["remote_support"])
-            total_def = def_non_ins + int(def_ctx["ins_points"])
-
-            # Maillon 3 : Piège Embuscade (armé dès que Défense totale >= 1)
-            piege_st = state.get_parcel_piege(ray, target_p)
-            if piege_st in (PIEGE_ACTIF, PIEGE_DECLENCHE) and total_def >= 1:
-                if piege_st == PIEGE_ACTIF:
-                    _record_phys_ops(state, 1)
-                state.set_parcel_piege(ray, target_p, PIEGE_DECLENCHE)
-                state.light_trigger(1)
-                parried_strikes += 1
-                dispatch_hook(
-                    state,
-                    HOOK_5_APRES_PARADE_PIEGE,
-                    {"ray": ray, "m_type": m_type, "target_p": target_p},
-                )
-                continue
-
-            # Maillon 4 : Parade classique (défausse immédiate des Insectes manquants, zéro dette)
-            seuil = compute_parade_seuil(
-                state,
-                ray,
-                m_type,
-                target_p,
-                tactique,
-                cible_type=c_type,
-                is_siege=effective_siege,
-            )
-            if total_def >= seuil:
-                manque = max(0, seuil - def_non_ins)
-                if manque > 0:
-                    ins_to_discard = min(local_ins, manque)
-                    pc_ctx: dict[str, Any] = {
-                        "ray": ray,
-                        "target_p": target_p,
-                        "local_defs": local_defs,
-                        "ins_to_discard": ins_to_discard,
-                    }
-                    dispatch_hook(state, HOOK_5_PARADE_CLASSIQUE, pc_ctx)
-                    final_discard = max(0, min(local_ins, int(pc_ctx["ins_to_discard"])))
-                    if final_discard > 0:
-                        state.set_parcel_insectes(ray, target_p, local_ins - final_discard)
-                        _record_phys_ops(state, final_discard)
-                state.light_trigger(1)
-                parried_strikes += 1
-                continue
-
-            # Non parée : application des dégâts
-            arbres_before = state.get_parcel_arbres(ray, target_p)
-            souches_before = state.get_parcel_souches(ray, target_p)
-            arbres_after = arbres_before
-            souches_after = souches_before
-            dmg_ops = 0
-
-            if m_type == MACHINE_ABATTEUSE:
-                if arbres_before > 0:
-                    cut = min(2, arbres_before)
-                    arbres_after -= cut
-                    souches_after += cut
-                    dmg_ops += cut
-                elif (
-                    effective_siege
-                    and state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
-                    and souches_before > 0
-                ):
-                    souches_after -= 1
-                    dmg_ops += 1
-            else:
-                cut = min(1, arbres_before)
-                arbres_after -= cut
-                souches_after += cut
-                dmg_ops += cut
-                default_prot = (
-                    1 if state.has_parcel_flag_turn(ray, target_p, PFLAG_SANCTUAIRE_SOUCHE) else 0
-                )
-                terr_ctx: dict[str, Any] = {
-                    "ray": ray,
-                    "target_p": target_p,
-                    "souches_after_cut": souches_after,
-                    "protected_souches": default_prot,
-                }
-                dispatch_hook(state, HOOK_5_TERRASSEMENT, terr_ctx)
-                new_souches = min(souches_after, max(0, int(terr_ctx["protected_souches"])))
-                dmg_ops += max(0, souches_after - new_souches)
-                souches_after = new_souches
-
-            state.set_parcel_arbres_souches(ray, target_p, arbres_after, souches_after)
-            if dmg_ops > 0:
-                _record_phys_ops(state, dmg_ops)
-            if arbres_after < arbres_before or souches_after < souches_before:
-                damaged_parcels += 1
-
-            if arbres_after == 0 and souches_after == 0:
-                _handle_route_creation(state, ray, target_p)
-
-        all_parried = executed_strikes > 0 and parried_strikes == executed_strikes
-        fin_ctx: dict[str, Any] = {
-            "ray": ray,
-            "m_type": m_type,
-            "tactique": tactique.tile_id,
-            "is_siege": effective_siege,
-            "all_parried": all_parried,
-            "damaged_parcels": damaged_parcels,
-            "allow_advance": True,
-            "allow_red_gain": True,
-        }
-        dispatch_hook(state, HOOK_5_FIN_ATTAQUE_MACHINE, fin_ctx)
-
-        # 3. Avancée éventuelle (T3 / T6) si machine toujours en jeu et hors Siège
-        cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
-        if (
-            not aborted_by_jaguar
-            and bool(fin_ctx["allow_advance"])
-            and cur_st == MACHINE_STATUS_NORMAL
-            and cur_pos > 0
-            and tactique.avancee > 0
-        ):
-            for _ in range(tactique.avancee):
-                cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
-                if cur_st != MACHINE_STATUS_NORMAL or cur_pos == 0:
-                    break
-                p_next = state.next_non_razed_towards_heart(ray, cur_pos)
-                if p_next is not None:
-                    prim_deplacement(
-                        state,
-                        "MACHINE",
-                        src_ray=ray,
-                        m_type=m_type,
-                        dst_ray=ray,
-                        dst_p=p_next,
-                    )
-                else:
-                    if state.cfg.declenchement_fin_de_piste == "DEPASSEMENT_DERNIERE_PARCELLE":
-                        state.set_machine_pos_status(ray, m_type, cur_pos, cur_st, True)
-
-        # 4. Gain éventuel de jeton Puissance rouge (T4 / T5 / T6 / Siège)
-        cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
-        gained_red = False
-        if (
-            bool(fin_ctx["allow_red_gain"])
-            and cur_st != MACHINE_STATUS_RETIRED
-            and cur_pos > 0
-            and tactique.gain_rouge > 0
-        ):
-            r_tok, b_tok = state.get_machine_tokens(ray, m_type)
-            if r_tok < 15:
-                state.set_machine_tokens(ray, m_type, r_tok + tactique.gain_rouge, b_tok)
-                _record_phys_ops(state, tactique.gain_rouge)
-                gained_red = True
-
-        state.set_machine_turn_stats(ray, m_type, damaged_parcels, gained_red, True)
-
-        # 5. Fin du bloc machine -> balayage à plat des Gardiens 1 -> 6
-        sweep_gardiens(state)
+        _resolve_machine_targets_from(
+            state,
+            ray,
+            m_type,
+            tactique,
+            effective_siege,
+            tuple(targets),
+            0,
+            0,
+            0,
+            0,
+        )
     finally:
         if telemetry is not None:
             _set_active_telemetry(prev_trk)
@@ -1660,6 +1709,33 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
     if tag == "RESUME_STEP_4_1":
         _, next_flat = state._continuation.pop(0)
         _run_step_4_1_from(state, int(next_flat))
+        return None
+
+    if tag == "RESUME_MACHINE_ATTACK_5":
+        (
+            _,
+            ray,
+            m_type,
+            t_code,
+            eff_siege_i,
+            targets,
+            next_t_idx,
+            dmg_cnt,
+            parried_cnt,
+            exec_cnt,
+        ) = state._continuation.pop(0)
+        _resolve_machine_targets_from(
+            state,
+            int(ray),
+            int(m_type),
+            TACTIQUES_SPEC[int(t_code)],
+            bool(eff_siege_i),
+            targets,
+            int(next_t_idx),
+            int(dmg_cnt),
+            int(parried_cnt),
+            int(exec_cnt),
+        )
         return None
 
     if tag == "STEP2_REV_QUEUE":
@@ -2237,11 +2313,19 @@ def _begin_single_construction(state: GameState, slot_idx: int) -> DecisionReque
     tile_id = state.cfg.lisiere_slots[slot_idx]
     fam, orig_code, num = SYNERGY_META[tile_id]
     gov = _governor_for_peuple(state, orig_code)
-    dispatch_hook(state, HOOK_3_1_CONSTRUCTION, {"slot_id": tile_id, "slot_idx": slot_idx})
+    constr_ctx: dict[str, Any] = {
+        "slot_id": tile_id,
+        "slot_idx": slot_idx,
+        "allowed_cases": tuple(range(1, TRACK_LEN + 1)),
+    }
+    dispatch_hook(state, HOOK_3_1_CONSTRUCTION, constr_ctx)
 
     if fam == FAMILLE_GARDIEN:
+        allowed_cases = tuple(int(c) for c in constr_ctx.get("allowed_cases", ()))
         free_cases = tuple(
-            c for c in range(1, TRACK_LEN + 1) if state.get_gardien_at_case(c)[0] == 0
+            c
+            for c in range(1, TRACK_LEN + 1)
+            if state.get_gardien_at_case(c)[0] == 0 and (not allowed_cases or c in allowed_cases)
         )
         state._continuation.insert(0, ("CHECK_LIBERATION_3_1", slot_idx))
         if not free_cases:
