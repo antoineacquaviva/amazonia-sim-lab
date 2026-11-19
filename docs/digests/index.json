@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "digests": [
+    {
+      "id": "palier4_canon",
+      "label": "Palier 4 — Canon Unique 32 tuiles (16 195 parties)",
+      "file": "digest_palier4_canon.json",
+      "campaign": "palier4_canon",
+      "generated_at_utc": "2026-11-19T05:30:59Z",
+      "total_games": 16195
+    }
+  ]
+}

@@ -142,7 +142,7 @@
             <span>⚙️ Configurer l'Instance (7 Axes & Peuples)</span>
             <span id="modified-axes-count" class="px-1.5 py-0.2 bg-emerald-950 text-emerald-200 rounded-full text-[11px] font-mono">0 écart</span>
           </button>
-		  <button onclick="copyContextForGemini(event)" id="btn-copy-gemini" title="Copie le châssis actif + les tuiles filtrées (ou les 2N tuiles en jeu). Shift+Clic = Catalogue complet." class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/50 shadow">
+		  <button onclick="copyContextForGemini(event)" id="btn-copy-gemini" title="Copie le châssis actif + les tuiles filtrées (ou les 2N tuiles en jeu) + l'extrait du bilan de simulation actif. Shift+Clic = Catalogue complet." class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/50 shadow">
             <span>✨ Copier contexte Gemini</span>
           </button>
           <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition border border-slate-600">
@@ -198,6 +198,26 @@
             💻 4. Spec & JSON (Simulateur)
           </button>
         </nav>
+      </div>
+
+      <!-- Ligne 3 : Sélecteur de Bilan Simulation (digests/index.json + import local file://) -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2 mt-2 border-t border-forest-800/70 text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-forest-300 font-medium">📊 Bilan simulation :</span>
+          <select id="digest-select" onchange="onDigestSelectChange(this.value)" class="bg-forest-900 text-sky-200 font-semibold rounded-lg px-2.5 py-1 border border-forest-700 focus:outline-none max-w-xs sm:max-w-md">
+            <option value="">Aucun bilan actif</option>
+          </select>
+          <input type="file" id="digest-file-input" accept=".json,application/json" class="hidden" onchange="handleDigestFileUpload(event)" />
+          <button type="button" onclick="document.getElementById('digest-file-input').click()" title="Importer un fichier digest_*.json local depuis votre disque (mode secours file://)" class="px-2.5 py-1 rounded-lg bg-forest-800 hover:bg-forest-700 text-forest-100 font-semibold transition border border-forest-600 flex items-center gap-1">
+            <span>📂 Importer digest .json</span>
+          </button>
+          <button type="button" id="btn-clear-digest" onclick="clearActiveDigest()" title="Désactiver le bilan courant" class="hidden px-2 py-1 rounded-lg bg-forest-900 hover:bg-red-900/70 text-forest-300 hover:text-white border border-forest-700 transition">
+            ✕
+          </button>
+        </div>
+        <div id="digest-header-summary" class="flex items-center gap-2 flex-wrap text-[11px] text-forest-300">
+          <span>Chargement de l'index des bilans…</span>
+        </div>
       </div>
 
       <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DES 10 AXES & DU CERCLE DE TABLE -->
@@ -528,7 +548,12 @@
       slotsInsectes: {
         SLOT_BUG_CERVEAU: 'A',
         SLOT_COLONISATION_GARDIENS: 'A'
-      }
+      },
+      // Bilan de simulation actif (digest_*.json)
+      digestCatalog: [],
+      activeDigest: null,
+      activeDigestSource: null,
+      digestIndex: null
     };
 
     // Initialiser tous les emplacements à 'A' par défaut
@@ -611,6 +636,603 @@
 
     function hideToast() {
       document.getElementById('toast-notification').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // 6b. GESTION DES BILANS DE SIMULATION (digest_*.json)
+    // -------------------------------------------------------------------------
+    function escapeHtml(str) {
+      return String(str == null ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatPct(val) {
+      if (typeof val !== 'number' || Number.isNaN(val)) return '—';
+      const pct = val <= 1.0001 && val >= -1.0001 ? val * 100 : val;
+      return `${pct.toFixed(1).replace('.', ',')} %`;
+    }
+
+    function formatInt(val) {
+      if (typeof val !== 'number' || Number.isNaN(val)) return '—';
+      return Math.round(val).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    }
+
+    function parseTileProfileToken(token) {
+      if (typeof token !== 'string') return null;
+      const trimmed = token.trim();
+      const sepIdx = trimmed.lastIndexOf(':');
+      if (sepIdx > 0) {
+        return { slot: trimmed.slice(0, sepIdx), profile: trimmed.slice(sepIdx + 1) };
+      }
+      const m = trimmed.match(/^([A-Z0-9_]+)_([A-E])$/);
+      if (m) return { slot: m[1], profile: m[2] };
+      return null;
+    }
+
+    function buildDigestIndex(digest) {
+      const bySlot = {};
+      const globalAlerts = [];
+
+      function ensureProfile(slot, letter) {
+        if (!slot || !letter) return null;
+        if (!bySlot[slot]) {
+          bySlot[slot] = { profiles: {}, slotAlerts: [] };
+        }
+        if (!bySlot[slot].profiles[letter]) {
+          bySlot[slot].profiles[letter] = {
+            slot,
+            profile: letter,
+            tested: false,
+            inCanon: false,
+            winRate: null,
+            winRateLabel: 'Taux de victoire',
+            cvar20: null,
+            games: null,
+            gamesLabel: null,
+            shapleyPhi: null,
+            interactions: [],
+            alerts: []
+          };
+        }
+        return bySlot[slot].profiles[letter];
+      }
+
+      function pushAlert(targetArr, level, text) {
+        if (!text) return;
+        if (!targetArr.some(a => a.text === text)) {
+          targetArr.push({ level, text });
+        }
+      }
+
+      const totals = digest.totals || {};
+      const execution = digest.execution || {};
+      const totalGames =
+        totals.total_games_and_rollouts ||
+        totals.total_games ||
+        execution.total_games_and_rollouts ||
+        null;
+
+      const canonSummary = digest.canon_unique_32_summary || null;
+      const canonScores = canonSummary && canonSummary.scores_127_tables ? canonSummary.scores_127_tables : null;
+      const canonCog = canonSummary && canonSummary.cognitive_sensors ? canonSummary.cognitive_sensors : null;
+
+      let globalWinRate = null;
+      let globalWinRateLabel = 'Taux de victoire';
+      let globalCvar20 = null;
+      let recommendedChassisId = null;
+
+      if (canonScores && typeof canonScores.mean_ratio_arbres === 'number') {
+        globalWinRate = canonScores.mean_ratio_arbres;
+        globalWinRateLabel = 'Score moyen (ratio arbres)';
+        if (typeof canonScores.cvar20_127_tables === 'number') {
+          globalCvar20 = canonScores.cvar20_127_tables;
+        }
+        if (typeof canonSummary.recommended_chassis_id === 'number') {
+          recommendedChassisId = canonSummary.recommended_chassis_id;
+        }
+      } else if (Array.isArray(digest.coop_matrix_and_telemetry) && digest.coop_matrix_and_telemetry.length > 0) {
+        const mode3Rows = digest.coop_matrix_and_telemetry.filter(r => r.mode === 3 && typeof r.mean_ratio_arbres === 'number');
+        const rows = mode3Rows.length > 0 ? mode3Rows : digest.coop_matrix_and_telemetry.filter(r => typeof r.mean_ratio_arbres === 'number');
+        if (rows.length > 0) {
+          globalWinRate = rows.reduce((acc, r) => acc + r.mean_ratio_arbres, 0) / rows.length;
+          globalWinRateLabel = mode3Rows.length > 0 ? 'Ratio arbres (Mode 3)' : 'Ratio arbres moyen';
+        }
+      } else if (Array.isArray(digest.by_mode) && digest.by_mode.length > 0) {
+        const m = digest.by_mode[digest.by_mode.length - 1];
+        if (typeof m.win_rate === 'number') {
+          globalWinRate = m.win_rate;
+          globalWinRateLabel = 'Taux de victoire';
+        } else if (typeof m.mean_ratio_arbres === 'number') {
+          globalWinRate = m.mean_ratio_arbres;
+          globalWinRateLabel = 'Ratio arbres moyen';
+        }
+      }
+
+      // Alertes globales dérivées
+      if (canonCog && typeof canonCog.x_cognitive_normalized === 'number' && canonCog.x_cognitive_normalized >= 0.75) {
+        pushAlert(globalAlerts, 'warn', `Charge cognitive élevée (x_cog = ${canonCog.x_cognitive_normalized.toFixed(2)})`);
+      }
+      if (canonScores && typeof canonScores.mirror_asymmetry_mean === 'number' && canonScores.mirror_asymmetry_mean > 0.08) {
+        pushAlert(globalAlerts, 'warn', `Asymétrie miroir notable (${formatPct(canonScores.mirror_asymmetry_mean)})`);
+      }
+      if (typeof globalWinRate === 'number' && globalWinRate < 0.50) {
+        pushAlert(globalAlerts, 'danger', `Score global bas (${formatPct(globalWinRate)})`);
+      } else if (typeof globalWinRate === 'number' && globalWinRate > 0.90) {
+        pushAlert(globalAlerts, 'warn', `Score global très élevé (${formatPct(globalWinRate)})`);
+      }
+      if (Array.isArray(digest.alerts || digest.alertes)) {
+        (digest.alerts || digest.alertes).forEach(a => {
+          if (typeof a === 'string') pushAlert(globalAlerts, 'warn', a);
+          else if (a && a.text) pushAlert(globalAlerts, a.level || 'warn', a.text);
+        });
+      }
+
+      // 1) Tuiles testées déclarées dans tested_tiles_rules / totals.tested_tiles / totals.lot_01_profiles
+      if (Array.isArray(digest.tested_tiles_rules)) {
+        digest.tested_tiles_rules.forEach(item => {
+          const rec = ensureProfile(item.slot, item.profil || item.profile);
+          if (rec) {
+            rec.tested = true;
+            if (rec.winRate === null && globalWinRate !== null) {
+              rec.winRate = globalWinRate;
+              rec.winRateLabel = globalWinRateLabel;
+            }
+            if (rec.cvar20 === null && globalCvar20 !== null) {
+              rec.cvar20 = globalCvar20;
+            }
+            if (rec.games === null && totalGames !== null) {
+              rec.games = totalGames;
+              rec.gamesLabel = `${formatInt(totalGames)} parties (campagne)`;
+            }
+          }
+        });
+      }
+      const tokenLists = []
+        .concat(Array.isArray(totals.tested_tiles) ? totals.tested_tiles : [])
+        .concat(Array.isArray(totals.lot_01_profiles) ? totals.lot_01_profiles : []);
+      tokenLists.forEach(tok => {
+        const parsed = parseTileProfileToken(tok);
+        if (!parsed) return;
+        const rec = ensureProfile(parsed.slot, parsed.profile);
+        if (rec) {
+          rec.tested = true;
+          if (rec.winRate === null && globalWinRate !== null) {
+            rec.winRate = globalWinRate;
+            rec.winRateLabel = globalWinRateLabel;
+          }
+          if (rec.games === null && totalGames !== null) {
+            rec.games = totalGames;
+            rec.gamesLabel = `${formatInt(totalGames)} parties (campagne)`;
+          }
+        }
+      });
+
+      // 2) Canon Unique 32 tuiles (Palier 4)
+      if (canonSummary && Array.isArray(canonSummary.canon_32_profiles)) {
+        const canonGames = canonScores && typeof canonScores.n_games === 'number' ? canonScores.n_games : totalGames;
+        canonSummary.canon_32_profiles.forEach(tok => {
+          const parsed = parseTileProfileToken(tok);
+          if (!parsed) return;
+          const rec = ensureProfile(parsed.slot, parsed.profile);
+          if (!rec) return;
+          rec.tested = true;
+          rec.inCanon = true;
+          if (canonScores && typeof canonScores.mean_ratio_arbres === 'number') {
+            rec.winRate = canonScores.mean_ratio_arbres;
+            rec.winRateLabel = 'Ratio arbres (Canon 127 tables)';
+          }
+          if (canonScores && typeof canonScores.cvar20_127_tables === 'number') {
+            rec.cvar20 = canonScores.cvar20_127_tables;
+          }
+          if (canonGames !== null) {
+            rec.games = canonGames;
+            rec.gamesLabel = `${formatInt(canonGames)} tables Canon${totalGames ? ' / ' + formatInt(totalGames) + ' parties' : ''}`;
+          }
+        });
+      }
+
+      // 3) Top 5 finalistes (profils mentionnés dans diffs_vs_mode3_ref)
+      if (Array.isArray(digest.top_5_finalists_127_tables)) {
+        digest.top_5_finalists_127_tables.forEach(fin => {
+          if (!Array.isArray(fin.diffs_vs_mode3_ref)) return;
+          fin.diffs_vs_mode3_ref.forEach(tok => {
+            const parsed = parseTileProfileToken(tok);
+            if (!parsed) return;
+            const rec = ensureProfile(parsed.slot, parsed.profile);
+            if (!rec) return;
+            rec.tested = true;
+            if (rec.winRate === null && typeof fin.mean_ratio_arbres === 'number') {
+              rec.winRate = fin.mean_ratio_arbres;
+              rec.winRateLabel = `Ratio arbres (Finaliste #${fin.rank})`;
+            }
+            if (rec.cvar20 === null && typeof fin.cvar20_127_tables === 'number') {
+              rec.cvar20 = fin.cvar20_127_tables;
+            }
+            if (rec.games === null) {
+              rec.games = 127;
+              rec.gamesLabel = '127 tables (finaliste)';
+            }
+            if (fin.depth_passed === false) {
+              pushAlert(rec.alerts, 'danger', `Hiérarchie B0<B1<B2≤B3 échouée (finaliste #${fin.rank})`);
+            }
+          });
+        });
+      }
+
+      // 4) Effets Shapley ordre 1 & ordre 2 (Palier 4)
+      const shapley = digest.shapley_order2_top_effects || null;
+      if (shapley && Array.isArray(shapley.top_main_profiles)) {
+        shapley.top_main_profiles.forEach(item => {
+          const rec = ensureProfile(item.slot, item.profile || item.profil);
+          if (!rec) return;
+          rec.tested = true;
+          if (typeof item.shapley_phi === 'number') {
+            rec.shapleyPhi = item.shapley_phi;
+            if (item.shapley_phi >= 0.03) {
+              pushAlert(rec.alerts, 'info', `Fort levier Shapley (φ = +${item.shapley_phi.toFixed(3)})`);
+            } else if (item.shapley_phi <= -0.02) {
+              pushAlert(rec.alerts, 'warn', `Impact Shapley négatif (φ = ${item.shapley_phi.toFixed(3)})`);
+            }
+          }
+          if (typeof item.samples === 'number') {
+            if (rec.games === null) {
+              rec.games = item.samples;
+              rec.gamesLabel = `${formatInt(item.samples)} génomes Shapley`;
+            } else if (rec.gamesLabel && !rec.gamesLabel.includes('Shapley')) {
+              rec.gamesLabel = `${rec.gamesLabel} · ${formatInt(item.samples)} éch. Shapley`;
+            }
+          }
+        });
+      }
+      if (shapley && Array.isArray(shapley.top_pair_interactions)) {
+        shapley.top_pair_interactions.forEach(item => {
+          const parts = String(item.pair || '').split('+');
+          if (parts.length !== 2 || typeof item.shapley_interaction_phi !== 'number') return;
+          const pA = parseTileProfileToken(parts[0]);
+          const pB = parseTileProfileToken(parts[1]);
+          if (!pA || !pB) return;
+          const phi = item.shapley_interaction_phi;
+          [[pA, pB], [pB, pA]].forEach(([selfP, otherP]) => {
+            const rec = ensureProfile(selfP.slot, selfP.profile);
+            if (!rec) return;
+            rec.tested = true;
+            const partnerStr = `${otherP.slot}:${otherP.profile}`;
+            rec.interactions.push({ partner: partnerStr, phi });
+            if (phi <= -0.01) {
+              pushAlert(rec.alerts, 'warn', `Anti-synergie avec ${partnerStr} (φ = ${phi.toFixed(3)})`);
+            } else if (phi >= 0.012) {
+              pushAlert(rec.alerts, 'info', `Synergie avec ${partnerStr} (φ = +${phi.toFixed(3)})`);
+            }
+          });
+        });
+      }
+
+      // 5) Métriques directes par tuile/profil (schéma générique pour campagnes ciblées futures)
+      const directSource = digest.tile_metrics || digest.by_tile || digest.profiles_metrics || null;
+      if (directSource && typeof directSource === 'object') {
+        const entries = Array.isArray(directSource)
+          ? directSource.map(item => [item.id || `${item.slot}:${item.profile || item.profil}`, item])
+          : Object.entries(directSource);
+        entries.forEach(([key, val]) => {
+          if (!val || typeof val !== 'object') return;
+          const parsed = parseTileProfileToken(key) || (val.slot && (val.profile || val.profil) ? { slot: val.slot, profile: val.profile || val.profil } : null);
+          if (!parsed) return;
+          const rec = ensureProfile(parsed.slot, parsed.profile);
+          if (!rec) return;
+          rec.tested = true;
+          const wr = typeof val.win_rate === 'number' ? val.win_rate : (typeof val.taux_victoire === 'number' ? val.taux_victoire : (typeof val.mean_ratio_arbres === 'number' ? val.mean_ratio_arbres : null));
+          if (wr !== null) {
+            rec.winRate = wr;
+            rec.winRateLabel = typeof val.win_rate === 'number' || typeof val.taux_victoire === 'number' ? 'Taux de victoire' : 'Ratio arbres moyen';
+          }
+          const ng = typeof val.n_games === 'number' ? val.n_games : (typeof val.games === 'number' ? val.games : (typeof val.samples === 'number' ? val.samples : null));
+          if (ng !== null) {
+            rec.games = ng;
+            rec.gamesLabel = `${formatInt(ng)} parties`;
+          }
+          if (typeof val.cvar20 === 'number') rec.cvar20 = val.cvar20;
+          const explicitAlerts = val.alerts || val.alertes || [];
+          if (Array.isArray(explicitAlerts)) {
+            explicitAlerts.forEach(al => {
+              if (typeof al === 'string') pushAlert(rec.alerts, 'warn', al);
+              else if (al && al.text) pushAlert(rec.alerts, al.level || 'warn', al.text);
+            });
+          }
+        });
+      }
+
+      // 6) Alertes de seuils sur chaque profil indexé
+      Object.values(bySlot).forEach(slotObj => {
+        Object.values(slotObj.profiles).forEach(rec => {
+          if (typeof rec.winRate === 'number') {
+            if (rec.winRate < 0.50) pushAlert(rec.alerts, 'danger', `Taux bas (${formatPct(rec.winRate)})`);
+            else if (rec.winRate > 0.90) pushAlert(rec.alerts, 'warn', `Taux très élevé (${formatPct(rec.winRate)})`);
+          }
+          if (typeof rec.cvar20 === 'number' && rec.cvar20 < 0.45) {
+            pushAlert(rec.alerts, 'danger', `CVaR 20% faible (${formatPct(rec.cvar20)})`);
+          }
+        });
+      });
+
+      return {
+        summary: {
+          campaign: digest.campaign || 'campagne_sans_nom',
+          generated_at_utc: digest.generated_at_utc || null,
+          total_games: totalGames,
+          global_win_rate: globalWinRate,
+          global_win_rate_label: globalWinRateLabel,
+          cvar20: globalCvar20,
+          recommended_chassis_id: recommendedChassisId,
+          global_alerts: globalAlerts,
+          covered_slots_count: Object.keys(bySlot).length
+        },
+        bySlot
+      };
+    }
+
+    function renderDigestHeaderBar() {
+      const summaryEl = document.getElementById('digest-header-summary');
+      const clearBtn = document.getElementById('btn-clear-digest');
+      if (!summaryEl || !clearBtn) return;
+
+      if (!state.activeDigest || !state.digestIndex) {
+        clearBtn.classList.add('hidden');
+        if (state.digestCatalog.length === 0) {
+          summaryEl.innerHTML = `<span class="text-forest-400">Aucun bilan actif · En mode <code class="font-mono text-forest-200">file://</code>, utilisez « 📂 Importer digest .json »</span>`;
+        } else {
+          summaryEl.innerHTML = `<span class="text-forest-400">Aucun bilan actif (${state.digestCatalog.length} disponible${state.digestCatalog.length > 1 ? 's' : ''} dans le menu)</span>`;
+        }
+        return;
+      }
+
+      clearBtn.classList.remove('hidden');
+      const s = state.digestIndex.summary;
+      const pills = [];
+      pills.push(`<span class="px-2 py-0.5 rounded bg-sky-900/70 border border-sky-500/40 text-sky-200 font-mono font-semibold">${escapeHtml(s.campaign)}</span>`);
+      if (s.total_games !== null) {
+        pills.push(`<span class="px-2 py-0.5 rounded bg-forest-900 border border-forest-700 text-forest-100 font-mono">${formatInt(s.total_games)} parties</span>`);
+      }
+      if (s.global_win_rate !== null) {
+        pills.push(`<span class="px-2 py-0.5 rounded bg-emerald-900/70 border border-emerald-500/40 text-emerald-200 font-semibold">${escapeHtml(s.global_win_rate_label)} : ${formatPct(s.global_win_rate)}</span>`);
+      }
+      if (s.cvar20 !== null) {
+        pills.push(`<span class="px-2 py-0.5 rounded bg-forest-900 border border-forest-700 text-amber-200 font-mono">CVaR₂₀ : ${formatPct(s.cvar20)}</span>`);
+      }
+      pills.push(`<span class="px-2 py-0.5 rounded bg-forest-900 border border-forest-700 text-forest-200">${s.covered_slots_count} empl. couverts</span>`);
+      if (s.global_alerts.length > 0) {
+        pills.push(`<span class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-400/50 text-amber-200 font-semibold">⚠️ ${s.global_alerts.length} alerte${s.global_alerts.length > 1 ? 's' : ''}</span>`);
+      }
+      summaryEl.innerHTML = pills.join('');
+    }
+
+    function applyLoadedDigest(digestObj, sourceLabel) {
+      if (!digestObj || typeof digestObj !== 'object') {
+        showToast('Bilan invalide', 'Le fichier JSON sélectionné ne contient pas un objet de bilan valide.');
+        return;
+      }
+      state.activeDigest = digestObj;
+      state.activeDigestSource = sourceLabel || digestObj.campaign || 'local.json';
+      state.digestIndex = buildDigestIndex(digestObj);
+      renderDigestHeaderBar();
+      renderCatalogue();
+    }
+
+    function clearActiveDigest() {
+      state.activeDigest = null;
+      state.activeDigestSource = null;
+      state.digestIndex = null;
+      const sel = document.getElementById('digest-select');
+      if (sel) sel.value = '';
+      renderDigestHeaderBar();
+      renderCatalogue();
+    }
+
+    async function loadDigestIndex() {
+      const sel = document.getElementById('digest-select');
+      if (!sel) return;
+      try {
+        const res = await fetch('digests/index.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (Array.isArray(data.digests) ? data.digests : []);
+        state.digestCatalog = list;
+        sel.innerHTML = `<option value="">Aucun bilan actif</option>` + list.map(item => {
+          const label = item.label || item.campaign || item.file;
+          return `<option value="${escapeHtml(item.file)}">${escapeHtml(label)}</option>`;
+        }).join('');
+        if (list.length > 0 && list[0].file) {
+          sel.value = list[0].file;
+          await onDigestSelectChange(list[0].file);
+        } else {
+          renderDigestHeaderBar();
+        }
+      } catch (err) {
+        state.digestCatalog = [];
+        sel.innerHTML = `<option value="">Aucun bilan (mode file:// ou index absent)</option>`;
+        renderDigestHeaderBar();
+      }
+    }
+
+    const localUploadedDigests = {};
+
+    async function onDigestSelectChange(fileName) {
+      if (!fileName) {
+        clearActiveDigest();
+        return;
+      }
+      if (fileName.startsWith('__LOCAL__:')) {
+        const cached = localUploadedDigests[fileName];
+        if (cached) {
+          applyLoadedDigest(cached.data, cached.name);
+        }
+        return;
+      }
+      try {
+        const res = await fetch(`digests/${fileName}`, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        applyLoadedDigest(data, `digests/${fileName}`);
+      } catch (err) {
+        showToast(
+          'Chargement du bilan impossible',
+          `Impossible de charger digests/${fileName} (${err.message}). En mode file://, utilisez le bouton « 📂 Importer digest .json ».`
+        );
+        renderDigestHeaderBar();
+      }
+    }
+
+    function handleDigestFileUpload(event) {
+      const file = event && event.target && event.target.files ? event.target.files[0] : null;
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const parsed = JSON.parse(String(e.target.result || ''));
+          const optVal = `__LOCAL__:${file.name}`;
+          localUploadedDigests[optVal] = { name: file.name, data: parsed };
+          const sel = document.getElementById('digest-select');
+          if (sel) {
+            let existing = Array.from(sel.options).find(o => o.value === optVal);
+            if (!existing) {
+              existing = document.createElement('option');
+              existing.value = optVal;
+              existing.textContent = `📂 Local : ${file.name}`;
+              sel.appendChild(existing);
+            }
+            sel.value = optVal;
+          }
+          applyLoadedDigest(parsed, file.name);
+        } catch (err) {
+          showToast('JSON de bilan invalide', `Impossible de parser ${file.name} : ${err.message}`);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+    function renderSlotDigestFooter(tileId, lettersToShow) {
+      if (!state.activeDigest || !state.digestIndex) return '';
+      const slotData = state.digestIndex.bySlot[tileId];
+      if (!slotData) return '';
+
+      const matchingRecords = lettersToShow
+        .map(l => slotData.profiles[l])
+        .filter(Boolean);
+      if (matchingRecords.length === 0) return '';
+
+      const s = state.digestIndex.summary;
+      const allAlerts = [];
+      matchingRecords.forEach(rec => {
+        rec.alerts.forEach(al => {
+          allAlerts.push({ profile: rec.profile, level: al.level, text: al.text });
+        });
+      });
+
+      const primaryRec = matchingRecords.find(r => r.inCanon) || matchingRecords.find(r => r.winRate !== null) || matchingRecords[0];
+      const winRateText = primaryRec.winRate !== null ? formatPct(primaryRec.winRate) : '—';
+      const gamesText = primaryRec.gamesLabel || (primaryRec.games !== null ? `${formatInt(primaryRec.games)} parties` : (s.total_games !== null ? `${formatInt(s.total_games)} parties` : '—'));
+
+      const profileBadgesHtml = matchingRecords.map(rec => {
+        const parts = [`${tileId}:${rec.profile}`];
+        if (rec.inCanon) parts.push('★ Canon 32');
+        if (typeof rec.shapleyPhi === 'number') {
+          parts.push(`φ ${rec.shapleyPhi >= 0 ? '+' : ''}${rec.shapleyPhi.toFixed(3)}`);
+        }
+        return `<span class="px-2 py-0.5 rounded font-mono text-[11px] font-semibold ${rec.inCanon ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' : 'bg-sky-100 text-sky-900 border border-sky-200'}">${escapeHtml(parts.join(' · '))}</span>`;
+      }).join('');
+
+      const alertsHtml = allAlerts.length > 0
+        ? allAlerts.map(al => {
+            const cls = al.level === 'danger'
+              ? 'bg-red-100 text-red-900 border-red-300'
+              : (al.level === 'warn' ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-indigo-100 text-indigo-900 border-indigo-200');
+            const icon = al.level === 'danger' ? '🚨' : (al.level === 'warn' ? '⚠️' : '✨');
+            return `<span class="px-2 py-0.5 rounded border text-[11px] font-medium ${cls}">${icon} [${escapeHtml(al.profile)}] ${escapeHtml(al.text)}</span>`;
+          }).join('')
+        : `<span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-medium">✓ Aucune alerte d'équilibrage</span>`;
+
+      return `
+        <div class="mt-4 pt-3 border-t border-slate-200 bg-slate-50/90 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-sky-200 font-mono text-[11px] font-semibold">📊 ${escapeHtml(s.campaign)}</span>
+            <span class="font-semibold text-slate-800">${escapeHtml(primaryRec.winRateLabel)} : <span class="font-mono text-emerald-700">${winRateText}</span></span>
+            ${primaryRec.cvar20 !== null ? `<span class="text-slate-600 font-mono text-[11px]">(CVaR₂₀ : ${formatPct(primaryRec.cvar20)})</span>` : ''}
+            <span class="text-slate-500">·</span>
+            <span class="text-slate-700">Effectif : <strong class="font-mono">${escapeHtml(gamesText)}</strong></span>
+            ${profileBadgesHtml}
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap">
+            ${alertsHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function buildDigestExcerptForGemini(tuilesPayload) {
+      if (!state.activeDigest || !state.digestIndex) return undefined;
+      const idx = state.digestIndex;
+      const d = state.activeDigest;
+      const targetSlotIds = Object.keys(tuilesPayload || {});
+      const targetSet = new Set(targetSlotIds);
+
+      const tuilesBilan = {};
+      targetSlotIds.forEach(slotId => {
+        const slotData = idx.bySlot[slotId];
+        if (!slotData) return;
+        const entry = tuilesPayload[slotId];
+        let allowedLetters = null;
+        if (entry && entry.profils && typeof entry.profils === 'object') {
+          allowedLetters = new Set(Object.keys(entry.profils));
+        } else if (entry && entry.profil_actif) {
+          allowedLetters = new Set([entry.profil_actif]);
+        }
+        const filteredProfiles = {};
+        Object.entries(slotData.profiles).forEach(([letter, m]) => {
+          if (!allowedLetters || allowedLetters.has(letter)) {
+            const rec = {
+              teste: m.tested,
+              dans_canon_32: m.inCanon,
+              taux_victoire_ou_ratio: m.winRate,
+              cvar20: m.cvar20,
+              effectif_parties: m.games,
+              effectif_detail: m.gamesLabel,
+              alertes: m.alerts.map(a => a.text)
+            };
+            if (typeof m.shapleyPhi === 'number') rec.shapley_phi = m.shapleyPhi;
+            if (m.interactions.length > 0) rec.interactions_shapley = m.interactions;
+            filteredProfiles[letter] = rec;
+          }
+        });
+        if (Object.keys(filteredProfiles).length > 0) {
+          tuilesBilan[slotId] = filteredProfiles;
+        }
+      });
+
+      const pairInteractions = ((d.shapley_order2_top_effects && d.shapley_order2_top_effects.top_pair_interactions) || [])
+        .filter(item => {
+          const parts = String(item.pair || '').split('+');
+          return parts.some(p => targetSet.has(p.split(':')[0]));
+        });
+
+      return {
+        source_fichier: state.activeDigestSource || null,
+        campagne: idx.summary.campaign,
+        genere_le_utc: idx.summary.generated_at_utc,
+        effectif_total_parties: idx.summary.total_games,
+        taux_global: idx.summary.global_win_rate,
+        libelle_taux_global: idx.summary.global_win_rate_label,
+        cvar20_global: idx.summary.cvar20,
+        chassis_recommande: idx.summary.recommended_chassis_id,
+        alertes_globales: idx.summary.global_alerts.map(a => a.text),
+        tuiles_concernees_count: Object.keys(tuilesBilan).length,
+        tuiles_bilan: tuilesBilan,
+        ...(pairInteractions.length > 0 ? { interactions_paires_concernees: pairInteractions } : {})
+      };
     }
 
     // -------------------------------------------------------------------------
@@ -897,13 +1519,22 @@
                 const letterBadge = letter === 'D'
                   ? 'bg-emerald-700 text-white'
                   : (letter === 'E' ? 'bg-amber-700 text-white' : (letter === 'C' ? 'bg-sky-700 text-white' : 'bg-slate-800 text-white'));
+                const profDigest = state.digestIndex && state.digestIndex.bySlot[tileId] ? state.digestIndex.bySlot[tileId].profiles[letter] : null;
+                const profDigestTag = profDigest
+                  ? (profDigest.inCanon
+                      ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-semibold">★ Canon</span>`
+                      : (typeof profDigest.shapleyPhi === 'number'
+                          ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-200 font-semibold">φ ${profDigest.shapleyPhi >= 0 ? '+' : ''}${profDigest.shapleyPhi.toFixed(3)}</span>`
+                          : ''))
+                  : '';
                 return `
                   <div class="rounded-xl p-3.5 border flex flex-col justify-between ${isSelected ? 'bg-forest-50/70 border-forest-600 ring-1 ring-forest-600' : (compat.ok ? 'bg-slate-50/60 border-slate-200' : 'bg-red-50/40 border-red-200 opacity-80')}">
                     <div>
                       <div class="flex items-center justify-between gap-2 mb-2">
-                        <div class="flex items-center gap-1.5">
+                        <div class="flex items-center gap-1.5 flex-wrap">
                           <span class="px-2 py-0.5 rounded font-mono font-bold text-xs ${letterBadge}">Profil ${letter}</span>
                           <span class="font-bold text-xs text-slate-900">${p.nom}</span>
+                          ${profDigestTag}
                         </div>
                         <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600">${p.cycle}</span>
                       </div>
@@ -938,6 +1569,7 @@
                 `;
               }).join('')}
             </div>
+            ${renderSlotDigestFooter(tileId, lettersToShow)}
           </div>
         `);
       });
@@ -1222,6 +1854,7 @@
       }
 
       const latestVersion = (Array.isArray(VERSION_CHANGELOG) && VERSION_CHANGELOG[0]) ? VERSION_CHANGELOG[0].version : 'v5.3';
+      const digestExcerpt = buildDigestExcerptForGemini(tuilesPayload);
 
       const payload = {
         _meta: {
@@ -1242,6 +1875,7 @@
           lisieres_actives: lisieres.map(l => `${l.p1}↔${l.p2}: ${l.tuiles.map(id => id + '_' + state.profileOverrides[id]).join(', ')}`)
         },
         ...(changelogPayload ? { changelog_extrait: changelogPayload } : {}),
+        ...(digestExcerpt ? { bilan_simulation_extrait: digestExcerpt } : {}),
         tuiles_ciblees: tuilesPayload
       };
 
@@ -1260,7 +1894,8 @@
 
       const btn = document.getElementById('btn-copy-gemini');
       const oldHtml = btn.innerHTML;
-      const suffix = changelogPayload && modeLabel === 'CHANGELOG_ET_INSTANCE_2N' ? `changelog + ${countProfiles} prof.` : `${countProfiles} prof.`;
+      const baseSuffix = changelogPayload && modeLabel === 'CHANGELOG_ET_INSTANCE_2N' ? `changelog + ${countProfiles} prof.` : `${countProfiles} prof.`;
+      const suffix = digestExcerpt ? `${baseSuffix} + bilan` : baseSuffix;
       btn.innerHTML = `<span>✓ Copié (${suffix}) !</span>`;
       setTimeout(() => { btn.innerHTML = oldHtml; }, 2200);
     }
@@ -1289,10 +1924,12 @@
       renderCatalogue();
       renderChangelogView();
       renderJsonView();
+      renderDigestHeaderBar();
     }
 
     window.onload = function () {
       refreshAllUI();
+      loadDigestIndex();
     };
   </script>
 </body>

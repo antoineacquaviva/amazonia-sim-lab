@@ -60,6 +60,11 @@
   - Adaptation de `scripts_cloud/studio_paths.py`, `scripts_cloud/sync_studio.py` et `scripts_cloud/build_spec_bundle.py` pour lire directement `docs/data/catalog_v5_3.json`, `docs/data/spec_formelle_v5_3.json` et `docs/data/amazonia_data_v5_3.js` en local (`data/studio_lock.json` et `data/spec_bundle_v5_3_1.json` mis à jour).
   - Ajout de la porte `[4/8]` `verify_studio_coherence()` dans `verify_lot.py` vérifiant l'égalité exacte des 32 emplacements, 100 profils, 7 axes du châssis et topologies entre `docs/data/` et le simulateur Python.
   - Intégration des règles de maintenance Studio (4 couches, Node `vm` + `JSON.stringify`, couple `texte`/`temoin`, UTF-8 sans BOM) dans `.agents/rules/rule-doc-studio.md`, `GEMINI.md` et `.agents/skills/sync-evolution/SKILL.md`.
+- *2026-11-18* : **Affichage des bilans `digest_*.json` dans Amazonia Doc Studio (`docs/index.html`)** :
+  - Création de `docs/digests/index.json` et copie de `docs/digests/digest_palier4_canon.json` comme exemple prêt à l'emploi.
+  - Ajout dans le bandeau supérieur de `docs/index.html` d'un sélecteur déroulant chargeant `digests/index.json` + bouton d'import local `.json` (mode secours `file://` sans bundler).
+  - Affichage sous chaque carte concernée de l'Explorateur (`#view-catalogue`) des indicateurs synthétiques du bilan actif (taux de victoire / ratio arbres, `CVaR_20%`, effectif de parties, contributions Shapley et alertes d'équilibrage).
+  - Enrichissement du bouton `✨ Copier contexte Gemini` pour joindre automatiquement `bilan_simulation_extrait` limité aux tuiles filtrées ou sélectionnées dans l'instance.
 
 
 
