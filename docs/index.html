@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="fr" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amazonia : Dernier Rempart — Studio Documentaire & Configurateur v5.3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Crimson Pro', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            forest: {
+              50: '#f2f8f4',
+              100: '#e1efe6',
+              200: '#c5dfd0',
+              300: '#9ac7ae',
+              400: '#69a786',
+              500: '#468a68',
+              600: '#346e52',
+              700: '#2b5843',
+              800: '#244737',
+              900: '#1e3b2e',
+              950: '#0f2119',
+            },
+            amber: {
+              850: '#78350f'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Styles dédiés au Livret Didactique (Lecture Humaine) */
+    .rulebook-page {
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+    }
+    .rulebook-page h1, .rulebook-page h2, .rulebook-page h3 {
+      font-family: 'Crimson Pro', Georgia, serif;
+    }
+    .dyn-span {
+      transition: all 0.2s ease;
+    }
+    .highlight-dynamic .dyn-span {
+      background-color: #fef3c7;
+      border-bottom: 2px dashed #d97706;
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: #92400e;
+      font-weight: 600;
+    }
+    .highlight-dynamic .dyn-block {
+      background-color: #fffbeb;
+      border-left: 4px solid #f59e0b;
+      padding: 0.75rem 1rem;
+      border-radius: 0 0.5rem 0.5rem 0;
+    }
+
+    /* Impression PDF propre (calibrée type v4.3) */
+    @media print {
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .print-only {
+        display: block !important;
+      }
+      #main-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .rulebook-card {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- ===================================================================== -->
+  <!-- BANDEAU SUPÉRIEUR PERSISTANT : IDENTITÉ, VERSION & CONFIGURATEUR      -->
+  <!-- ===================================================================== -->
+  <header class="bg-forest-950 text-white shadow-xl sticky top-0 z-40 no-print border-b border-forest-800">
+    <div class="max-w-7xl mx-auto px-4 py-3">
+      <!-- Ligne 1 : Titre, Version & Actions Globales -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-forest-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-serif font-bold text-xl shadow-inner border border-emerald-400/30">
+            A
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="font-bold text-lg tracking-tight text-white">AMAZONIA : DERNIER REMPART</h1>
+              <span class="px-2.5 py-0.5 text-xs font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                v5.3 · Source Unique
+              </span>
+              <span id="header-config-badge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                Config #1 / 128 (Standard)
+              </span>
+            </div>
+            <p class="text-xs text-forest-300">Studio Documentaire : Spécification Formelle (100 profils · Seuil Imprimé) & Générateur de Livret Didactique</p>
+          </div>
+        </div>
+
+        <!-- Contrôles rapides de traçabilité -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center bg-forest-900 rounded-lg p-1 border border-forest-700 text-xs">
+            <span class="px-2 text-forest-300">Comparer v5.3 avec :</span>
+            <select id="diff-version-select" onchange="updateVersionDiffBadge()" class="bg-forest-800 text-white font-medium rounded px-2 py-1 border border-forest-600 focus:outline-none">
+              <option value="v5.2" selected>v5.2 (116 profils, 2 options Pièges)</option>
+              <option value="v5.1">v5.1 (86 profils, auto-parade)</option>
+              <option value="v5.0">v5.0 ( Ajout des 22 profils C)</option>
+              <option value="v4.9">v4.9 Révisée (Siège T4, Surchauffe)</option>
+              <option value="v4.3">v4.3 (Livret Didactique 6p)</option>
+            </select>
+            <button onclick="switchTab('changelog')" class="ml-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded transition flex items-center gap-1">
+              <span> Δ Voir l'évolution</span>
+            </button>
+          </div>
+
+          <button onclick="toggleConfigDrawer()" id="btn-toggle-drawer" class="px-3 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-xs font-semibold transition flex items-center gap-1.5 border border-emerald-500/40 shadow">
+            <span>⚙️ Configurer l'Instance (7 Axes & Peuples)</span>
+            <span id="modified-axes-count" class="px-1.5 py-0.2 bg-emerald-950 text-emerald-200 rounded-full text-[11px] font-mono">0 écart</span>
+          </button>
+		  <button onclick="copyContextForGemini(event)" id="btn-copy-gemini" title="Copie le châssis actif + les tuiles filtrées (ou les 2N tuiles en jeu). Shift+Clic = Catalogue complet." class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/50 shadow">
+            <span>✨ Copier contexte Gemini</span>
+          </button>
+          <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition border border-slate-600">
+            🖨️ Imprimer Livret PDF
+			
+          </button>
+        </div>
+      </div>
+
+      <!-- Ligne 2 : Résumé de l'instance active + Navigation Onglets -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2.5">
+        <!-- Résumé synthétique de l'instance -->
+        <div class="flex items-center gap-2 flex-wrap text-xs">
+          <span class="text-forest-300 font-medium">Instance active :</span>
+          <select id="preset-bundle-select" onchange="applyPresetBundle(this.value)" class="bg-forest-900 text-emerald-200 font-semibold rounded-lg px-2.5 py-1 border border-forest-700 focus:outline-none">
+            <option value="STANDARD_A">Socle Standard v5.3 (Profils A · P4_2233)</option>
+            <option value="ESSAI_52_EMBUSCADE">Bundle : ESSAI_52_EMBUSCADE (15 subst. D)</option>
+            
+            <option value="52_CAPYBARA_D">Module N=3 : 52_CAPYBARA (M–H–I · Embuscade D)</option>
+            
+            <option value="52_HARPIE_D">Module N=3 : 52_HARPIE (H–O–I · Embuscade D)</option>
+            
+            <option value="52_DENDROBATE_D">Module N=3 : 52_DENDROBATE (R–E–I · Embuscade D)</option>
+            
+            <option value="52_PIERRE_D">Module N=3 : 52_PIERRE (H–R–I · Embuscade D)</option>
+            <option value="52_ATELE_D">Module N=3 : 52_ATELE (M–O–I · Embuscade D)</option>
+            <option value="CUSTOM">Configuration Personnalisée</option>
+          </select>
+
+          <span id="summary-peuples-pill" class="px-2 py-0.5 rounded bg-forest-900 border border-forest-700 text-forest-200 font-mono">
+            4 Joueurs : M–R–O–H (8 tuiles)
+          </span>
+          <span id="summary-piege-pill" class="px-2 py-0.5 rounded bg-emerald-900/80 border border-emerald-600/50 text-emerald-200 font-medium">
+            Pièges : Embuscade (Déf ≥ 1)
+          </span>
+          <span id="summary-arbres-pill" class="px-2 py-0.5 rounded bg-forest-900 border border-forest-700 text-forest-200">
+            Capital : 40 Arbres (P4_2233 · 10×4)
+          </span>
+        </div>
+
+        <!-- Barre d'onglets -->
+        <nav class="flex items-center gap-1 bg-forest-900/90 p-1 rounded-xl border border-forest-800">
+          <button onclick="switchTab('livret')" id="tab-btn-livret" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow">
+            📖 1. Livret Didactique (Joueurs)
+          </button>
+          <button onclick="switchTab('catalogue')" id="tab-btn-catalogue" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+            🧩 2. Explorateur (100 Profils)
+          </button>
+          <button onclick="switchTab('changelog')" id="tab-btn-changelog" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+            🔍 3. Évolutions & Arbitrages
+          </button>
+          <button onclick="switchTab('json')" id="tab-btn-json" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+            💻 4. Spec & JSON (Simulateur)
+          </button>
+        </nav>
+      </div>
+
+      <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DES 10 AXES & DU CERCLE DE TABLE -->
+      <div id="config-drawer" class="hidden mt-3 pt-3 border-t border-forest-700 bg-forest-900/95 rounded-xl p-4 shadow-2xl">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Colonne Gauche : Cercle des Peuples autour de la table -->
+          <div class="lg:col-span-4 bg-forest-950/80 p-3.5 rounded-xl border border-forest-800">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">1. Cercle des Peuples (3 à 6 Joueurs)</h3>
+              <span id="cercle-validity-badge" class="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">Valide</span>
+            </div>
+            <p class="text-[11px] text-forest-300 mb-2.5">
+              Cliquez pour activer/désactiver un Peuple dans l'ordre du tour de table (détermine automatiquement les 2N tuiles de lisière) :
+            </p>
+            <div id="peuples-selector-grid" class="grid grid-cols-2 gap-1.5 mb-3">
+              <!-- Généré en JS -->
+            </div>
+            <div class="text-xs bg-forest-900 p-2.5 rounded-lg border border-forest-800">
+              <div class="text-forest-300 font-medium mb-1">Ordre des lisières (X,Y) autour de la roue :</div>
+              <div id="cercle-lisieres-preview" class="font-mono text-[11px] text-emerald-300 leading-relaxed"></div>
+            </div>
+
+            <!-- Slots de migration -->
+            <div class="mt-3 pt-3 border-t border-forest-800">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Slots Spéciaux de Migration (Étape 4.3)</h4>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <label class="block text-[11px] text-forest-300 mb-1">Bug du Cerveau :</label>
+                  <select id="slot-bug-select" onchange="updateMigrationSlot('SLOT_BUG_CERVEAU', this.value)" class="w-full bg-forest-900 border border-forest-700 rounded px-2 py-1 text-white">
+                    <option value="A">Profil A (-1 Apprentissage 6.1)</option>
+                    <option value="B">Profil B (Décalage dé M ±1 3.2)</option>
+                    <option value="C">Profil C (Cigale bloque 6.2)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] text-forest-300 mb-1">Colonisation Gardiens :</label>
+                  <select id="slot-colonie-select" onchange="updateMigrationSlot('SLOT_COLONISATION_GARDIENS', this.value)" class="w-full bg-forest-900 border border-forest-700 rounded px-2 py-1 text-white">
+                    <option value="A">Profil A (Ouvre Gardien 4.3)</option>
+                    
+                    <option value="C">Profil C (Lucioles auto 4.3)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Colonne Droite : Les 10 Axes du Châssis (128 configurations) -->
+          <div class="lg:col-span-8 bg-forest-950/80 p-3.5 rounded-xl border border-forest-800">
+            <div class="flex items-center justify-between mb-2">
+              <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Les 7 Axes de Test du Châssis v5.3 (Produit Cartésien : 128 configs)</h3>
+                <p class="text-[11px] text-forest-300">Toute modification réécrit en temps réel le Livret Didactique et vérifie la compatibilité des tuiles.</p>
+              </div>
+              <button onclick="resetChassisToDefault()" class="text-xs px-2.5 py-1 rounded bg-forest-800 hover:bg-forest-700 text-forest-200 border border-forest-600 transition">
+                ↺ Réinitialiser les 7 axes au standard
+              </button>
+            </div>
+            <div id="chassis-axes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2">
+              <!-- Généré en JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notification / Alerte de contrainte -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 hidden max-w-md bg-red-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-red-500 text-xs flex items-start gap-3 no-print">
+    <span class="text-lg">⚠️</span>
+    <div class="flex-1">
+      <div id="toast-title" class="font-bold text-sm mb-0.5">Contrainte de compatibilité</div>
+      <div id="toast-message" class="text-red-100"></div>
+    </div>
+    <button onclick="hideToast()" class="text-red-200 hover:text-white font-bold">✕</button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- CONTENU PRINCIPAL : LES 4 VUES SYNCHRONISÉES                          -->
+  <!-- ===================================================================== -->
+  <main id="main-container" class="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 1 : LIVRET DIDACTIQUE INSTANCIÉ (STYLE v4.3 LISIBLE)         -->
+    <!-- =================================================================== -->
+    <section id="view-livret" class="space-y-6">
+      <!-- Barre d'outils de lecture du livret -->
+      <div class="bg-white rounded-xl p-3.5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-3 no-print">
+        <div class="flex items-center gap-3">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-700 bg-amber-50 border border-amber-300 px-3 py-1.5 rounded-lg">
+            <input type="checkbox" id="toggle-highlight-dynamic" checked onchange="toggleDynamicHighlight(this.checked)" class="rounded text-amber-600 focus:ring-amber-500" />
+            <span>✨ Surligner dans le texte les passages qui dépendent des options & de la version</span>
+          </label>
+          <span class="text-xs text-slate-500 hidden sm:inline">
+            Les passages surlignés en ambre sont compilés dynamiquement selon vos axes v5.3 et vos Peuples.
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-xs">
+          <a href="#sec-vision" class="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 font-medium">1. Vision</a>
+          <a href="#sec-topologie" class="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 font-medium">2. Mise en place & Tuiles</a>
+          <a href="#sec-tour" class="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 font-medium">3. Tour (6 étapes)</a>
+          <a href="#sec-supports" class="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 font-medium">4. Supports</a>
+          <a href="#sec-fin" class="px-2 py-1 rounded hover:bg-slate-100 text-slate-600 font-medium">5. Repousse</a>
+        </div>
+      </div>
+
+      <!-- Feuille du Livret de Jeu -->
+      <article id="rulebook-article" class="rulebook-page rulebook-card highlight-dynamic bg-white rounded-2xl shadow-lg border border-slate-200/90 p-6 sm:p-10 max-w-5xl mx-auto">
+        <!-- Injecté dynamiquement par renderDidacticRulebook() -->
+      </article>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 2 : EXPLORATEUR COMPLET DES 116 PROFILS                      -->
+    <!-- =================================================================== -->
+    <section id="view-catalogue" class="hidden space-y-5 no-print">
+      <!-- Barre de filtres multicritères -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900">Explorateur Complet de la Bibliothèque (32 Emplacements · 100 Profils A, B, C, D)</h2>
+            <p class="text-xs text-slate-500">Explorez l'ensemble des tuiles conçues ou filtrez par mécanique, couple de Peuples, profil ou présence autour de la table.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="catalogue-count-badge" class="px-3 py-1 rounded-full bg-forest-100 text-forest-800 font-mono text-xs font-bold">
+              32 emplacements · 100 profils
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2 border-t border-slate-100 text-xs">
+          <!-- Recherche texte -->
+          <div class="lg:col-span-2">
+            <label class="block font-semibold text-slate-600 mb-1">Recherche plein texte (Nom, ID, effet, loi...) :</label>
+            <input type="text" id="filter-search" oninput="renderCatalogue()" placeholder="Ex: Capybara, Surchauffe, Souche, G7..." class="w-full rounded-lg border border-slate-300 px-3 py-1.5 focus:outline-none focus:border-forest-600" />
+          </div>
+
+          <!-- Famille -->
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Support / Famille :</label>
+            <select id="filter-family" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+              <option value="ALL">Toutes les familles (32)</option>
+              <option value="GARDIEN">Gardiens G1–G15 (15)</option>
+              <option value="REVE">Rêves R1–R10 (10)</option>
+              <option value="CROISSANCE">Nids Croissance M1–M5 (5)</option>
+              <option value="MIGRATION">Slots Migration (2)</option>
+            </select>
+          </div>
+
+          <!-- Peuple impliqué -->
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Peuple (Origine ou Voisin) :</label>
+            <select id="filter-peuple" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+              <option value="ALL">Tous les Peuples</option>
+              <option value="M">M · Mammifères</option>
+              <option value="R">R · Reptiles</option>
+              <option value="O">O · Oiseaux</option>
+              <option value="H">H · Humains</option>
+              <option value="E">E · Entités Magiques</option>
+              <option value="I">I · Insectes</option>
+            </select>
+          </div>
+
+          <!-- Lettre de Profil -->
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Profil affiché :</label>
+            <select id="filter-profile-letter" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+              <option value="ALL_COMPARE">Comparer tous (A / B / C / D)</option>
+              <option value="ACTIVE_INSTANCE">Profil retenu dans l'instance</option>
+              <option value="A">Profil A uniquement (Flux)</option>
+              <option value="B">Profil B uniquement (Loi)</option>
+              <option value="C">Profil C uniquement (22 compl.)</option>
+              <option value="D">Profil D uniquement (15 Embuscade)</option>
+              
+            </select>
+          </div>
+
+          <!-- Filtre de Tag / Présence autour de la table -->
+          <div>
+            <label class="block font-semibold text-slate-600 mb-1">Filtre Table & Tags :</label>
+            <select id="filter-scope" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+              <option value="ALL">Tout le catalogue (32)</option>
+              <option value="IN_CIRCLE_ONLY">Uniquement les 2N tuiles en jeu</option>
+                            <option value="TAG_ARMEMENT">Tag : ARMEMENT</option>
+              <option value="TAG_POSE">Tag : POSE de Piège</option>
+              <option value="TAG_SOUCHES">Tag : SOUCHES / Repousse</option>
+              <option value="TAG_SURCHAUFFE">Tag : SURCHAUFFE (Bleu/Rouge)</option>
+              <option value="TAG_CONVERSION">Tag : CONVERSION / Coût</option>
+              <option value="TAG_FURTIVITE">Tag : FURTIVITE</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grille des cartes d'emplacements -->
+      <div id="catalogue-grid" class="grid grid-cols-1 gap-4">
+        <!-- Généré dynamiquement par renderCatalogue() -->
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 3 : DIFFÉRENTIEL DE VERSIONS & HISTORIQUE (v4.3 -> v5.2)     -->
+    <!-- =================================================================== -->
+    <section id="view-changelog" class="hidden space-y-6 no-print">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+        <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">Traçabilité & Différentiel des Versions (v4.3 → v4.9 → v5.0 → v5.1 → v5.2 → v5.3)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Comprenez en un coup d'œil pourquoi et comment chaque règle du châssis ou du catalogue a évolué jusqu'à la version actuelle.</p>
+          </div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="font-semibold text-slate-600">Filtrer le journal :</span>
+            <select id="changelog-filter-select" onchange="renderChangelogView()" class="rounded-lg border border-slate-300 px-3 py-1.5 bg-slate-50 font-semibold">
+              <option value="ALL">Toutes les évolutions (v4.3 → v5.3)</option>
+              <option value="v5.3">Nouveautés v5.3 uniquement (Seuil Imprimé, Fin 5.3, 100 profils)</option>
+              <option value="v5.2">Nouveautés v5.2 uniquement (Pièges Embuscade/Amortisseur + 30 profils D/E)</option>
+              <option value="v5.1">Nouveautés v5.1 (Abatteuse 2 arbres, Bulldozer coupe+terrasse, 11 arbitrages)</option>
+              <option value="v5.0">Nouveautés v5.0 (Bibliothèque des 22 profils C & conventions)</option>
+              <option value="v4.9">Écarts depuis v4.3 / v4.9 (Siège T4 irréversible, Surchauffe Rouge/Bleu)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="changelog-content" class="mt-6 space-y-6">
+          <!-- Injecté par renderChangelogView() -->
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================== -->
+    <!-- ONGLET 4 : SPÉCIFICATION FORMELLE & EXPORT JSON (SIMULATEUR)        -->
+    <!-- =================================================================== -->
+    <section id="view-json" class="hidden space-y-6 no-print">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Panneau gauche : Manifeste JSON de l'instance -->
+        <div class="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Manifeste JSON de l'Instance (`schema_version: "5.3"`)</h2>
+              <p class="text-xs text-slate-500">Prêt pour `foret-automate-lab` : inclut les 7 axes, le cercle, les 2N tuiles actives et la validation des contraintes.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="copyManifestJson()" id="btn-copy-json" class="px-3 py-1.5 rounded-lg bg-forest-700 hover:bg-forest-600 text-white text-xs font-semibold transition">
+                📋 Copier le JSON
+              </button>
+              <button onclick="downloadManifestJson()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">
+                💾 Télécharger `.json`
+              </button>
+            </div>
+          </div>
+          <pre id="json-manifest-output" class="mt-4 flex-1 bg-slate-950 text-emerald-300 font-mono text-xs p-4 rounded-xl overflow-x-auto max-h-[640px] leading-relaxed"></pre>
+        </div>
+
+        <!-- Panneau droit : Importateur JSON & Grammaire Formelle à 8 Primitives -->
+        <div class="lg:col-span-5 space-y-6">
+          <!-- Import JSON -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+            <h3 class="text-sm font-bold text-slate-900 mb-1">Importer un Manifeste JSON d'Instance</h3>
+            <p class="text-xs text-slate-500 mb-3">Collez un bloc JSON d'essai pour reconfigurer immédiatement les 7 axes, les Peuples et le Livret Didactique :</p>
+            <textarea id="json-import-input" rows="5" placeholder='{"chassis_overrides": {"P_Max": 5}, "peuples_cercle": ["M","H","I"]}' class="w-full font-mono text-xs p-3 rounded-xl border border-slate-300 bg-slate-50 focus:outline-none focus:border-forest-600"></textarea>
+            <button onclick="importManifestJson()" class="mt-2 w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition">
+              ⚡ Appliquer ce JSON et régénérer le Livret Didactique
+            </button>
+          </div>
+
+          <!-- Référence rapide des 8 Primitives Formelles -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Grammaire Formelle v5.3 : Les 8 Primitives Atomiques</h3>
+            <div class="space-y-2 text-xs">
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">1. MOD_SEUIL</span> — Réduit de -X le Seuil de Parade (plancher 1) ou `auto_parade: true`.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">2. CREATION_ENTITE</span> — Crée `PIEGE` (case 2), `SABOTAGE` (case 3), `INSECTE` (case 6) ou `SANCTUAIRE_SOUCHE`.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">3. DEPLACEMENT</span> — Déplace `DEFENSEUR`, `PIEGE` (non déclenché ce tour), `INSECTE`, `MACHINE` ou `CIBLAGE`.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">4. MOD_PUISSANCE</span> — Retire rouge, inverse rouge → bleu *Surchauffe*, ou consomme 2 bleus.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">5. MOD_APPRENTISSAGE</span> — Retire ou annule -X jeton(s) Apprentissage en 6.1.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">6. PERMUTATION_PISTE</span> — Échange sur la Piste des Tactiques (r ± 1) ou décale la lecture du dé M.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">7. PARTAGE_INFO_ETAT_GARDIEN</span> — Révèle paravent, retourne Gardien Face 2, réactive Gardien ou Nid.
+              </div>
+              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <span class="font-mono font-bold text-forest-700">8. MOD_LOI_DU_COEUR</span> — Remplace une instruction du châssis sur sa fenêtre et sa portée.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===================================================================== -->
+  <!-- BASE DE DONNÉES COMPLÈTE v5.2 & MOTEUR D'INSTANCIATION JAVASCRIPT     -->
+  <!-- ===================================================================== -->
+  <script src="data/amazonia_data_v5_3.js"></script>
+  <script src="data/livret_v5_3.js"></script>
+  <script>
+    // 5. ÉTAT RÉACTIF DE L'INSTANCE EN COURS
+    // -------------------------------------------------------------------------
+    const state = {
+      activeTab: 'livret',
+      bundleId: 'STANDARD_A',
+      highlightDynamic: true,
+      // Ordre circulaire des Peuples actifs autour de la table (3 à 6)
+      peuplesCercle: ['M', 'R', 'O', 'H'],
+      // Valeurs des 7 axes actifs du châssis v5.3
+      chassis: {
+        P_Max: 4,
+        Regle_Ouverture_Reve_Multiple: 'UNIQUE_PAR_TOUR',
+        Offset_Seuil_Parade: 0,
+        Mise_En_Place_Tactiques: 'ORDRE_FIXE_T1_T6',
+        Declenchement_Fin_De_Piste: 'ARRIVEE_DERNIERE_PARCELLE',
+        Role_Abatteuse_Fin_De_Piste: 'STANDARD_COUPE_ARBRE',
+        Synergie_Binome_Machines: 'INDIVIDUELLE'
+      },
+      // Profil choisi (A, B, C, D ou E) pour chacun des 30 emplacements de lisière
+      profileOverrides: {},
+      // Profils des 2 slots de migration
+      slotsInsectes: {
+        SLOT_BUG_CERVEAU: 'A',
+        SLOT_COLONISATION_GARDIENS: 'A'
+      }
+    };
+
+    // Initialiser tous les emplacements à 'A' par défaut
+    Object.keys(CATALOGUE_TUILES).forEach(id => {
+      if (id !== 'SLOT_BUG_CERVEAU' && id !== 'SLOT_COLONISATION_GARDIENS') {
+        state.profileOverrides[id] = 'A';
+      }
+    });
+
+    // -------------------------------------------------------------------------
+    // 6. FONCTIONS UTILITAIRES DE CALCUL TOPOLOGIQUE & DE VALIDATION
+    // -------------------------------------------------------------------------
+    function getActiveLisieresAndTiles() {
+      const circle = state.peuplesCercle;
+      const n = circle.length;
+      const lisieres = [];
+      const activeTileIds = [];
+      for (let i = 0; i < n; i++) {
+        const p1 = circle[i];
+        const p2 = circle[(i + 1) % n];
+        const key = `${p1}_${p2}`;
+        const pairTiles = MATRICE_PAIRES[key] || [];
+        lisieres.push({
+          index: i + 1,
+          p1,
+          p2,
+          tuiles: pairTiles
+        });
+        pairTiles.forEach(t => {
+          if (!activeTileIds.includes(t)) activeTileIds.push(t);
+        });
+      }
+      return { lisieres, activeTileIds };
+    }
+
+    function isProfileCompatibleWithChassis(tileId, profLetter, chassisObj = state.chassis) {
+      const tile = CATALOGUE_TUILES[tileId];
+      if (!tile || !tile.profils[profLetter]) return { ok: false, reason: `Le profil ${profLetter} n'existe pas pour ${tileId}.` };
+      const prof = tile.profils[profLetter];
+      if (prof.requires_options) {
+        for (const [axKey, allowedVals] of Object.entries(prof.requires_options)) {
+          if (axKey === 'Regle_Resolution_Piege') continue;
+          if (!allowedVals.includes(chassisObj[axKey])) {
+            return {
+              ok: false,
+              reason: `${tileId} Profil ${profLetter} (${prof.nom}) exige ${axKey} = ${allowedVals.join(' ou ')}.`
+            };
+          }
+        }
+      }
+      return { ok: true };
+    }
+
+
+    // Calcule l'indice unique (1 à 128) de la configuration de châssis active
+    function computeConfigurationIndex() {
+      let idx = 0;
+      let mult = 1;
+      for (let i = CHASSIS_AXES_SPEC.length - 1; i >= 0; i--) {
+        const ax = CHASSIS_AXES_SPEC[i];
+        const curVal = state.chassis[ax.key];
+        const optIdx = ax.options.findIndex(o => String(o.val) === String(curVal));
+        idx += (optIdx >= 0 ? optIdx : 0) * mult;
+        mult *= ax.options.length;
+      }
+      return idx + 1;
+    }
+
+    function getModifiedAxesList() {
+      return CHASSIS_AXES_SPEC.filter(ax => String(state.chassis[ax.key]) !== String(ax.defaultVal));
+    }
+
+    function showToast(title, message) {
+      document.getElementById('toast-title').textContent = title;
+      document.getElementById('toast-message').textContent = message;
+      document.getElementById('toast-notification').classList.remove('hidden');
+      clearTimeout(window._toastTimer);
+      window._toastTimer = setTimeout(hideToast, 6000);
+    }
+
+    function hideToast() {
+      document.getElementById('toast-notification').classList.add('hidden');
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. GESTION DES BUNDLES PRÉDÉFINIS (§ 2.7.3 & § 2.7.4)
+    // -------------------------------------------------------------------------
+    const D_SLOTS = ['G3','G7','G10','G11','G14','R4','R5','R6','R8','R10','M1','M2','M3','M4','M5'];
+
+    function applyPresetBundle(bundleKey) {
+      state.bundleId = bundleKey;
+      Object.keys(state.profileOverrides).forEach(k => { state.profileOverrides[k] = 'A'; });
+      state.slotsInsectes.SLOT_BUG_CERVEAU = 'A';
+      state.slotsInsectes.SLOT_COLONISATION_GARDIENS = 'A';
+
+      if (bundleKey === 'ESSAI_52_EMBUSCADE') {
+        D_SLOTS.forEach(id => { state.profileOverrides[id] = 'D'; });
+      } else if (bundleKey === '52_CAPYBARA_D') {
+        state.peuplesCercle = ['M', 'H', 'I'];
+        Object.assign(state.profileOverrides, { G7: 'D', R3: 'A', G13: 'A', R6: 'D', M1: 'D', M4: 'D' });
+      } else if (bundleKey === '52_HARPIE_D') {
+        state.peuplesCercle = ['H', 'O', 'I'];
+        Object.assign(state.profileOverrides, { G11: 'D', R5: 'D', G15: 'A', R6: 'D', M3: 'D', M4: 'D' });
+      } else if (bundleKey === '52_DENDROBATE_D') {
+        state.peuplesCercle = ['R', 'E', 'I'];
+        Object.assign(state.profileOverrides, { G10: 'D', G14: 'D', R8: 'D', R10: 'D', M2: 'D', M5: 'D' });
+      } else if (bundleKey === '52_PIERRE_D') {
+        state.peuplesCercle = ['H', 'R', 'I'];
+        Object.assign(state.profileOverrides, { G9: 'A', G14: 'D', R4: 'D', R6: 'D', M2: 'D', M4: 'D' });
+      } else if (bundleKey === '52_ATELE_D') {
+        state.peuplesCercle = ['M', 'O', 'I'];
+        Object.assign(state.profileOverrides, { G3: 'D', G4: 'A', G13: 'A', G15: 'A', M1: 'D', M3: 'D' });
+      }
+
+      refreshAllUI();
+    }
+
+
+    // -------------------------------------------------------------------------
+    // 8. ACTIONS DU CONFIGURATEUR (PEUPLES, AXES, PROFILS)
+    // -------------------------------------------------------------------------
+    function toggleConfigDrawer() {
+      const dr = document.getElementById('config-drawer');
+      dr.classList.toggle('hidden');
+    }
+
+    function togglePeupleInCircle(code) {
+      const idx = state.peuplesCercle.indexOf(code);
+      if (idx >= 0) {
+        if (state.peuplesCercle.length <= 3) {
+          showToast('Minimum 3 joueurs', 'Une partie d’Amazonia requiert entre 3 et 6 Peuples autour de la table.');
+          return;
+        }
+        state.peuplesCercle.splice(idx, 1);
+      } else {
+        state.peuplesCercle.push(code);
+      }
+      state.bundleId = 'CUSTOM';
+      document.getElementById('preset-bundle-select').value = 'CUSTOM';
+      refreshAllUI();
+    }
+
+    function movePeupleLeft(code, event) {
+      event.stopPropagation();
+      const idx = state.peuplesCercle.indexOf(code);
+      if (idx > 0) {
+        const tmp = state.peuplesCercle[idx - 1];
+        state.peuplesCercle[idx - 1] = code;
+        state.peuplesCercle[idx] = tmp;
+        refreshAllUI();
+      }
+    }
+
+    function updateChassisAxis(key, rawValue) {
+      let val = rawValue;
+      if (key === 'P_Max' || key === 'Offset_Seuil_Parade') {
+        val = Number(rawValue);
+      }
+      state.chassis[key] = val;
+      state.bundleId = 'CUSTOM';
+      document.getElementById('preset-bundle-select').value = 'CUSTOM';
+      refreshAllUI();
+    }
+
+
+    function resetChassisToDefault() {
+      CHASSIS_AXES_SPEC.forEach(ax => {
+        state.chassis[ax.key] = ax.defaultVal;
+      });
+      refreshAllUI();
+    }
+
+    function selectTileProfileForInstance(tileId, profLetter) {
+      if (tileId === 'SLOT_BUG_CERVEAU' || tileId === 'SLOT_COLONISATION_GARDIENS') {
+        state.slotsInsectes[tileId] = profLetter;
+        refreshAllUI();
+        return;
+      }
+      const check = isProfileCompatibleWithChassis(tileId, profLetter);
+      if (!check.ok) {
+        showToast(
+          'Rejet de contrainte dure (requires_options)',
+          `${check.reason} Ajustez l'axe requis dans le configurateur si vous souhaitez tester ce profil.`
+        );
+        return;
+      }
+      state.profileOverrides[tileId] = profLetter;
+      state.bundleId = 'CUSTOM';
+      document.getElementById('preset-bundle-select').value = 'CUSTOM';
+      refreshAllUI();
+    }
+
+    function updateMigrationSlot(slotId, letter) {
+      state.slotsInsectes[slotId] = letter;
+      refreshAllUI();
+    }
+
+    // -------------------------------------------------------------------------
+    // 9. RENDU DU BANDEAU & DU TIROIR DE CONFIGURATION
+    // -------------------------------------------------------------------------
+    function renderConfigHeaderAndDrawer() {
+      const n = state.peuplesCercle.length;
+      const { lisieres, activeTileIds } = getActiveLisieresAndTiles();
+      const modifiedAxes = getModifiedAxesList();
+      const configNum = computeConfigurationIndex();
+      const totalArbres = n * (state.chassis.P_Max === 5 ? 12 : 10);
+
+      // Badges du Header
+      const cfgBadge = document.getElementById('header-config-badge');
+      cfgBadge.textContent = `Config #${configNum} / 128 (${modifiedAxes.length === 0 ? 'Châssis Standard' : modifiedAxes.length + ' axe(s) modifié(s)'})`;
+      cfgBadge.className = modifiedAxes.length === 0
+        ? 'px-2.5 py-0.5 text-xs font-mono rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+        : 'px-2.5 py-0.5 text-xs font-mono rounded-full bg-amber-500/30 text-amber-200 border border-amber-400';
+
+      document.getElementById('modified-axes-count').textContent = `${modifiedAxes.length} écart${modifiedAxes.length > 1 ? 's' : ''}`;
+      document.getElementById('summary-peuples-pill').textContent = `${n} Joueurs : ${state.peuplesCercle.join('–')} (${activeTileIds.length} tuiles)`;
+
+      const piegePill = document.getElementById('summary-piege-pill');
+      piegePill.textContent = 'Pièges : Embuscade (Déf ≥ 1)';
+      piegePill.className = 'px-2 py-0.5 rounded bg-emerald-900/80 border border-emerald-500/50 text-emerald-200 font-medium';
+
+
+      document.getElementById('summary-arbres-pill').textContent = `Capital : ${totalArbres} Arbres (${state.chassis.P_Max === 5 ? 'P5_22233 · 12×' + n : 'P4_2233 · 10×' + n})`;
+
+      // Sélecteurs de Peuples dans le tiroir
+      const pGrid = document.getElementById('peuples-selector-grid');
+      pGrid.innerHTML = Object.values(PEUPLES).map(p => {
+        const orderIdx = state.peuplesCercle.indexOf(p.code);
+        const active = orderIdx >= 0;
+        return `
+          <div onclick="togglePeupleInCircle('${p.code}')" class="cursor-pointer rounded-lg p-2 border transition flex items-center justify-between ${active ? 'bg-emerald-900/70 border-emerald-500 text-white' : 'bg-forest-900/40 border-forest-800 text-forest-400 opacity-60 hover:opacity-90'}">
+            <div class="flex items-center gap-1.5">
+              <span>${p.icon}</span>
+              <div>
+                <div class="text-xs font-bold">${p.code} · ${p.nom}</div>
+                <div class="text-[10px] text-forest-300">${active ? 'Siège #' + (orderIdx + 1) : 'Absent'}</div>
+              </div>
+            </div>
+            ${active && orderIdx > 0 ? `<button onclick="movePeupleLeft('${p.code}', event)" title="Déplacer plus tôt autour de la table" class="px-1.5 py-0.5 text-[10px] rounded bg-forest-800 hover:bg-forest-700">↑</button>` : ''}
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('cercle-lisieres-preview').innerHTML = lisieres.map(l => {
+        const t1 = l.tuiles[0];
+        const t2 = l.tuiles[1];
+        return `<span class="inline-block mr-2 mb-1 px-1.5 py-0.5 rounded bg-forest-950 border border-forest-700">${l.p1}↔${l.p2} : <strong>${t1}_${state.profileOverrides[t1]}</strong> & <strong>${t2}_${state.profileOverrides[t2]}</strong></span>`;
+      }).join('');
+
+      // Sélecteurs des 2 slots de migration
+      document.getElementById('slot-bug-select').value = state.slotsInsectes.SLOT_BUG_CERVEAU;
+      document.getElementById('slot-colonie-select').value = state.slotsInsectes.SLOT_COLONISATION_GARDIENS;
+
+      // Grille des 10 axes du châssis
+      const axesGrid = document.getElementById('chassis-axes-grid');
+      axesGrid.innerHTML = CHASSIS_AXES_SPEC.map(ax => {
+        const curVal = state.chassis[ax.key];
+        const isMod = String(curVal) !== String(ax.defaultVal);
+        return `
+          <div class="p-2.5 rounded-lg border ${isMod ? 'bg-amber-950/40 border-amber-500/70' : 'bg-forest-900/60 border-forest-800'}">
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] font-semibold ${isMod ? 'text-amber-300' : 'text-forest-200'}">${ax.label}</label>
+              ${isMod ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-bold">Modifié</span>' : '<span class="text-[10px] text-forest-400 font-mono">Standard</span>'}
+            </div>
+            <select onchange="updateChassisAxis('${ax.key}', this.value)" class="w-full text-xs rounded px-2 py-1 bg-forest-950 border ${isMod ? 'border-amber-500 text-amber-100 font-semibold' : 'border-forest-700 text-white'} focus:outline-none">
+              ${ax.options.map(o => `<option value="${o.val}" ${String(o.val) === String(curVal) ? 'selected' : ''}>${o.text}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------------------
+    // 10. COMPILATION DYNAMIQUE DU LIVRET DIDACTIQUE (ONGLET 1 - STYLE v4.3)
+    // -------------------------------------------------------------------------
+    function toggleDynamicHighlight(checked) {
+      state.highlightDynamic = checked;
+      const art = document.getElementById('rulebook-article');
+      if (checked) art.classList.add('highlight-dynamic');
+      else art.classList.remove('highlight-dynamic');
+    }
+    // renderDidacticRulebook() est désormais fourni par data/livret_v5_3.js
+
+    // -------------------------------------------------------------------------
+    // 11. RENDU DE L'EXPLORATEUR DES 116 PROFILS (ONGLET 2)
+    // -------------------------------------------------------------------------
+    function renderCatalogue() {
+      const search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
+      const fam = document.getElementById('filter-family').value;
+      const peuple = document.getElementById('filter-peuple').value;
+      const profMode = document.getElementById('filter-profile-letter').value;
+      const scope = document.getElementById('filter-scope').value;
+
+      const { activeTileIds } = getActiveLisieresAndTiles();
+      const allIds = Object.keys(CATALOGUE_TUILES);
+
+      let matchedSlots = 0;
+      let matchedProfiles = 0;
+      const cardsHtml = [];
+
+      allIds.forEach(tileId => {
+        const t = CATALOGUE_TUILES[tileId];
+        const isInCircle = activeTileIds.includes(tileId) || t.famille === 'MIGRATION';
+
+        if (fam !== 'ALL' && t.famille !== fam) return;
+        if (peuple !== 'ALL' && !t.couple.includes(peuple)) return;
+        if (scope === 'IN_CIRCLE_ONLY' && !isInCircle) return;
+
+        // Déterminer quelles lettres de profils afficher pour cet emplacement
+        const availableLetters = Object.keys(t.profils);
+        const instanceSelectedLetter = t.famille === 'MIGRATION' ? state.slotsInsectes[tileId] : state.profileOverrides[tileId];
+
+        let lettersToShow = availableLetters;
+        if (profMode === 'ACTIVE_INSTANCE') {
+          lettersToShow = [instanceSelectedLetter];
+        } else if (['A', 'B', 'C', 'D', 'E'].includes(profMode)) {
+          lettersToShow = availableLetters.filter(l => l === profMode);
+        }
+
+        // Filtrer chaque profil selon compatibilité, tags et texte
+        lettersToShow = lettersToShow.filter(letter => {
+          const p = t.profils[letter];
+          const compat = isProfileCompatibleWithChassis(tileId, letter);
+          if (scope === 'COMPATIBLE_ONLY' && !compat.ok) return false;
+          if (scope.startsWith('TAG_')) {
+            const wantedTag = scope.replace('TAG_', '');
+            if (!p.tags || !p.tags.includes(wantedTag)) return false;
+          }
+          if (search) {
+            const hay = `${t.id} ${t.nomBase} ${p.nom} ${p.texte} ${p.primitive} ${(p.tags || []).join(' ')} ${p.temoin}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+          }
+          return true;
+        });
+
+        if (lettersToShow.length === 0) return;
+        matchedSlots++;
+        matchedProfiles += lettersToShow.length;
+
+        const famColor = t.famille === 'GARDIEN'
+          ? 'border-l-amber-500'
+          : (t.famille === 'REVE' ? 'border-l-purple-600' : (t.famille === 'CROISSANCE' ? 'border-l-lime-600' : 'border-l-sky-600'));
+
+        cardsHtml.push(`
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 border-l-4 ${famColor} p-5">
+            <!-- En-tête de l'emplacement -->
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-3 mb-4 border-b border-slate-100">
+              <div class="flex items-center gap-2.5 flex-wrap">
+                <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-mono font-bold text-sm">${t.id}</span>
+                <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-xs font-semibold">Couple (${t.couple.join(', ')}) · Origine ${t.origine}</span>
+                <h3 class="font-bold text-base text-slate-900">${t.nomBase}</h3>
+                ${isInCircle ? '<span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">✓ En jeu autour de la table</span>' : '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 text-[11px]">Hors cercle actuel</span>'}
+              </div>
+              <div class="flex items-center gap-1.5 text-xs">
+                <span class="text-slate-500">Profil actif dans l'instance :</span>
+                <span class="px-2 py-0.5 rounded bg-forest-800 text-white font-mono font-bold">${t.id}_${instanceSelectedLetter}</span>
+              </div>
+            </div>
+
+            <!-- Grille comparative des profils A / B / C / D / E de cet emplacement -->
+            <div class="grid grid-cols-1 md:grid-cols-${Math.min(lettersToShow.length, 3)} gap-3">
+              ${lettersToShow.map(letter => {
+                const p = t.profils[letter];
+                const isSelected = instanceSelectedLetter === letter;
+                const compat = isProfileCompatibleWithChassis(tileId, letter);
+                const letterBadge = letter === 'D'
+                  ? 'bg-emerald-700 text-white'
+                  : (letter === 'E' ? 'bg-amber-700 text-white' : (letter === 'C' ? 'bg-sky-700 text-white' : 'bg-slate-800 text-white'));
+                return `
+                  <div class="rounded-xl p-3.5 border flex flex-col justify-between ${isSelected ? 'bg-forest-50/70 border-forest-600 ring-1 ring-forest-600' : (compat.ok ? 'bg-slate-50/60 border-slate-200' : 'bg-red-50/40 border-red-200 opacity-80')}">
+                    <div>
+                      <div class="flex items-center justify-between gap-2 mb-2">
+                        <div class="flex items-center gap-1.5">
+                          <span class="px-2 py-0.5 rounded font-mono font-bold text-xs ${letterBadge}">Profil ${letter}</span>
+                          <span class="font-bold text-xs text-slate-900">${p.nom}</span>
+                        </div>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600">${p.cycle}</span>
+                      </div>
+
+                      <!-- Texte didactique -->
+                      <div class="text-xs text-slate-800 leading-relaxed bg-white p-2.5 rounded-lg border border-slate-200/80 mb-2.5">
+                        ${p.texte}
+                      </div>
+
+                      <!-- Métadonnées formelles -->
+                      <div class="flex flex-wrap gap-1 mb-2">
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700">Fenêtre: ${p.fenetre}</span>
+                        <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-200/70 text-slate-700">Primitive: ${p.primitive}</span>
+                        ${p.cablage ? `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-100 text-amber-900">Cases: [${p.cablage.join(',')}]</span>` : ''}
+                        ${(p.tags || []).map(tag => `<span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">#${tag}</span>`).join('')}
+                      </div>
+
+                      <!-- Cas témoin Annexe E -->
+                      <div class="text-[11px] text-slate-600 italic bg-slate-100/80 p-2 rounded border-l-2 border-slate-400 mb-3">
+                        <strong>Cas témoin (Annexe E) :</strong> ${p.temoin}
+                      </div>
+                    </div>
+
+                    <!-- Bouton d'activation pour l'instance -->
+                    <div class="pt-2 border-t border-slate-200/70 flex items-center justify-between">
+                      ${!compat.ok ? `<span class="text-[10px] text-red-700 font-semibold">⚠️ Exige ${letter === 'D' ? 'Embuscade' : 'Amortisseur'}</span>` : `<span class="text-[10px] text-emerald-700 font-medium">✓ Compatible châssis actif</span>`}
+                      <button onclick="selectTileProfileForInstance('${tileId}', '${letter}')" class="px-2.5 py-1 rounded text-xs font-semibold transition ${isSelected ? 'bg-forest-700 text-white cursor-default' : (compat.ok ? 'bg-white hover:bg-forest-700 hover:text-white text-forest-800 border border-forest-600' : 'bg-red-100 text-red-800 border border-red-300 hover:bg-red-200')}">
+                        ${isSelected ? '✓ Actif dans l’instance' : 'Activer ce profil'}
+                      </button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `);
+      });
+
+      document.getElementById('catalogue-count-badge').textContent = `${matchedSlots} emplacements · ${matchedProfiles} profils affichés (sur 100)`;
+      document.getElementById('catalogue-grid').innerHTML = cardsHtml.length > 0
+        ? cardsHtml.join('')
+        : `<div class="bg-white rounded-xl p-8 text-center text-slate-500">Aucun profil ne correspond à vos critères de filtrage.</div>`;
+    }
+
+    // -------------------------------------------------------------------------
+    // 12. RENDU DU DIFFÉRENTIEL DE VERSIONS (ONGLET 3)
+    // -------------------------------------------------------------------------
+// -------------------------------------------------------------------------
+    // 12. RENDU DU DIFFÉRENTIEL DE VERSIONS (ONGLET 3)
+    // -------------------------------------------------------------------------
+    function syncChangelogSelectOptions() {
+      const sel = document.getElementById('changelog-filter-select');
+      if (!sel || !Array.isArray(VERSION_CHANGELOG) || VERSION_CHANGELOG.length === 0) return;
+      const prev = sel.value || 'ALL';
+      const latest = VERSION_CHANGELOG[0].version;
+      sel.innerHTML = `<option value="ALL">Toutes les évolutions (v4.3 → ${latest})</option>` +
+        VERSION_CHANGELOG.map(b => `<option value="${b.version}">${b.version} — ${b.titre}</option>`).join('');
+      sel.value = Array.from(sel.options).some(o => o.value === prev) ? prev : 'ALL';
+    }
+
+    function updateVersionDiffBadge() {
+      const v = document.getElementById('diff-version-select').value;
+      const filterEl = document.getElementById('changelog-filter-select');
+      if (filterEl) {
+        const latest = (VERSION_CHANGELOG[0] && VERSION_CHANGELOG[0].version) || 'v5.3';
+        filterEl.value = v === 'v5.2' ? latest : 'ALL';
+        renderChangelogView();
+      }
+    }
+
+    function renderChangelogView() {
+      syncChangelogSelectOptions();
+      const filterVal = document.getElementById('changelog-filter-select').value;
+      const blocks = VERSION_CHANGELOG.filter(b => filterVal === 'ALL' || b.version === filterVal);
+
+      document.getElementById('changelog-content').innerHTML = blocks.map(b => `
+        <div class="rounded-2xl border border-slate-200 overflow-hidden">
+          <div class="bg-slate-900 text-white px-5 py-3.5 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="px-2.5 py-0.5 rounded-full bg-emerald-500 text-slate-950 font-mono font-bold text-xs">${b.version}</span>
+              <h3 class="font-bold text-sm sm:text-base">${b.titre}</h3>
+            </div>
+            <span class="text-xs text-slate-400 font-mono">${b.date}</span>
+          </div>
+          <div class="p-5 bg-white space-y-4">
+            <p class="text-xs sm:text-sm text-slate-700 font-medium bg-slate-50 p-3 rounded-xl border border-slate-200">${b.resume}</p>
+            <div class="space-y-3">
+              ${b.deltas.map(d => `
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/40 text-xs">
+                  <div class="md:col-span-3 font-bold text-slate-900">${d.domaine}</div>
+                  <div class="md:col-span-4 p-2.5 rounded-lg bg-rose-50/80 border border-rose-200 text-rose-950 whitespace-pre-line">
+                    <div class="font-bold text-[10px] uppercase tracking-wider text-rose-700 mb-1">Avant :</div>${d.avant}
+                  </div>
+                  <div class="md:col-span-5 p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200 text-emerald-950 whitespace-pre-line">
+                    <div class="font-bold text-[10px] uppercase tracking-wider text-emerald-700 mb-1">En ${b.version} :</div>${d.apres}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+    // -------------------------------------------------------------------------
+    // 13. GÉNÉRATION & IMPORT DU MANIFESTE JSON (ONGLET 4 - SIMULATEUR)
+    // -------------------------------------------------------------------------
+    function buildInstanceManifestObject() {
+      const { lisieres, activeTileIds } = getActiveLisieresAndTiles();
+      const activeOverrides = {};
+      activeTileIds.forEach(id => {
+        activeOverrides[id] = `PROFIL_${state.profileOverrides[id] || 'A'}`;
+      });
+
+      return {
+        schema_version: '5.3',
+        bundle_id: state.bundleId,
+        configuration_index_128: computeConfigurationIndex(),
+        peuples_cercle: [...state.peuplesCercle],
+        topologie_code: state.chassis.P_Max === 5 ? 'P5_22233' : 'P4_2233',
+        capital_arbres_initial: state.peuplesCercle.length * (state.chassis.P_Max === 5 ? 12 : 10),
+        chassis_overrides: { ...state.chassis },
+        lisieres_actives: lisieres.map(l => ({
+          paire: [l.p1, l.p2],
+          tuiles: l.tuiles.map(id => `${id}_${state.profileOverrides[id] || 'A'}`)
+        })),
+        profile_overrides_en_jeu: activeOverrides,
+        catalogue_complet_overrides: { ...state.profileOverrides },
+        slots_insectes: {
+          SLOT_BUG_CERVEAU: `PROFIL_${state.slotsInsectes.SLOT_BUG_CERVEAU}`,
+          SLOT_COLONISATION_GARDIENS: `PROFIL_${state.slotsInsectes.SLOT_COLONISATION_GARDIENS}`
+        }
+      };
+    }
+
+    function renderJsonView() {
+      const manifest = buildInstanceManifestObject();
+      document.getElementById('json-manifest-output').textContent = JSON.stringify(manifest, null, 2);
+    }
+
+    function copyManifestJson() {
+      const txt = document.getElementById('json-manifest-output').textContent;
+      const ta = document.createElement('textarea');
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      const btn = document.getElementById('btn-copy-json');
+      const old = btn.textContent;
+      btn.textContent = '✓ Copié dans le presse-papiers !';
+      setTimeout(() => { btn.textContent = old; }, 2000);
+    }
+
+    function downloadManifestJson() {
+      const txt = document.getElementById('json-manifest-output').textContent;
+      const blob = new Blob([txt], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `amazonia_instance_v5_3_${state.peuplesCercle.join('')}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importManifestJson() {
+      const raw = document.getElementById('json-import-input').value.trim();
+      if (!raw) return;
+      try {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data.peuples_cercle) && data.peuples_cercle.length >= 3) {
+          state.peuplesCercle = data.peuples_cercle;
+        }
+        if (data.chassis_overrides) {
+          Object.assign(state.chassis, data.chassis_overrides);
+        }
+        const overridesSource = data.catalogue_complet_overrides || data.profile_overrides_en_jeu || data.profile_overrides;
+        if (overridesSource) {
+          Object.entries(overridesSource).forEach(([k, v]) => {
+            const cleanLetter = String(v).replace('PROFIL_', '');
+            if (CATALOGUE_TUILES[k] && CATALOGUE_TUILES[k].profils[cleanLetter]) {
+              state.profileOverrides[k] = cleanLetter;
+            }
+          });
+        }
+        if (data.slots_insectes) {
+          if (data.slots_insectes.SLOT_BUG_CERVEAU) {
+            state.slotsInsectes.SLOT_BUG_CERVEAU = String(data.slots_insectes.SLOT_BUG_CERVEAU).replace('PROFIL_', '');
+          }
+          if (data.slots_insectes.SLOT_COLONISATION_GARDIENS) {
+            state.slotsInsectes.SLOT_COLONISATION_GARDIENS = String(data.slots_insectes.SLOT_COLONISATION_GARDIENS).replace('PROFIL_', '');
+          }
+        }
+        refreshAllUI();
+        switchTab('livret');
+      } catch (err) {
+        showToast('JSON invalide', 'Impossible de parser le JSON fourni : ' + err.message);
+      }
+    }
+// -------------------------------------------------------------------------
+    // 13b. EXPORT CONTEXTUEL CIBLÉ POUR GEMINI
+    // -------------------------------------------------------------------------
+    function getFilteredCatalogueSelection() {
+      const search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
+      const fam = document.getElementById('filter-family').value;
+      const peuple = document.getElementById('filter-peuple').value;
+      const profMode = document.getElementById('filter-profile-letter').value;
+      const scope = document.getElementById('filter-scope').value;
+      const { activeTileIds } = getActiveLisieresAndTiles();
+
+      const isUnfiltered = !search && fam === 'ALL' && peuple === 'ALL' && profMode === 'ALL_COMPARE' && scope === 'ALL';
+      const selected = {};
+      let profileCount = 0;
+
+      Object.keys(CATALOGUE_TUILES).forEach(tileId => {
+        const t = CATALOGUE_TUILES[tileId];
+        const isInCircle = activeTileIds.includes(tileId) || t.famille === 'MIGRATION';
+
+        if (fam !== 'ALL' && t.famille !== fam) return;
+        if (peuple !== 'ALL' && !t.couple.includes(peuple)) return;
+        if (scope === 'IN_CIRCLE_ONLY' && !isInCircle) return;
+
+        const availableLetters = Object.keys(t.profils);
+        const instanceSelectedLetter = t.famille === 'MIGRATION' ? state.slotsInsectes[tileId] : state.profileOverrides[tileId];
+
+        let letters = availableLetters;
+        if (profMode === 'ACTIVE_INSTANCE') {
+          letters = [instanceSelectedLetter];
+        } else if (['A', 'B', 'C', 'D', 'E'].includes(profMode)) {
+          letters = availableLetters.filter(l => l === profMode);
+        }
+
+        letters = letters.filter(letter => {
+          const p = t.profils[letter];
+          const compat = isProfileCompatibleWithChassis(tileId, letter);
+          if (scope === 'COMPATIBLE_ONLY' && !compat.ok) return false;
+          if (scope.startsWith('TAG_')) {
+            const wantedTag = scope.replace('TAG_', '');
+            if (!p.tags || !p.tags.includes(wantedTag)) return false;
+          }
+          if (search) {
+            const hay = `${t.id} ${t.nomBase} ${p.nom} ${p.texte} ${p.primitive} ${(p.tags || []).join(' ')} ${p.temoin}`.toLowerCase();
+            if (!hay.includes(search)) return false;
+          }
+          return true;
+        });
+
+        if (letters.length > 0) {
+          const profilsSubset = {};
+          letters.forEach(l => {
+            profilsSubset[l] = t.profils[l];
+            profileCount++;
+          });
+          selected[tileId] = {
+            id: t.id,
+            famille: t.famille,
+            couple: t.couple,
+            origine: t.origine,
+            nomBase: t.nomBase,
+            profil_actif_instance: instanceSelectedLetter,
+            profils: profilsSubset
+          };
+        }
+      });
+
+      return { isUnfiltered, profileCount, selected };
+    }
+
+// REGLES_COEUR_SYNTHESE est désormais fourni par data/livret_v5_3.js
+
+
+    async function copyContextForGemini(event) {
+      const forceFull = event && event.shiftKey;
+      const { lisieres, activeTileIds } = getActiveLisieresAndTiles();
+      let modeLabel = '';
+      let tuilesPayload = {};
+      let changelogPayload = undefined;
+      let countProfiles = 0;
+
+      if (forceFull) {
+        modeLabel = 'CATALOGUE_COMPLET_FORCE';
+        tuilesPayload = CATALOGUE_TUILES;
+        Object.values(CATALOGUE_TUILES).forEach(t => { countProfiles += Object.keys(t.profils).length; });
+        changelogPayload = VERSION_CHANGELOG[0];
+      } else if (state.activeTab === 'catalogue') {
+        const filt = getFilteredCatalogueSelection();
+        if (!filt.isUnfiltered) {
+          modeLabel = 'EXPLORATEUR_FILTRE';
+          tuilesPayload = filt.selected;
+          countProfiles = filt.profileCount;
+        }
+      } else if (state.activeTab === 'changelog') {
+        modeLabel = 'CHANGELOG_ET_INSTANCE_2N';
+        const filterVal = document.getElementById('changelog-filter-select').value;
+        changelogPayload = filterVal === 'ALL'
+          ? VERSION_CHANGELOG.slice(0, 2)
+          : VERSION_CHANGELOG.filter(b => b.version === filterVal);
+      }
+
+      // Par défaut (Livret, Spec JSON, Onglet 3, ou Explorateur non filtré) : les 2N tuiles en jeu + 2 migrations
+      if (Object.keys(tuilesPayload).length === 0) {
+        if (!modeLabel) modeLabel = 'INSTANCE_TABLE_ACTIVE_2N';
+        [...activeTileIds, 'SLOT_BUG_CERVEAU', 'SLOT_COLONISATION_GARDIENS'].forEach(id => {
+          const t = CATALOGUE_TUILES[id];
+          if (!t) return;
+          const actLetter = t.famille === 'MIGRATION' ? state.slotsInsectes[id] : (state.profileOverrides[id] || 'A');
+          tuilesPayload[id] = {
+            id: t.id,
+            famille: t.famille,
+            couple: t.couple,
+            nomBase: t.nomBase,
+            profil_actif: actLetter,
+            spec_profil_actif: t.profils[actLetter]
+          };
+          countProfiles++;
+        });
+      }
+
+      const latestVersion = (Array.isArray(VERSION_CHANGELOG) && VERSION_CHANGELOG[0]) ? VERSION_CHANGELOG[0].version : 'v5.3';
+
+      const payload = {
+        _meta: {
+          projet: 'Amazonia : Dernier Rempart — Doc Studio',
+          schema_version: latestVersion.replace(/^v/, ''),
+          mode_extraction: modeLabel,
+          fichiers_source: ['data/amazonia_data_v5_3.js', 'data/livret_v5_3.js', 'data/catalog_v5_3.json', 'index.html'],
+          workflow_rule: 'Ne jamais réécrire tout le catalogue : fournir uniquement des patchs ciblés (script Python incrémental ou bloc exact).'
+        },
+        regles_coeur: REGLES_COEUR_SYNTHESE,
+        instance: {
+          bundle_id: state.bundleId,
+          config_index_128: computeConfigurationIndex(),
+          peuples_cercle: state.peuplesCercle,
+          topologie: state.chassis.P_Max === 5 ? 'P5_22233' : 'P4_2233',
+          chassis_actif: state.chassis,
+          axes_modifies: getModifiedAxesList().map(a => ({ axe: a.key, val: state.chassis[a.key], defaut: a.defaultVal })),
+          lisieres_actives: lisieres.map(l => `${l.p1}↔${l.p2}: ${l.tuiles.map(id => id + '_' + state.profileOverrides[id]).join(', ')}`)
+        },
+        ...(changelogPayload ? { changelog_extrait: changelogPayload } : {}),
+        tuiles_ciblees: tuilesPayload
+      };
+
+      const textToCopy = "```json\n" + JSON.stringify(payload, null, 2) + "\n```";
+
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = textToCopy;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+
+      const btn = document.getElementById('btn-copy-gemini');
+      const oldHtml = btn.innerHTML;
+      const suffix = changelogPayload && modeLabel === 'CHANGELOG_ET_INSTANCE_2N' ? `changelog + ${countProfiles} prof.` : `${countProfiles} prof.`;
+      btn.innerHTML = `<span>✓ Copié (${suffix}) !</span>`;
+      setTimeout(() => { btn.innerHTML = oldHtml; }, 2200);
+    }
+
+    // -------------------------------------------------------------------------
+    // 14. NAVIGATION ENTRE LES 4 ONGLETS & RAFRAÎCHISSEMENT GLOBAL
+    // -------------------------------------------------------------------------
+    function switchTab(tabName) {
+      state.activeTab = tabName;
+      ['livret', 'catalogue', 'changelog', 'json'].forEach(t => {
+        const view = document.getElementById(`view-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          view.classList.remove('hidden');
+          btn.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow';
+        } else {
+          view.classList.add('hidden');
+          btn.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white';
+        }
+      });
+    }
+
+    function refreshAllUI() {
+      renderConfigHeaderAndDrawer();
+      renderDidacticRulebook();
+      renderCatalogue();
+      renderChangelogView();
+      renderJsonView();
+    }
+
+    window.onload = function () {
+      refreshAllUI();
+    };
+  </script>
+</body>
+</html>

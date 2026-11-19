@@ -4,12 +4,12 @@
     "catalog_v5_3.json": {
       "sha256": "8f9ef62b478ccef35ca3b850d647d9e125b60834f1b8e1bbdcd92cc197d76c09",
       "bytes": 18691,
-      "source": "../amazonia-doc-studio/data/catalog_v5_3.json"
+      "source": "docs/data/catalog_v5_3.json"
     },
     "spec_formelle_v5_3.json": {
       "sha256": "cd264fcf967df6f9bf61a4a8ef39b64be5576be2111d73a811afd5e1753602b6",
       "bytes": 16278,
-      "source": "../amazonia-doc-studio/data/spec_formelle_v5_3.json"
+      "source": "docs/data/spec_formelle_v5_3.json"
     }
   }
 }

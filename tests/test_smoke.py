@@ -66,6 +66,11 @@ def test_portable_studio_dir_resolution(
     monkeypatch.delenv("AMAZONIA_STUDIO_DIR", raising=False)
     assert resolve_studio_dir(fake_repo) == fake_studio.resolve()
 
+    integrated_data = fake_repo / "docs" / "data"
+    integrated_data.mkdir(parents=True)
+    (integrated_data / "catalog_v5_3.json").write_text("{}", encoding="utf-8")
+    assert resolve_studio_dir(fake_repo) == (fake_repo / "docs").resolve()
+
     custom_studio = tmp_path / "custom-studio"
     custom_studio.mkdir()
     monkeypatch.setenv("AMAZONIA_STUDIO_DIR", str(custom_studio))

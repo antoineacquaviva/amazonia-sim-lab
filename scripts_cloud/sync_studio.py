@@ -21,11 +21,16 @@ LOCK_FILE = DATA_DIR / "studio_lock.json"
 
 
 def _portable_source_label(local_path: Path) -> str:
+    resolved = local_path.resolve()
     try:
-        rel_sibling = local_path.resolve().relative_to(ROOT.resolve().parent)
+        return resolved.relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        pass
+    try:
+        rel_sibling = resolved.relative_to(ROOT.resolve().parent)
         return f"../{rel_sibling.as_posix()}"
     except ValueError:
-        return local_path.as_posix()
+        return resolved.as_posix()
 
 
 def _read_source_bytes(filename: str) -> tuple[bytes, str]:

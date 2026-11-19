@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -15,9 +16,10 @@ if str(ROOT) not in sys.path:
 from scripts_cloud.studio_paths import resolve_studio_dir
 
 DATA_DIR = ROOT / "data"
+DOCS_DATA_DIR = ROOT / "docs" / "data"
 LOCK_FILE = DATA_DIR / "studio_lock.json"
-SPEC_FILE = DATA_DIR / "spec_formelle_v5_3.json"
-CATALOG_FILE = DATA_DIR / "catalog_v5_3.json"
+SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_3.json"
+CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_3.json"
 OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_3_1.json"
 OUT_MODE3 = ROOT / "engine" / "effects" / "mode3_reference.json"
 
@@ -323,11 +325,23 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _file_lock_entry(path: Path) -> dict[str, object]:
+    raw_bytes = path.read_bytes()
+    return {
+        "sha256": hashlib.sha256(raw_bytes).hexdigest(),
+        "bytes": len(raw_bytes),
+        "source": path.resolve().relative_to(ROOT.resolve()).as_posix(),
+    }
+
+
 def build_bundle() -> None:
     studio_js = _load_studio_js_objects()
-    lock_data = json.loads(LOCK_FILE.read_text(encoding="utf-8"))
     spec_data = json.loads(SPEC_FILE.read_text(encoding="utf-8"))
     catalog_meta = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
+    studio_sha256 = {
+        "catalog_v5_3.json": _file_lock_entry(CATALOG_FILE),
+        "spec_formelle_v5_3.json": _file_lock_entry(SPEC_FILE),
+    }
 
     catalogue = studio_js["CATALOGUE_TUILES"]
     for slot in catalogue.values():
@@ -337,8 +351,8 @@ def build_bundle() -> None:
     bundle = {
         "meta": {
             "schema_version": "5.3.1",
-            "source_studio_version": lock_data.get("studio_version", "v5.3"),
-            "studio_sha256": lock_data.get("files", {}),
+            "source_studio_version": "v5.3",
+            "studio_sha256": studio_sha256,
             "total_emplacements": len(catalogue),
             "total_profils": sum(len(s["profils"]) for s in catalogue.values()),
         },

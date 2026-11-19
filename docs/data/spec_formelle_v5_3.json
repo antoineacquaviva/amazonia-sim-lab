@@ -1,0 +1,143 @@
+{
+  "schema_version": "5.3.1-audit",
+  "date_consolidation": "2026-11-16",
+  "architecture_reference": {
+    "total_emplacements_synergie": 30,
+    "total_pistes_migration": 2,
+    "total_profils": 100,
+    "topologies_validees": {
+      "P3": [
+        2,
+        3,
+        3
+      ],
+      "P4_2233": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "P5_22233": [
+        2,
+        2,
+        2,
+        3,
+        3
+      ],
+      "P6": [
+        2,
+        2,
+        2,
+        3,
+        3,
+        3
+      ]
+    },
+    "reserves_materiel": "illimitees (jetons et cartes Sabotage identiques)",
+    "plafond_repousse_parcelle": "dotation_initiale_arbres"
+  },
+  "principes_transverses": {
+    "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve, Nid) et chaque piste de Migration est gouvernée exclusivement par le joueur de son Peuple d'origine (champ peuple_origine). Zéro vote de groupe.",
+    "communication_muette": "Silence tactique complet tant que les paravents sont fermés (aucun échange verbal ou gestuel sur les coups, cartes ou dés). Sous Le Cri d'Alarme de l'Ara (ouverture anticipée), visibilité publique des cartes et dés mais pose individuelle sans concertation orale.",
+    "pont_routier_routes_forestieres": "Le long d'un rayon de Forêt, toute Route Forestière est systématiquement sautée : viser devant, avancer, reculer, glisser un Piège ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Latéralement (Forêt <-> Furtivité), une Route Forestière est infranchissable et inoccupable.",
+    "suppression_dette_et_verrouillage": "Zéro Insecte engagé et zéro verrouillage des parcelles ciblées. Les Insectes requis lors d’une parade classique sont défaussés immédiatement à la frappe. Tant qu'un Insecte est sur le plateau, il est libre. Seul un Piège ayant déjà paré au moins une frappe ce tour-ci ne peut plus payer un coût volontaire avant son retrait de fin d'attaques.",
+    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Dès qu'un Gardien s'ouvre, il reçoit immédiatement son marqueur 'utilisé' avant application de son texte. Balayage à plat dans l'ordre croissant des cases 1 à 6, répété tant qu'une case allumée porte un Gardien non utilisé."
+  },
+  "etapes_tour": [
+    {
+      "numero": 1,
+      "code": "PREPARATION_POSE_FURTIVITE",
+      "nom": "Distribution, Dés secrets et Pose des Défenseurs",
+      "regles": [
+        "Machines en Siège : toute machine déjà située sur la dernière parcelle non rasée de son rayon est en Siège T4 irréversible (carte posée sur sa parcelle). Son attaque en fin d’Étape 5 est autonome même si la tuile T4 a été éjectée par un Rêve ; en 6.1, elle alimente la tuile T4 en jetons d’Apprentissage si et seulement si T4 est encore présente sur la piste.",
+        "Chaque joueur hors pénurie pioche secrètement 1 carte du paquet Machine (incluant toutes les cartes Sabotage intégrées définitivement). Une carte Sabotage tirée n’active aucune machine (action du Contremaître perdue). S’il reste moins de cartes que de joueurs, distribution dans le sens horaire à partir du peuple ayant le plus d’Arbres debout.",
+        "Sous paravent fermé (silence complet) : chaque joueur ayant reçu une carte Machine lance ses 2D6 et retient M = min(D1, D2) (modifié par les éventuelles Lois actives), qui désigne le rang sur la Piste des Tactiques. Si ce rang contient une tuile Rêve, l’activation de cette machine sera annulée en 3.2.",
+        "Piste de Furtivité à 4 emplacements par case (2 jumeaux rive J1, 2 jumeaux rive J2 ; max 2 Défenseurs par case). Lorsqu'un Défenseur ENTRE sur une case de Furtivité (1er Défenseur, 2e en réflexion ou 2e posé directement en choix définitif), on le pose sur l'un des 4 emplacements valides et l'éventuel autre Défenseur présent glisse aussitôt sur l'emplacement jumeau du même bord (orientant l'unique action du binôme). Retourner sur place un jeton de sa face réflexion à sa face choix définitif se fait strictement sur son emplacement actuel, sans déplacement ni tirage."
+      ]
+    },
+    {
+      "numero": 2,
+      "code": "REVELATION_DES_REVES_FURTIVITE",
+      "nom": "Ouverture des Paravents, Rêves, Dés et Furtivité",
+      "regles": [
+        "Ouverture simultanée des paravents et fin du silence tactique. Toute carte Sabotage révélée n’a aucun autre effet que d’avoir fait perdre une activation au Contremaître : elle est mise de côté pour être remélangée dans le paquet Machine en fin de tour.",
+        "Résolution des Rêves : tout dé M désignant le rang d’un Rêve annule sa machine, ouvre ce Rêve et le fait avancer d’1 cran vers la gauche (max 1 ouverture par Rêve et par tour en châssis standard UNIQUE_PAR_TOUR, résolue de gauche à droite).",
+        "Chaque binôme complet sur une case de Furtivité déclenche 1 seule action, gouvernée par le joueur de la rive où se trouvent les 2 emplacements jumeaux occupés."
+      ]
+    },
+    {
+      "numero": 3,
+      "code": "CONSTRUCTION_SYNERGIES",
+      "nom": "Construction obligatoire des Tuiles de Synergie",
+      "regles": [
+        "Toute tuile réunissant ses 2 constructeurs (ou 1 Défenseur + 1 Insecte avec La Brèche du Tamanoir) est obligatoirement construite.",
+        "Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
+        "Rêve : la Tactique la plus à droite sur la piste est définitivement éjectée ; seules les tuiles situées à droite de ce trou glissent d'un cran vers la gauche ; le nouveau Rêve prend place en case 6 (les Insectes Bug restent sur leur numéro d'emplacement imprimé).",
+        "Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents."
+      ]
+    },
+    {
+      "numero": 4,
+      "code": "NIDS_ET_MIGRATION",
+      "nom": "Production des Nids et Migration des Insectes",
+      "regles": [
+        "Chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (y compris pour l'activation autonome des Guêpes Cazadores), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens. Une production hors phase (Le Miel des Ancêtres) ne crée que les jetons Insecte sans déclencher le pouvoir propre du Nid.",
+        "Migration : chaque Insecte sur la roue peut se déplacer de 0 ou 1 cran (jusqu'à 2 avec L'Envol du Batará Suiveur), même s'il a bougé lors de la production d'un Nid. On retourne chaque jeton déplacé sur sa face verso pour suivi, puis on remet tous les jetons à l'endroit en fin de Migration avant d'évaluer la Colonisation.",
+        "Depuis la dernière parcelle non rasée d'un rayon, 1 cran permet d'entrer sur n'importe quelle case 1..6 d'une piste globale (Bug du Cerveau ou Colonisation des Gardiens), sans limite de jetons par case. Cet aller simple est définitif."
+      ]
+    },
+    {
+      "numero": 5,
+      "code": "ATTAQUES_ET_TEST_FIN",
+      "nom": "Attaques des Machines et Vérification de Fin de Partie",
+      "regles": [
+        "Ordre des machines : Piste des Tactiques de 1 à 6, puis machines en Siège. Sur un même rayon au même rang (ou en Siège), l'Abatteuse agit toujours avant le Bulldozer ; entre rayons distincts au même rang, ordre libre entre les joueurs concernés.",
+        "Chaque machine est résolue d'un seul tenant : lecture dynamique de ses cibles depuis sa position physique réelle à cet instant (en sautant toute Route Forestière) -> frappes -> avancée éventuelle -> gain éventuel de jeton rouge.",
+        "Chaîne stricte des parades à chaque frappe : (1) Bond du Jaguar (Loi auto : 2 jetons bleus défaussés -> toutes frappes restantes de la machine parées + recul) -> (2) Piquée de la Harpie -> (3) Piège (Embuscade auto si Défense totale >= 1, locale ou soutenue à distance ; le Piège est marqué comme ayant servi) -> (4) Parade classique (Défenseurs + défausse immédiate des Insectes manquants).",
+        "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
+        "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du statut de Siège ; retrait définitif de la partie si tout le rayon est rasé).",
+        "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
+        "Vérification de fin de partie : fin du Tour 8, Rêve en case 1, ou seuil fixe de Réveil atteint sur la Piste des Gardiens (seuil calculé une fois pour toutes à la mise en place : inactif si moins de 3 Gardiens dans la partie, sinon min(nb_joueurs, total_gardiens_partie) avec minimum 3 et plafond 5 à 6 joueurs ; tout Gardien renvoyé en lisière perd son marqueur). Si atteint : saut de l'Apprentissage et passage direct à la Repousse Finale."
+      ]
+    },
+    {
+      "numero": 6,
+      "code": "APPRENTISSAGE_ET_MENAGE",
+      "nom": "Apprentissage du Contremaître et Ménage de fin de tour",
+      "regles": [
+        "Calcul par machine active ce tour-ci (activée par carte OU en Siège T4) pour sa Tactique (T4 pour un Siège ; sans effet si T4 a été éjectée de la piste) : +1 par parcelle réellement endommagée (>= 1 Arbre coupé ou >= 1 Souche retirée) +1 par jeton Puissance rouge acquis ce tour -1 par jeton bleu Surchauffe présent sur la machine (plancher 0 par machine).",
+        "Gain par machine : +1 par parcelle réellement endommagée (au moins 1 Arbre coupé ou 1 Souche retirée par cette machine), +1 par jeton rouge acquis en fin d'attaque, -1 par jeton bleu présent sur la machine.",
+        "Réductions : application des retraits volontaires de tuiles (Voile de l'Oubli, Brume de la Dendrobate) AVANT les Insectes Bug du Cerveau (un Bug sur une case déjà à 0 jeton n'est pas défaussé et reste en place).",
+        "Avancement : la Tactique strictement seule en tête avec au moins 1 jeton échange sa place avec sa voisine de gauche (y compris un Rêve, qui recule d'un cran à droite ; immobile si déjà en case 1). En cas d'égalité avec L'Écho des Voix Célestes amenant son Rêve en case 1, la fin de partie se déclenche immédiatement à la fin de ce tour (Repousse Finale).",
+        "Ménage systématique : remise en réserve de 100 % des jetons d’Apprentissage de toutes les tuiles dans tous les cas, retrait des marqueurs 'utilisé' des Gardiens, retour en main des Défenseurs, et remélange du paquet Machine (hors machines en Siège) avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises ce tour)."
+      ]
+    }
+  ],
+  "arbitrages_valides": {
+    "A01": "Lecture épurée des dés sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Si le rang M porte un Rêve en 3.2, la machine est annulée et le Rêve s’ouvre.",
+    "A02": "Rêve sur dé Machine : annule l'activation de la machine et peut ouvrir ce Rêve (max 1 ouverture par Rêve et par tour).",
+    "A03": "Furtivité à 4 emplacements (2 jumeaux/rive) : entrer sur la case tire l'autre jeton sur le jumeau et oriente l'action unique ; retourner en choix définitif se fait sur place sans déplacement.",
+    "A04": "Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d'origine.",
+    "A05": "Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés.",
+    "A06": "Armement des Pièges : Embuscade dès que Défense totale >= 1 (locale ou à distance) ; tout Piège ayant paré >= 1 fois dans le tour est retiré en fin d'attaques.",
+    "A07": "Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
+    "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
+    "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Siège irréversible maintenu.",
+    "A10": "Autonomie et Apprentissage du Siège : l’attaque d’une machine en Siège reste active même si la tuile T4 est éjectée ; en 6.1, une machine en Siège génère normalement ses jetons d’Apprentissage sur T4 tant que T4 figure sur la Piste des Tactiques (ignorés si T4 est éjectée).",
+    "A11": "Insertion d'un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases.",
+    "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
+    "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
+    "A14": "Seuil de Réveil fixe : calculé à la mise en place (inactif si < 3 Gardiens en jeu) ; retour en lisière efface le marqueur.",
+    "A15": "Test de fin de partie : maintenu en fin d'attaques (saut Apprentissage), avec déclenchement en fin d'Apprentissage si L'Écho des Voix Célestes amène son Rêve en case 1.",
+    "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
+    "A17": "Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
+    "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
+    "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
+    "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
+    "A21": "Anti-blocage et Nids : pose interdite sur case morte/tuile inconstructible ; 1 seul Nid par parcelle sans machine ; choix du bâtisseur libéré par Peuple d'origine.",
+    "A22": "Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l'Ara.",
+    "A23": "Apprentissage : dommage réel requis (>= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d'étape.",
+    "A24": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
+    "A25": "Séquence des attaques : Tactiques 1..6 puis Sièges ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
+  }
+}

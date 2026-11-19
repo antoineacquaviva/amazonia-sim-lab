@@ -8,9 +8,9 @@ description: >-
 
 # Skill `sync-evolution` — Mise à Jour depuis *Amazonia Doc Studio*
 
-## 1. Synchronisation Portable du Contrat Studio
-1. Exécuter `uv run python scripts_cloud/sync_studio.py` (qui détecte automatiquement `../amazonia-doc-studio`, `AMAZONIA_STUDIO_DIR`, `~/dev/amazonia-doc-studio` ou GitHub en secours, et met à jour `data/studio_lock.json`).
-2. Régénérer le bundle consolidé via `uv run python scripts_cloud/build_spec_bundle.py` (`data/spec_bundle_v5_3_1.json` et `engine/effects/mode3_reference.json`).
+## 1. Synchronisation Locale du Contrat Studio (`docs/data/`)
+1. Exécuter `uv run python scripts_cloud/sync_studio.py` (lit directement `docs/data/catalog_v5_3.json` et `docs/data/spec_formelle_v5_3.json` en local, et met à jour `data/studio_lock.json`).
+2. Régénérer le bundle consolidé via `uv run python scripts_cloud/build_spec_bundle.py` (`data/spec_bundle_v5_3_1.json` et `engine/effects/mode3_reference.json` depuis `docs/data/`).
 
 ---
 
@@ -29,5 +29,5 @@ description: >-
 ---
 
 ## 4. Validation & Journal
-1. Exécuter `uv run python verify_lot.py` jusqu'à obtenir **100 % vert (`7/7` portes)**.
+1. Exécuter `uv run python verify_lot.py` jusqu'à obtenir **100 % vert (`8/8` portes)**.
 2. Consigner la synchronisation en une ligne dans `STATUS.md`.

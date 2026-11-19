@@ -15,3 +15,10 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.ruff]
+extend-exclude = ["docs/scripts"]
+
+[tool.pyright]
+exclude = ["docs/scripts", ".venv", ".tmp_runs", "**/__pycache__"]
+

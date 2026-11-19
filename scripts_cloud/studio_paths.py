@@ -14,17 +14,22 @@ __all__ = (
 
 
 def resolve_studio_dir(repo_root: Path) -> Path:
-    """Localise le dépôt frère `amazonia-doc-studio` de façon portable Windows / Ubuntu.
+    """Localise Amazonia Doc Studio de façon portable Windows / Ubuntu.
 
     Ordre de priorité :
     1. Variable d'environnement `AMAZONIA_STUDIO_DIR` (si définie) ;
-    2. `../amazonia-doc-studio` à côté de ce dépôt ;
-    3. `~/dev/amazonia-doc-studio` (convention Ubuntu) ;
-    4. `~/Dev/Jeu/amazonia-doc-studio` (convention Windows).
+    2. `docs/` intégré directement dans ce dépôt (si `docs/data/catalog_v5_3.json` existe) ;
+    3. `../amazonia-doc-studio` à côté de ce dépôt ;
+    4. `~/dev/amazonia-doc-studio` (convention Ubuntu) ;
+    5. `~/Dev/Jeu/amazonia-doc-studio` (convention Windows).
     """
     env_override = os.environ.get("AMAZONIA_STUDIO_DIR", "").strip()
     if env_override:
         return Path(env_override).expanduser().resolve()
+
+    integrated_docs = repo_root.resolve() / "docs"
+    if (integrated_docs / "data" / "catalog_v5_3.json").exists():
+        return integrated_docs
 
     home = Path.home()
     candidates = (
@@ -35,7 +40,7 @@ def resolve_studio_dir(repo_root: Path) -> Path:
     for cand in candidates:
         if cand.exists():
             return cand
-    return candidates[0]
+    return integrated_docs
 
 
 def find_uv() -> str:
