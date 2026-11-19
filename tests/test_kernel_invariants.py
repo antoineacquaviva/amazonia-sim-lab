@@ -535,13 +535,13 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     assert s_reve.get_parcel_arbres(1, 1) == 2  # Plafonné à la dotation initiale !
     assert s_reve.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Piège déclenché retiré avant fin
 
-    # Sous-cas B : Réveil des Gardiens (N=4, G0 >= 3 -> seuil fixe = min(4, G0, 5))
+    # Sous-cas B : Réveil de la Forêt (N=4, >= 1 Animal Sauvage -> Gardien engagé + 0 dommage réel)
     cfg_gard = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=1415)
     s_gard = GameState(cfg_gard)
-    assert s_gard.seuil_reveil == 4
+    assert cfg_gard.reveil_quota == 4
     s_gard.tour = 4
-    for c in range(1, 5):
-        s_gard.set_gardien_at_case(c, c, face=1, used=True)
+    s_gard.reveil_engaged_gardien = 1
+    s_gard.real_damage_this_turn = False
     s_gard.step = STEP_5_3_END_CHECK
 
     res_b = step_until_decision(s_gard)

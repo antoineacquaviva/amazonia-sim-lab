@@ -18,18 +18,18 @@ const REGLES_COEUR_SYNTHESE = {
     "P5_22233": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 2, 3, 3] (12xN arbres).",
     "P5_22223": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 2, 2, 3] (11xN arbres).",
     "P5_12223": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [1, 2, 2, 2, 3] (10xN arbres).",
-    "seuil_reveil_fixe": "Calculé une fois pour toutes à la mise en place : inactif si < 3 Gardiens dans la partie ; sinon min(N, gardiensEnJeu) avec plafond 5 à 6 joueurs (minimum 3). Un Gardien renvoyé en lisière perd son marqueur."
+    "reveil_de_la_foret": "Actif uniquement si >= 1 Peuple Animal Sauvage (M, R ou O) est autour de la table. Tout Gardien ouvert sur sa Face 1 passe physiquement en Face 2 (« Éveillé », éligible au Réveil dès le tour suivant ; G14:C éligible sur Face 2 Rassasié). En 2.2 (2e Défenseur), engagement collectif au quota Q (défaut N) sur 1 Gardien Face 2 : tuile retirée de la piste (pouvoir/Loi inactifs ce tour, case libre dès 3.1). En 5.3, déclenchement immédiat du Réveil si 0 dommage réel subi ce tour ; sinon sort du Gardien résolu en 6.3 (retour lisière Face 1 ou retrait définitif)."
   },
   "sequence_tour_6_etapes": {
     "1_ratissage_et_plan": "Machines sur la dernière parcelle non rasée = Ratissage irréversible (attaque autonome même si la tuile T1 a été éjectée). Distribution 1 carte/joueur depuis le paquet Machine (incluant les cartes Sabotage déjà intégrées ; si moins de cartes que de joueurs : sens horaire depuis le Peuple ayant le plus d'Arbres debout). Sous paravent : si carte Sabotage (ou sans carte), aucune machine activée et pas de dé M retenu ; si carte Machine, lancer 2D6 et retenir M = min(D1,D2) (modifié par Lois) qui désigne le rang sur la Piste Tactiques (si rang M = Rêve, activation machine annulée en 3.2).",
-    "2_defenseurs_et_furtivite_4_slots": "Anti-blocage : pose interdite sur Route Forestière, tuile construite/pleine/inconstructible, ou rive Furtivité bordant une Route (si parcelle requise). 1er Défenseur irrévocable sur sa Forêt ou ses 2 lisières ; puis 2e Défenseur global (réflexion -> définitif). Case Furtivité = 4 emplacements (2 jumeaux rive J1, 2 jumeaux rive J2 ; max 2 Défenseurs). ENTRER sur la case (toute face) tire l'éventuel autre Défenseur sur l'emplacement jumeau du même bord ; RETOURNER de réflexion à définitif se fait strictement sur place sans déplacement.",
+    "2_defenseurs_et_furtivite_4_slots": "Anti-blocage : pose interdite sur Route Forestière, tuile construite/pleine/inconstructible, ou rive Furtivité bordant une Route (si parcelle requise). 1er Défenseur irrévocable sur sa Forêt ou ses 2 lisières ; puis 2e Défenseur global (réflexion -> définitif), pouvant aussi cibler 1 Gardien Face 2 pour le Réveil de la Forêt (si >= 1 Animal Sauvage M/R/O ; max 1 Gardien engagé/tour : si le quota Q est atteint en choix définitif, le Gardien est retiré de la piste et sa case 1..6 est immédiatement libre pour 3.1 ; sinon les Défenseurs orphelins restent sans effet). Case Furtivité = 4 emplacements (2 jumeaux rive J1, 2 jumeaux rive J2 ; max 2 Défenseurs). ENTRER sur la case (toute face) tire l'éventuel autre Défenseur sur l'emplacement jumeau du même bord ; RETOURNER de réflexion à définitif se fait strictement sur place sans déplacement.",
     "3_1_construction": "Construction obligatoire dès 2 constructeurs (ou 1 Déf + 1 Insecte avec Tamanoir). Gardien -> case libre 1..6. Rêve -> éjecte la Tactique la plus à droite, seules les tuiles à droite du trou glissent d'1 cran à gauche, pose en case 6 (Bugs fixes sur numéros). Libération d'1 bâtisseur sur 2 (N=3 ou Danse) choisie par Peuple d'origine ; si 2 libérés (N=3 + Danse), chacun choisit sa rive (limité aux Défenseurs réels). Nid -> parcelle non rasée sans machine ni autre Nid (max 1 Nid/parcelle), suivi par ses Défenseurs constructeurs.",
     "3_2_revelation_et_sabotages": "Ouverture simultanée des paravents ; fin du silence. Toute carte Sabotage révélée est simplement mise de côté (action du Contremaître perdue ce tour) pour être remélangée dans le paquet en 6.3. Dé M désignant un Rêve : annule la machine, ouvre le Rêve et l'avance r -> r-1 (max 1 ouverture/Rêve/tour en standard, ou cumulatif selon axe).",
     "4_1_furtivite": "Par binôme complet sur une case Furtivité (2 Défenseurs sur la même rive, ou 1 Déf + 1 Insecte défaussé) : 1 seule action gouvernée par le joueur de cette rive sur la parcelle Forêt non rasée de son bord — Piège si 0 machine présente (Déclencheur 2) OU Sabotage si >=1 machine présente et aucune active ce tour (Ratissage = active) : prenez 1 carte Sabotage de la réserve et mettez-la de côté pour l'intégrer définitivement au paquet Machine en 6.3 (allume Déclencheur 3).",
-    "4_2_nids": "Chaque Nid avec >=1 Défenseur est un bloc indivisible : (1) +1 Insecte (si 0-1 présent à cet instant) ou +2 (si >=2 présents à cet instant, y compris Cazadores), puis (2) pouvoir propre du Nid, puis (3) balayage Gardiens 1..6 (Déclencheur 6). Miel des Ancêtres hors phase = jetons Insecte seuls.",
+    "4_2_nids": "Chaque Nid avec >=1 Défenseur est un bloc indivisible : (1) +1 Insecte (si 0-1 présent à cet instant) ou +2 (si >=2 présents à cet instant, y compris Cazadores), puis (2) pouvoir propre du Nid, puis seulement (3) balayage Gardiens 1..6 (Déclencheur 6). Miel des Ancêtres hors phase = jetons Insecte seuls.",
     "4_3_migration": "Chaque Insecte sur la roue peut bouger de 0 ou 1 cran (retourner le pion déplacé pour suivi, remettre à l'endroit en fin de 4.3). Depuis la dernière parcelle non rasée, aller simple définitif sans limite vers une case 1..6 de Bug du Cerveau ou Colonisation des Gardiens.",
-    "5_attaques_sans_verrouillage": "Zéro dette d'Insectes et zéro verrouillage des parcelles (seul un Piège déjà déclenché ce tour ne peut plus payer de coût volontaire). Ordre : Tactiques 1..6 puis Ratissages (Abatteuse avant Bulldozer sur un même rayon ; libre entre rayons distincts). Chaque machine résolue d'un seul tenant : cibles lues depuis sa position réelle à l'instant de l'attaque -> chaîne parades [1° Jaguar (2 bleus) -> 2° Harpie -> 3° Piège si Déf totale >= 1 -> 4° Parade classique avec défausse immédiate des Insectes manquants] -> dégâts (Abatteuse 2 Arbres ; Bulldozer 1 Arbre + toutes Souches, si 0/0 Route Forestière et repli machines vers bordure par défaut) -> avancée T3/T6 -> +1 Rouge T4/T5/T6 -> Ratissage définitif si dernière parcelle (face Ratissage : +1 puissance imprimée + T1 Sur place). Contact Machine-Nid (tout mouvement entrant) : Nid renvoyé en lisière reconstructible + tous Insectes de la parcelle défaussés. Fin 5.4 : effets fin d'attaques, retrait Pièges déclenchés, puis test Fin de Partie (Tour 8, Sommeil (toutes les tuiles Rêves en jeu en bloc à gauche), ou marqueurs Gardiens >= seuil fixe -> Repousse Finale directe sans Étape 6).",
-    "6_apprentissage": "6.1 Toute machine active ce tour-ci (activée par carte OU en Ratissage) rapporte à sa Tactique (T1 pour un Ratissage, uniquement si T1 est encore sur la piste) : +1/parcelle réellement endommagée (>=1 Arbre coupé ou Souche retirée) +1/Rouge acquis ce tour -1/Bleu présent (plancher 0/machine). Retraits tuiles volontaires AVANT Insectes Bug (Bug économisé si déjà 0). 6.2 Tactique strictement seule en tête avec >=1 jeton échange à gauche (si Écho des Voix Célestes complète le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k) -> Repousse Finale fin de tour). Remise à zéro de 100 % des jetons Apprentissage dans tous les cas. 6.3 Raz marqueurs Gardiens, retour Défenseurs, et remélange du paquet Machine (hors Ratissage) avec TOUTES les cartes Sabotage (révélées ce tour + nouvellement acquises)."
+    "5_attaques_sans_verrouillage": "Zéro dette d'Insectes et zéro verrouillage des parcelles (seul un Piège déjà déclenché ce tour ne peut plus payer de coût volontaire). Ordre : Tactiques 1..6 puis Ratissages (Abatteuse avant Bulldozer sur un même rayon ; libre entre rayons distincts). Chaque machine résolue d'un seul tenant : cibles lues depuis sa position réelle à l'instant de l'attaque -> chaîne parades [1° Jaguar (2 bleus) -> 2° Harpie -> 3° Piège si Déf totale >= 1 -> 4° Parade classique avec défausse immédiate des Insectes manquants] -> dégâts (Abatteuse 2 Arbres ; Bulldozer 1 Arbre + toutes Souches, si 0/0 Route Forestière et repli machines vers bordure par défaut) -> avancée T3/T6 -> +1 Rouge T4/T5/T6 -> Ratissage définitif si dernière parcelle (face Ratissage : +1 puissance imprimée + T1 Sur place). Contact Machine-Nid (tout mouvement entrant) : Nid renvoyé en lisière reconstructible + tous Insectes de la parcelle défaussés. Fin 5.3 : effets fin d'attaques, retrait Pièges déclenchés, puis test Fin de Partie (Tour 8, Sommeil (toutes les tuiles Rêves en jeu en bloc à gauche), ou Réveil de la Forêt (Gardien Face 2 engagé au quota Q en 2.2 et 0 dommage réel subi ce tour) -> Repousse Finale directe sans Étape 6).",
+    "6_apprentissage": "6.1 Toute machine active ce tour-ci (activée par carte OU en Ratissage) rapporte à sa Tactique (T1 pour un Ratissage, uniquement si T1 est encore sur la piste) : +1/parcelle réellement endommagée (>=1 Arbre coupé ou Souche retirée) +1/Rouge acquis ce tour -1/Bleu présent (plancher 0/machine). Retraits tuiles volontaires AVANT Insectes Bug (Bug économisé si déjà 0). 6.2 Tactique strictement seule en tête avec >=1 jeton échange à gauche (si Écho des Voix Célestes complète le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k) -> Repousse Finale fin de tour). Remise à zéro de 100 % des jetons Apprentissage dans tous les cas. 6.3 Raz marqueurs Gardiens, retour Défenseurs, résolution du sort d'un éventuel Gardien engagé pour un Réveil échoué (retour lisière Face 1 ou retrait définitif), et remélange du paquet Machine (hors Ratissage) avec TOUTES les cartes Sabotage (révélées ce tour + nouvellement acquises)."
   },
   "supports_et_grammaire": {
     "declencheurs_gardiens_6": "1: Parade, 2: Piégeage, 3: Sabotage, 4: Gardien (Résonance), 5: Rêve, 6: Insecte.",
@@ -57,9 +57,8 @@ function renderDidacticRulebook() {
   const configNum = computeConfigurationIndex();
   const totalConfigs = CHASSIS_AXES_SPEC.reduce((acc, ax) => acc * ax.options.length, 1);
 
-  const gardiensDispoCount = activeTileIds.filter(id => CATALOGUE_TUILES[id].famille === 'GARDIEN').length;
-  const reveilActif = gardiensDispoCount >= 3;
-  const seuilReveil = reveilActif ? Math.min(n === 6 ? 5 : n, gardiensDispoCount) : null;
+  const nbAnimauxSauvages = state.peuplesCercle.filter(p => p === 'M' || p === 'R' || p === 'O').length;
+  const reveilActif = nbAnimauxSauvages >= 1;
   const nbPeuplesOniriques = state.peuplesCercle.filter(p => p === "H" || p === "E").length;
   const nbRevesEnJeu = 2 * nbPeuplesOniriques;
   const hasR6C = activeTileIds.includes('R6') && state.profileOverrides['R6'] === 'C';
@@ -71,7 +70,7 @@ function renderDidacticRulebook() {
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div class="text-xs font-mono uppercase tracking-widest text-forest-700 font-bold mb-1">
-            Livret de Règles Didactique Instancié · Socle Consolidé v5.4 (25 Arbitrages)
+            Livret de Règles Didactique Instancié · Socle Consolidé v5.4.1 (25 Arbitrages)
           </div>
           <h1 class="text-3xl sm:text-4xl font-bold text-forest-950 tracking-tight">
             AMAZONIA : DERNIER REMPART
@@ -81,7 +80,7 @@ function renderDidacticRulebook() {
           </p>
         </div>
         <div class="bg-forest-50 border border-forest-200 rounded-xl p-3 text-xs font-mono text-forest-900">
-          <div><strong>Version :</strong> v5.4 (Audit consolidé)</div>
+          <div><strong>Version :</strong> v5.4.1 (Réveil de la Forêt)</div>
           <div><strong>Châssis :</strong> #${configNum} / ${totalConfigs}</div>
           <div><strong>Bundle :</strong> ${state.bundleId}</div>
           <div><strong>Pièges :</strong> Embuscade (Déf ≥ 1)</div>
@@ -94,7 +93,7 @@ function renderDidacticRulebook() {
           <ul class="space-y-1 text-slate-600">
             <li>• <strong>Table (${n} Peuples) :</strong> ${state.peuplesCercle.map(p => `${PEUPLES[p].icon} ${PEUPLES[p].nom} (${p})`).join(' → ')}</li>
             <li>• <strong>Forêt & Seuils Imprimés :</strong> <span class="dyn-span">${c.Profil_Piste} (${pMax} parcelles : ${topoSpec.dotation.join("-")}) = ${totalArbres} Arbres debout</span></li>
-            <li>• <strong>Seuil fixe de Réveil :</strong> <span class="dyn-span">${reveilActif ? `${seuilReveil} Gardiens marqués « utilisé » (${gardiensDispoCount} Gardiens en lisière)` : `Inactif (${gardiensDispoCount} Gardien(s) < 3 minimum)`}</span></li>
+            <li>• <strong>Réveil de la Forêt :</strong> <span class="dyn-span">${reveilActif ? `Actif (${nbAnimauxSauvages} Peuple(s) Animal Sauvage M/R/O · quota Q = ${n} 2es Défenseurs en 2.2 sur 1 Gardien Face 2)` : `Inactif (aucun Peuple Animal Sauvage M/R/O autour de la table)`}</span></li>
             <li>• <strong>Écarts aux 7 axes standard :</strong> ${modifiedAxes.length === 0 ? '<span class="text-emerald-700 font-semibold">Aucun (Châssis Standard v5.4)</span>' : modifiedAxes.map(a => `<span class="px-1.5 py-0.5 bg-amber-100 text-amber-900 rounded font-mono">${a.key}=${c[a.key]}</span>`).join(' ')}</li>
           </ul>
         </div>
@@ -126,11 +125,11 @@ function renderDidacticRulebook() {
           Un But Unique : Arrêter le Chantier et Sauver les Arbres
         </h3>
         <p class="text-sm text-slate-700 mb-2">
-          L'objectif de l'équipe est de <strong>maximiser le nombre total d'Arbres debout après la Repousse Finale</strong> (sur <span class="dyn-span">${totalArbres} Arbres initiaux</span>). La <strong>vérification de fin de partie a lieu à la fin des attaques (fin de 5.4)</strong> : si l'une des conditions ci-dessous est remplie, sautez l'Étape 6 et passez directement à la Repousse Finale <em>(exception unique : si L'Écho des Voix Célestes complète le bloc de tous les Rêves en tête en fin d'Apprentissage 6.2, la Repousse Finale se déclenche aussitôt à la fin de ce tour)</em> :
+          L'objectif de l'équipe est de <strong>maximiser le nombre total d'Arbres debout après la Repousse Finale</strong> (sur <span class="dyn-span">${totalArbres} Arbres initiaux</span>). La <strong>vérification de fin de partie a lieu à la fin des attaques (fin de 5.3)</strong> : si l'une des conditions ci-dessous est remplie, sautez l'Étape 6 et passez directement à la Repousse Finale <em>(exception unique : si L'Écho des Voix Célestes complète le bloc de tous les Rêves en tête en fin d'Apprentissage 6.2, la Repousse Finale se déclenche aussitôt à la fin de ce tour)</em> :
         </p>
         <ol class="list-decimal list-inside text-sm space-y-1 text-slate-800 font-medium">
           <li><strong>Fin du contrat :</strong> À la fin des attaques du 8<sup>e</sup> tour de jeu.</li>
-          <li><strong>Réveil de la Forêt :</strong> <span class="dyn-span">${reveilActif ? `Au moins <strong>${seuilReveil} Gardiens</strong> présents sur la piste portent leur marqueur « utilisé » en fin de 5.4 <em>(seuil fixe calculé à la mise en place ; un Gardien renvoyé en lisière perd son marqueur)</em>.` : `<em>Condition inactive dans cette partie (moins de 3 tuiles Gardien autour de la table).</em>`}</span></li>
+          <li><strong>Réveil de la Forêt :</strong> <span class="dyn-span">${reveilActif ? `Un <strong>Gardien Face 2 (« Éveillé »)</strong> a été engagé pour le Réveil en fin d'Étape 2.2 (quota de <strong>${n} Deuxièmes Défenseurs</strong> en choix définitif) <strong>ET aucun dommage réel</strong> n'a été infligé par les machines ce tour-ci (aucun Arbre coupé ni Souche retirée) en fin de 5.3.` : `<em>Condition inactive dans cette partie (aucun Peuple Animal Sauvage M/R/O autour de la table).</em>`}</span></li>
           <li><strong>Sommeil du Contremaître :</strong> <span class="dyn-span">${nbRevesEnJeu > 0 ? `Toutes les <strong>${nbRevesEnJeu} tuiles Rêve</strong> en jeu <em>(2 par peuple onirique à la table)</em> occupent en bloc les <strong>${nbRevesEnJeu} premières positions</strong> (Rangs 1 à ${nbRevesEnJeu}, tout à gauche) de la Piste des Tactiques.` : `<em>Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table).</em>`}</span></li>
         </ol>
       </div>
@@ -286,7 +285,7 @@ function renderDidacticRulebook() {
             <strong>1<sup>er</sup> Défenseur (Ancrage local irrévocable) :</strong> Chacun pose son Premier Défenseur sur sa propre piste Forêt (parcelle non rasée) ou sur l'une de ses deux lisières adjacentes (case Furtivité ou Tuile constructible).
           </li>
           <li>
-            <strong>2<sup>e</sup> Défenseur (Portée globale) :</strong> Une fois tous les Premiers Défenseurs posés, chacun pose son Deuxième Défenseur partout sur le plateau (face <em>« en réflexion »</em> déplaçable d'une case à une autre, ou directement face <em>« définitive »</em>). Le passage se clôt quand tous sont sur leur face <em>« définitive »</em>.
+            <strong>2<sup>e</sup> Défenseur (Portée globale & Réveil de la Forêt) :</strong> Une fois tous les Premiers Défenseurs posés, chacun pose son Deuxième Défenseur partout sur le plateau (face <em>« en réflexion »</em> déplaçable d'une case à une autre, ou directement face <em>« définitive »</em>). <span class="dyn-span">${reveilActif ? `Vous pouvez aussi cibler un <strong>Gardien déjà en Face 2 (« Éveillé »)</strong> sur la Piste des Gardiens pour tenter un <strong>Réveil</strong> (au maximum 1 seul Gardien engagé par tour). En fin de 2.2, une fois tous les 2<sup>es</sup> Défenseurs en choix définitif : si le quota de <strong>${n} Défenseurs</strong> est atteint sur ce Gardien, sa tuile est immédiatement retirée de la piste (mise de côté avec ses Défenseurs jusqu'en 6.3, pouvoir/Loi inactifs ce tour, case <code>1..6</code> immédiatement libre pour 3.1) ; sinon les Défenseurs orphelins restent sans effet ce tour-ci.` : ''}</span> Le passage se clôt quand tous sont sur leur face <em>« définitive »</em>.
           </li>
         </ol>
         <div class="bg-emerald-50/80 border-l-4 border-emerald-600 p-3.5 rounded-r-xl text-xs text-slate-800">
@@ -392,7 +391,7 @@ function renderDidacticRulebook() {
             <strong>6.2. Avancée & Remise à zéro totale :</strong> La Tactique <strong>strictement seule en tête avec au moins 1 jeton</strong> échange sa place avec sa voisine de gauche (<code>r → r−1</code>, y compris un Rêve qui recule alors à droite ; immobile au Rang 1). <strong>Dans 100 % des cas</strong> (avancée, égalité ou blocage), remettez en réserve <strong>tous les jetons Apprentissage de toutes les tuiles</strong>.
           </li>
           <li>
-            <strong>6.3. Ménage & Dilution permanente :</strong> Récupérez vos Défenseurs, retirez les marqueurs <em>« utilisé »</em> des Gardiens, et formez le paquet du tour suivant en remélangeant toutes les cartes Machine (hors machines en Ratissage) <strong>avec toutes les cartes Sabotage</strong> (celles révélées ou écartées ce tour-ci + toutes les nouvelles cartes Sabotage acquises ce tour-ci).
+            <strong>6.3. Ménage, Issue du Réveil échoué & Dilution permanente :</strong> Récupérez vos Défenseurs, retirez les marqueurs <em>« utilisé »</em> des Gardiens, résolvez le sort d'un éventuel Gardien engagé pour un Réveil échoué (retour en lisière d'origine Face 1 par défaut, ou retrait définitif selon la variante), et formez le paquet du tour suivant en remélangeant toutes les cartes Machine (hors machines en Ratissage) <strong>avec toutes les cartes Sabotage</strong> (celles révélées ou écartées ce tour-ci + toutes les nouvelles cartes Sabotage acquises ce tour-ci).
           </li>
         </ol>
       </div>
@@ -405,12 +404,12 @@ function renderDidacticRulebook() {
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
         <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200">
-          <h3 class="font-bold text-amber-950 text-sm mb-1.5">4.1. Piste des Gardiens (Cascades 1 → 6)</h3>
+          <h3 class="font-bold text-amber-950 text-sm mb-1.5">4.1. Piste des Gardiens (Cascades 1 → 6 & Éveil Face 2)</h3>
           <p class="text-slate-700 mb-2">
             Déclencheurs : <strong>1. Parade, 2. Piégeage, 3. Sabotage, 4. Gardien, 5. Rêve, 6. Insecte</strong> (max 1 ouverture/tour).
           </p>
           <p class="text-slate-700">
-            <strong>Balayage à plat :</strong> terminez toujours l'effet en cours, marquez le Gardien <em>« utilisé »</em> dès son ouverture, puis parcourez les cases allumées de <strong>1 à 6</strong> (répété tant qu'une case allumée porte un Gardien disponible). Seule la face visible s'applique ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.
+            <strong>Balayage à plat & Éveil universel :</strong> terminez toujours l'effet en cours, marquez le Gardien <em>« utilisé »</em> dès son ouverture, puis parcourez les cases allumées de <strong>1 à 6</strong> (répété tant qu'une case allumée porte un Gardien disponible). Tout Gardien ouvert sur sa Face 1 passe physiquement en <strong>Face 2 (« Éveillé »)</strong> et devient éligible au <strong>Réveil de la Forêt</strong> dès le tour suivant <em>(G14:C est éligible lorsqu'il est sur sa Face 2 Rassasié)</em>. Seule la face visible s'applique ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.
           </p>
         </div>
         <div class="p-4 rounded-xl bg-purple-50/70 border border-purple-200">

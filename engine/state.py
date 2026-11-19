@@ -8,6 +8,7 @@ from typing import Any, ClassVar, NamedTuple
 from engine.rng import SRC_MACHINE_SHUFFLE, SRC_TACTICS_SETUP, shuffle_deterministic
 
 __all__ = (
+    "ANIMAUX_SAUVAGES",
     "BUF_CAPACITY",
     "CARD_NONE",
     "CARD_SABOTAGE",
@@ -165,8 +166,12 @@ _FLAG_PARAVENTS_OUVERTS: int = 1 << 0
 _FLAG_STEP2_LOCKED: int = 1 << 1
 _FLAG_REPOUSSE_APPLIED: int = 1 << 2
 
-# Peuples canoniques (0..5)
+# Bit transitoire dans TRANS_STEP2_STATE (RAZ en 6.2) : au moins 1 dommage réel ce tour
+_TRANS_FLAG_REAL_DAMAGE_THIS_TURN: int = 1 << 5
+
+# Peuples canoniques (0..5) et Peuples Animaux Sauvages (condition d'activation du Réveil)
 PEUPLES_ORDER: tuple[str, ...] = ("M", "R", "O", "H", "E", "I")
+ANIMAUX_SAUVAGES: frozenset[str] = frozenset(("M", "R", "O"))
 PEUPLE_TO_ID: dict[str, int] = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}
 
 # Matrice canonique des paires adjacentes (v5.3.1)
@@ -396,7 +401,7 @@ class _Mem:
     STEP: int = _Layout.alloc(1, "STEP")
     COORDONNATEUR: int = _Layout.alloc(1, "COORDONNATEUR")
     FLAGS: int = _Layout.alloc(1, "FLAGS")
-    SEUIL_REVEIL: int = _Layout.alloc(1, "SEUIL_REVEIL")
+    REVEIL_ENGAGED_GARDIEN: int = _Layout.alloc(1, "REVEIL_ENGAGED_GARDIEN")
     TRIGGERS_LIT: int = _Layout.alloc(1, "TRIGGERS_LIT")
 
     # 2. Parcelles Forêt : MAX_N=6 * MAX_P=5 = 30 parcelles (88 octets)
@@ -492,6 +497,10 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
+    # Paramètres hors-châssis Réveil de la Forêt (v5.4.1 — préserve la bijection 384/384)
+    reveil_quota_mode: str = "N"
+    reveil_gardien_fate: str = "LISIERE_FACE_1"
+
     # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
 
@@ -501,6 +510,8 @@ class GameConfig:
     lisiere_slots: tuple[str, ...] = ()
     total_gardiens_partie: int = 0
     total_reves_partie: int = 0
+    nb_animaux_sauvages: int = 0
+    reveil_quota: int = 0
 
     def __post_init__(self) -> None:
         assert 3 <= self.n_players <= MAX_N, f"n_players invalide : {self.n_players}"
@@ -526,6 +537,12 @@ class GameConfig:
             "INDIVIDUELLE",
             "MUTUALISATION_PUISSANCE_MEME_PARCELLE",
         )
+        assert self.reveil_quota_mode in ("N", "N_MINUS_1", "2"), (
+            f"reveil_quota_mode invalide : {self.reveil_quota_mode}"
+        )
+        assert self.reveil_gardien_fate in ("LISIERE_FACE_1", "RETRAIT_DEFINITIF"), (
+            f"reveil_gardien_fate invalide : {self.reveil_gardien_fate}"
+        )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
         peuples = self.peuples if self.peuples else PEUPLES_ORDER[: self.n_players]
@@ -534,6 +551,19 @@ class GameConfig:
         for p in peuples:
             assert p in PEUPLE_TO_ID, f"Peuple inconnu : {p}"
         object.__setattr__(self, "peuples", tuple(peuples))
+
+        nb_animaux = sum(1 for p in peuples if p in ANIMAUX_SAUVAGES)
+        object.__setattr__(self, "nb_animaux_sauvages", nb_animaux)
+        if self.mode >= 2 and nb_animaux >= 1:
+            if self.reveil_quota_mode == "N":
+                q_val = self.n_players
+            elif self.reveil_quota_mode == "N_MINUS_1":
+                q_val = max(2, self.n_players - 1)
+            else:
+                q_val = 2
+        else:
+            q_val = 0
+        object.__setattr__(self, "reveil_quota", q_val)
 
         dotation = TOPOLOGIES_DOTATION[profil]
         object.__setattr__(self, "p_max", len(dotation))
@@ -574,6 +604,8 @@ class GameConfig:
         rep_id: int = 0,
         coordonnateur_initial: int = 0,
         max_revision_passes: int = 4,
+        reveil_quota_mode: str = "N",
+        reveil_gardien_fate: str = "LISIERE_FACE_1",
     ) -> GameConfig:
         """Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383."""
         assert 0 <= chassis_idx < NUM_CHASSIS
@@ -585,6 +617,8 @@ class GameConfig:
             "rep_id": rep_id,
             "coordonnateur_initial": coordonnateur_initial,
             "max_revision_passes": max_revision_passes,
+            "reveil_quota_mode": reveil_quota_mode,
+            "reveil_gardien_fate": reveil_gardien_fate,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
@@ -733,8 +767,16 @@ class PlayerObservation:
         return bool(self._snap[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
 
     @property
-    def seuil_reveil(self) -> int:
-        return self._snap[_Mem.SEUIL_REVEIL]
+    def reveil_quota(self) -> int:
+        return self._cfg.reveil_quota
+
+    @property
+    def reveil_engaged_gardien(self) -> int:
+        return self._snap[_Mem.REVEIL_ENGAGED_GARDIEN]
+
+    @property
+    def real_damage_this_turn(self) -> bool:
+        return bool(self._snap[_Mem.TRANS_STEP2_STATE] & _TRANS_FLAG_REAL_DAMAGE_THIS_TURN)
 
     @property
     def triggers_lit(self) -> int:
@@ -993,6 +1035,52 @@ class PlayerObservation:
         gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
         return (gb & 0x0F) > 0 and not (gb & 0x20)
 
+    def gardien_face_at_case(self, case_1_6: int) -> int:
+        """Retourne 0 (vide), 1 (Face 1) ou 2 (Face 2 Éveillé) sur la case `1..6`."""
+        gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
+        if (gb & 0x0F) == 0:
+            return 0
+        return 2 if (gb & 0x10) else 1
+
+    def gardien_eligible_for_reveil(self, case_1_6: int) -> bool:
+        """Retourne True si le Gardien en case `1..6` est en Face 2 et éligible au Réveil."""
+        if self._cfg.reveil_quota <= 0:
+            return False
+        gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
+        return (gb & 0x0F) > 0 and bool(gb & 0x10) and not bool(gb & 0x20)
+
+    def gardien_reveil_defenders(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actuellement engagés (réflexion ou définitif) sur la case `1..6`."""
+        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                cnt += 1
+        return cnt
+
+    def gardien_reveil_defenders_split(self, case_1_6: int) -> tuple[int, int]:
+        """Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur la case `1..6`."""
+        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+        buf = self._snap
+        def_mask = buf[_Mem.PLAYER_DEF2_DEF_MASK]
+        n_ref = 0
+        n_def = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                if def_mask & (1 << s):
+                    n_def += 1
+                else:
+                    n_ref += 1
+        return n_ref, n_def
+
+    def player_def2_reveil_case(self, seat: int) -> int:
+        """Retourne la case `1..6` ciblée en Réveil par le 2e Défenseur de `seat`, ou 0."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
+        if _LOC_GARDIEN_REVEIL_BASE <= raw < _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN:
+            return (raw - _LOC_GARDIEN_REVEIL_BASE) + 1
+        return 0
+
     def tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]:
         """Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques."""
         buf = self._snap
@@ -1003,16 +1091,18 @@ class PlayerObservation:
         )
 
 
-# --- Encodage compact des localisations de pions Défenseurs (0..162, 255) ---
+# --- Encodage compact des localisations de pions Défenseurs (0..168, 255) ---
 # 0 : en main
 # 1..30 : parcelle Forêt (1 + r * MAX_P + (p - 1))
 # 31..150 : slot jumeau Furtivité (31 + (l * MAX_P + (p - 1)) * 4 + slot_0_3)
 # 151..162 : tuile Synergie en lisière (151 + lisiere_slot_idx)
+# 163..168 : Gardien Face 2 ciblé pour le Réveil (163 + (case_1_6 - 1))
 # 255 : impasse (aucune case légale disponible ce tour, pion consommé hors plateau jusqu'en 6.2)
 _LOC_HAND: int = 0
 _LOC_FORET_BASE: int = 1
 _LOC_FURT_BASE: int = _LOC_FORET_BASE + NUM_PARCELS  # 31
 _LOC_LISIERE_BASE: int = _LOC_FURT_BASE + NUM_PARCELS * 4  # 151
+_LOC_GARDIEN_REVEIL_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
 _LOC_IMPASSE: int = 255
 
 
@@ -1065,9 +1155,7 @@ class GameState:
         self.coordonnateur = cfg.coordonnateur_initial
         self.paravents_ouverts = False
 
-        # Seuil fixe de Réveil des Gardiens (calculé une fois pour toutes à la mise en place)
-        g0 = cfg.total_gardiens_partie
-        self.seuil_reveil = min(n, g0, 5) if (cfg.mode >= 2 and g0 >= 3) else 0
+        self.reveil_engaged_gardien = 0
         self.triggers_lit = 0
 
         # Parcelles Forêt (dotation initiale d'Arbres, 0 Souche)
@@ -1203,13 +1291,13 @@ class GameState:
             self._buf[_Mem.FLAGS] &= ~_FLAG_REPOUSSE_APPLIED
 
     @property
-    def seuil_reveil(self) -> int:
-        return self._buf[_Mem.SEUIL_REVEIL]
+    def reveil_engaged_gardien(self) -> int:
+        return self._buf[_Mem.REVEIL_ENGAGED_GARDIEN]
 
-    @seuil_reveil.setter
-    def seuil_reveil(self, val: int) -> None:
-        assert 0 <= val <= 6
-        self._buf[_Mem.SEUIL_REVEIL] = val
+    @reveil_engaged_gardien.setter
+    def reveil_engaged_gardien(self, g_num: int) -> None:
+        assert 0 <= g_num <= 15
+        self._buf[_Mem.REVEIL_ENGAGED_GARDIEN] = g_num
 
     @property
     def triggers_lit(self) -> int:
@@ -1457,8 +1545,13 @@ class GameState:
             rel = raw_loc - _LOC_FURT_BASE
             cell_idx, slot_0_3 = rel // 4, rel % 4
             return ("FURTIVITE", cell_idx // MAX_P, (cell_idx % MAX_P) + 1, slot_0_3)
-        slot_idx = raw_loc - _LOC_LISIERE_BASE
-        return ("LISIERE", slot_idx, 0, 0)
+        if _LOC_LISIERE_BASE <= raw_loc < _LOC_GARDIEN_REVEIL_BASE:
+            slot_idx = raw_loc - _LOC_LISIERE_BASE
+            return ("LISIERE", slot_idx, 0, 0)
+        if _LOC_GARDIEN_REVEIL_BASE <= raw_loc < _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN:
+            case_1_6 = (raw_loc - _LOC_GARDIEN_REVEIL_BASE) + 1
+            return ("GARDIEN_REVEIL", case_1_6, 0, 0)
+        return ("IMPASSE", 0, 0, 0)
 
     def remove_player_defender(self, seat: int, def_idx: int) -> None:
         """Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main."""
@@ -1567,6 +1660,30 @@ class GameState:
         self.set_player_def_loc_raw(seat, def_idx, _LOC_LISIERE_BASE + lisiere_slot_idx)
         if def_idx == 1:
             self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
+
+    def count_reveil_defenders_at_case(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actuellement posés en Réveil sur la case `1..6`."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+        cnt = 0
+        for s in range(self.cfg.n_players):
+            if self.get_player_def_loc_raw(s, 1) == target_raw:
+                cnt += 1
+        return cnt
+
+    def place_defender_gardien_reveil(self, seat: int, case_1_6: int, face: int) -> None:
+        """Engage le 2e Défenseur de `seat` sur un Gardien Face 2 en case `1..6` pour le Réveil."""
+        assert self.cfg.mode >= 2 and self.cfg.reveil_quota > 0, "Réveil de la Forêt inactif"
+        assert 1 <= case_1_6 <= TRACK_LEN
+        assert face in (FACE_REFLEXION, FACE_DEFINITIF)
+        self.remove_player_defender(seat, 1)
+        g_num, g_face, g_used = self.get_gardien_at_case(case_1_6)
+        assert g_num > 0 and g_face == 2 and not g_used, "Gardien non éligible au Réveil"
+        assert self.count_reveil_defenders_at_case(case_1_6) < self.cfg.reveil_quota, (
+            "Quota de Réveil déjà atteint sur cette case"
+        )
+        self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1))
+        self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
     def mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None:
         """Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées."""
@@ -1922,7 +2039,20 @@ class GameState:
 
     def set_step2_pass_state(self, pass_idx: int, moved_in_pass: bool) -> None:
         assert 0 <= pass_idx <= 15
-        self._buf[_Mem.TRANS_STEP2_STATE] = pass_idx | (0x10 if moved_in_pass else 0)
+        keep_hi = self._buf[_Mem.TRANS_STEP2_STATE] & 0xE0
+        self._buf[_Mem.TRANS_STEP2_STATE] = keep_hi | pass_idx | (0x10 if moved_in_pass else 0)
+
+    @property
+    def real_damage_this_turn(self) -> bool:
+        """Bit transitoire TRANS_REAL_DAMAGE_THIS_TURN (vrai si >= 1 Arbre coupé ou Souche retirée ce tour)."""
+        return bool(self._buf[_Mem.TRANS_STEP2_STATE] & _TRANS_FLAG_REAL_DAMAGE_THIS_TURN)
+
+    @real_damage_this_turn.setter
+    def real_damage_this_turn(self, val: bool) -> None:
+        if val:
+            self._buf[_Mem.TRANS_STEP2_STATE] |= _TRANS_FLAG_REAL_DAMAGE_THIS_TURN
+        else:
+            self._buf[_Mem.TRANS_STEP2_STATE] &= ~_TRANS_FLAG_REAL_DAMAGE_THIS_TURN
 
     def get_global_mod_seuil_turn(self) -> int:
         """Modificateur global transitoire de Seuil de Parade pour le tour (-64..+63)."""

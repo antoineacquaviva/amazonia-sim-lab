@@ -266,7 +266,7 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     payload = json.loads(proc.stdout.strip().splitlines()[-1])
     assert payload["ok"] is True
     assert payload["topologies_checked"] == 6
-    assert payload["tables_checked"] == 3
+    assert payload["tables_checked"] == 4
 
 
 _NODE_COPY_DIGEST_HARNESS = r"""

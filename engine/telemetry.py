@@ -82,6 +82,8 @@ class TelemetrySummary(NamedTuple):
     total_physical_ops: int
     total_player_decisions: int
     turns_measured: int
+    reveil_attempts: int = 0
+    reveil_failures: int = 0
 
 
 @dataclass(slots=True)
@@ -102,6 +104,8 @@ class TelemetryTracker:
     mid_combat_interrupts: int = 0
     gardiens_opened_total: int = 0
     interrupt_windows_count: int = 0
+    reveil_attempts: int = 0
+    reveil_failures: int = 0
     _turn_closed: bool = False
 
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
@@ -144,6 +148,14 @@ class TelemetryTracker:
         if in_combat and opened > 0:
             self.mid_combat_interrupts += opened
 
+    def on_reveil_attempt(self, _state: GameState) -> None:
+        """Enregistre l'engagement d'un Gardien Face 2 pour le Réveil en fin d'Étape 2.2."""
+        self.reveil_attempts += 1
+
+    def on_reveil_failure(self, _state: GameState) -> None:
+        """Enregistre l'échec d'une tentative de Réveil (dommage réel subi durant le tour)."""
+        self.reveil_failures += 1
+
     def on_end_turn(self, _state: GameState, *, game_over: bool) -> None:
         """Clôture le ratio `physical_ops / max(1, decisions_joueurs)` du tour écoulé."""
         if self._turn_closed and game_over:
@@ -185,4 +197,6 @@ class TelemetryTracker:
             total_physical_ops=self.total_physical_ops,
             total_player_decisions=self.total_player_decisions,
             turns_measured=pending_turns,
+            reveil_attempts=self.reveil_attempts,
+            reveil_failures=self.reveil_failures,
         )

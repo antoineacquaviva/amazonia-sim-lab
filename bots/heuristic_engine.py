@@ -32,6 +32,7 @@ from engine.core_engine import (
 from engine.primitives import DEC_EFFET_TUILE, DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    CARD_SABOTAGE,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
     LISIERE_CONSTRUCTED,
@@ -46,12 +47,14 @@ from engine.state import (
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     SYNERGY_META,
+    TACTIQUES_SPEC,
     TRACK_LEN,
     GameConfig,
     GameState,
     PlayerObservation,
     is_reve_code,
     is_tactique_code,
+    unpack_machine_card,
 )
 
 __all__ = (
@@ -291,15 +294,15 @@ def _compute_b2_resource_and_trigger_values(
     ]
     reves_in_head = sum(1 for rk in reves_ranks if rk <= total_reves_cfg)
 
-    used_g = 0
-    avail_g = 0
+    face1_g = 0
+    face2_g = 0
     for c in range(TRACK_LEN):
         g_slot = gardiens[c]
         if g_slot.gardien_num > 0:
-            if g_slot.used_this_turn:
-                used_g += 1
+            if g_slot.face == 2:
+                face2_g += 1
             else:
-                avail_g += 1
+                face1_g += 1
 
     if total_reves_cfg > 0 and len(reves_ranks) >= total_reves_cfg:
         reve_push_mult = 1.75 if reves_in_head >= total_reves_cfg - 1 else 1.40
@@ -307,10 +310,8 @@ def _compute_b2_resource_and_trigger_values(
         reve_push_mult = 1.25
     else:
         reve_push_mult = 1.0
-    reveil_bonus = (
-        85.0
-        if (obs.seuil_reveil >= 3 and used_g + avail_g >= obs.seuil_reveil)
-        else (30.0 if obs.seuil_reveil >= 3 else 0.0)
+    reveil_awaken_bonus = (
+        65.0 if (obs.reveil_quota > 0 and face2_g == 0 and face1_g > 0) else (25.0 if obs.reveil_quota > 0 else 0.0)
     )
 
     res_val: dict[str, float] = {
@@ -335,7 +336,7 @@ def _compute_b2_resource_and_trigger_values(
         for c in range(1, TRACK_LEN + 1):
             g_slot = gardiens[c - 1]
             if g_slot.gardien_num > 0 and not g_slot.used_this_turn and g_slot.tile_id is not None:
-                v_open = 38.0 + reveil_bonus
+                v_open = 38.0 + (reveil_awaken_bonus if g_slot.face == 1 else 0.0)
                 if obs.mode >= 3:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
                     node = econ.get((g_slot.tile_id, prof or "A"))
@@ -392,7 +393,7 @@ def _score_tile_construction_b2(
         struct_v = 165.0 if tour <= 5 else 90.0
     else:
         g_on_track = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0)
-        struct_v = 145.0 if (obs.seuil_reveil >= 3 and g_on_track < obs.seuil_reveil) else 105.0
+        struct_v = 155.0 if (obs.reveil_quota > 0 and g_on_track == 0) else 105.0
 
     if obs.mode < 3:
         return struct_v
@@ -425,6 +426,149 @@ def _score_tile_construction_b2(
     if node.is_law and tour <= 5:
         econ_bonus += 35.0
     return struct_v + econ_bonus
+
+
+def _is_own_threat_covered_for_reveil(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+) -> bool:
+    """Vérifie uniquement sur `PlayerObservation` si la propre menace privée du siège est parée."""
+    if belief.drew_sabotage_or_none:
+        return True
+    hand = obs.hand_of(obs.observer_seat)
+    if not hand.has_card or hand.card is None or hand.card == CARD_SABOTAGE:
+        return True
+    if hand.lecture_m is None or hand.lecture_m < 1 or hand.lecture_m > TRACK_LEN:
+        return True
+    t_code, _, _ = obs.tactique_code_bugs_app(hand.lecture_m - 1)
+    if is_reve_code(t_code) or not is_tactique_code(t_code):
+        return True
+    m_ray, m_type = unpack_machine_card(hand.card)
+    pos, st = obs.machine_pos_status(m_ray, m_type)
+    if st == MACHINE_STATUS_RETIRED or pos <= 0:
+        return True
+    t_spec = TACTIQUES_SPEC[t_code]
+    p_max = cfg.p_max
+    eff_rouges = obs.machine_effective_rouges(m_ray, m_type)
+    m_obs = obs.machines[m_ray * 2 + m_type]
+    bleus = m_obs.bleus
+    for c_type in t_spec.cibles:
+        tp: int | None = None
+        if c_type == "SUR_PLACE":
+            if not obs.is_route(m_ray, pos):
+                tp = pos
+        elif c_type == "DEVANT":
+            for cand in range(pos + 1, p_max + 1):
+                if not obs.is_route(m_ray, cand):
+                    tp = cand
+                    break
+        if tp is None:
+            continue
+        defs = obs.parcel_defenseurs(m_ray, tp)
+        ins = obs.parcel_insectes(m_ray, tp)
+        cur_def = defs + ins
+        if obs.parcel_piege(m_ray, tp) == PIEGE_ACTIF and cur_def >= 1:
+            continue
+        seuil_est = max(
+            1,
+            cfg.dotation_arbres[tp - 1]
+            + cfg.offset_seuil_parade
+            + eff_rouges
+            - bleus
+            + t_spec.mod_seuil,
+        )
+        if cur_def < seuil_est:
+            return False
+    return True
+
+
+def _count_uncovered_public_ratissages(obs: PlayerObservation, cfg: GameConfig) -> int:
+    """Compte les machines publiques en Ratissage non encore parées sur le plateau."""
+    uncovered = 0
+    for r in range(obs.n_players):
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st = obs.machine_pos_status(r, mt)
+            if st != MACHINE_STATUS_RATISSAGE or pos <= 0 or obs.is_route(r, pos):
+                continue
+            defs = obs.parcel_defenseurs(r, pos)
+            ins = obs.parcel_insectes(r, pos)
+            cur_def = defs + ins
+            if obs.parcel_piege(r, pos) == PIEGE_ACTIF and cur_def >= 1:
+                continue
+            eff_r = obs.machine_effective_rouges(r, mt)
+            bleus = obs.machines[r * 2 + mt].bleus
+            seuil_est = max(
+                1,
+                cfg.dotation_arbres[pos - 1] + cfg.offset_seuil_parade + eff_r - bleus,
+            )
+            if cur_def < seuil_est:
+                uncovered += 1
+    return uncovered
+
+
+def _score_gardien_reveil(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+    case_c: int,
+    *,
+    is_b2: bool,
+) -> float:
+    """Évalue la cible `('GARDIEN_REVEIL', case_c)` en 2.2 (strictement sur PlayerObservation)."""
+    q = obs.reveil_quota
+    if q <= 0 or not obs.gardien_eligible_for_reveil(case_c):
+        return 0.0
+
+    own_covered = _is_own_threat_covered_for_reveil(obs, cfg, belief)
+    if not own_covered:
+        # Notre propre menace infligerait un dommage réel -> le Réveil échouerait !
+        return 35.0
+
+    uncovered_rat = _count_uncovered_public_ratissages(obs, cfg)
+    if uncovered_rat >= 2:
+        return 45.0
+
+    # Signal bayésien des alliés déjà en réflexion/définitif sur ce Gardien (en excluant soi-même)
+    total_on_case = obs.gardien_reveil_defenders(case_c)
+    own_rev_case = obs.player_def2_reveil_case(obs.observer_seat)
+    allies_on_case = max(0, total_on_case - (1 if own_rev_case == case_c else 0))
+
+    # Éviter de diviser l'équipe sur 2 Gardiens Face 2 différents : converger vers le plus peuplé
+    other_max = 0
+    for c2 in range(1, TRACK_LEN + 1):
+        if c2 != case_c and obs.gardien_eligible_for_reveil(c2):
+            cnt2 = obs.gardien_reveil_defenders(c2) - (1 if own_rev_case == c2 else 0)
+            other_max = max(other_max, cnt2)
+    if other_max > allies_on_case:
+        return 70.0
+
+    # Ratio d'Arbres actuel : plus la forêt est intacte, plus finir par Réveil est précieux !
+    total_init = max(1, obs.n_players * sum(cfg.dotation_arbres))
+    cur_arbres = sum(
+        obs.parcel_arbres(r, p)
+        for r in range(obs.n_players)
+        for p in range(1, cfg.p_max + 1)
+    )
+    tree_ratio = cur_arbres / total_init
+    rat_pen = 240.0 * uncovered_rat
+
+    if allies_on_case >= q - 1:
+        # Complétion du quota Q !
+        base = (575.0 + 230.0 * tree_ratio) if is_b2 else (535.0 + 185.0 * tree_ratio)
+        return max(40.0, base - rat_pen)
+
+    if allies_on_case >= 1:
+        # Signal bayésien fort : des alliés ont déjà signalé que leur menace est couverte
+        prog = allies_on_case / max(1, q - 1)
+        base = (410.0 + 145.0 * prog + 165.0 * tree_ratio) if is_b2 else (380.0 + 120.0 * prog + 135.0 * tree_ratio)
+        return max(40.0, base - rat_pen)
+
+    # Initiation du signal de Réveil (0 allié dessus pour l'instant)
+    if uncovered_rat == 0 and (belief.drew_sabotage_or_none or q == 2 or obs.tour >= 3):
+        base = (355.0 + 175.0 * tree_ratio) if is_b2 else (325.0 + 145.0 * tree_ratio)
+        return base
+    return 145.0
 
 
 # ---------------------------------------------------------------------------
@@ -530,6 +674,13 @@ def score_target_b1(
         else:
             base_f = 135.0
         return base_f + _b1_forgetting_penalty(obs, cfg, active_laws, 500 + l_i * 10 + p_i)
+
+    if kind == "GARDIEN_REVEIL":
+        _, case_c = target
+        c_i = int(case_c)
+        return _score_gardien_reveil(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
+            obs, cfg, active_laws, 700 + c_i
+        )
 
     return 0.0
 
@@ -658,6 +809,10 @@ def score_target_b2(
             return 320.0 + action_v * 1.15
         return 145.0 + action_v * 0.75
 
+    if kind == "GARDIEN_REVEIL":
+        _, case_c = target
+        return _score_gardien_reveil(obs, cfg, belief, int(case_c), is_b2=True)
+
     return 0.0
 
 
@@ -722,9 +877,9 @@ def _score_effect_option(
     if opt == "PASSER":
         # Pour un sacrifice (ex: G4 A), ne sacrifier que si le gain dépasse nettement la valeur de G4 en piste !
         if "SACRIFICE" in kind_hint or slot_id == "G4":
-            g_used = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0 and g.used_this_turn)
-            near_reveil = obs.seuil_reveil >= 3 and g_used >= obs.seuil_reveil - 1
-            return 520.0 if near_reveil else 240.0
+            g_f2 = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0 and g.face == 2)
+            sole_f2 = obs.reveil_quota > 0 and g_f2 == 1
+            return 380.0 if sole_f2 else 240.0
         if kind_hint == "OFFRANDE_GARDIEN_AVANCEE_REVE":
             return 180.0
         return 25.0

@@ -68,6 +68,7 @@ zéro `import random`, zéro état global mutable).
 - `STEP_6_3_END_TURN: int = 63`
 - `STEP_GAME_OVER: int = 99`
 - `PEUPLES_ORDER: tuple[str, ...] = ('M', 'R', 'O', 'H', 'E', 'I')`
+- `ANIMAUX_SAUVAGES: frozenset[str] = frozenset(('M', 'R', 'O'))`
 - `PEUPLE_TO_ID: dict[str, int] = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}`
 - `MATRICE_PAIRES: dict[str, tuple[str, str]] = ...`
 - `SYNERGY_META: dict[str, tuple[str, str, int]] = ...`
@@ -121,15 +122,19 @@ Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4).
 - `placement_initial_machines: str`
 - `role_abatteuse_fin_de_piste: str`
 - `synergie_binome_machines: str`
+- `reveil_quota_mode: str`
+- `reveil_gardien_fate: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
 - `lisiere_slots: tuple[str, ...]`
 - `total_gardiens_partie: int`
 - `total_reves_partie: int`
+- `nb_animaux_sauvages: int`
+- `reveil_quota: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4) -> GameConfig` — Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reveil_quota_mode: str='N', reveil_gardien_fate: str='LISIERE_FACE_1') -> GameConfig` — Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383.
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (A/A en Mode 2 uniquement pour Migration).
 
@@ -210,7 +215,9 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `coordonnateur: int`
 - `paravents_ouverts: bool`
 - `repousse_finale_applied: bool`
-- `seuil_reveil: int`
+- `reveil_quota: int`
+- `reveil_engaged_gardien: int`
+- `real_damage_this_turn: bool`
 - `triggers_lit: int`
 - `deck_remaining_count: int`
 - `sabotage_deck_count: int`
@@ -240,6 +247,11 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
 - `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
 - `gardien_available_at_case(self, case_1_6: int) -> bool` — Retourne True si un Gardien non encore utilisé ce tour occupe la case `1..6`.
+- `gardien_face_at_case(self, case_1_6: int) -> int` — Retourne 0 (vide), 1 (Face 1) ou 2 (Face 2 Éveillé) sur la case `1..6`.
+- `gardien_eligible_for_reveil(self, case_1_6: int) -> bool` — Retourne True si le Gardien en case `1..6` est en Face 2 et éligible au Réveil.
+- `gardien_reveil_defenders(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement engagés (réflexion ou définitif) sur la case `1..6`.
+- `gardien_reveil_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur la case `1..6`.
+- `player_def2_reveil_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en Réveil par le 2e Défenseur de `seat`, ou 0.
 - `tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]` — Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques.
 
 ### Classe `GameState`
@@ -253,13 +265,14 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `paravents_ouverts: bool`
 - `step2_locked: bool`
 - `repousse_finale_applied: bool`
-- `seuil_reveil: int`
+- `reveil_engaged_gardien: int`
 - `triggers_lit: int`
 - `deck_len: int`
 - `deck_cursor: int`
 - `sabotage_deck_count: int`
 - `sabotage_pending_count: int`
 - `reshuffle_count: int`
+- `real_damage_this_turn: bool` — Bit transitoire TRANS_REAL_DAMAGE_THIS_TURN (vrai si >= 1 Arbre coupé ou Souche retirée ce tour).
 
 **Méthodes :**
 - `clone(self) -> GameState` — Copie rapide et strictement indépendante à l'octet près (compatible IS-MCTS / Forks).
@@ -307,6 +320,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `enter_furtivite(self, seat: int, def_idx: int, lisiere: int, p: int, rive: int, face: int, preferred_twin: int=0) -> None` — Fait ENTRER un Défenseur en Furtivité (tire l'éventuel autre pion sur le jumeau).
 - `flip_defender2_to_definitif_in_place(self, seat: int) -> None` — Retourne sur place le 2e Défenseur réflexion -> définitif (sans aucun tirage).
 - `place_defender_lisiere_tile(self, seat: int, def_idx: int, lisiere_slot_idx: int, face: int) -> None`
+- `count_reveil_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en Réveil sur la case `1..6`.
+- `place_defender_gardien_reveil(self, seat: int, case_1_6: int, face: int) -> None` — Engage le 2e Défenseur de `seat` sur un Gardien Face 2 en case `1..6` pour le Réveil.
 - `mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None` — Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées.
 - `get_lisiere_tile_state(self, slot_idx: int) -> tuple[int, int]` — Retourne (status, nb_constructors).
 - `set_lisiere_tile_state(self, slot_idx: int, status: int, constructors: int) -> None`

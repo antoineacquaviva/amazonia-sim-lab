@@ -157,10 +157,9 @@ def test_r1_b_temoin_double_avancee_sommeil_contremaitre() -> None:
     assert out.cause_fin == CAUSE_REVE_RANG_1
 
 
-def test_r1_c_temoin_offrande_gardien_sans_sacrifice_ni_modif_seuil() -> None:
-    """Témoin R1:C : renvoie 1 Gardien en lisière (Face 1, sans sacrifice ni modif seuil Réveil) pour avancer de 2 rangs."""
+def test_r1_c_temoin_offrande_gardien_sans_sacrifice() -> None:
+    """Témoin R1:C : renvoie 1 Gardien en lisière (Face 1, sans sacrifice) pour avancer de 2 rangs."""
     state = _make_state(("R1", "C"), ("G4", "A"), peuples=("H", "O", "M", "E"))
-    seuil_before = state.seuil_reveil
     g4_slot = state.find_lisiere_slot_by_tile_id("G4")
     assert g4_slot is not None
     state.set_lisiere_tile_state(g4_slot, LISIERE_CONSTRUCTED, 0)
@@ -195,7 +194,6 @@ def test_r1_c_temoin_offrande_gardien_sans_sacrifice_ni_modif_seuil() -> None:
     assert state.find_tactique_rank(TILE_R_BASE + 1) == 1
     assert state.get_gardien_at_case(2) == (0, 1, False)
     assert state.get_lisiere_tile_state(g4_slot) == (LISIERE_UNCONSTRUCTED, 0)
-    assert state.seuil_reveil == seuil_before
 
 
 def test_r2_a_temoin_voile_oubli_avant_bugs_6_1() -> None:

@@ -9,14 +9,21 @@
     "DEPASSEMENT_DERNIERE_PARCELLE",
     "/ 128",
     "Ratissage sur <code>T4</code>",
-    "T4 pour un Ratissage"
+    "T4 pour un Ratissage",
+    "Seuil de Réveil fixe",
+    "Seuil fixe de Réveil",
+    "seuil fixe de Réveil",
+    "seuil de Réveil"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",
     "mode Siège",
     "Siège T4",
     "DEPASSEMENT_DERNIERE_PARCELLE",
-    "amener un Rêve au Rang 1"
+    "amener un Rêve au Rang 1",
+    "Seuil de Réveil fixe",
+    "seuil fixe de Réveil",
+    "seuil de Réveil"
   ],
   "banned_in_rendered_dom": [
     "NaN",
@@ -27,9 +34,20 @@
       "peuples": ["M", "R", "O", "I"],
       "must_contain": [
         "Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table)",
+        "Gardien Face 2",
+        "aucun dommage réel",
         "Ratissage",
         "<code>T1</code>",
         "/ 384"
+      ]
+    },
+    {
+      "peuples": ["H", "E", "I"],
+      "must_contain": [
+        "Condition inactive dans cette partie (aucun Peuple Animal Sauvage M/R/O autour de la table)",
+        "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
+        "Ratissage",
+        "<code>T1</code>"
       ]
     },
     {
@@ -37,6 +55,7 @@
       "must_contain": [
         "Toutes les <strong>2 tuiles Rêve</strong> en jeu",
         "Rangs 1 à 2",
+        "Gardien Face 2",
         "Ratissage",
         "<code>T1</code>"
       ]
@@ -46,6 +65,7 @@
       "must_contain": [
         "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
         "Rangs 1 à 4",
+        "Gardien Face 2",
         "Ratissage",
         "<code>T1</code>"
       ]

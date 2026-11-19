@@ -62,6 +62,7 @@ from engine.state import (
     FAMILLE_GARDIEN,
     FAMILLE_REVE,
     LISIERE_CONSTRUCTED,
+    LISIERE_EJECTED,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
@@ -303,10 +304,14 @@ _FURT_TARGETS: tuple[tuple[tuple[tuple[str, int, int, int], tuple[str, int, int,
 _LIS_TARGETS: tuple[tuple[str, int], ...] = tuple(
     ("LISIERE", slot_idx) for slot_idx in range(NUM_SYNERGY_SLOTS)
 )
+_GARDIEN_REVEIL_TARGETS: tuple[tuple[str, int], ...] = tuple(
+    ("GARDIEN_REVEIL", case_c) for case_c in range(TRACK_LEN + 1)
+)
 _ALL_CANONICAL_TARGETS: tuple[tuple[Any, ...], ...] = (
     tuple(t for row in _FORET_TARGETS for t in row[1:])
     + tuple(t for row in _FURT_TARGETS for pair in row[1:] for t in pair)
     + _LIS_TARGETS
+    + _GARDIEN_REVEIL_TARGETS[1:]
 )
 _DEF2_DEFINITIF_WRAP: dict[tuple[Any, ...], tuple[str, tuple[Any, ...]]] = {
     t: ("POSER_DEFINITIF", t) for t in _ALL_CANONICAL_TARGETS
@@ -346,6 +351,8 @@ def _current_def_canonical_spot(state: GameState, seat: int, def_idx: int) -> tu
         return _FURT_TARGETS[a][b][c // 2]
     if kind == "LISIERE":
         return _LIS_TARGETS[a]
+    if kind == "GARDIEN_REVEIL":
+        return _GARDIEN_REVEIL_TARGETS[a]
     return None
 
 
@@ -416,6 +423,20 @@ def list_legal_targets(
             if st == LISIERE_UNCONSTRUCTED and nb < 2:
                 targets.append(cand_l)
 
+    # 4. Réveil de la Forêt (2e Défenseur uniquement, Mode >= 2, >= 1 Animal Sauvage, Gardien Face 2)
+    if not is_first_defender and state.cfg.mode >= 2 and state.cfg.reveil_quota > 0:
+        q_req = state.cfg.reveil_quota
+        for c_num in range(1, TRACK_LEN + 1):
+            g_num, g_face, g_used = state.get_gardien_at_case(c_num)
+            if g_num == 0 or g_face != 2 or g_used:
+                continue
+            cand_rev = _GARDIEN_REVEIL_TARGETS[c_num]
+            cnt_rev = state.count_reveil_defenders_at_case(c_num)
+            if own_spot == cand_rev:
+                cnt_rev = max(0, cnt_rev - 1)
+            if cnt_rev < q_req:
+                targets.append(cand_rev)
+
     if extra_targets and not use_global:
         for ext_t in extra_targets:
             if ext_t not in targets:
@@ -450,6 +471,11 @@ def _apply_defender_target(
     elif kind == "LISIERE":
         _, slot_idx = target
         state.place_defender_lisiere_tile(seat, def_idx, int(slot_idx), face)
+        _record_phys_ops(state, 1)
+    elif kind == "GARDIEN_REVEIL":
+        assert def_idx == 1, "Seul le 2e Défenseur peut cibler GARDIEN_REVEIL"
+        _, case_c = target
+        state.place_defender_gardien_reveil(seat, int(case_c), face)
         _record_phys_ops(state, 1)
     elif kind == "PASSER_IMPASSE":
         state.mark_defender_impasse(seat, def_idx, face)
@@ -570,7 +596,9 @@ def apply_step2_def2(
 
 
 def lock_all_def2_in_place(state: GameState) -> None:
-    """Retournement simultané sur place de tous les 2es Défenseurs encore en réflexion."""
+    """Retournement simultané sur place de tous les 2es Défenseurs encore en réflexion,
+    suivi de la vérification d'engagement pour le Réveil de la Forêt (max 1 Gardien/tour).
+    """
     flipped = 0
     for s in range(state.cfg.n_players):
         if state.get_player_def_loc_raw(s, 1) != 0 and not state.is_player_def2_definitif(s):
@@ -578,6 +606,27 @@ def lock_all_def2_in_place(state: GameState) -> None:
             flipped += 1
     if flipped > 0:
         _record_phys_ops(state, flipped)
+
+    if not state.step2_locked and state.cfg.mode >= 2 and state.cfg.reveil_quota > 0:
+        q_req = state.cfg.reveil_quota
+        for c_num in range(1, TRACK_LEN + 1):
+            g_num, g_face, g_used = state.get_gardien_at_case(c_num)
+            if (
+                g_num > 0
+                and g_face == 2
+                and not g_used
+                and state.count_reveil_defenders_at_case(c_num) >= q_req
+            ):
+                # Engagement immédiat : tuile retirée de la piste (case libre dès 3.1,
+                # pouvoir / Loi passive inactifs ce tour) et mise de côté jusqu'en 6.3.
+                state.set_gardien_at_case(c_num, 0, 1, False)
+                state.reveil_engaged_gardien = g_num
+                _record_phys_ops(state, 1)
+                trk = _get_active_telemetry()
+                if trk is not None:
+                    trk.on_reveil_attempt(state)
+                break  # Maximum 1 seul Gardien engagé pour le Réveil par tour
+
     state.step2_locked = True
 
 
@@ -1033,6 +1082,7 @@ def _resolve_machine_targets_from(
             _record_phys_ops(state, dmg_ops)
         if arbres_after < arbres_before or souches_after < souches_before:
             damaged_parcels += 1
+            state.real_damage_this_turn = True
 
         if arbres_after == 0 and souches_after == 0:
             _handle_route_creation(state, ray, target_p)
@@ -1167,12 +1217,19 @@ def apply_repousse_finale(state: GameState) -> GameOver:
         cause = CAUSE_REVE_RANG_1
     elif (
         state.cfg.mode >= 2
-        and state.seuil_reveil >= 3
-        and state.count_used_gardiens_on_track() >= state.seuil_reveil
+        and state.reveil_engaged_gardien > 0
+        and not state.real_damage_this_turn
     ):
         cause = CAUSE_REVEIL_GARDIENS
 
     if not state.repousse_finale_applied:
+        trk = _get_active_telemetry()
+        if (
+            trk is not None
+            and state.reveil_engaged_gardien > 0
+            and cause != CAUSE_REVEIL_GARDIENS
+        ):
+            trk.on_reveil_failure(state)
         for r in range(state.cfg.n_players):
             for p in range(1, state.cfg.p_max + 1):
                 if state.is_route_forestiere(r, p):
@@ -1192,7 +1249,6 @@ def apply_repousse_finale(state: GameState) -> GameOver:
         state.repousse_finale_applied = True
         state._continuation.clear()
         _transition_step(state, STEP_GAME_OVER)
-        trk = _get_active_telemetry()
         if trk is not None:
             trk.on_end_turn(state, game_over=True)
 
@@ -1211,7 +1267,7 @@ def _check_end_of_game_condition(state: GameState) -> bool:
     if state.cfg.mode >= 2:
         if state.is_sommeil_victory():
             return True
-        if state.seuil_reveil >= 3 and state.count_used_gardiens_on_track() >= state.seuil_reveil:
+        if state.reveil_engaged_gardien > 0 and not state.real_damage_this_turn:
             return True
     return state.tour >= 8
 
@@ -2417,6 +2473,19 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
         return _run_step_6_2(state)
 
     if step == STEP_6_3_END_TURN:
+        if state.reveil_engaged_gardien > 0:
+            g_num = state.reveil_engaged_gardien
+            l_slot = state.find_lisiere_slot_by_tile_id(f"G{g_num}")
+            if l_slot is not None:
+                if state.cfg.reveil_gardien_fate == "LISIERE_FACE_1":
+                    state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, 0)
+                else:
+                    state.set_lisiere_tile_state(l_slot, LISIERE_EJECTED, 0)
+            state.reveil_engaged_gardien = 0
+            _record_phys_ops(state, 1)
+            trk_fail = _get_active_telemetry()
+            if trk_fail is not None:
+                trk_fail.on_reveil_failure(state)
         _transition_eligible_machines_to_ratissage(state, remove_from_deck=False)
         state.rebuild_and_shuffle_machine_deck(increment_reshuffle=True)
         _record_phys_ops(state, 1)

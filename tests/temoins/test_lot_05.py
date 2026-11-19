@@ -365,9 +365,9 @@ def test_slot_colonisation_gardiens_c_temoin_lucioles_auto_4_3() -> None:
     assert req.decision_type == DEC_EFFET_TUILE
     assert req.context.get("slot_id") == "G13"
 
-    # Le Gardien G13:A en case 3 a été ouvert automatiquement sans décision de Colonisation,
-    # et l'Insecte Colonie est toujours présent sur la case 3 !
-    assert state.get_gardien_at_case(3) == (13, 1, True)
+    # Le Gardien G13:A en case 3 a été ouvert automatiquement sans décision de Colonisation
+    # (et passe universellement en Face 2 « Éveillé »), et l'Insecte Colonie reste sur la case 3 !
+    assert state.get_gardien_at_case(3) == (13, 2, True)
     assert state.get_colonie_at_case(3) == 1
     apply_choice(state, ("FORET", 0, 1))
     assert state.get_parcel_insectes(0, 1) == 1

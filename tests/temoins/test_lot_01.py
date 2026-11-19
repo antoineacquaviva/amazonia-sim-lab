@@ -137,8 +137,8 @@ def test_g2_a_temoin() -> None:
 
 # ---------------------------------------------------------------------------
 # 3. G4:A — Le Cri d’Alarme de l’Ara (MOD_SEUIL + SACRIFICE 3.2)
-# Témoin : "Le sacrifice libère la case Gardien pour une future construction ;
-# le seuil fixe de Réveil calculé à la mise en place ne change pas."
+# Témoin : "Le renvoi en lisière libère la case Gardien pour une future construction ;
+# le Gardien repasse Face 1 et perd son marqueur « utilisé »."
 # ---------------------------------------------------------------------------
 def test_g4_a_temoin() -> None:
     cfg = GameConfig(
@@ -149,8 +149,7 @@ def test_g4_a_temoin() -> None:
         exp_seed=404,
     )
     state = GameState(cfg)
-    seuil_reveil_init = state.seuil_reveil
-    assert seuil_reveil_init == 4
+    assert cfg.reveil_quota == 4
 
     g4_slot = state.find_lisiere_slot_by_tile_id("G4")
     assert g4_slot is not None
@@ -190,12 +189,10 @@ def test_g4_a_temoin() -> None:
     assert move2 in req_sac2.options
     apply_choice(state, move2)
 
-    # Les 2 Défenseurs sont arrivés sur (2, 2), la case 1 Gardien est vide, G4 est de retour en lisière,
-    # et le seuil fixe de Réveil n'a pas bougé !
+    # Les 2 Défenseurs sont arrivés sur (2, 2), la case 1 Gardien est vide et G4 est de retour en lisière
     assert state.get_parcel_defenseurs(2, 2) == 2
     assert state.get_gardien_at_case(1) == (0, 1, False)
     assert state.get_lisiere_tile_state(g4_slot)[0] == LISIERE_UNCONSTRUCTED
-    assert state.seuil_reveil == seuil_reveil_init
 
 
 # ---------------------------------------------------------------------------

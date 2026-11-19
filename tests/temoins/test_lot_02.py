@@ -379,7 +379,6 @@ def test_g4_b_temoin() -> None:
         exp_seed=1208,
     )
     state = GameState(cfg)
-    seuil_init = state.seuil_reveil
     g4_slot = state.find_lisiere_slot_by_tile_id("G4")
     assert g4_slot is not None
     state.set_lisiere_tile_state(g4_slot, LISIERE_CONSTRUCTED, 0)
@@ -415,7 +414,6 @@ def test_g4_b_temoin() -> None:
     assert state.paravents_ouverts is True
     assert state.get_gardien_at_case(4) == (0, 1, False)  # Perte du marqueur utilisé & case libérée
     assert state.get_lisiere_tile_state(g4_slot)[0] == LISIERE_UNCONSTRUCTED
-    assert state.seuil_reveil == seuil_init
 
     # Visibilité publique complète des cartes et dés dans PlayerObservation avant la pose !
     obs_m = state.get_observation(0)

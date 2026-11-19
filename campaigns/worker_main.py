@@ -53,6 +53,7 @@ from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
 from engine.rng import SRC_BOT_TIEBREAK, shuffle_deterministic
 from engine.state import (
+    ANIMAUX_SAUVAGES,
     CHASSIS_AXES_OPTIONS,
     NUM_CHASSIS,
     PEUPLES_ORDER,
@@ -1703,10 +1704,67 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 if base_map[s] != "A":
                     tested_tiles_set.append((s, base_map[s]))
 
+    # 3b. Paramètres hors-châssis Réveil de la Forêt (v5.4.1 — préserve la bijection 384/384)
+    raw_q_modes = manifest.get("reveil_quota_modes", manifest.get("reveil_quota_mode"))
+    if raw_q_modes is None:
+        q_modes: list[str] = ["N"]
+        explicit_reveil_sweep = False
+    elif isinstance(raw_q_modes, str):
+        q_modes = [raw_q_modes.strip().upper()]
+        explicit_reveil_sweep = "reveil_quota_modes" in manifest
+    else:
+        q_modes = [str(x).strip().upper() for x in raw_q_modes]
+        explicit_reveil_sweep = True
+    for qm in q_modes:
+        if qm not in ("N", "N_MINUS_1", "2"):
+            raise ValueError(f"reveil_quota_mode invalide : {qm!r}")
+
+    raw_fates = manifest.get("reveil_gardien_fates", manifest.get("reveil_gardien_fate"))
+    if raw_fates is None:
+        g_fates: list[str] = ["LISIERE_FACE_1"]
+    elif isinstance(raw_fates, str):
+        g_fates = [raw_fates.strip().upper()]
+        if "reveil_gardien_fates" in manifest:
+            explicit_reveil_sweep = True
+    else:
+        g_fates = [str(x).strip().upper() for x in raw_fates]
+        explicit_reveil_sweep = True
+    for gf in g_fates:
+        if gf not in ("LISIERE_FACE_1", "RETRAIT_DEFINITIF"):
+            raise ValueError(f"reveil_gardien_fate invalide : {gf!r}")
+
+    reveil_combos = list(itertools.product(q_modes, g_fates))
+    if len(reveil_combos) > 1:
+        explicit_reveil_sweep = True
+
+    expanded_variants: list[dict[str, Any]] = []
+    ev_idx = 0
+    for var in profile_variants:
+        for qm, gf in reveil_combos:
+            if explicit_reveil_sweep:
+                rev_tag = f"Q={qm},F={gf}"
+                v_id = rev_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{rev_tag}"
+            else:
+                v_id = str(var["variant_id"])
+            expanded_variants.append(
+                {
+                    "variant_idx": ev_idx,
+                    "variant_id": v_id,
+                    "compared_slots": dict(var["compared_slots"]),
+                    "tile_profiles": var["tile_profiles"],
+                    "reveil_quota_mode": qm,
+                    "reveil_gardien_fate": gf,
+                }
+            )
+            ev_idx += 1
+    profile_variants = expanded_variants
+
     # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties,
     #    avec appariement CRN strict sur chaque paire de tables miroirs)
     base_peuples_raw = base_inst.get("peuples_cercle", [])
     base_peuples: tuple[str, ...] = tuple(str(p).strip().upper() for p in base_peuples_raw)
+    table_selection = str(manifest.get("table_selection", "PALIER1_DEFAULT")).strip().upper()
+    min_animaux = max(0, int(manifest.get("min_animaux_sauvages", 0)))
 
     units: list[dict[str, Any]] = []
     config_idx = 0
@@ -1726,8 +1784,19 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 )
             else:
                 candidate_tables = ((t1_id, base_peuples),)
+        elif table_selection == "ALL_PEUPLE_COMBOS":
+            all_combs = tuple(
+                ("-".join(comb), comb)
+                for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
+                if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
+            )
+            candidate_tables = all_combs[: min(games_per_cfg, len(all_combs))]
         else:
-            all_t = PALIER1_TABLES_BY_N[n_pl]
+            all_t = tuple(
+                (tid, pl)
+                for tid, pl in PALIER1_TABLES_BY_N[n_pl]
+                if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
+            )
             candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
 
         n_tables = len(candidate_tables)
@@ -1770,8 +1839,11 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "variant_id": var["variant_id"],
                                 "compared_slots": var["compared_slots"],
                                 "tile_profiles": var["tile_profiles"],
+                                "reveil_quota_mode": var["reveil_quota_mode"],
+                                "reveil_gardien_fate": var["reveil_gardien_fate"],
                                 "table_id": t_id,
                                 "peuples": peuples,
+                                "n_animaux_sauvages": sum(1 for p in peuples if p in ANIMAUX_SAUVAGES),
                                 "is_mirror_pair": is_mirror_pair,
                                 "bot": bot_name,
                                 "k_max": k_max,
@@ -1817,6 +1889,11 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     mode = int(unit["mode"])
     peuples = tuple(unit["peuples"])
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
+    reveil_quota_mode = str(unit.get("reveil_quota_mode", "N"))
+    reveil_gardien_fate = str(unit.get("reveil_gardien_fate", "LISIERE_FACE_1"))
+    n_animaux = int(
+        unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
+    )
     bot_name = str(unit["bot"])
     k_max = int(unit["k_max"])
     exp_seed = int(unit["exp_seed"])
@@ -1831,6 +1908,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_t8 = 0
     cnt_reve = 0
     cnt_reveil = 0
+    cnt_reveil_attempts = 0
+    cnt_reveil_failures = 0
     cnt_arbres_pos = 0
     p_max_val = 4
 
@@ -1854,6 +1933,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             rep_id=rep_id,
             coordonnateur_initial=rep_id % n_pl,
             max_revision_passes=k_max,
+            reveil_quota_mode=reveil_quota_mode,
+            reveil_gardien_fate=reveil_gardien_fate,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1871,6 +1952,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             placement_initial_machines=base_cfg.placement_initial_machines,
             role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
             synergie_binome_machines=base_cfg.synergie_binome_machines,
+            reveil_quota_mode=reveil_quota_mode,
+            reveil_gardien_fate=reveil_gardien_fate,
             tile_profiles=tile_profiles if mode >= 3 else (),
         )
         trk = TelemetryTracker()
@@ -1902,6 +1985,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             cnt_reveil += 1
 
         ts = trk.summary()
+        cnt_reveil_attempts += int(ts.reveil_attempts)
+        cnt_reveil_failures += int(ts.reveil_failures)
         sum_mem_debt += int(ts.mem_debt_score)
         sum_law_mean += float(ts.law_stack_mean)
         max_law_max = max(max_law_max, int(ts.law_stack_max))
@@ -1925,9 +2010,12 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "p_max": p_max_val,
         "variant_idx": int(unit["variant_idx"]),
         "variant_id": str(unit["variant_id"]),
+        "reveil_quota_mode": reveil_quota_mode,
+        "reveil_gardien_fate": reveil_gardien_fate,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
+        "n_animaux_sauvages": n_animaux,
         "bot": bot_name,
         "k_max": k_max,
         "mode": mode,
@@ -1948,6 +2036,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_tour_8": cnt_t8,
         "count_reve_rang_1": cnt_reve,
         "count_reveil_gardiens": cnt_reveil,
+        "count_reveil_attempts": cnt_reveil_attempts,
+        "count_reveil_failures": cnt_reveil_failures,
         "sum_mem_debt": sum_mem_debt,
         "sum_law_mean": round(sum_law_mean, 4),
         "max_law_max": max_law_max,

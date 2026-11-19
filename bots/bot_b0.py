@@ -173,6 +173,19 @@ def _score_defender_target(
             return 340
         return 140
 
+    if kind == "GARDIEN_REVEIL":
+        _, case_c = target
+        c_i = int(case_c)
+        q = obs.reveil_quota
+        if q <= 0 or not obs.gardien_eligible_for_reveil(c_i):
+            return 0
+        allies = obs.gardien_reveil_defenders(c_i)
+        if allies >= q - 1 and drew_sabotage_or_none:
+            return 460
+        if allies >= 1 and drew_sabotage_or_none:
+            return 300
+        return 110
+
     return 0
 
 

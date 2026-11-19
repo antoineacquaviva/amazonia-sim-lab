@@ -448,6 +448,8 @@ def _current_def2_target_public(state: GameState, seat: int) -> tuple[Any, ...] 
         return ("FURTIVITE", a, b, c // 2)
     if kind == "LISIERE":
         return ("LISIERE", a)
+    if kind == "GARDIEN_REVEIL":
+        return ("GARDIEN_REVEIL", a)
     return None
 
 
@@ -603,6 +605,46 @@ def resolve_step2_2_from_state(
         if moved_in_pass == 0:
             break
 
+    # 3. Retrait propre en fin de passes « en réflexion » si un Réveil n'a pas atteint son quota Q
+    #    (évite les Défenseurs orphelins inutiles, strictement sur observation publique PlayerObservation)
+    if max_passes > 0 and cfg.mode >= 2 and cfg.reveil_quota > 0:
+        q_req = cfg.reveil_quota
+        for s in range(n):
+            if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
+                continue
+            obs_s = _get_isolated_obs(
+                state, s, counterfactual_open_paravents=counterfactual_open_paravents
+            )
+            rev_c = obs_s.player_def2_reveil_case(s)
+            if rev_c > 0 and obs_s.gardien_reveil_defenders(rev_c) < q_req:
+                legal_non_rev = tuple(
+                    t
+                    for t in list_legal_targets(
+                        state, s, is_first_defender=False, exclude_own_def2=True
+                    )
+                    if t[0] != "GARDIEN_REVEIL"
+                )
+                if legal_non_rev:
+                    bel_s = build_belief_summary(obs_s, cfg)
+                    fallback_t, _ = _pick_best_target_isolated(
+                        obs_s,
+                        cfg,
+                        bel_s,
+                        legal_non_rev,
+                        scorer,
+                        is_first_defender=False,
+                        sous_etape_salt=249,
+                    )
+                    moved = apply_step2_def2(
+                        state,
+                        s,
+                        ("DEPLACER_REFLEXION", fallback_t),
+                        check_legal=False,
+                        telemetry=telemetry,
+                    )
+                    if moved:
+                        total_rev_moves += 1
+
     finish_step2_to_3_1(state, telemetry=telemetry)
     return {"passes_executed": passes_done, "revision_moves": total_rev_moves}
 
@@ -618,6 +660,16 @@ def _score_held_spot(
     kind = cur_spot[0]
     base = scorer(obs, cfg, belief, cur_spot, False)
     # Correction d'auto-occupation : dans `obs`, notre propre 2e Défenseur est déjà compté sur cur_spot !
+    if kind == "GARDIEN_REVEIL":
+        _, case_c = cur_spot
+        q = cfg.reveil_quota
+        cnt = obs.gardien_reveil_defenders(int(case_c))
+        if q > 0 and cnt >= q:
+            # Quota Q atteint -> fort bonus de maintien pour verrouiller le Réveil !
+            return base + 480.0
+        if q > 0 and cnt >= 2:
+            return base + 60.0
+        return base - 160.0
     if kind == "LISIERE":
         _, slot_idx = cur_spot
         _, st_l, nb_c = obs.lisiere_tile_info(int(slot_idx))

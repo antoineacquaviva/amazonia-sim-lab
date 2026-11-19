@@ -682,8 +682,16 @@ def prim_partage_info_etat_gardien(
         g_num, face, used = state.get_gardien_at_case(case_1_6)
         if g_num == 0 or used:
             return False
+        # Éveil universel Face 1 -> Face 2 (y compris profils monofaces et Mode 2 neutre ;
+        # G14:C conserve son cycle autonome À jeun (Face 1) <-> Rassasié (Face 2)).
+        is_g14_c = (
+            state.cfg.mode >= 3
+            and g_num == 14
+            and state.cfg.profile_for_slot("G14") == "C"
+        )
+        next_face = 2 if (face == 1 and not is_g14_c) else face
         # Marquage immédiat avant application du texte + Résonance 4 en fin d'effet
-        state.set_gardien_at_case(case_1_6, g_num, face, True)
+        state.set_gardien_at_case(case_1_6, g_num, next_face, True)
         _record_phys_ops(state, 1)
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
         state._continuation.insert(0, sync_frame)

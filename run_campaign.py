@@ -492,6 +492,22 @@ def aggregate_campaign_duckdb(
             extra_q_sql_parts.append(f"NULL AS weighted_{q_col},")
     extra_q_sql = "\n            ".join(extra_q_sql_parts)
 
+    has_reveil_diag_cols = (
+        "count_reveil_attempts" in cell_cols and "count_reveil_failures" in cell_cols
+    )
+    reveil_diag_sql = (
+        """
+            CAST(SUM(count_reveil_attempts) AS INTEGER) AS count_reveil_attempts,
+            CAST(SUM(count_reveil_failures) AS INTEGER) AS count_reveil_failures,
+        """
+        if has_reveil_diag_cols
+        else """
+            0 AS count_reveil_attempts,
+            0 AS count_reveil_failures,
+        """
+    )
+    has_n_animaux_col = "n_animaux_sauvages" in cell_cols
+
     g_stats = _query_dicts(
         con,
         f"""
@@ -508,6 +524,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens,
+            {reveil_diag_sql}
             ROUND(SUM(sum_mem_debt) * 1.0 / SUM(n_games), 3) AS mean_mem_debt,
             ROUND(SUM(sum_law_mean) / SUM(n_games), 3) AS mean_active_laws,
             CAST(MAX(max_law_max) AS INTEGER) AS max_active_laws,
@@ -522,15 +539,17 @@ def aggregate_campaign_duckdb(
 
     # CVaR_20% inter-tables véritable (pire quintile des ratios moyens par table/cellule),
     # distinct de `cvar20_ratio` (moyenne pondérée des CVaR intra-cellule).
+    n_anim_col_sql = "n_animaux_sauvages," if has_n_animaux_col else "NULL AS n_animaux_sauvages,"
     cell_table_rows = _query_dicts(
         con,
-        """
+        f"""
         SELECT
             mode,
             bot,
             n_players,
             chassis_id,
             variant_id,
+            {n_anim_col_sql}
             sum_ratio_arbres * 1.0 / n_games AS table_mean_ratio
         FROM cells
         WHERE n_games > 0
@@ -541,6 +560,7 @@ def aggregate_campaign_duckdb(
     ratios_by_n: dict[int, list[float]] = {}
     ratios_by_chassis: dict[int, list[float]] = {}
     ratios_by_variant: dict[str, list[float]] = {}
+    ratios_by_n_animaux: dict[int, list[float]] = {}
     for tr in cell_table_rows:
         mr_t = float(tr["table_mean_ratio"])
         all_table_ratios.append(mr_t)
@@ -548,6 +568,8 @@ def aggregate_campaign_duckdb(
         ratios_by_n.setdefault(int(tr["n_players"]), []).append(mr_t)
         ratios_by_chassis.setdefault(int(tr["chassis_id"]), []).append(mr_t)
         ratios_by_variant.setdefault(str(tr["variant_id"]), []).append(mr_t)
+        if tr.get("n_animaux_sauvages") is not None:
+            ratios_by_n_animaux.setdefault(int(tr["n_animaux_sauvages"]), []).append(mr_t)
 
     global_table_cvar20 = _cvar_bottom_values(all_table_ratios, 0.20)
 
@@ -571,7 +593,7 @@ def aggregate_campaign_duckdb(
 
     by_mode = _query_dicts(
         con,
-        """
+        f"""
         SELECT
             mode,
             bot,
@@ -582,6 +604,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+            {reveil_diag_sql}
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
         FROM cells
         GROUP BY mode, bot
@@ -595,7 +618,7 @@ def aggregate_campaign_duckdb(
 
     by_n_players = _query_dicts(
         con,
-        """
+        f"""
         SELECT
             n_players,
             CAST(SUM(n_games) AS INTEGER) AS n_games,
@@ -605,6 +628,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+            {reveil_diag_sql}
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
         FROM cells
         GROUP BY n_players
@@ -615,6 +639,32 @@ def aggregate_campaign_duckdb(
         row["table_cvar20_ratio"] = _cvar_bottom_values(
             ratios_by_n.get(int(row["n_players"]), []), 0.20
         )
+
+    by_n_animaux_sauvages: list[dict[str, Any]] = []
+    if has_n_animaux_col:
+        by_n_animaux_sauvages = _query_dicts(
+            con,
+            f"""
+            SELECT
+                n_animaux_sauvages,
+                CAST(SUM(n_games) AS INTEGER) AS n_games,
+                ROUND(SUM(sum_arbres) * 1.0 / SUM(n_games), 3) AS mean_score_arbres,
+                ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
+                ROUND(SUM(cvar20_ratio * n_games) / SUM(n_games), 4) AS cvar20_ratio,
+                ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
+                ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
+                ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+                {reveil_diag_sql}
+                ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
+            FROM cells
+            GROUP BY n_animaux_sauvages
+            ORDER BY n_animaux_sauvages
+            """,
+        )
+        for row in by_n_animaux_sauvages:
+            row["table_cvar20_ratio"] = _cvar_bottom_values(
+                ratios_by_n_animaux.get(int(row["n_animaux_sauvages"]), []), 0.20
+            )
 
     by_chassis = _query_dicts(
         con,
@@ -640,7 +690,7 @@ def aggregate_campaign_duckdb(
 
     by_variant = _query_dicts(
         con,
-        """
+        f"""
         SELECT
             variant_id,
             compared_slots_json,
@@ -651,6 +701,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+            {reveil_diag_sql}
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
         FROM cells
         GROUP BY variant_id, compared_slots_json
@@ -839,6 +890,8 @@ def aggregate_campaign_duckdb(
             "pct_tour_8": g_stats["pct_tour_8"],
             "pct_reve_rang_1": g_stats["pct_reve_rang_1"],
             "pct_reveil_gardiens": g_stats["pct_reveil_gardiens"],
+            "count_reveil_attempts": int(g_stats["count_reveil_attempts"]),
+            "count_reveil_failures": int(g_stats["count_reveil_failures"]),
             "tested_tiles": [f"{s}:{p}" for s, p in tested_tiles],
             "parquet_archive": parquet_path.relative_to(ROOT).as_posix(),
         },
@@ -851,6 +904,8 @@ def aggregate_campaign_duckdb(
         "by_variant": by_variant_clean,
         "tile_metrics": tile_metrics,
     }
+    if by_n_animaux_sauvages:
+        digest_payload["by_n_animaux_sauvages"] = by_n_animaux_sauvages
     if forks_block is not None:
         digest_payload["forks"] = forks_block
 
