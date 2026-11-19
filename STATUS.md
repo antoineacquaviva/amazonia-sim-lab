@@ -68,6 +68,10 @@
 - *2026-11-18* : **5e vue légère « Campagnes » dans Amazonia Doc Studio (`docs/index.html`)** :
   - Ajout de l'onglet `🧪 5. Campagnes` (`#view-campagnes`) synchronisé avec l'instance active pour concevoir visuellement un plan de test : sélection multi-tables du nombre de joueurs (`3..6`), sous-ensemble des 7 axes de `CHASSIS_AXES_SPEC` à faire varier, comparaison de profils `A/B/C/D` sur des slots ciblés parmi les 32 emplacements et volume de parties par configuration.
   - Génération en temps réel d'un manifeste JSON propre prêt à enregistrer dans `campaigns/<nom>.json`, avec synthèse combinatoire et boutons `📋 Copier le manifeste` et `💾 Télécharger .json` (compatibles `file://` et HTTPS).
+- *2026-11-19* : **Commande unique bout-en-bout `run_campaign.py` (Manifeste → GCP `europe-west9` → DuckDB → Studio → GitHub Pages)** :
+  - Ajout du mode `--campaign-manifest` dans `campaigns/worker_main.py` (100 % stdlib PyPy 3.11, téléchargement direct `gs://` du manifeste Studio, résolution produit cartésien des axes châssis et des comparaisons `slot_profile_comparisons`, sharding Cloud Run Jobs / Cloud Batch).
+  - Création de `run_campaign.py` (`uv run python run_campaign.py campaigns/<nom>.json`) orchestrant : upload du manifeste sur `gs://amazonia-sim-runs/campaigns/<nom>/`, exécution Cloud Run Jobs (`<= 50 000` parties) ou Cloud Batch Spot (`> 50 000` parties) en `europe-west9`, rapatriement des shards, agrégation DuckDB + archive Parquet + `digest_<nom>.json` auto-portant avec `tile_metrics`, publication dans `docs/digests/` + mise à jour de `docs/digests/index.json`, puis `git add`/`commit`/`push origin main`.
+  - Validation réelle de la boucle complète sur `campaigns/micro_validation.json` (16 parties, `G7:A` vs `G7:B`, `N=3..4`, Cloud Build + Cloud Run Job `amazonia-campaign`, `digest_micro_validation.json` `11,9 Ko`), vérifiée en ligne en HTTP 200 sur GitHub Pages (`digests/index.json` et `digests/digest_micro_validation.json`), + tests unitaires `tests/test_run_campaign.py` (`verify_lot.py` `8/8` vert, `193` tests `pytest`).
 
 
 
