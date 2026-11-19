@@ -17,6 +17,7 @@ from scripts_cloud.studio_paths import resolve_studio_dir
 DATA_DIR = ROOT / "data"
 STUDIO_RAW_BASE = "https://raw.githubusercontent.com/antoineacquaviva/amazonia-doc-studio/main/data"
 STUDIO_JSON_FILES = ("catalog_v5_3.json", "spec_formelle_v5_3.json")
+STUDIO_EXTRA_LOCKED_FILES = ("amazonia_data_v5_3.js",)
 LOCK_FILE = DATA_DIR / "studio_lock.json"
 
 
@@ -58,6 +59,16 @@ def sync_studio() -> dict[str, object]:
             "source": source,
         }
         print(f"Synced {filename} ({len(raw_bytes)} bytes, sha256={sha256[:12]}...)")
+
+    for filename in STUDIO_EXTRA_LOCKED_FILES:
+        raw_bytes, source = _read_source_bytes(filename)
+        sha256 = hashlib.sha256(raw_bytes).hexdigest()
+        lock_entries[filename] = {
+            "sha256": sha256,
+            "bytes": len(raw_bytes),
+            "source": source,
+        }
+        print(f"Locked {filename} ({len(raw_bytes)} bytes, sha256={sha256[:12]}...)")
 
     lock_payload: dict[str, object] = {
         "studio_version": "v5.3",

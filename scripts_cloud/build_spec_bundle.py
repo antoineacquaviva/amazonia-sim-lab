@@ -98,25 +98,68 @@ def _infer_economie_bot(slot: dict[str, Any], prof: dict[str, Any]) -> dict[str,
             inputs.append("RES_SOUCHE")
         if "arbre" in texte and ("sacrifi" in texte or "coup" in texte) and "RES_ARBRE" not in inputs:
             inputs.append("RES_ARBRE")
+    # Précondition jeton rouge pour une conversion rouge -> bleu (Surchauffe)
+    is_flip_red_to_blue = (
+        "rouge" in texte
+        and ("bleu" in texte or "surchauffe" in texte)
+        and ("retourn" in texte or "face bleue" in texte)
+    )
+    if is_flip_red_to_blue and "RES_JETON_ROUGE" not in inputs:
+        inputs.append("RES_JETON_ROUGE")
 
     # Analyse des productions / outputs
-    if ("INSECTE" in primitive or "INSECTES" in tags or "insecte" in texte) and (
-        "CREATION_ENTITE" in primitive or "créez" in texte or "ajoutez" in texte or "placez" in texte
-    ):
+    creates_insect = (
+        "CREATION_ENTITE (INSECTE)" in primitive
+        or "création de jetons insecte" in texte
+        or "créez 1 insecte" in texte
+        or "créez un insecte" in texte
+        or "ajoutez 1 insecte" in texte
+        or "placez 1 insecte" in texte
+        or "posez 1 insecte" in texte
+        or "placez immédiatement 1 insecte" in texte
+    )
+    if creates_insect:
         outputs.append("RES_INSECTE")
+        if "sans allumer la case 6" not in texte:
+            outputs.append("TRIG_6")
+    elif "allume la case 6" in texte:
         outputs.append("TRIG_6")
-    if "PIEGE" in primitive or "PIÈGE" in texte or "piège" in texte:
-        if "CREATION_ENTITE" in primitive or "glissez" in texte or "posez" in texte or "placez" in texte:
+
+    if "PIEGE" in primitive or "piège" in texte:
+        if (
+            "CREATION_ENTITE (PIEGE)" in primitive
+            or ("CREATION_ENTITE" in primitive and "PIEGE" in primitive)
+            or "glissez" in texte
+            or "posez" in texte
+            or "placez" in texte
+        ):
             outputs.append("RES_PIEGE")
-        if "ARMEMENT" in tags or "embuscade" in texte or "parade" in texte:
+        if (
+            ("ARMEMENT" in tags or "embuscade" in texte or "allume la case 2" in texte)
+            and "sans allumer la case 2" not in texte
+        ):
             outputs.append("TRIG_2")
+
     if "SABOTAGE" in primitive or "SABOTAGE" in tags or "sabotage" in texte:
         outputs.append("RES_DILUTION_SABOTAGE")
-        outputs.append("TRIG_3")
+        if "sans allumer la case 3" not in texte and "sans allumer" not in texte:
+            outputs.append("TRIG_3")
+
     if "BLEU" in primitive or "SURCHAUFFE" in tags or "bleu" in texte:
         outputs.append("RES_JETON_BLEU")
-    if "ROUGE" in texte or "MOD_PUISSANCE" in primitive:
+
+    # RES_JETON_ROUGE en sortie = retrait / blocage / neutralisation directe de jetons rouges
+    # (distinct de la simple conversion rouge -> bleu déjà portée par RES_JETON_BLEU + input RES_JETON_ROUGE)
+    removes_or_blocks_red = "rouge" in texte and (
+        "retire" in texte
+        or "retirez" in texte
+        or "ignorez" in texte
+        or "ne gagne" in texte
+        or "ne gagnent" in texte
+    )
+    if removes_or_blocks_red:
         outputs.append("RES_JETON_ROUGE")
+
     if "APPRENTISSAGE" in primitive or "APPRENTISSAGE" in tags or "apprentissage" in texte:
         outputs.append("RES_APPRENTISSAGE")
     if "MOD_SEUIL" in primitive or "seuil" in texte or "PARADE" in " ".join(tags):
@@ -158,7 +201,7 @@ def _infer_economie_bot(slot: dict[str, Any], prof: dict[str, Any]) -> dict[str,
         role = "CONSOMMATEUR" if inputs else "MODULATEUR"
 
     # Portée
-    if "GLOBAL" in texte or "toutes" in texte or "tous les" in texte or "piste" in texte or "MIGRATION" in tags:
+    if "global" in texte or "toutes" in texte or "tous les" in texte or "piste" in texte or "MIGRATION" in tags:
         portee = "GLOBAL_PLATEAU"
     elif "PERMUTATION_PISTE" in primitive or "TACTIQUE" in primitive or "REVE" in str(slot.get("famille", "")):
         portee = "PISTE_TACTIQUES"
@@ -260,7 +303,7 @@ def _score_mode3_profile(prof_key: str, prof: dict[str, Any]) -> tuple[int, list
         reasons.append("loi persistante à surveiller")
 
     # Critère 3 : effet local borné
-    if "GLOBAL" in texte or "toutes" in texte or "tous les" in texte:
+    if "global" in texte or "toutes" in texte or "tous les" in texte:
         score += 30
         reasons.append("portée globale")
 
@@ -327,20 +370,27 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
 
 def _file_lock_entry(path: Path) -> dict[str, object]:
     raw_bytes = path.read_bytes()
+    resolved = path.resolve()
+    try:
+        src_label = resolved.relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        src_label = resolved.as_posix()
     return {
         "sha256": hashlib.sha256(raw_bytes).hexdigest(),
         "bytes": len(raw_bytes),
-        "source": path.resolve().relative_to(ROOT.resolve()).as_posix(),
+        "source": src_label,
     }
 
 
 def build_bundle() -> None:
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_3.js"
     studio_js = _load_studio_js_objects()
     spec_data = json.loads(SPEC_FILE.read_text(encoding="utf-8"))
     catalog_meta = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
     studio_sha256 = {
         "catalog_v5_3.json": _file_lock_entry(CATALOG_FILE),
         "spec_formelle_v5_3.json": _file_lock_entry(SPEC_FILE),
+        "amazonia_data_v5_3.js": _file_lock_entry(studio_js_path),
     }
 
     catalogue = studio_js["CATALOGUE_TUILES"]
