@@ -186,6 +186,9 @@
           <select id="digest-select" onchange="onDigestSelectChange(this.value)" class="bg-forest-900 text-sky-200 font-semibold rounded-lg px-2.5 py-1 border border-forest-700 focus:outline-none max-w-xs sm:max-w-md">
             <option value="">Aucun bilan actif</option>
           </select>
+          <button type="button" id="btn-copy-digest-gemini" onclick="copyActiveDigestForGemini()" disabled title="Copie en 1 tap le bilan de campagne complet (règles cœur actives, tuiles testées et statistiques) prêt à coller dans Gemini" class="hidden px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-semibold transition border border-sky-400/50 shadow flex items-center gap-1">
+            <span>📋 Copier Bilan Gemini</span>
+          </button>
           <input type="file" id="digest-file-input" accept=".json,application/json" class="hidden" onchange="handleDigestFileUpload(event)" />
           <button type="button" onclick="document.getElementById('digest-file-input').click()" title="Importer un fichier digest_*.json local depuis votre disque (mode secours file://)" class="px-2.5 py-1 rounded-lg bg-forest-800 hover:bg-forest-700 text-forest-100 font-semibold transition border border-forest-600 flex items-center gap-1">
             <span>📂 Importer digest .json</span>
@@ -557,6 +560,7 @@
       // Bilan de simulation actif (digest_*.json)
       digestCatalog: [],
       activeDigest: null,
+      activeDigestRawJson: null,
       activeDigestSource: null,
       digestIndex: null
     };
@@ -979,13 +983,95 @@
       };
     }
 
+    const DIGEST_GEMINI_PROMPT_PREFIX = "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :";
+    let copyDigestFeedbackTimer = null;
+
+    function fallbackCopyTextSync(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      if (typeof ta.setAttribute === 'function') ta.setAttribute('readonly', '');
+      if (ta.style) {
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.left = '-9999px';
+      }
+      if (document.body && typeof document.body.appendChild === 'function') {
+        document.body.appendChild(ta);
+      }
+      if (typeof ta.focus === 'function') ta.focus();
+      if (typeof ta.select === 'function') ta.select();
+      if (typeof ta.setSelectionRange === 'function') {
+        ta.setSelectionRange(0, text.length);
+      }
+      let ok = false;
+      try {
+        if (typeof document.execCommand === 'function') {
+          ok = document.execCommand('copy');
+        }
+      } catch (_err) {
+        ok = false;
+      }
+      if (document.body && typeof document.body.removeChild === 'function') {
+        document.body.removeChild(ta);
+      }
+      return ok;
+    }
+
+    function copyActiveDigestForGemini() {
+      if (!state.activeDigest) return;
+      const jsonText = (typeof state.activeDigestRawJson === 'string' && state.activeDigestRawJson.trim())
+        ? state.activeDigestRawJson.trim()
+        : JSON.stringify(state.activeDigest, null, 2);
+      const textToCopy = `${DIGEST_GEMINI_PROMPT_PREFIX}\n\n\`\`\`json\n${jsonText}\n\`\`\``;
+      const byteLen = (typeof TextEncoder !== 'undefined')
+        ? new TextEncoder().encode(textToCopy).length
+        : textToCopy.length;
+      const koInt = Math.max(1, Math.round(byteLen / 1024));
+
+      const showCopiedFeedback = () => {
+        const btn = document.getElementById('btn-copy-digest-gemini');
+        if (!btn) return;
+        if (copyDigestFeedbackTimer) clearTimeout(copyDigestFeedbackTimer);
+        btn.innerHTML = `<span>✅ Bilan copié (${koInt} Ko)</span>`;
+        copyDigestFeedbackTimer = setTimeout(() => {
+          btn.innerHTML = '<span>📋 Copier Bilan Gemini</span>';
+          copyDigestFeedbackTimer = null;
+        }, 2500);
+      };
+
+      if (navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        try {
+          const p = navigator.clipboard.writeText(textToCopy);
+          if (p && typeof p.then === 'function') {
+            p.then(showCopiedFeedback).catch(() => {
+              fallbackCopyTextSync(textToCopy);
+              showCopiedFeedback();
+            });
+          } else {
+            showCopiedFeedback();
+          }
+        } catch (_err) {
+          fallbackCopyTextSync(textToCopy);
+          showCopiedFeedback();
+        }
+      } else {
+        fallbackCopyTextSync(textToCopy);
+        showCopiedFeedback();
+      }
+    }
+
     function renderDigestHeaderBar() {
       const summaryEl = document.getElementById('digest-header-summary');
       const clearBtn = document.getElementById('btn-clear-digest');
+      const copyDigestBtn = document.getElementById('btn-copy-digest-gemini');
       if (!summaryEl || !clearBtn) return;
 
       if (!state.activeDigest || !state.digestIndex) {
         clearBtn.classList.add('hidden');
+        if (copyDigestBtn) {
+          copyDigestBtn.classList.add('hidden');
+          copyDigestBtn.disabled = true;
+        }
         if (state.digestCatalog.length === 0) {
           summaryEl.innerHTML = `<span class="text-forest-400">Aucun bilan actif · En mode <code class="font-mono text-forest-200">file://</code>, utilisez « 📂 Importer digest .json »</span>`;
         } else {
@@ -995,6 +1081,10 @@
       }
 
       clearBtn.classList.remove('hidden');
+      if (copyDigestBtn) {
+        copyDigestBtn.classList.remove('hidden');
+        copyDigestBtn.disabled = false;
+      }
       const s = state.digestIndex.summary;
       const pills = [];
       pills.push(`<span class="px-2 py-0.5 rounded bg-sky-900/70 border border-sky-500/40 text-sky-200 font-mono font-semibold">${escapeHtml(s.campaign)}</span>`);
@@ -1014,12 +1104,15 @@
       summaryEl.innerHTML = pills.join('');
     }
 
-    function applyLoadedDigest(digestObj, sourceLabel) {
+    function applyLoadedDigest(digestObj, sourceLabel, rawJsonText) {
       if (!digestObj || typeof digestObj !== 'object') {
         showToast('Bilan invalide', 'Le fichier JSON sélectionné ne contient pas un objet de bilan valide.');
         return;
       }
       state.activeDigest = digestObj;
+      state.activeDigestRawJson = (typeof rawJsonText === 'string' && rawJsonText.trim())
+        ? rawJsonText.trim()
+        : JSON.stringify(digestObj, null, 2);
       state.activeDigestSource = sourceLabel || digestObj.campaign || 'local.json';
       state.digestIndex = buildDigestIndex(digestObj);
       renderDigestHeaderBar();
@@ -1028,6 +1121,7 @@
 
     function clearActiveDigest() {
       state.activeDigest = null;
+      state.activeDigestRawJson = null;
       state.activeDigestSource = null;
       state.digestIndex = null;
       const sel = document.getElementById('digest-select');
@@ -1072,15 +1166,21 @@
       if (fileName.startsWith('__LOCAL__:')) {
         const cached = localUploadedDigests[fileName];
         if (cached) {
-          applyLoadedDigest(cached.data, cached.name);
+          applyLoadedDigest(cached.data, cached.name, cached.rawText);
         }
         return;
       }
       try {
         const res = await fetch(`digests/${fileName}`, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        applyLoadedDigest(data, `digests/${fileName}`);
+        if (typeof res.text === 'function') {
+          const rawText = await res.text();
+          const data = JSON.parse(rawText);
+          applyLoadedDigest(data, `digests/${fileName}`, rawText);
+        } else {
+          const data = await res.json();
+          applyLoadedDigest(data, `digests/${fileName}`);
+        }
       } catch (err) {
         showToast(
           'Chargement du bilan impossible',
@@ -1096,9 +1196,10 @@
       const reader = new FileReader();
       reader.onload = function (e) {
         try {
-          const parsed = JSON.parse(String(e.target.result || ''));
+          const rawText = String(e.target.result || '');
+          const parsed = JSON.parse(rawText);
           const optVal = `__LOCAL__:${file.name}`;
-          localUploadedDigests[optVal] = { name: file.name, data: parsed };
+          localUploadedDigests[optVal] = { name: file.name, data: parsed, rawText };
           const sel = document.getElementById('digest-select');
           if (sel) {
             let existing = Array.from(sel.options).find(o => o.value === optVal);
@@ -1110,7 +1211,7 @@
             }
             sel.value = optVal;
           }
-          applyLoadedDigest(parsed, file.name);
+          applyLoadedDigest(parsed, file.name, rawText);
         } catch (err) {
           showToast('JSON de bilan invalide', `Impossible de parser ${file.name} : ${err.message}`);
         } finally {

@@ -151,3 +151,71 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
     assert (tmp_path / "last_digest.html").exists()
     assert "drive.file" in GCLOUD_DRIVE_AUTH_CMD
     assert len(build_self_contained_digest(sample_stats)["active_core_rules"]["tactiques"]) == 6
+
+
+def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing(
+    tmp_path: Path,
+) -> None:
+    import pytest
+
+    # 1. Dépassement modéré -> compactage + priorisation des tuiles qui varient dans tested_tiles_rules
+    payload_many_tiles = {
+        "campaign": "macro_budget_test",
+        "generated_at_utc": "2026-11-19T12:00:00Z",
+        "totals": {
+            "total_games": 5000,
+            "tested_tiles": [
+                "G1:A",
+                "G2:A",
+                "G3:A",
+                "G4:A",
+                "G5:A",
+                "G6:A",
+                "G7:A",
+                "G7:B",
+                "R1:A",
+                "R2:A",
+                "M1:A",
+                "M2:A",
+            ],
+        },
+        "tile_metrics": {
+            "G7:A": {"slot": "G7", "profile": "A", "n_games": 2500, "mean_ratio_arbres": 0.65},
+            "G7:B": {"slot": "G7", "profile": "B", "n_games": 2500, "mean_ratio_arbres": 0.68},
+        },
+    }
+    # On fixe max_bytes juste en dessous de la version 12 tuiles mais suffisant pour 2 tuiles variées
+    full_compact_size = len(
+        json.dumps(
+            build_self_contained_digest(payload_many_tiles, chassis_ids=(0,)),
+            separators=(",", ":"),
+            ensure_ascii=False,
+        ).encode("utf-8")
+    )
+    d_path, _p_path, final_digest = write_digest_and_prompt_files(
+        "macro_budget_test",
+        payload_many_tiles,
+        chassis_ids=(0,),
+        varying_tiles=("G7:A", "G7:B"),
+        digests_dir=tmp_path,
+        legacy_data_copy=False,
+        max_bytes=full_compact_size - 10,
+    )
+    assert d_path.exists()
+    kept_pairs = [(t["slot"], t["profil"]) for t in final_digest["tested_tiles_rules"]]
+    assert kept_pairs == [("G7", "A"), ("G7", "B")]
+
+    # 2. Dépassement massif -> aucun crash/assert, avertissement clair émis et fichier écrit
+    with pytest.warns(UserWarning, match="dépasse le budget cible"):
+        d_big, _p_big, big_digest = write_digest_and_prompt_files(
+            "macro_huge_test",
+            payload_many_tiles,
+            chassis_ids=(0,),
+            varying_tiles=("G7:A", "G7:B"),
+            digests_dir=tmp_path,
+            legacy_data_copy=False,
+            max_bytes=1_000,
+        )
+    assert d_big.exists()
+    assert big_digest["active_core_rules"]["version"] == "5.4.0"
+    assert len(d_big.read_bytes()) >= 1_000

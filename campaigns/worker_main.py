@@ -1660,12 +1660,21 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     profile_variants: list[dict[str, Any]] = []
     tested_tiles_set: list[tuple[str, str]] = []
+    varying_tiles_set: list[tuple[str, str]] = []
     if ordered_comp_slots:
         for s, letters in zip(ordered_comp_slots, comp_lists, strict=True):
             for letter in letters:
                 pair = (s, letter)
+                if pair not in varying_tiles_set:
+                    varying_tiles_set.append(pair)
                 if pair not in tested_tiles_set:
                     tested_tiles_set.append(pair)
+        if mode >= 3:
+            for s in CANONICAL_32_SLOTS:
+                if s not in ordered_comp_slots and base_map[s] != "A":
+                    pair = (s, base_map[s])
+                    if pair not in tested_tiles_set:
+                        tested_tiles_set.append(pair)
         for v_idx, combo in enumerate(itertools.product(*comp_lists)):
             overrides = dict(zip(ordered_comp_slots, combo, strict=True))
             gmap = dict(base_map)
@@ -1688,10 +1697,11 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
             }
         )
-        # Inclut les éventuels profils non-A de base pour un digest informatif
-        for s in CANONICAL_32_SLOTS:
-            if base_map[s] != "A":
-                tested_tiles_set.append((s, base_map[s]))
+        # Inclut les éventuels profils non-A actifs en Mode >= 3 (Mode 2 = tuiles neutres)
+        if mode >= 3:
+            for s in CANONICAL_32_SLOTS:
+                if base_map[s] != "A":
+                    tested_tiles_set.append((s, base_map[s]))
 
     # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties,
     #    avec appariement CRN strict sur chaque paire de tables miroirs)
@@ -1788,12 +1798,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "migration_policy": migration_policy,
         "profile_variants": profile_variants,
         "tested_tiles": tuple(tested_tiles_set),
+        "varying_tiles": tuple(varying_tiles_set),
         "games_per_configuration": games_per_cfg,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
         "bot": bot_name,
         "k_max": k_max,
         "mode": mode,
+        "exp_seed": exp_seed,
         "units": units,
     }
 
@@ -1919,13 +1931,17 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "bot": bot_name,
         "k_max": k_max,
         "mode": mode,
+        "exp_seed": exp_seed,
         "n_games": n_games,
         "sum_arbres": sum_arbres,
         "sum_ratio_arbres": round(sum_ratio, 6),
         "sum_sq_ratio_arbres": round(sum_sq_ratio, 6),
         "min_ratio_arbres": round(ratios[0], 6),
         "max_ratio_arbres": round(ratios[-1], 6),
+        "p10_ratio": round(_quantile_sorted(ratios, 0.10), 6),
         "p20_ratio": round(ratios[p20_idx], 6),
+        "p50_ratio": round(_quantile_sorted(ratios, 0.50), 6),
+        "p90_ratio": round(_quantile_sorted(ratios, 0.90), 6),
         "cvar20_ratio": round(cvar20, 6),
         "count_arbres_pos": cnt_arbres_pos,
         "sum_tours": sum_tours,

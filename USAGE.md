@@ -13,11 +13,14 @@ Ouvrez une **nouvelle conversation** par étape pour garder les réponses vives 
 - *« Cherche quelles combinaisons de règles donnent le meilleur équilibre entre les 3 fins de partie. »*
 
 ## 3. Lire un bilan détaillé dans l'application Gemini (Téléphone Android & PC)
-À la fin de chaque tir, le simulateur génère un dossier 100 % auto-portant (règles du cœur + tuiles testées + statistiques) dans `data/digests/digest_<nom>.json` et `data/digests/PROMPT_GEMINI_<nom>.md` (`< 35 Ko`) :
-- **Sur Téléphone Android (2 gestes au choix)** :
-  - **Option A (Google Drive natif)** : dans l'app Gemini, touchez **`+` -> `Google Drive` -> `Récents` -> `PROMPT_GEMINI_<nom>.md`** (ou `.txt` dans le dossier `Amazonia_Digests`).
-  - **Option B (Favori Mobile 1-Tap, même PC éteint)** : ouvrez votre favori mobile **`latest.html`** (ou scannez le QR code affiché dans le terminal), touchez **« 📋 Copier tout le dossier pour l'app Gemini »**, puis collez directement dans l'app Gemini.
-- **Sur PC (Windows 11 / Ubuntu)** : le dossier `PROMPT_GEMINI_<nom>.md` est copié automatiquement dans le presse-papiers en fin de campagne — faites simplement **`Ctrl+V`** dans un nouveau chat Gemini web (ou glissez-y `data/digests/PROMPT_GEMINI_<nom>.md`).
+À la fin de chaque tir, le simulateur génère un dossier 100 % auto-portant (`active_core_rules` + `tested_tiles_rules` + quantiles, `CVaR_20%`, intervalles inter-blocs, `telemetry` et `tile_metrics`) publié dans `docs/digests/digest_<nom>.json` (`< 35 Ko` visé) :
+- **Geste unique Mobile & PC (Recommandé — depuis Amazonia Doc Studio)** :
+  1. Ouvrez **Amazonia Doc Studio** (GitHub Pages ou `docs/index.html`).
+  2. **Sélectionnez la campagne** dans le menu déroulant `📊 Bilan simulation` du bandeau supérieur (ou importez un `.json` en local).
+  3. Touchez / cliquez sur **`📋 Copier Bilan Gemini`** (`✅ Bilan copié (XX Ko)`).
+  4. **Collez directement dans Gemini** (l'amorce d'activation + tout le digest auto-portant sont copiés en 1 tap, sans `Shift + Clic` ni passage par l'Explorateur).
+- **Alternatives locales / hors-ligne** :
+  - `data/digests/PROMPT_GEMINI_<nom>.md` (glisser-déposer ou `Ctrl+V` sur PC, ou Google Drive `Amazonia_Digests` sur Android).
 
 ## 4. Mettre à jour après une retouche dans *Amazonia Doc Studio*
 Dites simplement ici : *« J'ai modifié des règles / des tuiles dans Doc Studio, mets le simulateur à jour. »*

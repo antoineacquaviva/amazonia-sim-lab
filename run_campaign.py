@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -220,6 +221,57 @@ def _cvar_bottom_values(values: list[float], alpha: float = 0.20) -> float:
     return round(sum(ordered[:k]) / k, 4)
 
 
+def _quantile_values(values: list[float], q: float) -> float:
+    """Calcule un quantile linéaire sur une liste de valeurs numériques."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    if len(ordered) == 1:
+        return round(ordered[0], 4)
+    pos = max(0.0, min(1.0, q)) * (len(ordered) - 1)
+    lo = math.floor(pos)
+    hi = min(len(ordered) - 1, lo + 1)
+    frac = pos - lo
+    return round(ordered[lo] * (1.0 - frac) + ordered[hi] * frac, 4)
+
+
+def _inter_block_ci95(block_means: list[float]) -> dict[str, Any]:
+    """Calcule la moyenne, l'écart-type, l'erreur standard et l'IC95 % inter-blocs."""
+    n = len(block_means)
+    if n == 0:
+        return {
+            "n_blocks": 0,
+            "mean_ratio_arbres": 0.0,
+            "std_inter_blocks": 0.0,
+            "se_inter_blocks": 0.0,
+            "ci95_low": 0.0,
+            "ci95_high": 0.0,
+        }
+    mean_v = sum(block_means) / n
+    if n == 1:
+        m_r = round(mean_v, 4)
+        return {
+            "n_blocks": 1,
+            "mean_ratio_arbres": m_r,
+            "std_inter_blocks": 0.0,
+            "se_inter_blocks": 0.0,
+            "ci95_low": m_r,
+            "ci95_high": m_r,
+        }
+    var = sum((x - mean_v) ** 2 for x in block_means) / (n - 1)
+    std = math.sqrt(max(0.0, var))
+    se = std / math.sqrt(n)
+    half = 1.96 * se
+    return {
+        "n_blocks": n,
+        "mean_ratio_arbres": round(mean_v, 4),
+        "std_inter_blocks": round(std, 4),
+        "se_inter_blocks": round(se, 4),
+        "ci95_low": round(max(0.0, mean_v - half), 4),
+        "ci95_high": round(min(1.0, mean_v + half), 4),
+    }
+
+
 def _auto_task_count(n_units: int, total_games: int, backend: str) -> int:
     if n_units <= 1 or total_games <= 32:
         return 1
@@ -417,6 +469,28 @@ def aggregate_campaign_duckdb(
             NULL AS mean_player_decisions,
         """
     )
+    mid_combat_sql = (
+        "ROUND(SUM(sum_mid_combat) * 1.0 / SUM(n_games), 3) AS mean_mid_combat_interrupts,"
+        if "sum_mid_combat" in cell_cols
+        else "NULL AS mean_mid_combat_interrupts,"
+    )
+    extra_q_sql_parts: list[str] = []
+    if "min_ratio_arbres" in cell_cols:
+        extra_q_sql_parts.append("ROUND(MIN(min_ratio_arbres), 4) AS cell_min_ratio,")
+    else:
+        extra_q_sql_parts.append("NULL AS cell_min_ratio,")
+    if "max_ratio_arbres" in cell_cols:
+        extra_q_sql_parts.append("ROUND(MAX(max_ratio_arbres), 4) AS cell_max_ratio,")
+    else:
+        extra_q_sql_parts.append("NULL AS cell_max_ratio,")
+    for q_col in ("p10_ratio", "p20_ratio", "p50_ratio", "p90_ratio"):
+        if q_col in cell_cols:
+            extra_q_sql_parts.append(
+                f"ROUND(SUM({q_col} * n_games) / SUM(n_games), 4) AS weighted_{q_col},"
+            )
+        else:
+            extra_q_sql_parts.append(f"NULL AS weighted_{q_col},")
+    extra_q_sql = "\n            ".join(extra_q_sql_parts)
 
     g_stats = _query_dicts(
         con,
@@ -439,6 +513,8 @@ def aggregate_campaign_duckdb(
             CAST(MAX(max_law_max) AS INTEGER) AS max_active_laws,
             ROUND(SUM(sum_fiddliness) / SUM(n_games), 3) AS mean_fiddliness_ops,
             {ops_select_sql}
+            {mid_combat_sql}
+            {extra_q_sql}
             ROUND(SUM(sum_cascade_sweeps) * 1.0 / SUM(n_games), 3) AS mean_cascade_sweeps
         FROM cells
         """,
@@ -624,8 +700,82 @@ def aggregate_campaign_duckdb(
     ]
 
     tested_tiles: tuple[tuple[str, str], ...] = tuple(plan["tested_tiles"])
+    varying_tiles: tuple[tuple[str, str], ...] = tuple(plan.get("varying_tiles", ()))
     chassis_ids: tuple[int, ...] = tuple(plan["chassis_ids"])
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    campaign_seed = int(manifest.get("seed", plan.get("exp_seed", 20261119)))
+
+    # Quantiles inter-tables + quantiles intra-cellules disponibles dans DuckDB
+    quantiles_block: dict[str, Any] = {
+        "min_ratio_arbres": _quantile_values(all_table_ratios, 0.0),
+        "p10_ratio": _quantile_values(all_table_ratios, 0.10),
+        "p20_ratio": _quantile_values(all_table_ratios, 0.20),
+        "p50_ratio": _quantile_values(all_table_ratios, 0.50),
+        "p90_ratio": _quantile_values(all_table_ratios, 0.90),
+        "max_ratio_arbres": _quantile_values(all_table_ratios, 1.0),
+    }
+    for q_key in (
+        "cell_min_ratio",
+        "cell_max_ratio",
+        "weighted_p10_ratio",
+        "weighted_p20_ratio",
+        "weighted_p50_ratio",
+        "weighted_p90_ratio",
+    ):
+        if g_stats.get(q_key) is not None:
+            quantiles_block[q_key] = float(g_stats[q_key])
+
+    # Intervalles de confiance 95 % calculés inter-blocs (uniquement sur les moyennes de blocs/tables)
+    inter_block_intervals: dict[str, Any] = {
+        "global": _inter_block_ci95(all_table_ratios),
+        "by_n_players": {
+            str(n_pl): _inter_block_ci95(ratios_by_n[n_pl])
+            for n_pl in sorted(ratios_by_n)
+        },
+    }
+
+    # Forks et seeds (inclus automatiquement si la campagne produit des colonnes de micro-forks)
+    forks_block: dict[str, Any] | None = None
+    if "fork_anchors" in cell_cols:
+        fork_missed_sql = (
+            "CAST(SUM(fork_anchors_missed) AS INTEGER) AS fork_anchors_missed,"
+            if "fork_anchors_missed" in cell_cols
+            else "0 AS fork_anchors_missed,"
+        )
+        fork_div_sql = (
+            "CAST(SUM(fork_diverged) AS INTEGER) AS fork_diverged,"
+            if "fork_diverged" in cell_cols
+            else "0 AS fork_diverged,"
+        )
+        fork_row = _query_dicts(
+            con,
+            f"""
+            SELECT
+                CAST(SUM(fork_anchors) AS INTEGER) AS fork_anchors,
+                {fork_missed_sql}
+                {fork_div_sql}
+                COUNT(*) AS n_fork_rows
+            FROM cells
+            WHERE fork_anchors > 0
+            """,
+        )[0]
+        if int(fork_row.get("fork_anchors") or 0) > 0:
+            seed_col = "exp_seed" if "exp_seed" in cell_cols else ("seed" if "seed" in cell_cols else None)
+            if seed_col is not None:
+                seed_rows = _query_dicts(
+                    con,
+                    f"SELECT DISTINCT {seed_col} AS seed FROM cells WHERE fork_anchors > 0 ORDER BY seed LIMIT 64",
+                )
+                fork_seeds = [int(r["seed"]) for r in seed_rows if r.get("seed") is not None]
+            else:
+                fork_seeds = [campaign_seed]
+            forks_block = {
+                "fork_anchors": int(fork_row["fork_anchors"]),
+                "fork_anchors_missed": int(fork_row["fork_anchors_missed"] or 0),
+                "fork_diverged": int(fork_row["fork_diverged"] or 0),
+                "n_fork_rows": int(fork_row["n_fork_rows"]),
+                "seeds": fork_seeds,
+            }
 
     base_tile_profiles: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
     non_default_base_slots = {s: p for s, p in base_tile_profiles.items() if p != "A"}
@@ -643,6 +793,7 @@ def aggregate_campaign_duckdb(
         "job_name": job_name,
         "image": image_uri,
         "tasks": tasks,
+        "seed": campaign_seed,
         "job_wall_sec": round(job_wall_sec, 3),
         "max_worker_compute_sec": round(max_compute_sec, 3),
         "sum_worker_games_per_sec": sum_worker_gps,
@@ -664,6 +815,8 @@ def aggregate_campaign_duckdb(
         telemetry_block["mean_physical_ops"] = g_stats["mean_physical_ops"]
     if g_stats["mean_player_decisions"] is not None:
         telemetry_block["mean_player_decisions"] = g_stats["mean_player_decisions"]
+    if g_stats.get("mean_mid_combat_interrupts") is not None:
+        telemetry_block["mean_mid_combat_interrupts"] = g_stats["mean_mid_combat_interrupts"]
 
     digest_payload: dict[str, Any] = {
         "campaign": campaign_name,
@@ -689,6 +842,8 @@ def aggregate_campaign_duckdb(
             "tested_tiles": [f"{s}:{p}" for s, p in tested_tiles],
             "parquet_archive": parquet_path.relative_to(ROOT).as_posix(),
         },
+        "quantiles": quantiles_block,
+        "inter_block_intervals": inter_block_intervals,
         "telemetry": telemetry_block,
         "by_mode": by_mode,
         "by_n_players": by_n_players,
@@ -696,12 +851,15 @@ def aggregate_campaign_duckdb(
         "by_variant": by_variant_clean,
         "tile_metrics": tile_metrics,
     }
+    if forks_block is not None:
+        digest_payload["forks"] = forks_block
 
     digest_path, prompt_path, final_digest = write_digest_and_prompt_files(
         campaign_name,
         digest_payload,
         chassis_ids=chassis_ids[:8],
         tested_tiles=tested_tiles,
+        varying_tiles=varying_tiles if varying_tiles else None,
     )
 
     print(f"\n=== SYNTHÈSE DUCKDB — {campaign_name} ({total_games} parties) ===")

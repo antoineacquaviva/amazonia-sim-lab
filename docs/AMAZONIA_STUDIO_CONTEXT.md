@@ -35,7 +35,8 @@ L'application est une **SPA statique sans bundler** (compatible `file://` et HTT
   5. `Declenchement_Fin_De_Piste` : `ARRIVEE_DERNIERE_PARCELLE` (défaut) | `DEPASSEMENT_DERNIERE_PARCELLE`.
   6. `Role_Abatteuse_Fin_De_Piste` : `STANDARD_COUPE_ARBRE` (défaut) | `ARRACHE_1_SOUCHE_SI_SANS_ARBRE`.
   7. `Synergie_Binome_Machines` : `INDIVIDUELLE` (défaut) | `MUTUALISATION_PUISSANCE_MEME_PARCELLE`.
-- **Export IA contextuel (`✨ Copier contexte Gemini`)** : Copie un JSON structuré (`_meta`, `regles_coeur`, `instance`, `tuiles_ciblees`) limité aux tuiles en jeu ou filtrées (`Shift + Clic` = export complet des 100 profils + tête du changelog).
+- **Export IA contextuel (`✨ Copier contexte Gemini`)** : Copie un JSON structuré (`_meta`, `regles_coeur`, `instance`, `tuiles_ciblees`) limité aux tuiles en jeu ou filtrées (`Shift + Clic` = export complet des 100 profils + tête du changelog) pour les discussions éditoriales hors campagne.
+- **Bilan de Campagne & Copie 1-Tap (`📊 Bilan simulation` + `📋 Copier Bilan Gemini`)** : Dans la ligne 3 du bandeau supérieur, le sélecteur déroulant charge `digests/index.json` (avec import local `.json` en mode `file://`). Dès qu'un bilan est chargé, le bouton dédié **`📋 Copier Bilan Gemini`** (mobile-first, synchrone sur le digest déjà en mémoire, sans `Shift + Clic` ni passage par l'Explorateur) copie en 1 seul tap l'amorce d'analyse + le `digest_*.json` 100 % auto-portant (`active_core_rules`, `tested_tiles_rules`, quantiles, `CVaR_20%`, intervalles inter-blocs, `telemetry`, `tile_metrics`). Geste unique : *Sélectionner la campagne → Cliquer sur `📋 Copier Bilan Gemini` → Coller dans Gemini*.
 
 ### 2.2. Les 4 Vues Synchronisées
 1. **📖 1. Livret Didactique (`#view-livret`)** : Règles humaines complètes compilées dynamiquement pour l'instance active, avec tableau des `2N` tuiles, autorité par Peuple d'origine et surlignage ambre commutable des blocs dynamiques.

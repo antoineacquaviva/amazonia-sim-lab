@@ -267,3 +267,228 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     assert payload["ok"] is True
     assert payload["topologies_checked"] == 6
     assert payload["tables_checked"] == 3
+
+
+_NODE_COPY_DIGEST_HARNESS = r"""
+const fs = require('fs');
+const vm = require('vm');
+
+const [indexPath, dataPath, livretPath, digestPath] = process.argv.slice(1);
+const html = fs.readFileSync(indexPath, 'utf8');
+const dataJs = fs.readFileSync(dataPath, 'utf8');
+const livretJs = fs.readFileSync(livretPath, 'utf8');
+const digestRaw = fs.readFileSync(digestPath, 'utf8');
+const digestObj = JSON.parse(digestRaw);
+
+if (!html.includes('id="btn-copy-digest-gemini"') || !html.includes('📋 Copier Bilan Gemini')) {
+  throw new Error('Bouton #btn-copy-digest-gemini absent de docs/index.html');
+}
+
+const inlineScripts = [];
+for (const m of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
+  inlineScripts.push(m[1]);
+}
+
+function makeElement(id) {
+  const classes = new Set(id === 'btn-copy-digest-gemini' ? ['hidden'] : []);
+  return {
+    id,
+    _innerHTML: id === 'btn-copy-digest-gemini' ? '<span>📋 Copier Bilan Gemini</span>' : '',
+    _textContent: '',
+    disabled: id === 'btn-copy-digest-gemini',
+    value: '',
+    className: '',
+    options: [],
+    style: {},
+    classList: {
+      add: (...cs) => cs.forEach(c => classes.add(c)),
+      remove: (...cs) => cs.forEach(c => classes.delete(c)),
+      toggle: (c) => (classes.has(c) ? classes.delete(c) : classes.add(c)),
+      contains: (c) => classes.has(c),
+    },
+    get innerHTML() { return this._innerHTML; },
+    set innerHTML(v) { this._innerHTML = String(v); },
+    get textContent() { return this._textContent; },
+    set textContent(v) { this._textContent = String(v); },
+    setAttribute: () => {},
+    addEventListener: () => {},
+    querySelectorAll: () => [],
+    querySelector: () => null,
+    focus: () => {},
+    select: () => {},
+    setSelectionRange: () => {},
+    click: () => {},
+  };
+}
+
+const elements = new Map();
+function getEl(id) {
+  if (!elements.has(id)) elements.set(id, makeElement(id));
+  return elements.get(id);
+}
+
+let fetchCallsDuringCopy = 0;
+let trackingCopyFetch = false;
+let clipboardWrites = [];
+let fallbackTextareas = [];
+let execCopyCount = 0;
+
+const sandbox = {
+  console,
+  Math,
+  JSON,
+  Object,
+  Array,
+  String,
+  Number,
+  Boolean,
+  Set,
+  Map,
+  RegExp,
+  Date,
+  Error,
+  TypeError,
+  TextEncoder,
+  parseInt,
+  parseFloat,
+  isNaN,
+  encodeURIComponent,
+  decodeURIComponent,
+  setTimeout: () => 1,
+  clearTimeout: () => {},
+  localStorage: { _m: {}, getItem(k) { return this._m[k] || null; }, setItem(k, v) { this._m[k] = String(v); } },
+  navigator: {
+    clipboard: {
+      writeText: (txt) => {
+        clipboardWrites.push(txt);
+        return Promise.resolve();
+      },
+    },
+  },
+  location: { protocol: 'https:', href: 'https://example.invalid/' },
+  fetch: async () => {
+    if (trackingCopyFetch) fetchCallsDuringCopy++;
+    return { ok: false, json: async () => ({}) };
+  },
+  tailwind: {},
+  document: {
+    getElementById: (id) => getEl(id),
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    createElement: (tag) => {
+      const el = makeElement(tag);
+      if (tag === 'textarea') fallbackTextareas.push(el);
+      return el;
+    },
+    body: {
+      appendChild: () => {},
+      removeChild: () => {},
+    },
+    execCommand: (cmd) => {
+      if (cmd === 'copy') execCopyCount++;
+      return true;
+    },
+  },
+  window: {},
+};
+sandbox.window = sandbox;
+sandbox.globalThis = sandbox;
+vm.createContext(sandbox);
+
+vm.runInContext(dataJs, sandbox, { filename: dataPath });
+vm.runInContext(livretJs, sandbox, { filename: livretPath });
+for (let i = 0; i < inlineScripts.length; i++) {
+  vm.runInContext(inlineScripts[i], sandbox, { filename: `docs/index.html#script${i}` });
+}
+
+// 1. Avant chargement : bouton masqué et désactivé
+vm.runInContext('clearActiveDigest();', sandbox);
+const btn = getEl('btn-copy-digest-gemini');
+if (!btn.classList.contains('hidden') || btn.disabled !== true) {
+  throw new Error('Le bouton Copier Bilan Gemini doit être masqué et désactivé sans bilan');
+}
+
+// 2. Après chargement en mémoire : bouton visible et actif
+sandbox.__TEST_DIGEST = digestObj;
+sandbox.__TEST_DIGEST_RAW = digestRaw;
+vm.runInContext('applyLoadedDigest(__TEST_DIGEST, "digests/digest_micro_validation.json", __TEST_DIGEST_RAW);', sandbox);
+if (btn.classList.contains('hidden') || btn.disabled !== false) {
+  throw new Error('Le bouton Copier Bilan Gemini doit être visible et actif avec un bilan chargé');
+}
+
+// 3. Clic synchrone via navigator.clipboard (zéro fetch)
+trackingCopyFetch = true;
+vm.runInContext('copyActiveDigestForGemini();', sandbox);
+trackingCopyFetch = false;
+
+setImmediate(() => {
+  try {
+    if (fetchCallsDuringCopy !== 0) {
+      throw new Error('copyActiveDigestForGemini ne doit jamais relancer de fetch');
+    }
+    if (clipboardWrites.length !== 1) {
+      throw new Error('Attendu 1 écriture presse-papiers, obtenu ' + clipboardWrites.length);
+    }
+    const copied = clipboardWrites[0];
+    const expectedPrefix = "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :";
+    if (!copied.startsWith(expectedPrefix)) {
+      throw new Error('Amorce attendue absente au début du texte copié');
+    }
+    if (!copied.includes('"active_core_rules"') || !copied.includes('"tested_tiles_rules"') || !copied.includes('"tile_metrics"')) {
+      throw new Error('Le texte copié ne contient pas le digest complet');
+    }
+    if (!/✅ Bilan copié \(\d+ Ko\)/.test(btn.innerHTML)) {
+      throw new Error('Retour visuel attendu sur le bouton absent: ' + btn.innerHTML);
+    }
+
+    // 4. Vérification du fallback synchrone <textarea> quand navigator.clipboard est absent (Android / file://)
+    sandbox.navigator = {};
+    vm.runInContext('copyActiveDigestForGemini();', sandbox);
+    if (execCopyCount !== 1 || fallbackTextareas.length !== 1) {
+      throw new Error('Fallback textarea + execCommand(copy) non déclenché');
+    }
+    if (!fallbackTextareas[0].value.startsWith(expectedPrefix)) {
+      throw new Error('Contenu du fallback textarea invalide');
+    }
+
+    console.log(JSON.stringify({
+      ok: true,
+      copied_len: copied.length,
+      button_feedback: btn.innerHTML,
+      fallback_exec_copy: execCopyCount,
+    }));
+  } catch (err) {
+    console.error(err);
+    process.exit(1);
+  }
+});
+"""
+
+
+def test_studio_copy_active_digest_for_gemini_mobile_one_tap() -> None:
+    """Vérifie le bouton 1-tap `📋 Copier Bilan Gemini` et son fallback textarea dans docs/index.html."""
+    digest_path = ROOT / "docs" / "digests" / "digest_micro_validation.json"
+    assert digest_path.exists()
+    proc = subprocess.run(
+        [
+            "node",
+            "-e",
+            _NODE_COPY_DIGEST_HARNESS,
+            str(STUDIO_INDEX),
+            str(STUDIO_DATA),
+            str(STUDIO_LIVRET),
+            str(digest_path),
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0, (
+        f"Échec du test Copier Bilan Gemini :\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+    )
+    payload = json.loads(proc.stdout.strip().splitlines()[-1])
+    assert payload["ok"] is True
+    assert payload["copied_len"] > 5000
+    assert payload["fallback_exec_copy"] == 1
+    assert "✅ Bilan copié (" in payload["button_feedback"]

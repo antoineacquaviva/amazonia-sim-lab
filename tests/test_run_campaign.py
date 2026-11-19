@@ -312,3 +312,175 @@ def test_ensure_worker_image_does_not_update_gcs_if_build_fails(
         ensure_worker_image_up_to_date("gcloud", root=tmp_path)
     assert gcs_store[WORKER_IMAGE_HASH_GCS_URI].strip() == "oldhash"
 
+
+def test_local_micro_validation_manifest_end_to_end_without_gcs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exécute un micro-run local complet sur campaigns/micro_validation.json sans aucun appel GCS."""
+    import campaigns.digest_builder as db_mod
+
+    repo_root = Path(__file__).resolve().parent.parent
+    manifest_path = repo_root / "campaigns" / "micro_validation.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    plan = resolve_manifest_plan(manifest)
+
+    shards_dir = tmp_path / "shards"
+    rc = run_campaign_manifest(
+        manifest_source=str(manifest_path),
+        task_index=0,
+        task_count=1,
+        workers=1,
+        local_out_dir=str(shards_dir),
+    )
+    assert rc == 0
+    assert (shards_dir / "shard_00.jsonl.gz").exists()
+
+    digests_dir = tmp_path / "data_digests"
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(db_mod, "DEFAULT_DIGESTS_DIR", digests_dir)
+    monkeypatch.setattr(db_mod, "ROOT", tmp_path)
+    monkeypatch.setattr(rc_mod, "ROOT", tmp_path)
+
+    parquet_path = tmp_path / "cells.parquet"
+    digest_path, prompt_path, digest = aggregate_campaign_duckdb(
+        manifest=manifest,
+        plan=plan,
+        shards_dir=shards_dir,
+        parquet_path=parquet_path,
+        backend="local",
+        job_name="local-micro-validation",
+        tasks=1,
+        job_wall_sec=0.5,
+    )
+    assert digest_path.exists() and prompt_path.exists() and parquet_path.exists()
+    raw_bytes = digest_path.read_bytes()
+    assert not raw_bytes.startswith(b"\xef\xbb\xbf")
+    assert b"\r\n" not in raw_bytes
+    assert len(raw_bytes) < db_mod.MAX_DIGEST_BYTES
+
+    # 1. Règles cœur actives complètes
+    core = digest["active_core_rules"]
+    assert core["version"] == "5.4.0"
+    assert "studio_sha256" in core and len(core["studio_sha256"]) >= 2
+    assert len(core["chassis_7_axes"]) == 1
+    assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
+    assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
+    sf = core["spec_formelle"]
+    assert len(sf["etapes_1_a_6"]) == 6
+    for key in (
+        "furtivite",
+        "chaine_parades_et_pieges",
+        "sabotage_par_dilution",
+        "apprentissage",
+        "fins_5_3",
+    ):
+        assert isinstance(sf[key], str) and len(sf[key]) > 20
+
+    # 2. Tuiles testées auto-détectées (G7:A et G7:B) + tile_metrics préservé
+    assert [(t["slot"], t["profil"]) for t in digest["tested_tiles_rules"]] == [
+        ("G7", "A"),
+        ("G7", "B"),
+    ]
+    for entry in digest["tested_tiles_rules"]:
+        assert {"slot", "profil", "nom", "famille", "texte"} <= set(entry.keys())
+    assert set(digest["tile_metrics"].keys()) == {"G7:A", "G7:B"}
+
+    # 3. Résultats DuckDB complets : quantiles, CVaR_20%, intervalles inter-blocs, telemetry
+    assert digest["totals"]["total_games"] == 16
+    assert "cvar20_ratio" in digest["totals"]
+    assert "table_cvar20_ratio" in digest["totals"]
+    q = digest["quantiles"]
+    assert {"min_ratio_arbres", "p10_ratio", "p20_ratio", "p50_ratio", "p90_ratio", "max_ratio_arbres"} <= set(q.keys())
+    ib = digest["inter_block_intervals"]
+    assert ib["global"]["n_blocks"] >= 2
+    assert 0.0 <= ib["global"]["ci95_low"] <= ib["global"]["ci95_high"] <= 1.0
+    tel = digest["telemetry"]
+    assert "mean_mem_debt" in tel and "mean_mid_combat_interrupts" in tel
+
+
+def test_aggregate_campaign_duckdb_includes_forks_with_seeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Vérifie l'inclusion automatique de `forks` avec leurs `seeds` si produits par la campagne."""
+    import gzip
+
+    import campaigns.digest_builder as db_mod
+
+    shards_dir = tmp_path / "shards"
+    shards_dir.mkdir(parents=True, exist_ok=True)
+    row = {
+        "campaign": "fork_unit",
+        "task_index": 0,
+        "task_games": 4,
+        "task_wall_sec": 0.2,
+        "task_games_per_sec": 20.0,
+        "config_id": 0,
+        "n_players": 4,
+        "chassis_id": 0,
+        "p_max": 4,
+        "variant_idx": 0,
+        "variant_id": "G7:A",
+        "compared_slots_json": '{"G7":"A"}',
+        "table_id": "M-R-O-H",
+        "peuples": "M-R-O-H",
+        "bot": "B2",
+        "k_max": 3,
+        "mode": 3,
+        "exp_seed": 20269901,
+        "n_games": 4,
+        "sum_arbres": 100,
+        "sum_ratio_arbres": 2.5,
+        "sum_sq_ratio_arbres": 1.6,
+        "min_ratio_arbres": 0.5,
+        "max_ratio_arbres": 0.75,
+        "p10_ratio": 0.5,
+        "p20_ratio": 0.55,
+        "p50_ratio": 0.625,
+        "p90_ratio": 0.75,
+        "cvar20_ratio": 0.5,
+        "count_arbres_pos": 4,
+        "sum_tours": 24,
+        "count_tour_8": 2,
+        "count_reve_rang_1": 0,
+        "count_reveil_gardiens": 2,
+        "sum_mem_debt": 200,
+        "sum_law_mean": 1.0,
+        "max_law_max": 2,
+        "sum_fiddliness": 10.0,
+        "sum_physical_ops": 120,
+        "sum_player_decisions": 40,
+        "sum_cascade_sweeps": 12,
+        "sum_mid_combat": 4,
+        "fork_anchors": 6,
+        "fork_anchors_missed": 1,
+        "fork_diverged": 4,
+    }
+    with gzip.open(shards_dir / "shard_00.jsonl.gz", "wt", encoding="utf-8") as fh:
+        fh.write(json.dumps(row) + "\n")
+
+    manifest = _sample_manifest()
+    manifest["campaign_name"] = "fork_unit"
+    plan = resolve_manifest_plan(manifest)
+
+    digests_dir = tmp_path / "data_digests"
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(db_mod, "DEFAULT_DIGESTS_DIR", digests_dir)
+    monkeypatch.setattr(db_mod, "ROOT", tmp_path)
+    monkeypatch.setattr(rc_mod, "ROOT", tmp_path)
+
+    _, _, digest = aggregate_campaign_duckdb(
+        manifest=manifest,
+        plan=plan,
+        shards_dir=shards_dir,
+        parquet_path=tmp_path / "cells.parquet",
+        backend="local",
+        job_name="local-fork-unit",
+        tasks=1,
+        job_wall_sec=0.2,
+    )
+    assert "forks" in digest
+    assert digest["forks"]["fork_anchors"] == 6
+    assert digest["forks"]["fork_anchors_missed"] == 1
+    assert digest["forks"]["fork_diverged"] == 4
+    assert digest["forks"]["seeds"] == [20269901]
+

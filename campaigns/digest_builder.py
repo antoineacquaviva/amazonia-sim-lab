@@ -9,6 +9,8 @@ from __future__ import annotations
 import hashlib
 import html
 import json
+import sys
+import warnings
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -201,8 +203,8 @@ def build_active_core_rules(
     }
 
     return {
-        "version": str(meta.get("schema_version", "5.3.1")),
-        "source_studio_version": str(meta.get("source_studio_version", "v5.3")),
+        "version": str(meta.get("schema_version", "5.4.0")),
+        "source_studio_version": str(meta.get("source_studio_version", "v5.4")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
         "chassis_7_axes": chassis_list,
@@ -264,11 +266,14 @@ def build_tested_tiles_rules(
 
 def _infer_chassis_ids_from_payload(payload: dict[str, Any]) -> tuple[int, ...]:
     found: list[int] = []
-    by_mc = payload.get("by_mode_and_chassis")
-    if isinstance(by_mc, list):
-        for row in by_mc:
-            if isinstance(row, dict) and "chassis_id" in row:
-                found.append(int(row["chassis_id"]))
+    for list_key in ("by_mode_and_chassis", "by_chassis"):
+        rows = payload.get(list_key)
+        if isinstance(rows, list):
+            for row in rows:
+                if isinstance(row, dict) and "chassis_id" in row:
+                    found.append(int(row["chassis_id"]))
+        if found:
+            break
     if not found:
         found.append(0)
     return tuple(dict.fromkeys(found))
@@ -281,7 +286,48 @@ def _infer_tested_tiles_from_payload(payload: dict[str, Any]) -> list[str]:
             val = totals.get(key)
             if isinstance(val, list) and val:
                 return [str(x) for x in val]
+    tile_metrics = payload.get("tile_metrics")
+    if isinstance(tile_metrics, dict) and tile_metrics:
+        return [str(k) for k in tile_metrics if ":" in str(k)]
     return []
+
+
+def _infer_varying_tile_pairs(
+    payload: dict[str, Any],
+    tested_tiles_rules: Sequence[Mapping[str, Any]],
+) -> set[tuple[str, str]]:
+    """Identifie les tuiles (slot, profil) qui varient réellement dans la campagne."""
+    varying: set[tuple[str, str]] = set()
+    tile_metrics = payload.get("tile_metrics")
+    if isinstance(tile_metrics, dict):
+        for tok in tile_metrics:
+            s_tok = str(tok)
+            if ":" in s_tok:
+                varying.add(_parse_tile_pair(s_tok))
+
+    by_variant = payload.get("by_variant")
+    if isinstance(by_variant, list):
+        for row in by_variant:
+            if not isinstance(row, dict):
+                continue
+            vid = str(row.get("variant_id", ""))
+            for part in vid.split(","):
+                part_clean = part.strip()
+                if ":" in part_clean:
+                    varying.add(_parse_tile_pair(part_clean))
+
+    # Ajoute tout emplacement présent sous >= 2 profils distincts dans tested_tiles_rules
+    by_slot: dict[str, list[str]] = {}
+    for entry in tested_tiles_rules:
+        s_id = str(entry.get("slot", "")).strip()
+        p_id = str(entry.get("profil", "")).strip()
+        if s_id and p_id:
+            by_slot.setdefault(s_id, []).append(p_id)
+    for s_id, profs in by_slot.items():
+        if len(set(profs)) >= 2:
+            for p_id in profs:
+                varying.add((s_id, p_id))
+    return varying
 
 
 def build_self_contained_digest(
@@ -516,12 +562,13 @@ def write_digest_and_prompt_files(
     *,
     chassis_ids: Sequence[int] | None = None,
     tested_tiles: Sequence[str | Sequence[str]] | None = None,
+    varying_tiles: Sequence[str | Sequence[str]] | None = None,
     digests_dir: Path | None = None,
     legacy_data_copy: bool = True,
     max_bytes: int = MAX_DIGEST_BYTES,
     bundle_path: Path | None = None,
 ) -> tuple[Path, Path, dict[str, Any]]:
-    """Écrit `data/digests/digest_<nom>.json` (< 35 Ko) et `data/digests/PROMPT_GEMINI_<nom>.md`."""
+    """Écrit `data/digests/digest_<nom>.json` (cible < 35 Ko, non bloquant) et `PROMPT_GEMINI_<nom>.md`."""
     slug = campaign_slug.strip()
     slug = slug.removeprefix("digest_")
     slug = slug.removesuffix(".json")
@@ -539,13 +586,40 @@ def write_digest_and_prompt_files(
     raw_json = json.dumps(digest, indent=2, ensure_ascii=False) + "\n"
     encoded_json = raw_json.encode("utf-8")
     if len(encoded_json) >= max_bytes:
-        # Repli compacté sans perte d'information si une campagne très dense approche 35 Ko
+        # Repli compacté sans perte d'information si une campagne dense approche 35 Ko
         raw_json = json.dumps(digest, separators=(",", ":"), ensure_ascii=False) + "\n"
         encoded_json = raw_json.encode("utf-8")
 
-    assert len(encoded_json) < max_bytes, (
-        f"Digest trop volumineux : {len(encoded_json)} >= {max_bytes} octets"
-    )
+    if len(encoded_json) >= max_bytes:
+        # Si le budget cible est encore dépassé, privilégier les tuiles qui varient dans tested_tiles_rules
+        current_tiles = list(digest.get("tested_tiles_rules", []))
+        if current_tiles:
+            varying_pairs: set[tuple[str, str]] = (
+                {_parse_tile_pair(item) for item in varying_tiles}
+                if varying_tiles is not None
+                else _infer_varying_tile_pairs(digest, current_tiles)
+            )
+            if varying_pairs:
+                prioritized = [
+                    entry
+                    for entry in current_tiles
+                    if (str(entry.get("slot", "")), str(entry.get("profil", "")))
+                    in varying_pairs
+                ]
+                if prioritized and len(prioritized) < len(current_tiles):
+                    digest["tested_tiles_rules"] = prioritized
+                    raw_json = (
+                        json.dumps(digest, separators=(",", ":"), ensure_ascii=False) + "\n"
+                    )
+                    encoded_json = raw_json.encode("utf-8")
+
+    if len(encoded_json) >= max_bytes:
+        msg = (
+            f"Digest '{slug}' dépasse le budget cible ({len(encoded_json)} >= {max_bytes} octets) "
+            "— conservé en JSON compact sans blocage."
+        )
+        warnings.warn(msg, UserWarning, stacklevel=2)
+        print(f"[AVERTISSEMENT] {msg}", file=sys.stderr, flush=True)
 
     digest_path = out_dir / f"digest_{slug}.json"
     prompt_path = out_dir / f"PROMPT_GEMINI_{slug}.md"
