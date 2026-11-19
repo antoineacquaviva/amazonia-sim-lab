@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "calibration_reveil_v5_4",
+      "label": "Calibration Mode 2 du Réveil de la Forêt v5.4.1 (bot B2, N=3..6, toutes combinaisons de Peuples avec A>=1 Animal Sauvage, 6 profils de piste chassis_id 0..5, 6 variantes quota x sort Gardien). (16416 parties)",
+      "file": "digest_calibration_reveil_v5_4.json",
+      "campaign": "calibration_reveil_v5_4",
+      "generated_at_utc": "2026-11-19T19:04:02Z",
+      "total_games": 16416
+    },
+    {
       "id": "coeur_symetrique_v5_4_384",
       "label": "Exploration complète du cœur symétrique v5.4 (Mode 2, tuiles neutres, 384 châssis, 3 à 6 joueurs) (73728 parties)",
       "file": "digest_coeur_symetrique_v5_4_384.json",
