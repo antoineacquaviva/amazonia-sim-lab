@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import itertools
 import json
 import multiprocessing
 import os
 import platform
+import re
 import sys
 import time
 import urllib.parse
@@ -32,6 +34,7 @@ from campaigns.digest_builder import (
     build_self_contained_digest,
 )
 from campaigns.map_elites import (
+    CANONICAL_32_SLOTS,
     GenomeEvaluation,
     StrategicDepthReport,
     build_127_circular_tables,
@@ -45,7 +48,13 @@ from campaigns.map_elites import (
 )
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
-from engine.state import PEUPLES_ORDER, STATE_BUF_SIZE, GameConfig, GameState
+from engine.state import (
+    CHASSIS_AXES_OPTIONS,
+    PEUPLES_ORDER,
+    STATE_BUF_SIZE,
+    GameConfig,
+    GameState,
+)
 from engine.telemetry import TelemetryTracker
 
 METADATA_TOKEN_URL: str = (
@@ -136,6 +145,18 @@ def _upload_gcs_bytes(
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return dict(json.loads(resp.read().decode("utf-8")))
+
+
+def _download_gcs_bytes(bucket: str, object_name: str, token: str) -> bytes:
+    encoded_name = urllib.parse.quote(object_name, safe="")
+    url = f"https://storage.googleapis.com/storage/v1/b/{bucket}/o/{encoded_name}?alt=media"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {token}"},
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return bytes(resp.read())
 
 
 def _upload_worker_mobile_latest_html(
@@ -1451,6 +1472,490 @@ def run_campaign_palier4_phase_b(
     return 0
 
 
+_MANIFEST_D_SLOTS: tuple[str, ...] = (
+    "G3",
+    "G7",
+    "G10",
+    "G11",
+    "G14",
+    "R4",
+    "R5",
+    "R6",
+    "R8",
+    "R10",
+    "M1",
+    "M2",
+    "M3",
+    "M4",
+    "M5",
+)
+
+
+def _sanitize_slug(raw: str) -> str:
+    cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "_", raw.strip().lower()).strip("_")
+    return cleaned or "campagne_v5_3"
+
+
+def _match_axis_bit(axis_name: str, val: Any, opts_pair: tuple[Any, Any]) -> int:
+    for bit_idx, opt in enumerate(opts_pair):
+        if val == opt:
+            return bit_idx
+        if (
+            isinstance(opt, int)
+            and isinstance(val, str)
+            and val.strip().lstrip("-").isdigit()
+            and int(val) == opt
+        ):
+            return bit_idx
+        if isinstance(opt, str) and isinstance(val, str) and val.strip().upper() == opt.upper():
+            return bit_idx
+    raise ValueError(f"Valeur invalide pour l'axe {axis_name!r} : {val!r} (attendu {opts_pair})")
+
+
+def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Résout un manifeste JSON `campaigns/<nom>.json` en plan exécutable déterministe."""
+    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v5_3")))
+    raw_players = manifest.get("player_counts", [4])
+    player_counts = sorted({int(n) for n in raw_players})
+    if not player_counts or any(n not in (3, 4, 5, 6) for n in player_counts):
+        raise ValueError(f"player_counts invalide (attendu 3..6) : {player_counts}")
+
+    games_per_cfg = max(1, int(manifest.get("games_per_configuration", 1)))
+    bot_name = str(manifest.get("bot", "B2")).strip().upper()
+    if bot_name not in ("B0", "B1", "B2"):
+        raise ValueError(f"Bot non supporté dans le manifeste : {bot_name!r} (attendu B0/B1/B2)")
+    k_max = int(manifest.get("k_max", 0 if bot_name == "B0" else 3))
+    mode = int(manifest.get("mode", 3))
+    exp_seed = int(manifest.get("seed", 20261119))
+
+    # 1. Résolution des châssis (produit cartésien des axes variables + axes figés)
+    chassis_plan = manifest.get("chassis_plan", {})
+    fixed_raw = chassis_plan.get("fixed_axes", {})
+    fixed_norm: dict[str, Any] = {str(k).lower(): v for k, v in fixed_raw.items()}
+    varying_raw = chassis_plan.get("varying_axes", [])
+    varying_norm: dict[str, list[Any]] = {}
+    for item in varying_raw:
+        if isinstance(item, str):
+            ax_key = item.lower()
+            varying_norm[ax_key] = []
+        elif isinstance(item, dict) and "key" in item:
+            ax_key = str(item["key"]).lower()
+            vals = list(item.get("values", []))
+            varying_norm[ax_key] = vals
+
+    axis_bit_choices: list[list[int]] = []
+    for _bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
+        ax_low = axis_name.lower()
+        if ax_low in varying_norm:
+            raw_vals = varying_norm[ax_low]
+            if not raw_vals:
+                axis_bit_choices.append([0, 1])
+            else:
+                bits = sorted(
+                    {_match_axis_bit(axis_name, v, opts_pair) for v in raw_vals}
+                )
+                axis_bit_choices.append(bits)
+        elif ax_low in fixed_norm:
+            bit_val = _match_axis_bit(axis_name, fixed_norm[ax_low], opts_pair)
+            axis_bit_choices.append([bit_val])
+        else:
+            axis_bit_choices.append([0])
+
+    chassis_ids: list[int] = []
+    for combo in itertools.product(*axis_bit_choices):
+        cid = 0
+        for bit_pos, b in enumerate(combo):
+            cid |= b << bit_pos
+        chassis_ids.append(cid)
+    chassis_ids = sorted(set(chassis_ids))
+
+    # 2. Résolution du génome de base (32 slots)
+    base_inst = manifest.get("base_instance", {})
+    bundle_id = str(base_inst.get("bundle_id", "STANDARD_A")).strip().upper()
+    if bundle_id == "MODE3_REF":
+        ref_genome = load_mode3_reference_genome()
+        base_map: dict[str, str] = dict(zip(CANONICAL_32_SLOTS, ref_genome, strict=True))
+    else:
+        base_map = {slot_id: "A" for slot_id in CANONICAL_32_SLOTS}
+        if bundle_id == "ESSAI_52_EMBUSCADE":
+            for s in _MANIFEST_D_SLOTS:
+                base_map[s] = "D"
+
+    for slot_id, prof in dict(base_inst.get("profile_overrides", {})).items():
+        if slot_id in base_map:
+            base_map[str(slot_id)] = str(prof).strip().upper()
+    for slot_id, prof in dict(base_inst.get("slots_insectes", {})).items():
+        if slot_id in base_map:
+            base_map[str(slot_id)] = str(prof).strip().upper()
+
+    # 3. Variantes de profils comparés (produit cartésien sur slot_profile_comparisons)
+    raw_comps = manifest.get("slot_profile_comparisons", {})
+    ordered_comp_slots = [s for s in CANONICAL_32_SLOTS if raw_comps.get(s)]
+    comp_lists = [[str(p).strip().upper() for p in raw_comps[s]] for s in ordered_comp_slots]
+
+    profile_variants: list[dict[str, Any]] = []
+    tested_tiles_set: list[tuple[str, str]] = []
+    if ordered_comp_slots:
+        for s, letters in zip(ordered_comp_slots, comp_lists, strict=True):
+            for letter in letters:
+                pair = (s, letter)
+                if pair not in tested_tiles_set:
+                    tested_tiles_set.append(pair)
+        for v_idx, combo in enumerate(itertools.product(*comp_lists)):
+            overrides = dict(zip(ordered_comp_slots, combo, strict=True))
+            gmap = dict(base_map)
+            gmap.update(overrides)
+            v_label = ",".join(f"{s}:{p}" for s, p in overrides.items())
+            profile_variants.append(
+                {
+                    "variant_idx": v_idx,
+                    "variant_id": v_label,
+                    "compared_slots": overrides,
+                    "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
+                }
+            )
+    else:
+        profile_variants.append(
+            {
+                "variant_idx": 0,
+                "variant_id": "BASE",
+                "compared_slots": {},
+                "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
+            }
+        )
+        # Inclut les éventuels profils non-A de base pour un digest informatif
+        for s in CANONICAL_32_SLOTS:
+            if base_map[s] != "A":
+                tested_tiles_set.append((s, base_map[s]))
+
+    # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties)
+    base_peuples_raw = base_inst.get("peuples_cercle", [])
+    base_peuples: tuple[str, ...] = tuple(str(p).strip().upper() for p in base_peuples_raw)
+
+    units: list[dict[str, Any]] = []
+    config_idx = 0
+    for n_pl in player_counts:
+        if (
+            len(base_peuples) == n_pl
+            and len(set(base_peuples)) == n_pl
+            and all(p in PEUPLES_ORDER for p in base_peuples)
+        ):
+            mir = mirror_peuples(base_peuples)
+            t1_id = "-".join(base_peuples)
+            t2_id = "-".join(mir)
+            if games_per_cfg >= 2 and mir != base_peuples:
+                candidate_tables: tuple[tuple[str, tuple[str, ...]], ...] = (
+                    (t1_id, base_peuples),
+                    (t2_id, mir),
+                )
+            else:
+                candidate_tables = ((t1_id, base_peuples),)
+        else:
+            all_t = PALIER1_TABLES_BY_N[n_pl]
+            candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
+
+        n_tables = len(candidate_tables)
+        base_per_tbl = games_per_cfg // n_tables
+        rem_tbl = games_per_cfg % n_tables
+
+        for ch_id in chassis_ids:
+            for var in profile_variants:
+                rep_offset = 0
+                for t_i, (t_id, peuples) in enumerate(candidate_tables):
+                    g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
+                    if g_cnt <= 0:
+                        continue
+                    units.append(
+                        {
+                            "campaign": campaign_name,
+                            "config_id": config_idx,
+                            "n_players": n_pl,
+                            "chassis_id": ch_id,
+                            "variant_idx": var["variant_idx"],
+                            "variant_id": var["variant_id"],
+                            "compared_slots": var["compared_slots"],
+                            "tile_profiles": var["tile_profiles"],
+                            "table_id": t_id,
+                            "peuples": peuples,
+                            "bot": bot_name,
+                            "k_max": k_max,
+                            "mode": mode,
+                            "exp_seed": exp_seed,
+                            "rep_start": rep_offset,
+                            "n_games": g_cnt,
+                        }
+                    )
+                    rep_offset += g_cnt
+                config_idx += 1
+
+    return {
+        "campaign_name": campaign_name,
+        "player_counts": player_counts,
+        "chassis_ids": tuple(chassis_ids),
+        "profile_variants": profile_variants,
+        "tested_tiles": tuple(tested_tiles_set),
+        "games_per_configuration": games_per_cfg,
+        "total_configurations": config_idx,
+        "total_games": sum(int(u["n_games"]) for u in units),
+        "bot": bot_name,
+        "k_max": k_max,
+        "mode": mode,
+        "units": units,
+    }
+
+
+def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
+    t0 = time.perf_counter()
+    n_pl = int(unit["n_players"])
+    ch_id = int(unit["chassis_id"])
+    mode = int(unit["mode"])
+    peuples = tuple(unit["peuples"])
+    tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
+    bot_name = str(unit["bot"])
+    k_max = int(unit["k_max"])
+    exp_seed = int(unit["exp_seed"])
+    rep_start = int(unit["rep_start"])
+    n_games = int(unit["n_games"])
+
+    ratios: list[float] = []
+    sum_arbres = 0
+    sum_ratio = 0.0
+    sum_sq_ratio = 0.0
+    sum_tours = 0
+    cnt_t8 = 0
+    cnt_reve = 0
+    cnt_reveil = 0
+    cnt_arbres_pos = 0
+    p_max_val = 4
+
+    sum_mem_debt = 0
+    sum_law_mean = 0.0
+    max_law_max = 0
+    sum_fiddliness = 0.0
+    sum_cascade_sweeps = 0
+    sum_mid_combat = 0
+
+    for i in range(n_games):
+        rep_id = rep_start + i
+        base_cfg = GameConfig.from_chassis_index(
+            ch_id,
+            n_players=n_pl,
+            mode=mode,
+            peuples=peuples,
+            exp_seed=exp_seed,
+            rep_id=rep_id,
+            coordonnateur_initial=rep_id % n_pl,
+            max_revision_passes=k_max,
+        )
+        p_max_val = base_cfg.p_max
+        cfg = GameConfig(
+            n_players=base_cfg.n_players,
+            mode=mode,
+            peuples=base_cfg.peuples,
+            exp_seed=base_cfg.exp_seed,
+            rep_id=base_cfg.rep_id,
+            coordonnateur_initial=base_cfg.coordonnateur_initial,
+            max_revision_passes=base_cfg.max_revision_passes,
+            p_max=base_cfg.p_max,
+            regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
+            offset_seuil_parade=base_cfg.offset_seuil_parade,
+            mise_en_place_tactiques=base_cfg.mise_en_place_tactiques,
+            declenchement_fin_de_piste=base_cfg.declenchement_fin_de_piste,
+            role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
+            synergie_binome_machines=base_cfg.synergie_binome_machines,
+            tile_profiles=tile_profiles if mode >= 3 else (),
+        )
+        trk = TelemetryTracker()
+        st = GameState(cfg)
+        if bot_name == "B0":
+            res = play_game_b0(st, max_steps=2000, chassis_id=ch_id, telemetry=trk)
+        elif bot_name == "B1":
+            res = play_game_b1(
+                st, k_max_passes=k_max, max_steps=2000, chassis_id=ch_id, telemetry=trk
+            )
+        else:
+            res = play_game_b2(
+                st, k_max_passes=k_max, max_steps=2000, chassis_id=ch_id, telemetry=trk
+            )
+
+        rt = float(res.ratio_arbres)
+        ratios.append(rt)
+        sum_arbres += int(res.score_arbres)
+        sum_ratio += rt
+        sum_sq_ratio += rt * rt
+        sum_tours += int(res.tour_fin)
+        if res.score_arbres > 0:
+            cnt_arbres_pos += 1
+        if res.cause_fin == CAUSE_TOUR_8:
+            cnt_t8 += 1
+        elif res.cause_fin == CAUSE_REVE_RANG_1:
+            cnt_reve += 1
+        elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
+            cnt_reveil += 1
+
+        ts = trk.summary()
+        sum_mem_debt += int(ts.mem_debt_score)
+        sum_law_mean += float(ts.law_stack_mean)
+        max_law_max = max(max_law_max, int(ts.law_stack_max))
+        sum_fiddliness += float(ts.fiddliness_ratio)
+        sum_cascade_sweeps += int(ts.cascade_sweeps)
+        sum_mid_combat += int(ts.mid_combat_interrupts)
+
+    ratios.sort()
+    k20 = max(1, (len(ratios) + 4) // 5)
+    p20_idx = min(len(ratios) - 1, max(0, int(0.2 * (len(ratios) - 1))))
+    cvar20 = sum(ratios[:k20]) / k20
+    wall_sec = time.perf_counter() - t0
+
+    return {
+        "campaign": str(unit["campaign"]),
+        "config_id": int(unit["config_id"]),
+        "n_players": n_pl,
+        "chassis_id": ch_id,
+        "p_max": p_max_val,
+        "variant_idx": int(unit["variant_idx"]),
+        "variant_id": str(unit["variant_id"]),
+        "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
+        "table_id": str(unit["table_id"]),
+        "peuples": "-".join(peuples),
+        "bot": bot_name,
+        "k_max": k_max,
+        "mode": mode,
+        "n_games": n_games,
+        "sum_arbres": sum_arbres,
+        "sum_ratio_arbres": round(sum_ratio, 6),
+        "sum_sq_ratio_arbres": round(sum_sq_ratio, 6),
+        "min_ratio_arbres": round(ratios[0], 6),
+        "max_ratio_arbres": round(ratios[-1], 6),
+        "p20_ratio": round(ratios[p20_idx], 6),
+        "cvar20_ratio": round(cvar20, 6),
+        "count_arbres_pos": cnt_arbres_pos,
+        "sum_tours": sum_tours,
+        "count_tour_8": cnt_t8,
+        "count_reve_rang_1": cnt_reve,
+        "count_reveil_gardiens": cnt_reveil,
+        "sum_mem_debt": sum_mem_debt,
+        "sum_law_mean": round(sum_law_mean, 4),
+        "max_law_max": max_law_max,
+        "sum_fiddliness": round(sum_fiddliness, 4),
+        "sum_cascade_sweeps": sum_cascade_sweeps,
+        "sum_mid_combat": sum_mid_combat,
+        "cell_wall_sec": round(wall_sec, 4),
+    }
+
+
+def _load_manifest_from_source(source: str) -> dict[str, Any]:
+    if source.startswith("gs://"):
+        without_scheme = source[5:]
+        bucket, _, obj_name = without_scheme.partition("/")
+        if not bucket or not obj_name:
+            raise ValueError(f"URI GCS invalide : {source}")
+        token = _fetch_gcp_access_token()
+        raw = _download_gcs_bytes(bucket, obj_name, token)
+        return dict(json.loads(raw.decode("utf-8")))
+    return dict(json.loads(Path(source).read_text(encoding="utf-8")))
+
+
+def run_campaign_manifest(
+    *,
+    manifest_source: str,
+    gcs_prefix: str | None = None,
+    task_index: int | None = None,
+    task_count: int | None = None,
+    workers: int | None = None,
+    local_out_dir: str | None = None,
+) -> int:
+    """Exécute un manifeste JSON `campaigns/<nom>.json` sur Cloud Run Jobs / Cloud Batch ou en local."""
+    t_idx = (
+        task_index
+        if task_index is not None
+        else int(os.environ.get("CLOUD_RUN_TASK_INDEX", os.environ.get("BATCH_TASK_INDEX", "0")))
+    )
+    t_cnt = (
+        task_count
+        if task_count is not None
+        else int(os.environ.get("CLOUD_RUN_TASK_COUNT", os.environ.get("BATCH_TASK_COUNT", "1")))
+    )
+    manifest = _load_manifest_from_source(manifest_source)
+    plan = resolve_manifest_plan(manifest)
+    campaign_name = str(plan["campaign_name"])
+    prefix = gcs_prefix if gcs_prefix else f"campaigns/{campaign_name}"
+
+    all_units: list[dict[str, Any]] = list(plan["units"])
+    my_units = [u for i, u in enumerate(all_units) if i % t_cnt == t_idx]
+    n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
+
+    t0 = time.perf_counter()
+    if n_procs > 1 and len(my_units) > 1:
+        with multiprocessing.Pool(processes=min(n_procs, len(my_units))) as pool:
+            records = pool.map(_execute_manifest_unit, my_units)
+    else:
+        records = [_execute_manifest_unit(u) for u in my_units]
+
+    wall_sec = time.perf_counter() - t0
+    task_games = sum(int(r["n_games"]) for r in records)
+    task_gps = task_games / wall_sec if wall_sec > 0 else 0.0
+
+    for rec in records:
+        rec["task_index"] = t_idx
+        rec["task_count"] = t_cnt
+        rec["task_workers"] = n_procs
+        rec["task_games"] = task_games
+        rec["task_wall_sec"] = round(wall_sec, 4)
+        rec["task_games_per_sec"] = round(task_gps, 2)
+        rec["python_impl"] = platform.python_implementation()
+
+    shard_filename = f"shard_{t_idx:02d}.jsonl.gz"
+    if not records:
+        print(
+            json.dumps(
+                {
+                    "status": "CAMPAIGN_MANIFEST_SHARD_EMPTY",
+                    "campaign": campaign_name,
+                    "task_index": t_idx,
+                    "task_count": t_cnt,
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        return 0
+
+    raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
+    compressed = gzip.compress(raw_jsonl)
+
+    if local_out_dir is not None:
+        out_path = Path(local_out_dir) / shard_filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(compressed)
+        dest_uri = str(out_path)
+    else:
+        object_name = f"{prefix.rstrip('/')}/{shard_filename}"
+        token = _fetch_gcp_access_token()
+        _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
+
+    print(
+        json.dumps(
+            {
+                "status": "CAMPAIGN_MANIFEST_SHARD_OK",
+                "campaign": campaign_name,
+                "task_index": t_idx,
+                "task_count": t_cnt,
+                "workers": n_procs,
+                "units": len(my_units),
+                "games": task_games,
+                "wall_sec": round(wall_sec, 3),
+                "games_per_sec": round(task_gps, 1),
+                "dest": dest_uri,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Amazonia Sim Lab PyPy Worker")
     parser.add_argument(
@@ -1478,6 +1983,18 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exécute la Phase B & Étape 2 du Palier 4 (MAP-Elites + Shapley + 127 tables + B0..B3).",
     )
+    parser.add_argument(
+        "--campaign-manifest",
+        type=str,
+        default=None,
+        help="Chemin local ou URI gs:// vers un manifeste JSON campaigns/<nom>.json.",
+    )
+    parser.add_argument(
+        "--gcs-prefix",
+        type=str,
+        default=None,
+        help="Préfixe GCS dans gs://amazonia-sim-runs pour écrire les shards.",
+    )
     parser.add_argument("--total-games", type=int, default=100_000)
     parser.add_argument("--reps-coop", type=int, default=12)
     parser.add_argument("--forks-per-table", type=int, default=2)
@@ -1502,6 +2019,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.smoke_test:
         return run_smoke_test()
+    if args.campaign_manifest:
+        return run_campaign_manifest(
+            manifest_source=args.campaign_manifest,
+            gcs_prefix=args.gcs_prefix,
+            task_index=args.task_index,
+            task_count=args.task_count,
+            workers=args.workers,
+            local_out_dir=args.local_out_dir,
+        )
     if args.campaign_palier1:
         return run_campaign_palier1(
             total_games=args.total_games,
