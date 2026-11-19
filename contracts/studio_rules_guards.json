@@ -1,0 +1,54 @@
+{
+  "schema_version": "5.4",
+  "description": "Garde-fous sémantiques et lexicaux vérifiés automatiquement sur Amazonia Doc Studio (Livret Didactique, Catalogue hors historique et rendu DOM headless) lors de chaque verify_lot.py.",
+  "banned_in_livret": [
+    "Une tuile Rêve occupe",
+    "en Siège",
+    "mode Siège",
+    "Siège T4",
+    "DEPASSEMENT_DERNIERE_PARCELLE",
+    "/ 128",
+    "Ratissage sur <code>T4</code>",
+    "T4 pour un Ratissage"
+  ],
+  "banned_in_catalogue_tuiles": [
+    "en Siège",
+    "mode Siège",
+    "Siège T4",
+    "DEPASSEMENT_DERNIERE_PARCELLE",
+    "amener un Rêve au Rang 1"
+  ],
+  "banned_in_rendered_dom": [
+    "NaN",
+    "undefined"
+  ],
+  "required_livret_assertions": [
+    {
+      "peuples": ["M", "R", "O", "I"],
+      "must_contain": [
+        "Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table)",
+        "Ratissage",
+        "<code>T1</code>",
+        "/ 384"
+      ]
+    },
+    {
+      "peuples": ["M", "R", "O", "H"],
+      "must_contain": [
+        "Toutes les <strong>2 tuiles Rêve</strong> en jeu",
+        "Rangs 1 à 2",
+        "Ratissage",
+        "<code>T1</code>"
+      ]
+    },
+    {
+      "peuples": ["M", "R", "H", "E"],
+      "must_contain": [
+        "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
+        "Rangs 1 à 4",
+        "Ratissage",
+        "<code>T1</code>"
+      ]
+    }
+  ]
+}

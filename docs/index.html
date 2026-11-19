@@ -1362,12 +1362,15 @@
       const modifiedAxes = getModifiedAxesList();
       const configNum = computeConfigurationIndex();
       const topoCode = state.chassis.Profil_Piste || 'P4_2233';
-      const topoSpec = (typeof TOPOLOGIES_PISTE_SPEC !== 'undefined' && TOPOLOGIES_PISTE_SPEC[topoCode]) || { code: 'P4_2233', p_max: 4, arbres_par_rayon: 10 };
-      const totalArbres = n * topoSpec.arbres_par_rayon;
+      const topoSpec = (typeof TOPOLOGIES_PISTE_SPEC !== 'undefined' && TOPOLOGIES_PISTE_SPEC[topoCode]) || { code: 'P4_2233', p_max: 4, somme: 10, arbres_par_rayon: 10 };
+      const arbresParRayon = topoSpec.arbres_par_rayon ?? topoSpec.somme ?? 10;
+      const topoLabelCode = topoSpec.code || topoCode;
+      const totalArbres = n * arbresParRayon;
+      const totalConfigs = CHASSIS_AXES_SPEC.reduce((acc, ax) => acc * ax.options.length, 1);
 
       // Badges du Header
       const cfgBadge = document.getElementById('header-config-badge');
-      cfgBadge.textContent = `Config #${configNum} / 384 (${modifiedAxes.length === 0 ? 'Châssis Standard' : modifiedAxes.length + ' axe(s) modifié(s)'})`;
+      cfgBadge.textContent = `Config #${configNum} / ${totalConfigs} (${modifiedAxes.length === 0 ? 'Châssis Standard' : modifiedAxes.length + ' axe(s) modifié(s)'})`;
       cfgBadge.className = modifiedAxes.length === 0
         ? 'px-2.5 py-0.5 text-xs font-mono rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
         : 'px-2.5 py-0.5 text-xs font-mono rounded-full bg-amber-500/30 text-amber-200 border border-amber-400';
@@ -1379,8 +1382,7 @@
       piegePill.textContent = 'Pièges : Embuscade (Déf ≥ 1)';
       piegePill.className = 'px-2 py-0.5 rounded bg-emerald-900/80 border border-emerald-500/50 text-emerald-200 font-medium';
 
-
-      document.getElementById('summary-arbres-pill').textContent = `Capital : ${totalArbres} Arbres (${topoSpec.code} · ${topoSpec.arbres_par_rayon}×${n})`;
+      document.getElementById('summary-arbres-pill').textContent = `Capital : ${totalArbres} Arbres (${topoLabelCode} · ${arbresParRayon}×${n})`;
 
       // Sélecteurs de Peuples dans le tiroir
       const pGrid = document.getElementById('peuples-selector-grid');

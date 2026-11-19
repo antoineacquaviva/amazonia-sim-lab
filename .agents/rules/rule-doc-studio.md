@@ -10,13 +10,13 @@ Référentiel complet : `docs/AMAZONIA_STUDIO_CONTEXT.md` (Section 5).
 
 ## 1. Synchronisation obligatoire des 4 couches
 - Toute évolution de règle ou de profil de tuile dans `docs/` doit mettre à jour **simultanément** les 4 couches :
-  1. `docs/data/livret_v5_3.js` (`renderDidacticRulebook` **ET** `REGLES_COEUR_SYNTHESE`) ;
-  2. `docs/data/amazonia_data_v5_3.js` (`CATALOGUE_TUILES`, `VERSION_CHANGELOG`, `SPEC_FORMELLE_V5_3`) ;
-  3. `docs/data/catalog_v5_3.json` ;
-  4. `docs/data/spec_formelle_v5_3.json`.
+  1. `docs/data/livret_v5_4.js` (`renderDidacticRulebook` **ET** `REGLES_COEUR_SYNTHESE`) ;
+  2. `docs/data/amazonia_data_v5_4.js` (`CATALOGUE_TUILES`, `VERSION_CHANGELOG`, `TOPOLOGIES_PISTE_SPEC`, `CHASSIS_AXES_SPEC`) ;
+  3. `docs/data/catalog_v5_4.json` ;
+  4. `docs/data/spec_formelle_v5_4.json`.
 - Après toute modification dans `docs/data/`, resynchroniser immédiatement le simulateur via :
   `uv run python scripts_cloud/sync_studio.py && uv run python scripts_cloud/build_spec_bundle.py`
-  puis valider les **8/8 portes** de `uv run python verify_lot.py` (incluant la porte de cohérence 32 emplacements / 100 profils / 7 axes du châssis).
+  puis valider les **8/8 portes** de `uv run python verify_lot.py` (incluant la porte de cohérence 32 emplacements / 100 profils / 7 axes du châssis et le rendu headless DOM).
 
 ## 2. Patchs différentiels via Node `vm` + `JSON.stringify`
 - Ne **jamais** réécrire tout le catalogue à la main dans une réponse LLM ni injecter des chaînes JS par regex brutes (risque de casse sur les apostrophes `'` vs `’`).
@@ -30,3 +30,8 @@ Référentiel complet : `docs/AMAZONIA_STUDIO_CONTEXT.md` (Section 5).
 - Écrire tous les fichiers en **UTF-8 sans BOM** avec fins de ligne `\n` (LF).
 - Préserver le fonctionnement **SPA statique sans bundler** de `docs/index.html` (chemins relatifs `data/...` uniquement, compatible `file://` et HTTPS).
 - Sous Windows PowerShell 5.1, préférer l'exécution d'un fichier script (`node "docs/scripts/xxx.js"`) aux one-liners `node -e "..."` (qui altèrent les guillemets doubles).
+
+## 5. Garde-fous sémantiques & rendu headless (`contracts/studio_rules_guards.json`)
+- Lors de toute évolution de règle du cœur (renommage de concept, suppression d'option, changement de victoire), mettre à jour `contracts/studio_rules_guards.json` (termes bannis hors historique `VERSION_CHANGELOG` + assertions positives sur le HTML du Livret rendu).
+- `tests/test_studio_render_and_guards.py` exécute `refreshAllUI()` en headless Node `vm` sur toutes les topologies et compositions de table et échoue automatiquement sur toute exception JS, `NaN`, `undefined`, bloc `VERSION_CHANGELOG` sans `deltas[]` ou résidu de règle obsolète.
+

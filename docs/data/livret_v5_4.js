@@ -55,6 +55,7 @@ function renderDidacticRulebook() {
   const pMax = topoSpec.p_max;
   const modifiedAxes = getModifiedAxesList();
   const configNum = computeConfigurationIndex();
+  const totalConfigs = CHASSIS_AXES_SPEC.reduce((acc, ax) => acc * ax.options.length, 1);
 
   const gardiensDispoCount = activeTileIds.filter(id => CATALOGUE_TUILES[id].famille === 'GARDIEN').length;
   const reveilActif = gardiensDispoCount >= 3;
@@ -81,7 +82,7 @@ function renderDidacticRulebook() {
         </div>
         <div class="bg-forest-50 border border-forest-200 rounded-xl p-3 text-xs font-mono text-forest-900">
           <div><strong>Version :</strong> v5.4 (Audit consolidé)</div>
-          <div><strong>Châssis :</strong> #${configNum} / 384</div>
+          <div><strong>Châssis :</strong> #${configNum} / ${totalConfigs}</div>
           <div><strong>Bundle :</strong> ${state.bundleId}</div>
           <div><strong>Pièges :</strong> Embuscade (Déf ≥ 1)</div>
         </div>
