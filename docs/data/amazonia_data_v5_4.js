@@ -177,7 +177,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 10,
-    "label": "P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)"
+    "label": "P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)",
+    "code": "P4_2233",
+    "arbres_par_rayon": 10
   },
   "P4_2223": {
     "p_max": 4,
@@ -188,7 +190,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 9,
-    "label": "P4_2223 : 4 parcelles [2,2,2,3] (9N Arbres)"
+    "label": "P4_2223 : 4 parcelles [2,2,2,3] (9N Arbres)",
+    "code": "P4_2223",
+    "arbres_par_rayon": 9
   },
   "P4_1223": {
     "p_max": 4,
@@ -199,7 +203,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 8,
-    "label": "P4_1223 : 4 parcelles [1,2,2,3] (8N Arbres)"
+    "label": "P4_1223 : 4 parcelles [1,2,2,3] (8N Arbres)",
+    "code": "P4_1223",
+    "arbres_par_rayon": 8
   },
   "P5_22233": {
     "p_max": 5,
@@ -211,7 +217,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 12,
-    "label": "P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)"
+    "label": "P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)",
+    "code": "P5_22233",
+    "arbres_par_rayon": 12
   },
   "P5_22223": {
     "p_max": 5,
@@ -223,7 +231,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 11,
-    "label": "P5_22223 : 5 parcelles [2,2,2,2,3] (11N Arbres)"
+    "label": "P5_22223 : 5 parcelles [2,2,2,2,3] (11N Arbres)",
+    "code": "P5_22223",
+    "arbres_par_rayon": 11
   },
   "P5_12223": {
     "p_max": 5,
@@ -235,7 +245,9 @@ const TOPOLOGIES_PISTE_SPEC = {
       3
     ],
     "somme": 10,
-    "label": "P5_12223 : 5 parcelles [1,2,2,2,3] (10N Arbres)"
+    "label": "P5_12223 : 5 parcelles [1,2,2,2,3] (10N Arbres)",
+    "code": "P5_12223",
+    "arbres_par_rayon": 10
   }
 };
 
@@ -2519,20 +2531,35 @@ const CATALOGUE_TUILES = {
 const VERSION_CHANGELOG = [
   {
     "version": "v5.4",
-    "date": "2026-11-19",
+    "date": "Version en vigueur (2026-11-19)",
     "titre": "6 Profils de Pistes, Placement Échelonné, Sommeil en Bloc & Mode Ratissage (384 configs)",
-    "resume": "Évolution majeure du cœur de jeu : 4 nouveaux profils de pistes à tester (2223, 1223, 22223, 12223), option de placement initial échelonné (Bulldozer p=1, Abatteuse p=2), victoire par Sommeil exigeant le regroupement en bloc à gauche de toutes les tuiles Rêves en jeu, et remplacement définitif du Siège T4 par le mode Ratissage (pion double face, +1 puissance imprimée, T1 Sur place, entrée définitive sur la dernière parcelle).",
-    "points": [
-      "Profils de pistes (Axe 1) : 6 profils testables (P4_2233, P4_2223, P4_1223, P5_22233, P5_22223, P5_12223) ; suppression définitive de DEPASSEMENT_DERNIERE_PARCELLE -> 7 axes, 384 configurations.",
-      "Placement initial des machines (Axe 5) : Standard (Abatteuse & Bulldozer en p=1) ou Échelonné (Bulldozer en p=1, Abatteuse en p=2).",
-      "Victoire par Sommeil : toutes les tuiles Rêves en jeu (2 par peuple onirique à la table, soit 2 ou 4 ; inactif si 0) doivent occuper en bloc les premières positions à gauche de la Piste des Tactiques.",
-      "Mode Ratissage (remplace Siège) : pion machine double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place (alimente T1 en Apprentissage en 6.1).",
-      "Cohérence catalogue : terminologie Ratissage harmonisée sur toutes les tuiles, R7:B (Endiguement du Ratissage) recentrée sur -1 Seuil, textes/témoins Sommeil alignés (G12:A, R1:B, R9:B, R10:B)."
+    "resume": "Évolution majeure du cœur de jeu : 4 nouveaux profils de pistes homogènes (2223, 1223, 22223, 12223), option de placement initial échelonné (Bulldozer p=1, Abatteuse p=2) remplaçant DEPASSEMENT_DERNIERE_PARCELLE, victoire par Sommeil exigeant le bloc contigu en tête de tous les Rêves en jeu, et remplacement définitif du Siège T4 par le mode Ratissage (pion double face, +1 puissance rouge imprimée, T1 Sur place).",
+    "deltas": [
+      {
+        "domaine": "1. Profils de pistes homogènes (Axe 1 · 6 profils)",
+        "avant": "v5.3 : 2 profils de pistes uniquement — P4_2233 [2,2,3,3] (10N Arbres) et P5_22233 [2,2,2,3,3] (12N Arbres).",
+        "apres": "v5.4 : 6 profils homogènes sur tous les rayons — P4_2233 [2,2,3,3], P4_2223 [2,2,2,3], P4_1223 [1,2,2,3], P5_22233 [2,2,2,3,3], P5_22223 [2,2,2,2,3] et P5_12223 [1,2,2,2,3]."
+      },
+      {
+        "domaine": "2. Placement initial des machines (Axe 5 · 384 configs)",
+        "avant": "v5.3 : Option Declenchement_Fin_De_Piste (ARRIVEE_DERNIERE_PARCELLE vs DEPASSEMENT_DERNIERE_PARCELLE) ; 128 configurations.",
+        "apres": "v5.4 : Suppression définitive de DEPASSEMENT_DERNIERE_PARCELLE. Nouvel Axe 5 Placement_Initial_Machines : MEME_PARCELLE_P1 (Bulldozer & Abatteuse en p=1) vs BULLDOZER_P1_ABATTEUSE_P2 (Bulldozer en p=1, Abatteuse en p=2). Espace combinatoire porté à 6 × 2^6 = 384 configurations."
+      },
+      {
+        "domaine": "3. Victoire par Sommeil du Contremaître (Bloc de Rêves)",
+        "avant": "v5.3 : Victoire dès qu’une seule tuile Rêve atteint le Rang 1 (case 1) de la Piste des Tactiques.",
+        "apres": "v5.4 : Toutes les tuiles Rêves en jeu (2 par peuple onirique présent à la table, soit 2 ou 4 ; victoire impossible à 0 peuple onirique) doivent occuper en bloc contigu toutes les premières positions à gauche de la Piste des Tactiques (rangs 1..k)."
+      },
+      {
+        "domaine": "4. Abandon du « Siège » → Mode « Ratissage » (Pion double face)",
+        "avant": "v5.3 : État Siège appliquant la tactique T4 (+1 rouge ajouté à chaque tour, -1 Seuil) et alimentant T4 en Apprentissage.",
+        "apres": "v5.4 : Pions machine double face (face normale -> retournement permanent sur face Ratissage dès la dernière parcelle non rasée). Mode Ratissage : +1 puissance imprimé directement applicable (traité comme +1 rouge à tous égards, conservant les jetons rouges acquis) et application systématique de T1 Sur place (mod Seuil 0, gain rouge 0, alimente T1 en 6.1 Apprentissage). R7:B simplifiée en -1 Seuil sur les machines en Ratissage (E/M et voisins)."
+      }
     ]
   },
   {
     "version": "v5.3",
-    "date": "Version consolidée en vigueur (Audit · 25 arbitrages)",
+    "date": "Version précédente (Audit · 25 arbitrages)",
     "titre": "Seuil Imprimé Fixe, Embuscade unique (100 profils), Furtivité à 4 emplacements jumeaux & Zéro Verrouillage",
     "resume": "Alignement intégral Livret Humain / Catalogue (100 profils) / Simulateur / BGA : Seuil Imprimé fixe (P4_2233 / P5_22233), Furtivité orientée à 4 emplacements jumeaux, gouvernance unitaire par Peuple d’origine, défausse immédiate des Insectes à la parade (zéro dette et zéro verrouillage des parcelles), cascades de Gardiens à plat (1→6) et résolution complète machine par machine.",
     "deltas": [

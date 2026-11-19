@@ -1627,7 +1627,7 @@
           <div class="p-5 bg-white space-y-4">
             <p class="text-xs sm:text-sm text-slate-700 font-medium bg-slate-50 p-3 rounded-xl border border-slate-200">${b.resume}</p>
             <div class="space-y-3">
-              ${b.deltas.map(d => `
+              ${(b.deltas || []).map(d => `
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-3 p-3.5 rounded-xl border border-slate-200 bg-slate-50/40 text-xs">
                   <div class="md:col-span-3 font-bold text-slate-900">${d.domaine}</div>
                   <div class="md:col-span-4 p-2.5 rounded-lg bg-rose-50/80 border border-rose-200 text-rose-950 whitespace-pre-line">
@@ -1653,15 +1653,16 @@
         activeOverrides[id] = `PROFIL_${state.profileOverrides[id] || 'A'}`;
       });
       const topoCode = state.chassis.Profil_Piste || 'P4_2233';
-      const topoSpec = (typeof TOPOLOGIES_PISTE_SPEC !== 'undefined' && TOPOLOGIES_PISTE_SPEC[topoCode]) || { code: 'P4_2233', p_max: 4, arbres_par_rayon: 10 };
+      const topoSpec = (typeof TOPOLOGIES_PISTE_SPEC !== 'undefined' && TOPOLOGIES_PISTE_SPEC[topoCode]) || { code: 'P4_2233', p_max: 4, somme: 10, arbres_par_rayon: 10 };
+      const arbresParRayon = topoSpec.arbres_par_rayon ?? topoSpec.somme ?? 10;
 
       return {
         schema_version: '5.4',
         bundle_id: state.bundleId,
         configuration_index_384: computeConfigurationIndex(),
         peuples_cercle: [...state.peuplesCercle],
-        topologie_code: topoSpec.code,
-        capital_arbres_initial: state.peuplesCercle.length * topoSpec.arbres_par_rayon,
+        topologie_code: topoSpec.code || topoCode,
+        capital_arbres_initial: state.peuplesCercle.length * arbresParRayon,
         chassis_overrides: { ...state.chassis },
         lisieres_actives: lisieres.map(l => ({
           paire: [l.p1, l.p2],
