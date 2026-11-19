@@ -322,9 +322,17 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
         profils: dict[str, dict[str, Any]] = slot.get("profils", {})
 
         if famille == "MIGRATION":
-            chosen_key = "A"
-            rationale = "Migration fixée à A selon la référence Mode 3."
-            kept_a_count += 1
+            if slot_id == "SLOT_BUG_CERVEAU":
+                chosen_key = "B"
+                rationale = (
+                    "Profil B actif par défaut depuis v5.4.2 "
+                    "(Déviation Synaptique en 3.2, Apprentissage supprimé)."
+                )
+                replaced_a.append({"slot": slot_id, "chosen": chosen_key, "reason": rationale})
+            else:
+                chosen_key = "A"
+                rationale = "Migration fixée à A selon la référence Mode 3."
+                kept_a_count += 1
         else:
             scored = []
             for pk, p in profils.items():
@@ -433,8 +441,7 @@ def build_bundle() -> None:
                 "traite_comme_jeton_rouge_a_tous_egards": True,
                 "conserve_jetons_puissance_anterieurs": True,
                 "tactique_imprimee": "T1",
-                "autonomie_attaque_si_t1_ejectee": True,
-                "apprentissage_sur_t1_si_presente": True,
+                "piste_tactiques_fixe": True,
                 "entree_definitive_derniere_parcelle": True,
             },
         },

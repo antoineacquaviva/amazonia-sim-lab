@@ -314,7 +314,7 @@ def test_g12_a_temoin() -> None:
     # On avance le Rêve du Rang 2 (indice 1) vers le Rang 1 (indice 0)
     apply_choice(state, 1)
     assert state.get_tactique_at_rank(0) == TILE_R_BASE + 1
-    assert state.get_tactique_at_rank(1) == t_rank0
+    assert state.get_tactique_at_rank(1) == 2  # Tactique imprimée T2 révélée sur la piste fixe
     # Sans ouvrir son Slot ni allumer la case 5
     assert state.has_reve_opened_this_turn(1) is False
     assert state.get_gardien_at_case(5)[2] is False

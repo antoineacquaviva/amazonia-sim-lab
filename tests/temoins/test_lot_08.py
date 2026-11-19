@@ -14,7 +14,6 @@ from engine.effects.registry import get_tile_registration
 from engine.primitives import (
     DEC_EFFET_TUILE,
     DecisionRequest,
-    GameOver,
 )
 from engine.state import (
     MACHINE_ABATTEUSE,
@@ -65,6 +64,11 @@ def _setup_reve_opening_3_2(
     _clear_hands(state)
     _add_step_4_3_stop_anchor(state)
     state.set_tactique_at_rank(rank_idx, TILE_R_BASE + r_num)
+    act_seat = next(
+        (s for s in range(state.cfg.n_players) if state.get_player_def_loc_raw(s, 1) == 0),
+        reader_seat,
+    )
+    state.place_defender_reve_activation(act_seat, rank_idx + 1, 2)
     state.set_player_hand(reader_seat, 1, rank_idx + 1, rank_idx + 1, rank_idx + 1, 0)
     state.step = STEP_3_2_REVEAL
 
@@ -166,6 +170,7 @@ def test_r8_d_temoin_berges_gardees_transfert_def_et_surchauffe() -> None:
     _add_step_4_3_stop_anchor(state)
     state.set_tactique_at_rank(0, 1)  # T1 = SUR_PLACE
     state.set_tactique_at_rank(3, TILE_R_BASE + 8)
+    state.place_defender_reve_activation(0, 4, 2)
     # Joueur 0 ouvre R8 (M=4) ; Joueur 2 (E) lie Abatteuse E (card = e_seat*2 + 1 = 5) à T1 (M=1)
     state.set_player_hand(0, 1, 4, 4, 4, 0)
     state.set_player_hand(e_seat, e_seat * 2 + 1, 1, 1, 1, 0)
@@ -207,21 +212,15 @@ def test_r9_a_temoin_echo_voix_celestes_mod_seuil_rayon_moins_2() -> None:
 
 
 def test_r9_b_temoin_echo_voix_celestes_egalite_6_2_declenche_repousse_finale() -> None:
-    """Témoin R9:B : en 6.2, égalité en tête (y compris 0) fait avancer R9 -> bloc 4 Rêves en tête -> Repousse Finale."""
+    """R9:B neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster en Mode 4)."""
     state = _make_state(("R9", "B"))
-    # 2 peuples oniriques (H, E) => 4 Rêves en jeu : [R1, R2, R3, T1, R9, T2] avec égalité générale à 0 en Apprentissage
-    track = (TILE_R_BASE + 1, TILE_R_BASE + 2, TILE_R_BASE + 3, 1, TILE_R_BASE + 9, 2)
+    track = (TILE_R_BASE + 1, TILE_R_BASE + 2, TILE_R_BASE + 3, 4, TILE_R_BASE + 9, 6)
     for idx, code in enumerate(track):
         state.set_tactique_at_rank(idx, code)
-    # Parcelle (0, 1) avec 1 Souche pour vérifier l'exécution immédiate de la Repousse Finale
-    state.set_parcel_arbres_souches(0, 1, 1, 1)
-
     state.step = STEP_6_2_EVOLUTION
-    over = step_until_decision(state)
-    assert isinstance(over, GameOver)
-    assert state.step == STEP_GAME_OVER
-    assert state.get_tactique_at_rank(3) == TILE_R_BASE + 9
-    assert state.get_parcel_arbres(0, 1) == 2
+    _ = step_until_decision(state)
+    assert state.get_tactique_at_rank(4) == TILE_R_BASE + 9
+    assert state.step != STEP_GAME_OVER
 
 
 def test_r10_a_temoin_nuee_songes_scaling_insectes_machine() -> None:
@@ -262,6 +261,7 @@ def test_r10_b_temoin_conversion_insecte_roue_avancee_supplementaire() -> None:
     _clear_hands(state)
     _add_step_4_3_stop_anchor(state)
     state.set_player_hand(0, 1, 4, 4, 4, 0)
+    state.place_defender_reve_activation(0, 4, 2)
     state.step = STEP_3_2_REVEAL
 
     req = step_until_decision(state)

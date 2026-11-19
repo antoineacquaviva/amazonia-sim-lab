@@ -334,9 +334,15 @@ def test_chronology_witness_3_1_reve_cancels_3_2_machine_and_enables_4_1_furtivi
                 reve_slot = slot_idx
                 break
         assert reve_slot is not None
-        st.set_lisiere_tile_state(reve_slot, LISIERE_UNCONSTRUCTED, 2 if build_reve_in_3_1 else 0)
+        # En v5.4.2, un Rêve présent en case 6 et activé par un 2e Défenseur en 2.2
+        # annule la machine en 3.2, ce qui rend le Sabotage légal en 4.1 !
+        if build_reve_in_3_1:
+            r_num = int(cfg.lisiere_slots[reve_slot][1:])
+            st.set_tactique_at_rank(5, TILE_R_BASE + r_num)
+            st.place_defender_reve_activation(1, 6, FACE_DEFINITIF)
+        st.set_lisiere_tile_state(reve_slot, LISIERE_UNCONSTRUCTED, 0)
 
-        # Siège 0 détient la carte Abatteuse (rayon 0) avec lecture M=6 (pointait sur T6 avant 3.1)
+        # Siège 0 détient la carte Abatteuse (rayon 0) avec lecture M=6 (pointe sur case 6)
         st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 1, 6, 0)
         for s in (1, 2, 3):
             st.set_player_hand(s, 0, 1, 1, 1, 0)
@@ -363,7 +369,7 @@ def test_chronology_witness_3_1_reve_cancels_3_2_machine_and_enables_4_1_furtivi
     sab_with, arbres_with, track_with = _run_twin(build_reve_in_3_1=True)
     sab_without, arbres_without, track_without = _run_twin(build_reve_in_3_1=False)
 
-    # Avec Rêve bâti en 3.1 : inséré en case 6, annule l'Abatteuse en 3.2 (et s'ouvre -> glisse en case 5),
+    # Avec Rêve bâti en 3.1 et activé : posé en case 6, annule l'Abatteuse en 3.2 (et s'ouvre -> glisse en case 5),
     # déclenche le Sabotage en Furtivité 4.1 (+1 carte Sabotage permanente) et préserve les 3 arbres en 5.1 !
     assert any(code >= TILE_R_BASE for code in track_with)
     assert sab_with == 1
@@ -425,10 +431,10 @@ def test_digest_active_core_rules_chronology_matches_v5_3() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 5. Bijection exhaustive 384/384 Studio config_index_384 <-> Engine chassis_id
+# 5. Bijection exhaustive 192/192 Studio config_index_192 <-> Engine chassis_id
 # ---------------------------------------------------------------------------
-def test_studio_config_index_384_exhaustive_384_bijection() -> None:
-    """Vérifie les 384 correspondances exactes entre computeConfigurationIndex (Doc Studio) et le moteur."""
+def test_studio_config_index_192_exhaustive_192_bijection() -> None:
+    """Vérifie les 192 correspondances exactes entre computeConfigurationIndex (Doc Studio) et le moteur."""
     js_script = r"""
     const fs = require('fs');
     const vm = require('vm');
@@ -463,7 +469,7 @@ def test_studio_config_index_384_exhaustive_384_bijection() -> None:
       }
       out.push({
         engine_chassis_id: cid,
-        studio_config_index_384: computeConfigurationIndex(chassis),
+        studio_config_index_192: computeConfigurationIndex(chassis),
         axes: chassis,
       });
     }
@@ -477,12 +483,12 @@ def test_studio_config_index_384_exhaustive_384_bijection() -> None:
         text=True,
     )
     rows: list[dict[str, Any]] = json.loads(proc.stdout)
-    assert len(rows) == 384
+    assert len(rows) == 192
 
     seen_studio: set[int] = set()
     for row in rows:
         cid = int(row["engine_chassis_id"])
-        studio_idx = int(row["studio_config_index_384"])
+        studio_idx = int(row["studio_config_index_192"])
         axes = dict(row["axes"])
         seen_studio.add(studio_idx)
 
@@ -494,30 +500,29 @@ def test_studio_config_index_384_exhaustive_384_bijection() -> None:
         assert cfg.profil_piste == str(axes["Profil_Piste"])
         assert cfg.regle_ouverture_reve_multiple == str(axes["Regle_Ouverture_Reve_Multiple"])
         assert cfg.offset_seuil_parade == int(axes["Offset_Seuil_Parade"])
-        assert cfg.mise_en_place_tactiques == str(axes["Mise_En_Place_Tactiques"])
         assert cfg.placement_initial_machines == str(axes["Placement_Initial_Machines"])
         assert cfg.role_abatteuse_fin_de_piste == str(axes["Role_Abatteuse_Fin_De_Piste"])
         assert cfg.synergie_binome_machines == str(axes["Synergie_Binome_Machines"])
 
-    assert seen_studio == set(range(1, 385))
-    # Contrôles explicites : STANDARD_A = Studio 1 = Engine 0 (P4_2233), P4_2223-only = Studio 65 = Engine 1
+    assert seen_studio == set(range(1, 193))
+    # Contrôles explicites : STANDARD_A = Studio 1 = Engine 0 (P4_2233), P4_2223-only = Studio 33 = Engine 1
     assert studio_index_384_to_chassis_id(1) == 0
     assert GameConfig.from_chassis_index(0).profil_piste == "P4_2233"
-    assert studio_index_384_to_chassis_id(65) == 1
+    assert studio_index_384_to_chassis_id(33) == 1
     assert GameConfig.from_chassis_index(1).profil_piste == "P4_2223"
 
-    # Import manifeste uniquement via config_index_384 sans fixed_axes
+    # Import manifeste uniquement via config_index_192 sans fixed_axes
     plan_std = resolve_manifest_plan(
-        {"campaign_name": "check_std", "base_instance": {"config_index_384": 1}}
+        {"campaign_name": "check_std", "base_instance": {"config_index_192": 1}}
     )
     assert plan_std["chassis_ids"] == (0,)
-    assert plan_std["chassis_studio_indices_384"] == (1,)
+    assert plan_std["chassis_studio_indices_192"] == (1,)
 
     plan_p4_2223 = resolve_manifest_plan(
-        {"campaign_name": "check_p4_2223", "base_instance": {"config_index_384": 65}}
+        {"campaign_name": "check_p4_2223", "base_instance": {"config_index_192": 33}}
     )
     assert plan_p4_2223["chassis_ids"] == (1,)
-    assert plan_p4_2223["chassis_studio_indices_384"] == (65,)
+    assert plan_p4_2223["chassis_studio_indices_192"] == (33,)
 
 
 # ---------------------------------------------------------------------------
@@ -592,7 +597,7 @@ def test_shuffled_halving_cohorts_and_manifest_crn_and_duckdb(tmp_path: Path, mo
     assert len(plan["base_tile_profiles"]) == 32
     assert plan["migration_policy"]["fixed"] is True
     assert len(plan["resolved_32_slots_sha256"]) == 64
-    assert plan["chassis_studio_indices_384"] == (1,)
+    assert plan["chassis_studio_indices_192"] == (1,)
 
     # Pour chaque variante, la paire miroir M-R-O-H / H-O-R-M partage rep_start == 0
     for v_id in ("G7:A", "G7:B"):
@@ -641,7 +646,7 @@ def test_shuffled_halving_cohorts_and_manifest_crn_and_duckdb(tmp_path: Path, mo
     assert "mean_player_decisions" in digest["telemetry"]
     assert digest["telemetry"]["mean_physical_ops"] > 0
     assert digest["telemetry"]["mean_player_decisions"] > 0
-    assert digest["by_chassis"][0]["studio_config_index_384"] == 1
+    assert digest["by_chassis"][0]["studio_config_index_192"] == 1
     assert digest["selection_manifest"]["base_bundle_id"] == "LOT_01_PILOT"
     assert digest["selection_manifest"]["n_resolved_slots"] == 32
     assert digest["execution"]["run_id"] == "20261119T000000Z_deadbeef"

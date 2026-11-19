@@ -10,13 +10,13 @@ from engine.state import (
     CARD_SABOTAGE,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
-    MACHINE_STATUS_NORMAL,
     MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
     PIEGE_ACTIF,
     STEP_1_1_RATISSAGE,
     STEP_5_1_TACTIQUES,
     STEP_6_1_APPRENTISSAGE,
+    STEP_6_2_EVOLUTION,
     STEP_6_3_END_TURN,
     STEP_GAME_OVER,
     TRACK_LEN,
@@ -145,6 +145,9 @@ class TelemetrySummary(NamedTuple):
     turns_measured: int
     reveil_attempts: int = 0
     reveil_failures: int = 0
+    reves_activated: int = 0
+    machines_cancelled_by_reve: int = 0
+    machines_bypassed_inactive_reve: int = 0
     # Anatomie diagnostique des tours de Réveil réussi (rs_*)
     rs_count: int = 0
     rs_tour: int = 0
@@ -217,6 +220,9 @@ class TelemetryTracker:
     interrupt_windows_count: int = 0
     reveil_attempts: int = 0
     reveil_failures: int = 0
+    reves_activated: int = 0
+    machines_cancelled_by_reve: int = 0
+    machines_bypassed_inactive_reve: int = 0
     _turn_closed: bool = False
     # État transitoire du tour courant pour l'anatomie du Réveil
     _turn_strikes: int = 0
@@ -455,9 +461,12 @@ class TelemetryTracker:
             self._turn_strikes = 0
             if self._turn_reveil_active:
                 self._snapshot_pre_step5(state)
-        elif next_step in (STEP_GAME_OVER, STEP_6_1_APPRENTISSAGE):
-            if self._turn_reveil_active and self._turn_pre5_snap is not None:
-                self._finalize_reveil_turn(state)
+        elif (
+            next_step in (STEP_GAME_OVER, STEP_6_2_EVOLUTION, STEP_6_1_APPRENTISSAGE)
+            and self._turn_reveil_active
+            and self._turn_pre5_snap is not None
+        ):
+            self._finalize_reveil_turn(state)
         if prev_step != STEP_GAME_OVER:
             self.mem_debt_score += count_active_transient_modifiers(state)
 
@@ -523,6 +532,21 @@ class TelemetryTracker:
         """Enregistre l'échec d'une tentative de Réveil (dommage réel subi durant le tour)."""
         self.reveil_failures += 1
 
+    def on_reve_activated(self, count: int = 1) -> None:
+        """Enregistre une ouverture de Rêve activée en Étape 3.2."""
+        if count > 0:
+            self.reves_activated += count
+
+    def on_machines_cancelled_by_reve(self, count: int) -> None:
+        """Enregistre les cartes Machine annulées par un Rêve activé en Étape 3.2."""
+        if count > 0:
+            self.machines_cancelled_by_reve += count
+
+    def on_machines_bypassed_inactive_reve(self, count: int) -> None:
+        """Enregistre les cartes Machine exécutant la Tactique imprimée sous un Rêve inactif."""
+        if count > 0:
+            self.machines_bypassed_inactive_reve += count
+
     def on_end_turn(self, _state: GameState, *, game_over: bool) -> None:
         """Clôture le ratio `physical_ops / max(1, decisions_joueurs)` du tour écoulé."""
         if self._turn_closed and game_over:
@@ -566,6 +590,9 @@ class TelemetryTracker:
             turns_measured=pending_turns,
             reveil_attempts=self.reveil_attempts,
             reveil_failures=self.reveil_failures,
+            reves_activated=self.reves_activated,
+            machines_cancelled_by_reve=self.machines_cancelled_by_reve,
+            machines_bypassed_inactive_reve=self.machines_bypassed_inactive_reve,
             rs_count=self.rs_count,
             rs_tour=self.rs_tour,
             rs_t2=self.rs_t2,

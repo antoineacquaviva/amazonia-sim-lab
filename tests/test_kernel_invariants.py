@@ -16,7 +16,6 @@ from engine.core_engine import (
     DEC_COLONIE_A_OPEN,
     DEC_MIGRATION_INSECTE_4_3,
     DEC_POSE_DEFENSEUR_2,
-    DEC_RETRAIT_APPRENTISSAGE_6_1,
     DEC_REVISION_DEFENSEUR_2,
     apply_choice,
     compute_parade_seuil,
@@ -385,14 +384,14 @@ def test_09_machine_nid_contact_returns_nid_reconstructible_and_clears_insects()
 
 
 # ---------------------------------------------------------------------------
-# Test 10 : Insertion d'un Rêve en case 6 (éjection droite, glissement partiel, Bugs fixes)
+# Test 10 : Insertion d'un Rêve sur la case libre la plus à droite (piste fixe T1..T6, Bugs fixes)
 # ---------------------------------------------------------------------------
 def test_10_reve_insertion_partial_slide_and_fixed_bugs() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1010)
     state = GameState(cfg)
 
-    # Piste initiale artificielle : [T1, R1, T2, T3, R2, R3]
-    custom_track = [1, TILE_R_BASE + 1, 2, 3, TILE_R_BASE + 2, TILE_R_BASE + 3]
+    # Piste initiale artificielle : [T1, R1, T3, T4, R2, R3]
+    custom_track = [1, TILE_R_BASE + 1, 3, 4, TILE_R_BASE + 2, TILE_R_BASE + 3]
     for i, c in enumerate(custom_track):
         state.set_tactique_at_rank(i, c)
     # Placer des Bugs sur les cases 4, 5, 6
@@ -400,12 +399,11 @@ def test_10_reve_insertion_partial_slide_and_fixed_bugs() -> None:
     state.set_bugs_at_case(5, 1)
     state.set_bugs_at_case(6, 3)
 
-    # Insérer R4 : la Tactique la plus à droite est T3 (index 3 / case 4) !
-    # T1, R1, T2 (à gauche du trou) ne bougent pas ; R2 et R3 glissent à gauche ; R4 va en case 6.
+    # Insérer R4 : case libre la plus à droite = case 4 (index 3), aucune Tactique éjectée ni glissée !
     ejected = insert_reve_on_track(state, 4)
-    assert ejected == 3  # T3 éjectée
+    assert ejected is None
     resulting_ids = [code_to_tile_id(state.get_tactique_at_rank(i)) for i in range(6)]
-    assert resulting_ids == ["T1", "R1", "T2", "R2", "R3", "R4"]
+    assert resulting_ids == ["T1", "R1", "T3", "R4", "R2", "R3"]
 
     # Les Insectes Bug sont restés strictement fixes sur les numéros d'emplacement 4, 5, 6
     assert state.get_bugs_at_case(4) == 2
@@ -414,74 +412,55 @@ def test_10_reve_insertion_partial_slide_and_fixed_bugs() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 11 : Ratissage v5.4 (T1 autonome si T1 éjectée vs Apprentissage sur T1 si présente)
+# Test 11 : Ratissage v5.4.2 (T1 autonome en 5.2, piste fixe sans Apprentissage)
 # ---------------------------------------------------------------------------
 def test_11_ratissage_autonomy_when_t1_ejected_vs_learning_when_present() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1111)
 
-    # Cas 1 : T1 PRÉSENTE sur la piste (en index 1 après échange T1 <-> T2)
-    s_present = GameState(cfg)
-    s_present.set_tactique_at_rank(0, 2)  # T2 en rang 0
-    s_present.set_tactique_at_rank(1, 1)  # T1 en rang 1
-    s_present.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    s_present.step = STEP_5_2_RATISSAGE
-    resolve_single_machine_attack(s_present, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
-    assert s_present.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre (frappe active)
-    assert s_present.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)  # T1: gain_rouge=0 (+1 imprimé uniquement)
-    assert s_present.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
+    s_rat = GameState(cfg)
+    s_rat.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    s_rat.step = STEP_5_2_RATISSAGE
+    track_before = [s_rat.get_tactique_at_rank(i) for i in range(6)]
+    _ = step_until_decision(s_rat)
 
-    s_present.step = STEP_6_1_APPRENTISSAGE
-    _ = step_until_decision(s_present)
-    assert code_to_tile_id(s_present.get_tactique_at_rank(0)) == "T1"  # T1 a gagné 2 jetons et avancé en rang 0 !
-
-    # Cas 2 : T1 ÉJECTÉE de la piste (remplacée par R1 en bout de piste après glissement)
-    s_ejected = GameState(cfg)
-    s_ejected.set_tactique_at_rank(0, 2)
-    s_ejected.set_tactique_at_rank(1, 3)
-    s_ejected.set_tactique_at_rank(2, 4)
-    s_ejected.set_tactique_at_rank(3, 5)
-    s_ejected.set_tactique_at_rank(4, 6)
-    s_ejected.set_tactique_at_rank(5, 1)  # T1 tout à droite -> sera éjectée par R1
-    ejected = insert_reve_on_track(s_ejected, 1)
-    assert ejected == 1
-    assert s_ejected.find_tactique_rank(1) is None
-
-    s_ejected.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    s_ejected.step = STEP_5_2_RATISSAGE
-    track_before = [s_ejected.get_tactique_at_rank(i) for i in range(6)]
-    _ = step_until_decision(s_ejected)
-
-    # L'attaque autonome du Ratissage a bien eu lieu en 5.2 malgré l'éjection de T1 :
-    assert s_ejected.get_parcel_arbres(0, 4) == 1
-    assert s_ejected.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
-    assert s_ejected.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
-    # Mais aucun jeton d'Apprentissage n'a fait bouger la piste en 6.1/6.2 :
-    assert [s_ejected.get_tactique_at_rank(i) for i in range(6)] == track_before
+    # L'attaque autonome du Ratissage a bien eu lieu en 5.2 avec +1 puissance imprimée
+    assert s_rat.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre
+    assert s_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
+    assert s_rat.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
+    # Piste T1..T6 inchangée (aucun Apprentissage ni glissement en Étape 6)
+    assert [s_rat.get_tactique_at_rank(i) for i in range(6)] == track_before
+    assert all(s_rat.get_apprentissage_at_rank(i) == 0 for i in range(6))
 
 
 # ---------------------------------------------------------------------------
-# Test 12 : Bug A économisé quand la Tactique est à 0 Apprentissage vs consommé si > 0
+# Test 12 : Étape 6.1 supprimée (aucune consommation Bug A ni déplacement Tactiques)
 # ---------------------------------------------------------------------------
 def test_12_bug_a_preserved_at_zero_and_consumed_when_positive() -> None:
     cfg = GameConfig(n_players=6, mode=2, exp_seed=1212)
+    assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
     state = GameState(cfg)
 
-    # Case 1 (T1) aura 0 Apprentissage et 2 Bugs -> les 2 Bugs doivent rester en place !
-    # Case 2 (T2) aura 2 Apprentissage (via machine activée) et 1 Bug -> 1 Bug consommé -> reste 1 jeton -> T2 avance !
     state.set_bugs_at_case(1, 2)
     state.set_bugs_at_case(2, 1)
 
     m_card = machine_card_code(0, MACHINE_ABATTEUSE)
-    state.set_player_hand(0, m_card, 2, 5, 2, 2)  # Liée à T2
+    state.set_player_hand(0, m_card, 2, 5, 2, 2)
     state.set_machine_turn_stats(0, MACHINE_ABATTEUSE, damaged_count=2, gained_red=False, attacked=True)
 
     state.step = STEP_6_1_APPRENTISSAGE
     _ = step_until_decision(state)
 
-    assert state.get_bugs_at_case(1) == 2  # Bugs économisés sur case à 0 Apprentissage !
-    assert state.get_bugs_at_case(2) == 0  # Bug consommé (-1 sur les 2 jetons de T2) !
-    # T2 avait 2 - 1 = 1 jeton (seule en tête) -> a échangé avec T1 et occupe désormais le rang 1 !
-    assert code_to_tile_id(state.get_tactique_at_rank(0)) == "T2"
+    # Aucun Apprentissage en 6.1 : les Bugs restent intacts pour 3.2 (profil B) et T1..T6 reste fixe !
+    assert state.get_bugs_at_case(1) == 2
+    assert state.get_bugs_at_case(2) == 1
+    assert [code_to_tile_id(state.get_tactique_at_rank(i)) for i in range(6)] == [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -705,21 +684,11 @@ def test_17_transient_modifiers_384b_and_6_2_reset() -> None:
     assert state.has_slot_used_once_per_turn("G3")
 
     state.set_bugs_at_case(1, 1)  # 1 Bug sur rang 1 (T1)
-    m_card = machine_card_code(0, MACHINE_ABATTEUSE)
-    state.set_player_hand(0, m_card, 1, 4, 1, 1)  # T1 gagne 1 jeton
-    state.set_machine_turn_stats(0, MACHINE_ABATTEUSE, damaged_count=1, gained_red=False, attacked=True)
-    state.add_pending_voluntary_app_reduction(1, decideur_seat=0)
     state.step = STEP_6_1_APPRENTISSAGE
-
-    req = step_until_decision(state)
-    assert isinstance(req, DecisionRequest)
-    assert req.decision_type == DEC_RETRAIT_APPRENTISSAGE_6_1
-    apply_choice(state, 0)  # Retrait volontaire sur rang 0 (T1) ramène T1 à 0 AVANT Bug A !
     _ = step_until_decision(state)
 
-    # Le Bug en case 1 a été épargné car le retrait volontaire a ramené T1 à 0 avant Bug A !
+    # Le Bug en case 1 reste en place (Apprentissage 6.1 supprimé) et tous les modificateurs transitoires sont RAZ en 6.2 :
     assert state.get_bugs_at_case(1) == 1
-    # Et tous les modificateurs transitoires ont été intégralement remis à zéro en 6.2 :
     assert not state.has_slot_used_once_per_turn("G3")
     assert state.get_parcel_seuil_mod_turn(0, 3) == 0
     assert state.get_parcel_flags_turn(1, 2) == 0

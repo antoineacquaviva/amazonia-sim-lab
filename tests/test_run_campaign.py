@@ -362,7 +362,7 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
     core = digest["active_core_rules"]
     assert core["version"] == "5.4.0"
     assert "studio_sha256" in core and len(core["studio_sha256"]) >= 2
-    assert len(core["chassis_7_axes"]) == 1
+    assert len(core["chassis_6_axes"]) == 1
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
     sf = core["spec_formelle"]
@@ -371,7 +371,7 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
         "furtivite",
         "chaine_parades_et_pieges",
         "sabotage_par_dilution",
-        "apprentissage",
+        "piste_tactiques_fixe_et_reves",
         "fins_5_3",
     ):
         assert isinstance(sf[key], str) and len(sf[key]) > 20

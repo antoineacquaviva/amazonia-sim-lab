@@ -8,12 +8,15 @@
     "Siège T4",
     "DEPASSEMENT_DERNIERE_PARCELLE",
     "/ 128",
+    "/ 384",
     "Ratissage sur <code>T4</code>",
     "T4 pour un Ratissage",
     "Seuil de Réveil fixe",
     "Seuil fixe de Réveil",
     "seuil fixe de Réveil",
-    "seuil de Réveil"
+    "seuil de Réveil",
+    "Étape 6 : Apprentissage",
+    "6.1. Décompte"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",
@@ -38,7 +41,7 @@
         "aucun dommage réel",
         "Ratissage",
         "<code>T1</code>",
-        "/ 384"
+        "/ 192"
       ]
     },
     {

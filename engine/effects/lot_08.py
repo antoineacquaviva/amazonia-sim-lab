@@ -322,15 +322,8 @@ def r9_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 
 @register_tile("R9", "B", hooks=(HOOK_6_2_AVANCEMENT, HOOK_5_LAW_QUERY))
 def r9_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool:
-    """Loi 6.2 : en cas d'égalité en tête de l'Apprentissage (y compris 0), R9 avance d'1 rang."""
-    prim_mod_loi_du_coeur(state, "LOI_EGALITE_FAIT_AVANCER_REVE", active=True)
-    if hook == HOOK_5_LAW_QUERY:
-        return True
-
-    if hook == HOOK_6_2_AVANCEMENT and bool(ctx.get("tie")):
-        r9_rank = state.find_tactique_rank(TILE_R_BASE + 9)
-        if r9_rank is not None and r9_rank > 0:
-            return prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=r9_rank)
+    """Neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster pour le Mode 4)."""
+    _ = (state, hook, ctx)
     return False
 
 

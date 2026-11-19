@@ -115,7 +115,7 @@
                 v5.4 · Source Unique
               </span>
               <span id="header-config-badge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                Config #1 / 384 (Standard)
+                Config #1 / 192 (Standard)
               </span>
             </div>
             <p class="text-xs text-forest-300">Studio Documentaire : Spécification Formelle (100 profils · Ratissage T1 · Sommeil en bloc) & Générateur de Livret Didactique</p>
@@ -246,15 +246,15 @@
             </div>
           </div>
 
-          <!-- Colonne Droite : Les 7 Axes du Châssis (384 configurations) -->
+          <!-- Colonne Droite : Les 6 Axes du Châssis (192 configurations) -->
           <div class="lg:col-span-8 bg-forest-950/80 p-3.5 rounded-xl border border-forest-800">
             <div class="flex items-center justify-between mb-2">
               <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Les 7 Axes de Test du Châssis v5.4 (Produit Cartésien : 384 configs)</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Les 6 Axes de Test du Châssis v5.4.2 (Produit Cartésien : 192 configs)</h3>
                 <p class="text-[11px] text-forest-300">Toute modification réécrit en temps réel le Livret Didactique et vérifie la compatibilité des tuiles.</p>
               </div>
               <button onclick="resetChassisToDefault()" class="text-xs px-2.5 py-1 rounded bg-forest-800 hover:bg-forest-700 text-forest-200 border border-forest-600 transition">
-                ↺ Réinitialiser les 7 axes au standard
+                ↺ Réinitialiser les 6 axes au standard
               </button>
             </div>
             <div id="chassis-axes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2">
@@ -540,12 +540,11 @@
       highlightDynamic: true,
       // Ordre circulaire des Peuples actifs autour de la table (3 à 6)
       peuplesCercle: ['M', 'R', 'O', 'H'],
-      // Valeurs des 7 axes actifs du châssis v5.4
+      // Valeurs des 6 axes actifs du châssis v5.4.2
       chassis: {
         Profil_Piste: 'P4_2233',
         Regle_Ouverture_Reve_Multiple: 'UNIQUE_PAR_TOUR',
         Offset_Seuil_Parade: 0,
-        Mise_En_Place_Tactiques: 'ORDRE_FIXE_T1_T6',
         Placement_Initial_Machines: 'MEME_PARCELLE_P1',
         Role_Abatteuse_Fin_De_Piste: 'STANDARD_COUPE_ARBRE',
         Synergie_Binome_Machines: 'INDIVIDUELLE'
@@ -554,7 +553,7 @@
       profileOverrides: {},
       // Profils des 2 slots de migration
       slotsInsectes: {
-        SLOT_BUG_CERVEAU: 'A',
+        SLOT_BUG_CERVEAU: 'B',
         SLOT_COLONISATION_GARDIENS: 'A'
       },
       // Bilan de simulation actif (digest_*.json)
@@ -1349,7 +1348,7 @@
     function applyPresetBundle(bundleKey) {
       state.bundleId = bundleKey;
       Object.keys(state.profileOverrides).forEach(k => { state.profileOverrides[k] = 'A'; });
-      state.slotsInsectes.SLOT_BUG_CERVEAU = 'A';
+      state.slotsInsectes.SLOT_BUG_CERVEAU = 'B';
       state.slotsInsectes.SLOT_COLONISATION_GARDIENS = 'A';
 
       if (bundleKey === 'ESSAI_52_EMBUSCADE') {
@@ -1765,7 +1764,7 @@
       return {
         schema_version: '5.4',
         bundle_id: state.bundleId,
-        configuration_index_384: computeConfigurationIndex(),
+        configuration_index_192: computeConfigurationIndex(),
         peuples_cercle: [...state.peuplesCercle],
         topologie_code: topoSpec.code || topoCode,
         capital_arbres_initial: state.peuplesCercle.length * arbresParRayon,
@@ -1981,7 +1980,7 @@
         regles_coeur: REGLES_COEUR_SYNTHESE,
         instance: {
           bundle_id: state.bundleId,
-          config_index_384: computeConfigurationIndex(),
+          config_index_192: computeConfigurationIndex(),
           peuples_cercle: state.peuplesCercle,
           topologie: topoCode,
           chassis_actif: state.chassis,

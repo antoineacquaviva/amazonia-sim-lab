@@ -33,17 +33,17 @@ def test_decode_chassis_axes_and_active_core_rules() -> None:
     assert c0["offset_seuil_parade"] == 0
     assert c0["placement_initial_machines"] == "MEME_PARCELLE_P1"
 
-    c383 = decode_chassis_axes(383)
-    assert c383["chassis_id"] == 383
-    assert c383["profil_piste"] == "P5_12223"
-    assert c383["placement_initial_machines"] == "BULLDOZER_P1_ABATTEUSE_P2"
-    assert c383["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
+    c191 = decode_chassis_axes(191)
+    assert c191["chassis_id"] == 191
+    assert c191["profil_piste"] == "P5_12223"
+    assert c191["placement_initial_machines"] == "BULLDOZER_P1_ABATTEUSE_P2"
+    assert c191["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
 
-    core = build_active_core_rules((0, 1, 383))
+    core = build_active_core_rules((0, 1, 191))
     assert core["version"] == "5.4.0"
     assert "catalog_v5_4.json" in core["studio_sha256"]
     assert "spec_formelle_v5_4.json" in core["studio_sha256"]
-    assert len(core["chassis_7_axes"]) == 3
+    assert len(core["chassis_6_axes"]) == 3
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
 
@@ -53,7 +53,7 @@ def test_decode_chassis_axes_and_active_core_rules() -> None:
         "furtivite",
         "chaine_parades_et_pieges",
         "sabotage_par_dilution",
-        "apprentissage",
+        "piste_tactiques_fixe_et_reves",
         "fins_5_3",
     ):
         assert isinstance(sf[key], str) and len(sf[key]) > 20
@@ -118,7 +118,7 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
         legacy_data_copy=False,
     )
     assert d_path.exists() and p_path.exists()
-    assert len(digest["active_core_rules"]["chassis_7_axes"]) == 2
+    assert len(digest["active_core_rules"]["chassis_6_axes"]) == 2
     assert [t["slot"] for t in digest["tested_tiles_rules"]] == ["G3", "M1"]
 
     prompt_md = build_prompt_gemini_markdown(digest)

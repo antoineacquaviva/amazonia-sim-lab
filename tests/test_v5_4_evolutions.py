@@ -112,8 +112,8 @@ def test_v5_4_initial_machine_placement_options() -> None:
         )
 
 
-def test_v5_4_chassis_384_bijection() -> None:
-    assert NUM_CHASSIS == 384
+def test_v5_4_chassis_192_bijection() -> None:
+    assert NUM_CHASSIS == 192
     seen_studio: set[int] = set()
     for cid in range(NUM_CHASSIS):
         decoded = decode_chassis_index(cid)
@@ -123,10 +123,10 @@ def test_v5_4_chassis_384_bijection() -> None:
             "BULLDOZER_P1_ABATTEUSE_P2",
         )
         sidx = chassis_id_to_studio_index_384(cid)
-        assert 1 <= sidx <= 384
+        assert 1 <= sidx <= 192
         assert studio_index_384_to_chassis_id(sidx) == cid
         seen_studio.add(sidx)
-    assert len(seen_studio) == 384
+    assert len(seen_studio) == 192
 
 
 def test_v5_4_sommeil_victory_zero_one_two_oniric_peoples() -> None:
@@ -219,12 +219,17 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_parcel_arbres(0, 4) == 3
 
-    # Alimentation de T1 en 6.1 Apprentissage : placer T1 en rang 1 (index 1) sur un état propre
-    st_learn = GameState(cfg)
-    st_learn.set_tactique_at_rank(0, 2)
-    st_learn.set_tactique_at_rank(1, 1)
-    st_learn.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    st_learn.step = STEP_5_2_RATISSAGE
-    # Exécuter 5.2 -> 5.3 -> 6.1 -> 6.2 -> Tour 2
-    step_until_decision(st_learn)
-    assert code_to_tile_id(st_learn.get_tactique_at_rank(0)) == "T1"
+    # Piste fixe T1..T6 (v5.4.2) : le Ratissage applique T1 en 5.2 sans déplacer les Tactiques en Étape 6
+    st_fixed = GameState(cfg)
+    st_fixed.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    st_fixed.step = STEP_5_2_RATISSAGE
+    step_until_decision(st_fixed)
+    assert [code_to_tile_id(st_fixed.get_tactique_at_rank(i)) for i in range(6)] == [
+        "T1",
+        "T2",
+        "T3",
+        "T4",
+        "T5",
+        "T6",
+    ]
+    assert all(st_fixed.get_apprentissage_at_rank(i) == 0 for i in range(6))

@@ -119,6 +119,11 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             exp_seed=900_000 + mode * 10_000,
             rep_id=game_idx,
             max_revision_passes=0 if bot_sel < 3 else 3,
+            reve_activation_mode=(
+                "1_DEF_1_MACHINE",
+                "1_DEF_ALL_RANK",
+                "BINOME_ALL_RANK",
+            )[game_idx % 3],
         )
         if mode == 3:
             t_profs = _pick_registered_tile_profiles(game_idx, by_slot)
@@ -133,10 +138,12 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 profil_piste=base_cfg.profil_piste,
                 regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
                 offset_seuil_parade=base_cfg.offset_seuil_parade,
-                mise_en_place_tactiques=base_cfg.mise_en_place_tactiques,
                 placement_initial_machines=base_cfg.placement_initial_machines,
                 role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
                 synergie_binome_machines=base_cfg.synergie_binome_machines,
+                reveil_quota_mode=base_cfg.reveil_quota_mode,
+                reveil_gardien_fate=base_cfg.reveil_gardien_fate,
+                reve_activation_mode=base_cfg.reve_activation_mode,
                 tile_profiles=t_profs,
             )
         else:

@@ -441,8 +441,24 @@ def _is_own_threat_covered_for_reveil(
         return True
     if hand.lecture_m is None or hand.lecture_m < 1 or hand.lecture_m > TRACK_LEN:
         return True
-    t_code, _, _ = obs.tactique_code_bugs_app(hand.lecture_m - 1)
-    if is_reve_code(t_code) or not is_tactique_code(t_code):
+    lec = hand.lecture_m
+    t_code, _, _ = obs.tactique_code_bugs_app(lec - 1)
+    if is_reve_code(t_code):
+        n_def_r = obs.reve_activation_defenders(lec)
+        act_mode = cfg.reve_activation_mode
+        is_cancelled = (
+            (act_mode == "1_DEF_ALL_RANK" and n_def_r >= 1)
+            or (act_mode == "BINOME_ALL_RANK" and n_def_r >= 2)
+            or (
+                act_mode == "1_DEF_1_MACHINE"
+                and obs.player_def2_reve_case(obs.observer_seat) == lec
+            )
+        )
+        if is_cancelled:
+            return True
+        # Rêve non activé : la Tactique imprimée T{lec} s'exécute !
+        t_code = lec
+    elif not is_tactique_code(t_code):
         return True
     m_ray, m_type = unpack_machine_card(hand.card)
     pos, st = obs.machine_pos_status(m_ray, m_type)
@@ -571,6 +587,86 @@ def _score_gardien_reveil(
     return 145.0
 
 
+def _score_reve_activation(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    belief: BeliefSummary,
+    case_c: int,
+    *,
+    is_b2: bool,
+) -> float:
+    """Évalue la cible `('REVE_ACTIVATION', case_c)` en 2.2 (strictement sur PlayerObservation)."""
+    if obs.reve_at_case(case_c) <= 0:
+        return 0.0
+
+    own_hand = obs.hand_of(obs.observer_seat)
+    own_card = own_hand.card
+    own_hits_reve = (
+        own_card is not None and 1 <= own_card <= 12 and own_hand.lecture_m == case_c
+    )
+
+    cancel_val = 0.0
+    if own_hits_reve and own_card is not None:
+        ray = (own_card - 1) // 2
+        m_type = (own_card - 1) % 2
+        pos, st = obs.machine_pos_status(ray, m_type)
+        is_active = st != MACHINE_STATUS_RETIRED and pos > 0
+        if is_active:
+            eff_red = obs.machine_effective_rouges(ray, m_type)
+            # T4..T6 (+1 rouge, seuil -1/-2) et T3/T6 (double frappe + avance) sont très menaçantes
+            cancel_val = 140.0 + 55.0 * eff_red + 35.0 * case_c
+        else:
+            cancel_val = 30.0
+
+    can_advance = any(obs.reve_at_case(c2) == 0 for c2 in range(1, case_c))
+    advance_val = (185.0 if is_b2 else 155.0) if can_advance else 25.0
+
+    # Bonus de victoire imminente par Sommeil si tous les Rêves sont sur la piste et à 1 cran du bloc
+    total_r = cfg.total_reves_partie
+    if can_advance and total_r > 0:
+        reves_on_track = sum(1 for c2 in range(1, TRACK_LEN + 1) if obs.reve_at_case(c2) > 0)
+        if reves_on_track == total_r:
+            gaps_before_block = sum(
+                1 for c2 in range(1, total_r + 1) if obs.reve_at_case(c2) == 0
+            )
+            if gaps_before_block == 1:
+                advance_val += 260.0
+
+    total_on_case = obs.reve_activation_defenders(case_c)
+    own_reve_case = obs.player_def2_reve_case(obs.observer_seat)
+    allies = max(0, total_on_case - (1 if own_reve_case == case_c else 0))
+
+    act_mode = cfg.reve_activation_mode
+    if act_mode == "1_DEF_1_MACHINE":
+        if own_hits_reve:
+            # Chaque allié déjà dessus couvre sa propre machine ; ajouter le nôtre annule la nôtre
+            adv_contrib = advance_val if allies == 0 else (0.25 * advance_val)
+            return 260.0 + cancel_val + adv_contrib
+        return 45.0
+
+    if act_mode == "1_DEF_ALL_RANK":
+        if allies >= 1:
+            # Un allié couvre déjà tout ce rang M : rediriger notre 2e Défenseur ailleurs !
+            return 25.0
+        if own_hits_reve:
+            return 300.0 + cancel_val + advance_val
+        return 55.0
+
+    # BINOME_ALL_RANK
+    if allies >= 2:
+        return 20.0
+    if allies == 1:
+        if own_hits_reve:
+            return 350.0 + cancel_val + advance_val
+        if belief.drew_sabotage_or_none:
+            return 240.0 + advance_val
+        return 175.0 + 0.7 * advance_val
+    # allies == 0
+    if own_hits_reve:
+        return 250.0 + 0.8 * cancel_val + 0.85 * advance_val
+    return 40.0
+
+
 # ---------------------------------------------------------------------------
 # Fonctions de score de cibles Défenseurs pour B1 (k=1) et B2 (k=2)
 # ---------------------------------------------------------------------------
@@ -680,6 +776,13 @@ def score_target_b1(
         c_i = int(case_c)
         return _score_gardien_reveil(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
             obs, cfg, active_laws, 700 + c_i
+        )
+
+    if kind == "REVE_ACTIVATION":
+        _, case_c = target
+        c_i = int(case_c)
+        return _score_reve_activation(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
+            obs, cfg, active_laws, 800 + c_i
         )
 
     return 0.0
@@ -812,6 +915,10 @@ def score_target_b2(
     if kind == "GARDIEN_REVEIL":
         _, case_c = target
         return _score_gardien_reveil(obs, cfg, belief, int(case_c), is_b2=True)
+
+    if kind == "REVE_ACTIVATION":
+        _, case_c = target
+        return _score_reve_activation(obs, cfg, belief, int(case_c), is_b2=True)
 
     return 0.0
 

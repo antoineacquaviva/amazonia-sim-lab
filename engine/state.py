@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar, NamedTuple
 
-from engine.rng import SRC_MACHINE_SHUFFLE, SRC_TACTICS_SETUP, shuffle_deterministic
+from engine.rng import SRC_MACHINE_SHUFFLE, shuffle_deterministic
 
 __all__ = (
     "ANIMAUX_SAUVAGES",
@@ -265,12 +265,11 @@ TACTIQUES_SPEC: dict[int, TactiqueSpec] = {
     6: TactiqueSpec(6, "T6", ("SUR_PLACE", "DEVANT"), 1, 1, -2, False),
 }
 
-# Les 7 axes du châssis v5.4 (produit cartésien mixte : 6 * 2^6 = 384 châssis)
+# Les 6 axes du châssis v5.4.2 (produit cartésien mixte : 6 * 2^5 = 192 châssis)
 CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = (
     ("profil_piste", ("P4_2233", "P4_2223", "P4_1223", "P5_22233", "P5_22223", "P5_12223")),
     ("regle_ouverture_reve_multiple", ("UNIQUE_PAR_TOUR", "PAR_DE_M_DESIGNE")),
     ("offset_seuil_parade", (0, 1)),
-    ("mise_en_place_tactiques", ("ORDRE_FIXE_T1_T6", "ALEATOIRE")),
     ("placement_initial_machines", ("MEME_PARCELLE_P1", "BULLDOZER_P1_ABATTEUSE_P2")),
     ("role_abatteuse_fin_de_piste", ("STANDARD_COUPE_ARBRE", "ARRACHE_1_SOUCHE_SI_SANS_ARBRE")),
     ("synergie_binome_machines", ("INDIVIDUELLE", "MUTUALISATION_PUISSANCE_MEME_PARCELLE")),
@@ -279,7 +278,7 @@ CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = (
 NUM_CHASSIS: int = 1
 for _ax_name, _ax_opts in CHASSIS_AXES_OPTIONS:
     NUM_CHASSIS *= len(_ax_opts)
-assert NUM_CHASSIS == 384
+assert NUM_CHASSIS == 192
 
 TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = {
     "P4_2233": (2, 2, 3, 3),
@@ -292,7 +291,7 @@ TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = {
 
 
 def decode_chassis_index(chassis_idx: int) -> dict[str, Any]:
-    """Décode un index de châssis 0..383 (base mixte LSB-first) en dictionnaire d'axes."""
+    """Décode un index de châssis 0..191 (base mixte LSB-first) en dictionnaire d'axes."""
     assert 0 <= chassis_idx < NUM_CHASSIS, f"chassis_idx hors bornes : {chassis_idx}"
     rem = chassis_idx
     out: dict[str, Any] = {}
@@ -304,7 +303,7 @@ def decode_chassis_index(chassis_idx: int) -> dict[str, Any]:
 
 
 def encode_chassis_axes(axes: dict[str, Any]) -> int:
-    """Encode un dictionnaire d'axes en index de châssis 0..383 (base mixte LSB-first)."""
+    """Encode un dictionnaire d'axes en index de châssis 0..191 (base mixte LSB-first)."""
     idx = 0
     stride = 1
     for field_name, options in CHASSIS_AXES_OPTIONS:
@@ -478,7 +477,7 @@ def get_layout_report() -> dict[str, Any]:
 
 @dataclass(frozen=True, slots=True)
 class GameConfig:
-    """Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4)."""
+    """Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2)."""
 
     n_players: int = 4
     mode: int = 1
@@ -488,18 +487,18 @@ class GameConfig:
     coordonnateur_initial: int = 0
     max_revision_passes: int = 4
 
-    # 7 axes du châssis v5.4
+    # 6 axes du châssis v5.4.2
     profil_piste: str = "P4_2233"
     regle_ouverture_reve_multiple: str = "UNIQUE_PAR_TOUR"
     offset_seuil_parade: int = 0
-    mise_en_place_tactiques: str = "ORDRE_FIXE_T1_T6"
     placement_initial_machines: str = "MEME_PARCELLE_P1"
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Réveil de la Forêt (v5.4.1 — préserve la bijection 384/384)
+    # Paramètres hors-châssis Réveil de la Forêt (v5.4.1) & Activation des Rêves (v5.4.2)
     reveil_quota_mode: str = "N"
     reveil_gardien_fate: str = "LISIERE_FACE_1"
+    reve_activation_mode: str = "1_DEF_1_MACHINE"
 
     # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
@@ -524,7 +523,6 @@ class GameConfig:
         assert profil in TOPOLOGIES_DOTATION, f"profil_piste invalide : {profil}"
         assert self.regle_ouverture_reve_multiple in ("UNIQUE_PAR_TOUR", "PAR_DE_M_DESIGNE")
         assert self.offset_seuil_parade in (0, 1)
-        assert self.mise_en_place_tactiques in ("ORDRE_FIXE_T1_T6", "ALEATOIRE")
         assert self.placement_initial_machines in (
             "MEME_PARCELLE_P1",
             "BULLDOZER_P1_ABATTEUSE_P2",
@@ -543,6 +541,11 @@ class GameConfig:
         assert self.reveil_gardien_fate in ("LISIERE_FACE_1", "RETRAIT_DEFINITIF"), (
             f"reveil_gardien_fate invalide : {self.reveil_gardien_fate}"
         )
+        assert self.reve_activation_mode in (
+            "1_DEF_1_MACHINE",
+            "1_DEF_ALL_RANK",
+            "BINOME_ALL_RANK",
+        ), f"reve_activation_mode invalide : {self.reve_activation_mode}"
         assert 0 <= self.coordonnateur_initial < self.n_players
 
         peuples = self.peuples if self.peuples else PEUPLES_ORDER[: self.n_players]
@@ -606,8 +609,9 @@ class GameConfig:
         max_revision_passes: int = 4,
         reveil_quota_mode: str = "N",
         reveil_gardien_fate: str = "LISIERE_FACE_1",
+        reve_activation_mode: str = "1_DEF_1_MACHINE",
     ) -> GameConfig:
-        """Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383."""
+        """Construit l'une des 192 configurations de châssis v5.4.2 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -619,6 +623,7 @@ class GameConfig:
             "max_revision_passes": max_revision_passes,
             "reveil_quota_mode": reveil_quota_mode,
             "reveil_gardien_fate": reveil_gardien_fate,
+            "reve_activation_mode": reve_activation_mode,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
@@ -631,17 +636,21 @@ class GameConfig:
         return None
 
     def profile_for_slot(self, slot_id: str) -> str | None:
-        """Retourne le profil actif d'un emplacement (A/A en Mode 2 uniquement pour Migration)."""
+        """Retourne le profil actif d'un emplacement (Bug=B, Colonie=A par défaut en Mode 2+)."""
         if self.mode == 1:
             return None
         if self.mode == 2:
-            if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
+            if slot_id == "SLOT_BUG_CERVEAU":
+                return "B"
+            if slot_id == "SLOT_COLONISATION_GARDIENS":
                 return "A"
             return None
         for s_id, prof in self.tile_profiles:
             if s_id == slot_id:
                 return prof
-        if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
+        if slot_id == "SLOT_BUG_CERVEAU":
+            return "B"
+        if slot_id == "SLOT_COLONISATION_GARDIENS":
             return "A"
         return "A"
 
@@ -1081,6 +1090,43 @@ class PlayerObservation:
             return (raw - _LOC_GARDIEN_REVEIL_BASE) + 1
         return 0
 
+    def reve_at_case(self, case_1_6: int) -> int:
+        """Retourne r_num (1..10) si un Rêve occupe la case `1..6`, sinon 0."""
+        code = self._snap[_Mem.TACTIQUES_PISTE_ID + (case_1_6 - 1)]
+        return (code - TILE_R_BASE) if is_reve_code(code) else 0
+
+    def reve_activation_defenders(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`."""
+        target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                cnt += 1
+        return cnt
+
+    def reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]:
+        """Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur le Rêve en case `1..6`."""
+        target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        buf = self._snap
+        def_mask = buf[_Mem.PLAYER_DEF2_DEF_MASK]
+        n_ref = 0
+        n_def = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                if def_mask & (1 << s):
+                    n_def += 1
+                else:
+                    n_ref += 1
+        return n_ref, n_def
+
+    def player_def2_reve_case(self, seat: int) -> int:
+        """Retourne la case `1..6` ciblée en activation Rêve par le 2e Défenseur de `seat`, ou 0."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
+        if _LOC_REVE_ACTIVATION_BASE <= raw < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
+            return (raw - _LOC_REVE_ACTIVATION_BASE) + 1
+        return 0
+
     def tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]:
         """Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques."""
         buf = self._snap
@@ -1091,18 +1137,20 @@ class PlayerObservation:
         )
 
 
-# --- Encodage compact des localisations de pions Défenseurs (0..168, 255) ---
+# --- Encodage compact des localisations de pions Défenseurs (0..174, 255) ---
 # 0 : en main
 # 1..30 : parcelle Forêt (1 + r * MAX_P + (p - 1))
 # 31..150 : slot jumeau Furtivité (31 + (l * MAX_P + (p - 1)) * 4 + slot_0_3)
 # 151..162 : tuile Synergie en lisière (151 + lisiere_slot_idx)
 # 163..168 : Gardien Face 2 ciblé pour le Réveil (163 + (case_1_6 - 1))
+# 169..174 : Rêve sur piste ciblé en activation 2.2 (169 + (case_1_6 - 1))
 # 255 : impasse (aucune case légale disponible ce tour, pion consommé hors plateau jusqu'en 6.2)
 _LOC_HAND: int = 0
 _LOC_FORET_BASE: int = 1
 _LOC_FURT_BASE: int = _LOC_FORET_BASE + NUM_PARCELS  # 31
 _LOC_LISIERE_BASE: int = _LOC_FURT_BASE + NUM_PARCELS * 4  # 151
 _LOC_GARDIEN_REVEIL_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
+_LOC_REVE_ACTIVATION_BASE: int = _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN  # 169
 _LOC_IMPASSE: int = 255
 
 
@@ -1168,19 +1216,9 @@ class GameState:
             for slot_idx in range(2 * n):
                 self.set_lisiere_tile_state(slot_idx, LISIERE_UNCONSTRUCTED, 0)
 
-        # Piste des Tactiques T1..T6
-        tactiques_init = [1, 2, 3, 4, 5, 6]
-        if cfg.mise_en_place_tactiques == "ALEATOIRE":
-            tactiques_init = shuffle_deterministic(
-                tactiques_init,
-                cfg.exp_seed,
-                cfg.rep_id,
-                SRC_TACTICS_SETUP,
-                0,
-                0,
-            )
-        for rank_idx, t_code in enumerate(tactiques_init):
-            self.set_tactique_at_rank(rank_idx, t_code)
+        # Piste des Tactiques fixe T1..T6 imprimée en dur
+        for rank_idx in range(TRACK_LEN):
+            self.set_tactique_at_rank(rank_idx, rank_idx + 1)
 
         # Machines : 1 Abatteuse + 1 Bulldozer par rayon (face normale)
         ab_p_init = 2 if cfg.placement_initial_machines == "BULLDOZER_P1_ABATTEUSE_P2" else 1
@@ -1551,6 +1589,9 @@ class GameState:
         if _LOC_GARDIEN_REVEIL_BASE <= raw_loc < _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN:
             case_1_6 = (raw_loc - _LOC_GARDIEN_REVEIL_BASE) + 1
             return ("GARDIEN_REVEIL", case_1_6, 0, 0)
+        if _LOC_REVE_ACTIVATION_BASE <= raw_loc < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
+            case_1_6 = (raw_loc - _LOC_REVE_ACTIVATION_BASE) + 1
+            return ("REVE_ACTIVATION", case_1_6, 0, 0)
         return ("IMPASSE", 0, 0, 0)
 
     def remove_player_defender(self, seat: int, def_idx: int) -> None:
@@ -1683,6 +1724,28 @@ class GameState:
             "Quota de Réveil déjà atteint sur cette case"
         )
         self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1))
+        self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
+
+    def count_reve_activation_defenders_at_case(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        cnt = 0
+        for s in range(self.cfg.n_players):
+            if self.get_player_def_loc_raw(s, 1) == target_raw:
+                cnt += 1
+        return cnt
+
+    def place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None:
+        """Engage le 2e Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2."""
+        assert self.cfg.mode >= 2, "Activation des Rêves interdite en Mode 1"
+        assert 1 <= case_1_6 <= TRACK_LEN
+        assert face in (FACE_REFLEXION, FACE_DEFINITIF)
+        assert is_reve_code(self.get_tactique_at_rank(case_1_6 - 1)), (
+            "Aucun Rêve présent sur cette case"
+        )
+        self.remove_player_defender(seat, 1)
+        self.set_player_def_loc_raw(seat, 1, _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1))
         self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
     def mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None:

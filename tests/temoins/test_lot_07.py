@@ -66,6 +66,11 @@ def _setup_reve_opening_3_2(
     _clear_hands(state)
     _add_step_4_3_stop_anchor(state)
     state.set_tactique_at_rank(rank_idx, TILE_R_BASE + r_num)
+    act_seat = next(
+        (s for s in range(state.cfg.n_players) if state.get_player_def_loc_raw(s, 1) == 0),
+        reader_seat,
+    )
+    state.place_defender_reve_activation(act_seat, rank_idx + 1, 2)
     state.set_player_hand(reader_seat, 1, rank_idx + 1, rank_idx + 1, rank_idx + 1, 0)
     state.step = STEP_3_2_REVEAL
 
@@ -110,6 +115,7 @@ def test_r5_c_temoin_reve_nid_vide_piege_cible_vide_ho() -> None:
     # Machine O en Siège sur (o_seat, 2) -> parcelle ciblée et vide ; (h_seat, 1) non ciblée
     state.set_machine_pos_status(o_seat, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_RATISSAGE)
     state.set_tactique_at_rank(4, TILE_R_BASE + 5)
+    state.place_defender_reve_activation(0, 5, 2)
     _clear_hands(state)
     _add_step_4_3_stop_anchor(state)
     state.set_player_hand(0, 1, 5, 5, 5, 0)  # M cible (0,1) qui n'est pas H/O

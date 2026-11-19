@@ -399,9 +399,9 @@ def verify_studio_coherence() -> None:
     bundle_axes = _norm_axes(bundle_axes_raw)
     engine_axes = [(name.lower(), tuple(opts)) for name, opts in CHASSIS_AXES_OPTIONS]
 
-    if len(studio_axes) != 7 or studio_axes != bundle_axes or studio_axes != engine_axes:
+    if len(studio_axes) != 6 or studio_axes != bundle_axes or studio_axes != engine_axes:
         errors.append(
-            f"Écart sur les 7 axes du châssis :\n"
+            f"Écart sur les 6 axes du châssis :\n"
             f"  Studio : {studio_axes}\n"
             f"  Bundle : {bundle_axes}\n"
             f"  Engine : {engine_axes}"

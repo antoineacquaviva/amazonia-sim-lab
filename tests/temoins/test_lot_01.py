@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import engine.effects  # noqa: F401
 from engine.core_engine import (
-    DEC_RETRAIT_APPRENTISSAGE_6_1,
     apply_choice,
     compute_parade_seuil,
     insert_reve_on_track,
@@ -16,6 +15,7 @@ from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.effects.registry import list_registered_tiles
 from engine.primitives import DEC_EFFET_TUILE, DecisionRequest
 from engine.state import (
+    FACE_DEFINITIF,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
@@ -23,7 +23,6 @@ from engine.state import (
     MACHINE_STATUS_NORMAL,
     PIEGE_ACTIF,
     STEP_3_2_REVEAL,
-    STEP_6_1_APPRENTISSAGE,
     TACTIQUES_SPEC,
     TILE_R_BASE,
     GameConfig,
@@ -221,6 +220,8 @@ def test_g6_a_temoin() -> None:
     assert state.get_gardien_at_case(3)[2] is True
 
     # Le joueur 0 a tiré Abatteuse rayon 0 avec lecture_m = 2 (T2). Décaler de +1 l'amène sur rang 3 (R5) !
+    # En v5.4.2, un 2e Défenseur est posé sur le Rêve en case 3 pour l'activer.
+    state.place_defender_reve_activation(0, 3, FACE_DEFINITIF)
     state.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 2, 5, 2, 0)
     state.set_parcel_insectes(0, 1, 1)  # Suspend en 4.3 du Tour 1 (avant ménage 6.2 !)
     state.step = STEP_3_2_REVEAL
@@ -269,9 +270,7 @@ def test_g7_a_temoin() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 6. G10:A — La Brume de la Dendrobate (MOD_APPRENTISSAGE mémorisé pour 6.1)
-# Témoin : "Mémorisé jusqu’en 6.1 et appliqué avant les Insectes Bug (permettant
-# d’épargner un Bug si la Tactique tombe à 0 jeton)."
+# 6. G10:A — La Brume de la Dendrobate (neutralisée en v5.4.2 — Apprentissage supprimé)
 # ---------------------------------------------------------------------------
 def test_g10_a_temoin() -> None:
     cfg = GameConfig(
@@ -284,28 +283,12 @@ def test_g10_a_temoin() -> None:
     state = GameState(cfg)
     trk = TelemetryTracker()
 
-    # G10:A s'ouvre tôt dans le tour et mémorise 1 retrait volontaire pour R (siège 1)
+    # G10:A s'ouvre proprement sans lever d'erreur (no-op en v5.4.2, à réajuster en Mode 4)
     state.set_gardien_at_case(6, 10, face=1, used=False)
     state.light_trigger(6)
-    sweep_gardiens(state, telemetry=trk)
-    assert state.get_pending_voluntary_app_reduction() == (1, 1)
-
-    # T1 (rang 0 / case 1) va recevoir 1 jeton Apprentissage en 6.1 et porte 1 Insecte Bug
-    state.set_bugs_at_case(1, 1)
-    state.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 1, 4, 1, 1)
-    state.set_machine_turn_stats(0, MACHINE_ABATTEUSE, damaged_count=1, gained_red=False, attacked=True)
-    state.step = STEP_6_1_APPRENTISSAGE
-
-    req = step_until_decision(state, telemetry=trk)
-    assert isinstance(req, DecisionRequest)
-    assert req.decision_type == DEC_RETRAIT_APPRENTISSAGE_6_1
-    assert req.decideur == 1  # Peuple R
-    assert 0 in req.options and "PASSER" in req.options
-    apply_choice(state, 0, telemetry=trk)
-    _ = step_until_decision(state, telemetry=trk)
-
-    # Le retrait de G10:A a ramené T1 à 0 AVANT Bug A -> l'Insecte Bug en case 1 est épargné !
-    assert state.get_bugs_at_case(1) == 1
+    opened = sweep_gardiens(state, telemetry=trk)
+    assert opened == 1
+    assert state.get_gardien_at_case(6) == (10, 2, True)
     assert state.get_pending_voluntary_app_reduction() == (0, 0)
 
 
@@ -326,7 +309,8 @@ def test_r5_a_temoin() -> None:
     # Placer R5 en rang 2 (index 1) ; G1:A en case 2 ; G10:A en case 4 (Résonance !)
     insert_reve_on_track(state, 5)
     state.set_tactique_at_rank(1, TILE_R_BASE + 5)
-    state.set_tactique_at_rank(5, 2)
+    state.set_tactique_at_rank(5, 6)
+    state.place_defender_reve_activation(3, 2, FACE_DEFINITIF)
 
     state.set_gardien_at_case(2, 1, face=1, used=False)
     state.set_gardien_at_case(4, 10, face=1, used=False)

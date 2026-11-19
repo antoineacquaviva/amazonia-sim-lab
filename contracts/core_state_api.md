@@ -79,8 +79,8 @@ zéro `import random`, zéro état global mutable).
 
 ### Fonctions publiques
 
-- `decode_chassis_index(chassis_idx: int) -> dict[str, Any]` — Décode un index de châssis 0..383 (base mixte LSB-first) en dictionnaire d'axes.
-- `encode_chassis_axes(axes: dict[str, Any]) -> int` — Encode un dictionnaire d'axes en index de châssis 0..383 (base mixte LSB-first).
+- `decode_chassis_index(chassis_idx: int) -> dict[str, Any]` — Décode un index de châssis 0..191 (base mixte LSB-first) en dictionnaire d'axes.
+- `encode_chassis_axes(axes: dict[str, Any]) -> int` — Encode un dictionnaire d'axes en index de châssis 0..191 (base mixte LSB-first).
 - `is_tactique_code(code: int) -> bool`
 - `is_reve_code(code: int) -> bool`
 - `code_to_tile_id(code: int) -> str`
@@ -105,7 +105,7 @@ Profil structurel immuable d'une tuile Tactique T1..T6.
 
 ### Classe `GameConfig`
 
-Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4).
+Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2).
 
 **Champs :**
 - `n_players: int`
@@ -118,12 +118,12 @@ Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4).
 - `profil_piste: str`
 - `regle_ouverture_reve_multiple: str`
 - `offset_seuil_parade: int`
-- `mise_en_place_tactiques: str`
 - `placement_initial_machines: str`
 - `role_abatteuse_fin_de_piste: str`
 - `synergie_binome_machines: str`
 - `reveil_quota_mode: str`
 - `reveil_gardien_fate: str`
+- `reve_activation_mode: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
@@ -134,9 +134,9 @@ Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4).
 - `reveil_quota: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reveil_quota_mode: str='N', reveil_gardien_fate: str='LISIERE_FACE_1') -> GameConfig` — Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reveil_quota_mode: str='N', reveil_gardien_fate: str='LISIERE_FACE_1', reve_activation_mode: str='1_DEF_1_MACHINE') -> GameConfig` — Construit l'une des 192 configurations de châssis v5.4.2 à partir d'un index 0..191.
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
-- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (A/A en Mode 2 uniquement pour Migration).
+- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=A par défaut en Mode 2+).
 
 ### Classe `ParcelObs`
 
@@ -252,6 +252,10 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `gardien_reveil_defenders(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement engagés (réflexion ou définitif) sur la case `1..6`.
 - `gardien_reveil_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur la case `1..6`.
 - `player_def2_reveil_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en Réveil par le 2e Défenseur de `seat`, ou 0.
+- `reve_at_case(self, case_1_6: int) -> int` — Retourne r_num (1..10) si un Rêve occupe la case `1..6`, sinon 0.
+- `reve_activation_defenders(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`.
+- `reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur le Rêve en case `1..6`.
+- `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en activation Rêve par le 2e Défenseur de `seat`, ou 0.
 - `tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]` — Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques.
 
 ### Classe `GameState`
@@ -322,6 +326,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `place_defender_lisiere_tile(self, seat: int, def_idx: int, lisiere_slot_idx: int, face: int) -> None`
 - `count_reveil_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en Réveil sur la case `1..6`.
 - `place_defender_gardien_reveil(self, seat: int, case_1_6: int, face: int) -> None` — Engage le 2e Défenseur de `seat` sur un Gardien Face 2 en case `1..6` pour le Réveil.
+- `count_reve_activation_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`.
+- `place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None` — Engage le 2e Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2.
 - `mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None` — Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées.
 - `get_lisiere_tile_state(self, slot_idx: int) -> tuple[int, int]` — Retourne (status, nb_constructors).
 - `set_lisiere_tile_state(self, slot_idx: int, status: int, constructors: int) -> None`
@@ -470,8 +476,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool` — Règle A16 : tout mouvement entrant d'une machine sur un Nid non protégé le renvoie en lisière (reconstructible) et défausse tous les Insectes locaux.
 - `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, m_type: int=0, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine ou Défenseur.
 - `prim_mod_puissance(state: GameState, ray: int, m_type: int, *, delta_rouges: int=0, delta_bleus: int=0, flip_rouge_to_bleu: int=0) -> None` — Primitive 4 : MOD_PUISSANCE — ajuste les jetons Puissance rouges et bleus Surchauffe.
-- `prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None` — Primitive 5 : MOD_APPRENTISSAGE — ajoute ou retire des jetons Apprentissage.
-- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 6 : PERMUTATION_PISTE — échange sur piste centrale, avancée Rêve ou lecture M.
+- `prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None` — Primitive 5 : MOD_APPRENTISSAGE — neutralisée (Apprentissage supprimé en v5.4.2).
+- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 6 : PERMUTATION_PISTE — avancée Rêve (saut/poussée) ou lecture M sur piste fixe T1..T6.
 - `prim_partage_info_etat_gardien(state: GameState, action: str, *, case_1_6: int=1, new_face: int=2) -> bool` — Primitive 7 : PARTAGE_INFO_ETAT_GARDIEN — états Gardiens & ouverture paravents.
 - `prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool=True) -> bool` — Primitive 8 : MOD_LOI_DU_COEUR — point d'entrée typé des Lois passives/temporaires.
 

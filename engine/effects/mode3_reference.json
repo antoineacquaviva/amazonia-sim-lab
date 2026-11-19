@@ -8,8 +8,8 @@
   ],
   "stats": {
     "total_emplacements": 32,
-    "kept_A": 29,
-    "replaced_A": 3
+    "kept_A": 28,
+    "replaced_A": 4
   },
   "ecarts_A": [
     {
@@ -26,6 +26,11 @@
       "slot": "R5",
       "chosen": "C",
       "reason": "Profil A écarté (modifie le secret des paravents / information) ; C retenu (effet local borné)."
+    },
+    {
+      "slot": "SLOT_BUG_CERVEAU",
+      "chosen": "B",
+      "reason": "Profil B actif par défaut depuis v5.4.2 (Déviation Synaptique en 3.2, Apprentissage supprimé)."
     }
   ],
   "selections": {
@@ -272,10 +277,10 @@
     "SLOT_BUG_CERVEAU": {
       "famille": "MIGRATION",
       "peuple_origine": "I",
-      "profile": "A",
-      "nom": "Court-circuit d’Apprentissage (Standard)",
-      "kept_A": true,
-      "rationale": "Migration fixée à A selon la référence Mode 3."
+      "profile": "B",
+      "nom": "Déviation Synaptique (Contrôle 3.2)",
+      "kept_A": false,
+      "rationale": "Profil B actif par défaut depuis v5.4.2 (Déviation Synaptique en 3.2, Apprentissage supprimé)."
     },
     "SLOT_COLONISATION_GARDIENS": {
       "famille": "MIGRATION",

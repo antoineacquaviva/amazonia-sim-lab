@@ -5,12 +5,10 @@ from __future__ import annotations
 from engine.core_engine import (
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MIGRATION_INSECTE_4_3,
-    DEC_RETRAIT_APPRENTISSAGE_6_1,
     _run_step_6_1,
     apply_choice,
     compute_parade_seuil,
     insert_reve_on_track,
-    resolve_single_machine_attack,
     step_until_decision,
 )
 from engine.effects import load_all_effects
@@ -18,7 +16,6 @@ from engine.effects.lot_06 import LOT_06_PROFILES
 from engine.effects.registry import clear_tile_registry, get_tile_registration
 from engine.primitives import (
     CAUSE_REVE_RANG_1,
-    DEC_EFFET_TUILE,
     HOOK_GARDIEN_OUVERTURE,
     DecisionRequest,
     GameOver,
@@ -78,10 +75,15 @@ def _setup_reve_opening_3_2(
     *,
     stop_in_4_3: bool = True,
 ) -> None:
-    """Place le Rêve R{r_num} au rang `rank_0_5` et configure la main de `reader_seat` pour le lire en 3.2."""
+    """Place le Rêve R{r_num} au rang `rank_0_5`, pose un 2e Défenseur dessus et configure la main."""
     state.set_tactique_at_rank(rank_0_5, TILE_R_BASE + r_num)
     card = machine_card_code(reader_seat, MACHINE_ABATTEUSE)
     m_val = rank_0_5 + 1
+    act_seat = next(
+        (s for s in range(state.cfg.n_players) if state.get_player_def_loc_raw(s, 1) == 0),
+        reader_seat,
+    )
+    state.place_defender_reve_activation(act_seat, m_val, FACE_DEFINITIF)
     state.set_player_hand(reader_seat, card, m_val, 6, m_val, 0)
     if stop_in_4_3:
         _add_step_4_3_stop_anchor(state)
@@ -98,35 +100,19 @@ def test_lot_06_all_11_profiles_registered() -> None:
 
 
 def test_r1_a_temoin_tambour_echange_tactiques_avant_avancee() -> None:
-    """Témoin R1:A : échange deux Tactiques adjacentes avant l'avancée de R1 pour faire éjecter T6."""
+    """R1:A neutralisé en v5.4.2 (piste fixe T1..T6) : R1 s'ouvre et avance sans échanger de Tactiques."""
     state = _make_state(("R1", "A"))
-    # Piste initiale : [T1, T2, T3, T6, T5, R1] -> échanger T6 (idx 3) et T5 (idx 4) pousse T6 à droite
-    track_init = (1, 2, 3, 6, 5, TILE_R_BASE + 1)
-    for idx, code in enumerate(track_init):
-        state.set_tactique_at_rank(idx, code)
     _setup_reve_opening_3_2(state, 1, 5, reader_seat=0)
 
-    req = step_until_decision(state)
-    assert isinstance(req, DecisionRequest)
-    assert req.decision_type == DEC_EFFET_TUILE
-    assert req.decideur == 0  # Humains
-    assert (3, 4) in req.options
-    assert (4, 5) not in req.options  # R1 n'est pas une Tactique
-    assert state.is_trigger_lit(5)
-
-    # Pousser T6 de l'indice 3 vers l'indice 4 avant que R1 n'avance de 5 vers 4 !
-    apply_choice(state, (3, 4))
     anchor_req = step_until_decision(state)
     assert isinstance(anchor_req, DecisionRequest)
     assert anchor_req.decision_type == DEC_MIGRATION_INSECTE_4_3
-
-    # Après l'échange (T5 en 3, T6 en 4) puis l'avancée de R1 (4 <-> 5) : [T1, T2, T3, T5, R1, T6]
-    after_track = tuple(state.get_tactique_at_rank(i) for i in range(TRACK_LEN))
-    assert after_track == (1, 2, 3, 5, TILE_R_BASE + 1, 6)
-
-    # Le prochain Rêve construit éjecte bien T6 (la Tactique la plus à droite) !
+    assert state.find_tactique_rank(TILE_R_BASE + 1) == 4
+    # La case 6 retrouve la Tactique imprimée T6 ; le prochain Rêve se pose en case 6 sans éjection
+    assert state.get_tactique_at_rank(5) == 6
     ejected = insert_reve_on_track(state, 2)
-    assert ejected == 6
+    assert ejected is None
+    assert state.get_tactique_at_rank(5) == TILE_R_BASE + 2
 
 
 def test_r1_b_temoin_double_avancee_sommeil_contremaitre() -> None:
@@ -197,80 +183,26 @@ def test_r1_c_temoin_offrande_gardien_sans_sacrifice() -> None:
 
 
 def test_r2_a_temoin_voile_oubli_avant_bugs_6_1() -> None:
-    """Témoin R2:A : retire jusqu'à 2 jetons Apprentissage en 6.1 avant les Bugs (épargne Bug et crée égalité)."""
+    """R2:A neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster en Mode 4)."""
     state = _make_state(("R2", "A"), ("SLOT_BUG_CERVEAU", "B"), peuples=("H", "E", "I", "M"))
-    # Piste : [T1, T2, T3, T4, T5, R2]
-    for idx in range(5):
-        state.set_tactique_at_rank(idx, idx + 1)
     _setup_reve_opening_3_2(state, 2, 5, reader_seat=1)
     step_until_decision(state)
     assert state.find_tactique_rank(TILE_R_BASE + 2) == 4
-
-    # Passer à 6.1 du même tour : T1 (idx 0)=2, T2 (idx 1)=1 + 1 Bug en case 2, T3 (idx 2)=1
     state._continuation.clear()
-    state.set_apprentissage_at_rank(0, 2)
-    state.set_apprentissage_at_rank(1, 1)
-    state.set_apprentissage_at_rank(2, 1)
-    state.set_bugs_at_case(2, 1)  # Case 2 = idx 1 (T2)
-
-    state.step = STEP_6_1_APPRENTISSAGE
-    req1 = step_until_decision(state)
-    assert isinstance(req1, DecisionRequest)
-    assert req1.decision_type == DEC_RETRAIT_APPRENTISSAGE_6_1
-    assert req1.decideur == 1  # Entités Magiques
-    assert req1.options == ("PASSER", 0, 1, 2)
-
-    # 1er retrait sur T2 (idx 1) : tombe à 0 AVANT les Bugs -> le Bug en case 2 sera épargné !
-    apply_choice(state, 1)
-    req2 = step_until_decision(state)
-    assert isinstance(req2, DecisionRequest)
-    assert req2.options == ("PASSER", 0, 2)
-
-    # 2e retrait sur T1 (idx 0) : tombe de 2 à 1 -> égalité 1-1 avec T3 (idx 2) !
-    apply_choice(state, 0)
-    assert state.get_apprentissage_at_rank(0) == 1
-    assert state.get_apprentissage_at_rank(1) == 0
-    assert state.get_apprentissage_at_rank(2) == 1
-
-    # Exécuter la fin de 6.1 (Bugs) + 6.2 (Évolution) : égalité en tête -> aucun avancement Tactique et Bug préservé !
-    before_t = tuple(state.get_tactique_at_rank(i) for i in range(TRACK_LEN))
-    step_until_decision(state)
-    after_t = tuple(state.get_tactique_at_rank(i) for i in range(TRACK_LEN))
-    assert state.get_bugs_at_case(2) == 1
-    assert after_t == before_t
-
-
-def test_r2_b_temoin_parade_totale_vs_route_forestiere_6_1() -> None:
-    """Témoin R2:B : machine 100 % parée -> 0 Apprentissage (même avec gain rouge) ; Route Forestière != parée."""
-    state = _make_state(("R2", "B"))
-    for idx in range(5):
-        state.set_tactique_at_rank(idx, idx + 1)
-    state.set_tactique_at_rank(5, TILE_R_BASE + 2)
-
-    # Machine A : Abatteuse rayon 0 liée à T5 (SUR_PLACE + DEVANT, gain_rouge=1), 100 % parée en (0, 1) et (0, 2)
-    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL, False)
-    state.set_parcel_piege(0, 1, PIEGE_ACTIF)
-    state.set_parcel_defenseurs(0, 1, 1)
-    state.set_parcel_piege(0, 2, PIEGE_ACTIF)
-    state.set_parcel_defenseurs(0, 2, 1)
-    state.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 6, 5, 5)
-    resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[5])
-    assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)
-
-    # Machine B : Abatteuse rayon 1 liée à T4 (cible SUR_PLACE, gain_rouge=1), posée sur une Route Forestière (1, 1) !
-    state.set_parcel_arbres_souches(1, 1, 0, 0)
-    assert state.is_route_forestiere(1, 1)
-    state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL, False)
-    state.set_player_hand(1, machine_card_code(1, MACHINE_ABATTEUSE), 4, 6, 4, 4)
-    resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4])
-    assert state.get_machine_tokens(1, MACHINE_ABATTEUSE) == (1, 0)
-
-    # Exécuter _run_step_6_1 : T5 (idx 4) reçoit 0 jeton, tandis que T4 (idx 3) reçoit +1 jeton !
     state.step = STEP_6_1_APPRENTISSAGE
     _run_step_6_1(state)
     assert state.step == STEP_6_2_EVOLUTION
-    assert state.get_apprentissage_at_rank(4) == 0  # T5 annulé par R2:B
-    assert state.get_apprentissage_at_rank(3) == 1  # T4 sur Route Forestière NON parée -> +1 !
+    assert all(state.get_apprentissage_at_rank(i) == 0 for i in range(TRACK_LEN))
+
+
+def test_r2_b_temoin_parade_totale_vs_route_forestiere_6_1() -> None:
+    """R2:B neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster en Mode 4)."""
+    state = _make_state(("R2", "B"))
+    state.set_tactique_at_rank(5, TILE_R_BASE + 2)
+    state.step = STEP_6_1_APPRENTISSAGE
+    _run_step_6_1(state)
+    assert state.step == STEP_6_2_EVOLUTION
+    assert all(state.get_apprentissage_at_rank(i) == 0 for i in range(TRACK_LEN))
 
 
 def test_r3_a_temoin_recyclage_batisseurs_lisiere_en_3_2() -> None:

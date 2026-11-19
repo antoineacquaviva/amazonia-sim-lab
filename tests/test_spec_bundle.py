@@ -21,10 +21,10 @@ def test_spec_bundle_structure_and_counts() -> None:
     bundle = json.loads(BUNDLE_PATH.read_text(encoding="utf-8"))
 
     assert bundle["meta"]["schema_version"] == "5.4.0"
-    assert len(bundle["chassis_axes"]) == 7
+    assert len(bundle["chassis_axes"]) == 6
     assert [t["id"] for t in bundle["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert bundle["machine_deck_rules"]["sabotage_dilution_permanente"] is True
-    assert bundle["machine_damage_rules"]["ratissage"]["apprentissage_sur_t1_si_presente"] is True
+    assert bundle["machine_damage_rules"]["ratissage"]["piste_tactiques_fixe"] is True
     assert bundle["machine_damage_rules"]["ratissage"]["bonus_puissance_imprime"] == 1
 
     cat = bundle["catalogue_tuiles"]
@@ -82,5 +82,5 @@ def test_mode3_reference_valid() -> None:
     mode3 = json.loads(MODE3_PATH.read_text(encoding="utf-8"))
     selections = mode3["selections"]
     assert len(selections) == 32
-    assert selections["SLOT_BUG_CERVEAU"]["profile"] == "A"
+    assert selections["SLOT_BUG_CERVEAU"]["profile"] == "B"
     assert selections["SLOT_COLONISATION_GARDIENS"]["profile"] == "A"

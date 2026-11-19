@@ -46,8 +46,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_reveil_activation_and_hors_chassis_bijection() -> None:
-    """Actif uniquement si >= 1 Animal Sauvage (M/R/O) et préserve NUM_CHASSIS == 384."""
-    assert NUM_CHASSIS == 384
+    """Actif uniquement si >= 1 Animal Sauvage (M/R/O) et préserve NUM_CHASSIS == 192."""
+    assert NUM_CHASSIS == 192
 
     cfg_no_animal = GameConfig(n_players=3, mode=2, peuples=("H", "E", "I"))
     assert cfg_no_animal.nb_animaux_sauvages == 0

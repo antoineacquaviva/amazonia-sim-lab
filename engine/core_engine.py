@@ -34,8 +34,6 @@ from engine.primitives import (
     HOOK_5_SEUIL_PARADE,
     HOOK_5_TERRASSEMENT,
     HOOK_6_1_BUG,
-    HOOK_6_1_REDUCTION_VOLONTAIRE,
-    HOOK_6_2_AVANCEMENT,
     HOOK_EFFECT_RESUME,
     HOOK_REPOUSSE_FINALE,
     DecisionRequest,
@@ -49,9 +47,9 @@ from engine.primitives import (
     has_pending_decision,
     prim_creation_entite,
     prim_deplacement,
-    prim_mod_apprentissage,
     prim_partage_info_etat_gardien,
     prim_permutation_piste,
+    push_effect_decision,
     register_tile,
 )
 from engine.rng import SRC_DICE, roll_d6
@@ -167,21 +165,67 @@ def _transition_step(state: GameState, new_step: int) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Profils standards Migration A/A sur le bus de hooks (actifs dès le Mode 2)
+# Profils standards Migration (Bug B, Colonie A) sur le bus de hooks (Mode 2+)
 # ---------------------------------------------------------------------------
 
 
 def _bug_a_handler(state: GameState, _hook: str, _ctx: dict[str, Any]) -> None:
-    """SLOT_BUG_CERVEAU.A : -1 Apprentissage par Insecte si > 0, sinon Insecte conservé."""
-    for rank_idx in range(TRACK_LEN):
-        case_num = rank_idx + 1
-        bugs = state.get_bugs_at_case(case_num)
-        app = state.get_apprentissage_at_rank(rank_idx)
-        if bugs > 0 and app > 0:
-            consumed = min(bugs, app)
-            state.set_bugs_at_case(case_num, bugs - consumed)
-            _record_phys_ops(state, consumed)
-            prim_mod_apprentissage(state, rank_idx, -consumed)
+    """SLOT_BUG_CERVEAU.A : obsolète (Apprentissage supprimé en v5.4.2) — no-op."""
+    _ = state
+
+
+def _bug_b_step_queue(state: GameState, start_seat: int) -> None:
+    n = state.cfg.n_players
+    for s in range(start_seat, n):
+        card, _, _, lec_m, _ = state.get_player_hand(s)
+        if not (1 <= card <= 12 and 1 <= lec_m <= TRACK_LEN):
+            continue
+        if state.get_bugs_at_case(lec_m) < 1:
+            continue
+        shifts: list[str] = ["PASSER"]
+        if lec_m > 1:
+            shifts.append("M_MOINS_1")
+        if lec_m < TRACK_LEN:
+            shifts.append("M_PLUS_1")
+        gov_i = state.cfg.seat_of_peuple("I")
+        decideur = gov_i if gov_i is not None else s
+        push_effect_decision(
+            state,
+            decideur,
+            tuple(shifts),
+            {
+                "effect_kind": "BUG_DEVIATION_SYNAPTIQUE_3_2",
+                "target_seat": s,
+                "case": lec_m,
+            },
+            slot_id="SLOT_BUG_CERVEAU",
+            profile="B",
+            resume_tag="DEVIATION_3_2",
+            resume_payload=(s, lec_m),
+        )
+        return
+
+
+def _bug_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
+    """SLOT_BUG_CERVEAU.B (défaut v5.4.2) : en 3.2, défausse 1 Bug du rang M pour décaler M de ±1."""
+    if hook == HOOK_3_2_REVELATION:
+        _bug_b_step_queue(state, 0)
+        return None
+    if hook == HOOK_EFFECT_RESUME:
+        choice = str(ctx["choice"])
+        seat, case_num = ctx["payload"]
+        s_int, c_int = int(seat), int(case_num)
+        if choice in ("M_MOINS_1", "M_PLUS_1"):
+            bugs = state.get_bugs_at_case(c_int)
+            if bugs >= 1:
+                state.set_bugs_at_case(c_int, bugs - 1)
+                _record_phys_ops(state, 1)
+                delta = -1 if choice == "M_MOINS_1" else 1
+                prim_permutation_piste(
+                    state, "SHIFT_LECTURE_M", seat=s_int, delta_m=delta, rebind_tactique=False
+                )
+        _bug_b_step_queue(state, s_int + 1)
+    return None
 
 
 def _colonie_a_handler(state: GameState, _hook: str, ctx: dict[str, Any]) -> list[int]:
@@ -197,9 +241,13 @@ def _colonie_a_handler(state: GameState, _hook: str, ctx: dict[str, Any]) -> lis
 
 
 def ensure_builtin_migration_registered() -> None:
-    """Garantit l'enregistrement de Bug A et Colonie A sur le bus."""
+    """Garantit l'enregistrement de Bug A (no-op), Bug B (défaut) et Colonie A sur le bus."""
     if get_tile_registration("SLOT_BUG_CERVEAU", "A") is None:
         register_tile("SLOT_BUG_CERVEAU", "A", hooks=(HOOK_6_1_BUG,))(_bug_a_handler)
+    if get_tile_registration("SLOT_BUG_CERVEAU", "B") is None:
+        register_tile(
+            "SLOT_BUG_CERVEAU", "B", hooks=(HOOK_3_2_REVELATION, HOOK_EFFECT_RESUME)
+        )(_bug_b_handler)
     if get_tile_registration("SLOT_COLONISATION_GARDIENS", "A") is None:
         register_tile("SLOT_COLONISATION_GARDIENS", "A", hooks=(HOOK_4_3_COLONIE_FIN,))(
             _colonie_a_handler
@@ -307,11 +355,15 @@ _LIS_TARGETS: tuple[tuple[str, int], ...] = tuple(
 _GARDIEN_REVEIL_TARGETS: tuple[tuple[str, int], ...] = tuple(
     ("GARDIEN_REVEIL", case_c) for case_c in range(TRACK_LEN + 1)
 )
+_REVE_ACTIVATION_TARGETS: tuple[tuple[str, int], ...] = tuple(
+    ("REVE_ACTIVATION", case_c) for case_c in range(TRACK_LEN + 1)
+)
 _ALL_CANONICAL_TARGETS: tuple[tuple[Any, ...], ...] = (
     tuple(t for row in _FORET_TARGETS for t in row[1:])
     + tuple(t for row in _FURT_TARGETS for pair in row[1:] for t in pair)
     + _LIS_TARGETS
     + _GARDIEN_REVEIL_TARGETS[1:]
+    + _REVE_ACTIVATION_TARGETS[1:]
 )
 _DEF2_DEFINITIF_WRAP: dict[tuple[Any, ...], tuple[str, tuple[Any, ...]]] = {
     t: ("POSER_DEFINITIF", t) for t in _ALL_CANONICAL_TARGETS
@@ -353,6 +405,8 @@ def _current_def_canonical_spot(state: GameState, seat: int, def_idx: int) -> tu
         return _LIS_TARGETS[a]
     if kind == "GARDIEN_REVEIL":
         return _GARDIEN_REVEIL_TARGETS[a]
+    if kind == "REVE_ACTIVATION":
+        return _REVE_ACTIVATION_TARGETS[a]
     return None
 
 
@@ -437,6 +491,12 @@ def list_legal_targets(
             if cnt_rev < q_req:
                 targets.append(cand_rev)
 
+    # 5. Activation de Rêve sur la piste fixe (2e Défenseur uniquement, Mode >= 2)
+    if not is_first_defender and state.cfg.mode >= 2:
+        for c_num in range(1, TRACK_LEN + 1):
+            if is_reve_code(state.get_tactique_at_rank(c_num - 1)):
+                targets.append(_REVE_ACTIVATION_TARGETS[c_num])
+
     if extra_targets and not use_global:
         for ext_t in extra_targets:
             if ext_t not in targets:
@@ -476,6 +536,11 @@ def _apply_defender_target(
         assert def_idx == 1, "Seul le 2e Défenseur peut cibler GARDIEN_REVEIL"
         _, case_c = target
         state.place_defender_gardien_reveil(seat, int(case_c), face)
+        _record_phys_ops(state, 1)
+    elif kind == "REVE_ACTIVATION":
+        assert def_idx == 1, "Seul le 2e Défenseur peut cibler REVE_ACTIVATION"
+        _, case_c = target
+        state.place_defender_reve_activation(seat, int(case_c), face)
         _record_phys_ops(state, 1)
     elif kind == "PASSER_IMPASSE":
         state.mark_defender_impasse(seat, def_idx, face)
@@ -636,30 +701,19 @@ def lock_all_def2_in_place(state: GameState) -> None:
 
 
 def insert_reve_on_track(state: GameState, r_num: int) -> int | None:
-    """Règle A11 : éjecte la Tactique la plus à droite, glissement partiel à gauche,
-    insertion du Rêve en case 6, Bugs fixes sur leurs numéros d'emplacement.
-
-    Retourne le code de la Tactique éjectée (1..6).
+    """Pose un Rêve construit par-dessus la case libre la plus à droite (6, puis 5, ...).
+    Aucune Tactique n'est éjectée (piste fixe T1..T6 imprimée en dur).
     """
     assert 1 <= r_num <= 10
-    hole_idx: int | None = None
+    target_idx: int | None = None
     for idx in range(TRACK_LEN - 1, -1, -1):
-        code = state.get_tactique_at_rank(idx)
-        if is_tactique_code(code):
-            hole_idx = idx
+        if not is_reve_code(state.get_tactique_at_rank(idx)):
+            target_idx = idx
             break
-    assert hole_idx is not None, "Aucune Tactique restante à éjecter"
-
-    ejected_code = state.get_tactique_at_rank(hole_idx)
-    slid = (TRACK_LEN - 1) - hole_idx
-    for idx in range(hole_idx, TRACK_LEN - 1):
-        state.set_tactique_at_rank(idx, state.get_tactique_at_rank(idx + 1))
-        state.set_apprentissage_at_rank(idx, state.get_apprentissage_at_rank(idx + 1))
-
-    state.set_tactique_at_rank(TRACK_LEN - 1, TILE_R_BASE + r_num)
-    state.set_apprentissage_at_rank(TRACK_LEN - 1, 0)
-    _record_phys_ops(state, 2 + slid)
-    return ejected_code
+    assert target_idx is not None, "Aucune case libre sur la piste pour poser le Rêve"
+    state.set_tactique_at_rank(target_idx, TILE_R_BASE + r_num)
+    _record_phys_ops(state, 1)
+    return None
 
 
 def _tracked_builders_on_slot(state: GameState, slot_idx: int) -> list[tuple[int, int]]:
@@ -1430,40 +1484,99 @@ def _eligible_ratissage_machines(state: GameState) -> list[tuple[int, int]]:
 # ---------------------------------------------------------------------------
 
 
+def _machine_threat_key_3_2(state: GameState, seat: int, card: int) -> tuple[int, int, int, int, int]:
+    """Clé de priorité décroissante de menace pour l'annulation en 1_DEF_1_MACHINE."""
+    ray = (card - 1) // 2
+    m_type = (card - 1) % 2
+    pos, st, _ = state.get_machine_pos_status(ray, m_type)
+    active = 1 if (st != MACHINE_STATUS_RETIRED and pos > 0) else 0
+    is_rat = 1 if st == MACHINE_STATUS_RATISSAGE else 0
+    eff_red = state.get_machine_effective_rouges(ray, m_type) if active else 0
+    return (active, is_rat, eff_red, pos, -seat)
+
+
 def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int], ...]:
     n = state.cfg.n_players
     initial_track = [state.get_tactique_at_rank(i) for i in range(TRACK_LEN)]
-    reve_hits_by_rank: list[int] = [0] * TRACK_LEN
+    seats_by_rank: list[list[tuple[int, int, int, int, int]]] = [[] for _ in range(TRACK_LEN)]
     for s in range(n):
         card, d1, d2, lec_m, _ = state.get_player_hand(s)
         if 1 <= card <= 12 and 1 <= lec_m <= 6:
-            code_m = initial_track[lec_m - 1]
-            if is_tactique_code(code_m):
-                state.set_player_hand(s, card, d1, d2, lec_m, code_m)
-            elif is_reve_code(code_m):
-                state.set_player_hand(s, card, d1, d2, lec_m, 0)
-                reve_hits_by_rank[lec_m - 1] += 1
+            seats_by_rank[lec_m - 1].append((s, card, d1, d2, lec_m))
 
+    act_mode = state.cfg.reve_activation_mode
+    trk = _get_active_telemetry()
     reve_queue: list[tuple[int, int]] = []
+
     for r_idx in range(TRACK_LEN):
-        hits = reve_hits_by_rank[r_idx]
-        if hits <= 0:
+        entries = seats_by_rank[r_idx]
+        if not entries:
             continue
-        reve_code = initial_track[r_idx]
-        r_num = reve_code - TILE_R_BASE
-        if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
-            open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
-        else:
-            open_count = hits
-        for _ in range(open_count):
-            reve_queue.append((reve_code, r_num))
+        case_1_6 = r_idx + 1
+        code_m = initial_track[r_idx]
+        if not is_reve_code(code_m):
+            # Piste fixe : la Tactique imprimée T{case_1_6} s'applique toujours
+            for s, card, d1, d2, lec_m in entries:
+                state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
+            continue
+
+        # Un Rêve occupe la case case_1_6 par-dessus la Tactique imprimée T{case_1_6}
+        n_def = state.count_reve_activation_defenders_at_case(case_1_6)
+        cancelled_seats: set[int]
+        if act_mode == "1_DEF_1_MACHINE":
+            if n_def <= 0:
+                cancelled_seats = set()
+            elif n_def >= len(entries):
+                cancelled_seats = {e[0] for e in entries}
+            else:
+                ranked = sorted(
+                    entries,
+                    key=lambda e: _machine_threat_key_3_2(state, e[0], e[1]),
+                    reverse=True,
+                )
+                cancelled_seats = {e[0] for e in ranked[:n_def]}
+        elif act_mode == "1_DEF_ALL_RANK":
+            cancelled_seats = {e[0] for e in entries} if n_def >= 1 else set()
+        else:  # "BINOME_ALL_RANK"
+            cancelled_seats = {e[0] for e in entries} if n_def >= 2 else set()
+
+        for s, card, d1, d2, lec_m in entries:
+            if s in cancelled_seats:
+                state.set_player_hand(s, card, d1, d2, lec_m, 0)
+            else:
+                # Machine non annulée : exécute la Tactique imprimée T{case_1_6} sous le Rêve
+                state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
+
+        n_cancel = len(cancelled_seats)
+        n_bypass = len(entries) - n_cancel
+        if trk is not None:
+            if n_cancel > 0:
+                trk.on_machines_cancelled_by_reve(n_cancel)
+            if n_bypass > 0:
+                trk.on_machines_bypassed_inactive_reve(n_bypass)
+
+        if n_cancel >= 1:
+            r_num = code_m - TILE_R_BASE
+            if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
+                open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
+            else:
+                open_count = n_cancel
+            for _ in range(open_count):
+                reve_queue.append((code_m, r_num))
+
     return tuple(reve_queue)
 
 
 def _run_step_3_2(state: GameState) -> None:
     prim_partage_info_etat_gardien(state, "OPEN_PARAVENTS")
-    if state.cfg.mode <= 2:
+    has_bug_b_work = (
+        state.cfg.mode == 2
+        and state.cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
+        and any(state.get_bugs_at_case(c) > 0 for c in range(1, TRACK_LEN + 1))
+    )
+    if state.cfg.mode <= 2 and not has_bug_b_work:
         reve_q = _bind_hands_and_collect_reves_3_2(state)
+        trk = _get_active_telemetry()
         for reve_code, r_num in reve_q:
             if (
                 state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR"
@@ -1471,6 +1584,8 @@ def _run_step_3_2(state: GameState) -> None:
             ):
                 continue
             state.mark_reve_opened_this_turn(r_num)
+            if trk is not None:
+                trk.on_reve_activated(1)
             state.light_trigger(5)
             cur_pos_r = state.find_tactique_rank(reve_code)
             if cur_pos_r is not None and cur_pos_r > 0:
@@ -1734,6 +1849,9 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             ):
                 return None
             state.mark_reve_opened_this_turn(r_num)
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_reve_activated(1)
             state.light_trigger(5)
             state._continuation.insert(0, ("STEP_3_2_FINISH_REVE", int(reve_code)))
             dispatch_hook(
@@ -2063,25 +2181,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
 
     if tag == "VOLUNTARY_APP_6_1":
         state._continuation.pop(0)
-        rem_cnt, dec_seat = state.get_pending_voluntary_app_reduction()
-        ranks_pos = tuple(
-            idx
-            for idx in range(TRACK_LEN)
-            if is_tactique_code(state.get_tactique_at_rank(idx))
-            and state.get_apprentissage_at_rank(idx) > 0
-        )
-        if rem_cnt > 0 and ranks_pos:
-            req = DecisionRequest(
-                decideur=dec_seat if 0 <= dec_seat < n else state.coordonnateur,
-                decision_type=DEC_RETRAIT_APPRENTISSAGE_6_1,
-                options=("PASSER", *ranks_pos),
-                context={"remaining": rem_cnt, "tour": state.tour},
-            )
-            state._continuation.insert(0, ("APPLY_VOLUNTARY_APP_6_1",))
-            state._continuation.insert(0, ("WAIT_DECISION", req))
-            return req
         state.clear_pending_voluntary_app_reduction(0, 0)
-        dispatch_hook(state, HOOK_6_1_BUG, {})
         _transition_step(state, STEP_6_2_EVOLUTION)
         return None
 
@@ -2102,90 +2202,20 @@ def _finish_step_5_3_traps_and_end_check(state: GameState) -> None:
     if _check_end_of_game_condition(state):
         _transition_step(state, STEP_GAME_OVER)
         return
-    _transition_step(state, STEP_6_1_APPRENTISSAGE)
+    # Étape 6.1 Apprentissage supprimée en v5.4.2 : passage direct au ménage de fin de tour
+    _transition_step(state, STEP_6_2_EVOLUTION)
 
 
 def _run_step_6_1(state: GameState) -> None:
-    n = state.cfg.n_players
-    card_tactique_by_machine: dict[tuple[int, int], int] = {}
-    for s in range(n):
-        card, _, _, _, bound_t = state.get_player_hand(s)
-        if 1 <= card <= 12 and bound_t > 0:
-            card_tactique_by_machine[((card - 1) // 2, (card - 1) % 2)] = bound_t
-
-    for r in range(n):
-        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
-            pos, st, _ = state.get_machine_pos_status(r, mt)
-            if st == MACHINE_STATUS_RETIRED or pos == 0:
-                continue
-            target_t_code: int | None = None
-            if st == MACHINE_STATUS_RATISSAGE:
-                target_t_code = 1
-            elif (r, mt) in card_tactique_by_machine:
-                target_t_code = card_tactique_by_machine[(r, mt)]
-
-            if target_t_code is None:
-                continue
-            t_rank = state.find_tactique_rank(target_t_code)
-            if t_rank is None:
-                continue
-
-            dmg_cnt, gained_red, _ = state.get_machine_turn_stats(r, mt)
-            _, bleus = state.get_machine_tokens(r, mt)
-            gain = max(0, dmg_cnt + (1 if gained_red else 0) - bleus)
-            if gain > 0 and state.cfg.mode >= 3:
-                mg_ctx: dict[str, Any] = {
-                    "phase": "MACHINE_GAIN",
-                    "ray": r,
-                    "m_type": mt,
-                    "tactique_code": target_t_code,
-                    "gain": gain,
-                }
-                dispatch_hook(state, HOOK_6_1_REDUCTION_VOLONTAIRE, mg_ctx)
-                gain = max(0, int(mg_ctx.get("gain", gain)))
-            if gain > 0:
-                prim_mod_apprentissage(state, t_rank, gain)
-
-    for r_idx in range(TRACK_LEN):
-        pend_delta = state.get_pending_apprentissage_at_rank(r_idx)
-        if pend_delta != 0 and is_tactique_code(state.get_tactique_at_rank(r_idx)):
-            prim_mod_apprentissage(state, r_idx, pend_delta)
-            state.add_pending_apprentissage_at_rank(r_idx, -pend_delta)
-
-    dispatch_hook(state, HOOK_6_1_REDUCTION_VOLONTAIRE, {})
-    rem_vol, _ = state.get_pending_voluntary_app_reduction()
-    if rem_vol > 0 or has_pending_decision(state):
-        state._continuation.append(("VOLUNTARY_APP_6_1",))
-        return
-
-    dispatch_hook(state, HOOK_6_1_BUG, {})
+    """Étape 6.1 supprimée en v5.4.2 (Apprentissage purgé) : transition immédiate vers 6.2."""
     _transition_step(state, STEP_6_2_EVOLUTION)
 
 
 def _run_step_6_2(state: GameState) -> GameOver | None:
-    scores = [
-        state.get_apprentissage_at_rank(i)
-        if is_tactique_code(state.get_tactique_at_rank(i))
-        else 0
-        for i in range(TRACK_LEN)
-    ]
-    max_sc = max(scores)
-    if max_sc >= 1 and scores.count(max_sc) == 1:
-        win_idx = scores.index(max_sc)
-        av_ctx: dict[str, Any] = {"winner_idx": win_idx, "blocked": False}
-        dispatch_hook(state, HOOK_6_2_AVANCEMENT, av_ctx)
-        if not av_ctx.get("blocked") and win_idx > 0:
-            prim_permutation_piste(state, "SWAP_RANKS", rank_a=win_idx, rank_b=win_idx - 1)
-    else:
-        dispatch_hook(state, HOOK_6_2_AVANCEMENT, {"winner_idx": None, "tie": True})
-
-    if state.cfg.mode >= 3 and state.is_sommeil_victory():
-        return apply_repousse_finale(state)
-
+    """Ménage de fin de tour (sans déplacement de Tactiques : piste T1..T6 fixe)."""
     trk = _get_active_telemetry()
     if trk is not None:
-        cleanup_ops = sum(state.get_apprentissage_at_rank(i) for i in range(TRACK_LEN))
-        cleanup_ops += state.count_used_gardiens_on_track()
+        cleanup_ops = state.count_used_gardiens_on_track()
         for s in range(state.cfg.n_players):
             for d in (0, 1):
                 raw = state.get_player_def_loc_raw(s, d)
@@ -2883,12 +2913,7 @@ def apply_choice(
 
         if tag == "APPLY_VOLUNTARY_APP_6_1":
             state._continuation.pop(0)
-            rem_cnt, dec_seat = state.get_pending_voluntary_app_reduction()
-            if choice == "PASSER":
-                state.clear_pending_voluntary_app_reduction(0, 0)
-            else:
-                prim_mod_apprentissage(state, int(choice), -1)
-                state.clear_pending_voluntary_app_reduction(max(0, rem_cnt - 1), dec_seat)
+            state.clear_pending_voluntary_app_reduction(0, 0)
             state._continuation.insert(0, ("VOLUNTARY_APP_6_1",))
             return
 

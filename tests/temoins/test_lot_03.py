@@ -545,5 +545,4 @@ def test_g9_b_temoin() -> None:
     # et le Gardien G10 câblé en case 3 s'est activé exactement 1 fois (pending_voluntary_app == 1) !
     assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)
     assert state.get_machine_tokens(1, MACHINE_BULLDOZER) == (1, 0)
-    assert state.get_gardien_at_case(3)[2] is True
-    assert state.get_pending_voluntary_app_reduction()[0] == 1
+    assert state.get_gardien_at_case(3) == (10, 2, True)

@@ -1,5 +1,5 @@
 // =========================================================================
-// data/amazonia_data_v5_4.js — Données canoniques Amazonia v5.4.1 (6 profils · 384 châssis · Ratissage T1 · Sommeil en bloc · Réveil de la Forêt)
+// data/amazonia_data_v5_4.js — Données canoniques Amazonia v5.4.2 (6 profils · 192 châssis · Piste T1..T6 fixe · Activation Rêves 2.2 · Réveil de la Forêt)
 // =========================================================================
 const PEUPLES = {
   "M": {
@@ -315,22 +315,6 @@ const CHASSIS_AXES_SPEC = [
       {
         "val": 1,
         "text": "Offset +1 (Exige +1 Défenseur de plus)"
-      }
-    ]
-  },
-  {
-    "key": "Mise_En_Place_Tactiques",
-    "num": 4,
-    "label": "4. Mise en place Piste des Tactiques",
-    "defaultVal": "ORDRE_FIXE_T1_T6",
-    "options": [
-      {
-        "val": "ORDRE_FIXE_T1_T6",
-        "text": "Ordre croissant fixe T1 à T6 (Standard)"
-      },
-      {
-        "val": "ALEATOIRE",
-        "text": "Tirage aléatoire au départ"
       }
     ]
   },
@@ -2532,6 +2516,29 @@ const CATALOGUE_TUILES = {
 
 const VERSION_CHANGELOG = [
   {
+    "version": "v5.4.2",
+    "date": "Version en vigueur (2026-11-19)",
+    "titre": "Piste des Tactiques fixe (T1..T6), purge de l’Étape 6.1 et activation des Rêves en 2.2 (192 châssis)",
+    "resume": "Piste des Tactiques T1..T6 imprimée en dur (zéro éjection, 6 axes = 192 châssis), suppression complète de l’Étape 6.1 et bascule de SLOT_BUG_CERVEAU sur le profil B par défaut, et activation des Rêves par pose de 2e Défenseur en 2.2 (Option A par défaut : 1 Déf = 1 Machine annulée, Options B/C paramétrables) avec avancée par saut/poussée vers la première case libre à gauche.",
+    "deltas": [
+      {
+        "domaine": "Piste des Tactiques fixe (T1..T6) & Châssis 192",
+        "avant": "v5.4.1 : 6 tuiles Tactique mobiles, axe Mise_En_Place_Tactiques (384 châssis), éjection de Tactique à la construction d’un Rêve.",
+        "apres": "v5.4.2 : Cases 1..6 imprimées en dur T1..T6. Suppression de Mise_En_Place_Tactiques (6 axes = 192 châssis). Un Rêve construit se pose par-dessus la case libre la plus à droite (6, puis 5, etc.) sans aucune éjection."
+      },
+      {
+        "domaine": "Suppression de l’Étape 6.1 & SLOT_BUG_CERVEAU",
+        "avant": "v5.4.1 : Collecte de jetons en 6.1, avancée de la Tactique en tête en 6.2, SLOT_BUG_CERVEAU profil A par défaut.",
+        "apres": "v5.4.2 : Étape 6 réduite au seul ménage de fin de tour (6.2–6.3). SLOT_BUG_CERVEAU bascule par défaut sur le profil B (déviation ±1 rang en 3.2 par défausse d’1 Bug)."
+      },
+      {
+        "domaine": "Activation des Rêves en 2.2 & Avancée par saut/poussée",
+        "avant": "v5.4.1 : Tout dé M tombant sur un Rêve annulait automatiquement la machine et ouvrait le Rêve (avancée simple d’1 cran).",
+        "apres": "v5.4.2 : Pose légale du 2e Défenseur en 2.2 sur un Rêve de la piste. En 3.2, 1 Défenseur annule 1 machine sur ce rang (Option A par défaut ; Options B/C paramétrables) ; toute machine non annulée exécute la Tactique imprimée sous le Rêve. Dès >=1 machine annulée, le Rêve s’ouvre et avance vers la première case libre à sa gauche (saut/poussée du bloc contigu)."
+      }
+    ]
+  },
+  {
     "version": "v5.4.1",
     "date": "Version en vigueur (2026-11-19)",
     "titre": "Réveil de la Forêt par engagement collectif sur Gardien Face 2 (purge du Seuil fixe)",
@@ -2690,7 +2697,7 @@ const VERSION_CHANGELOG = [
 ];
 
 const SPEC_FORMELLE_V5_4 = {
-  "schema_version": "5.4.0",
+  "schema_version": "5.4.2",
   "date_consolidation": "2026-11-19",
   "architecture_reference": {
     "total_emplacements_synergie": 30,
@@ -2753,7 +2760,7 @@ const SPEC_FORMELLE_V5_4 = {
       "code": "PREPARATION_ET_DES_SECRETS",
       "nom": "Ratissage, Distribution et Dés secrets (1.1–1.3)",
       "regles": [
-        "1.1 Machines en Ratissage : les pions machine sont double face (initialisés sur face normale). Dès qu’une machine se trouve sur la dernière parcelle non rasée de son rayon, elle est retournée définitivement sur sa face Ratissage (carte retirée du paquet Machine). En mode Ratissage : +1 en puissance directement applicable inscrit sur le pion (traité comme +1 rouge à tous égards, en conservant les éventuels jetons Puissance ajoutés précédemment) et application systématique de la tactique T1 Sur place (T1 inscrit sur le pion). Son attaque en fin d’Étape 5 est autonome même si la tuile T1 a été éjectée par un Rêve ; en 6.1, elle alimente la tuile T1 en jetons d’Apprentissage si et seulement si T1 est encore présente sur la piste.",
+        "1.1 Machines en Ratissage : les pions machine sont double face (initialisés sur face normale). Dès qu’une machine se trouve sur la dernière parcelle non rasée de son rayon, elle est retournée définitivement sur sa face Ratissage (carte retirée du paquet Machine). En mode Ratissage : +1 en puissance directement applicable inscrit sur le pion (traité comme +1 rouge à tous égards, en conservant les éventuels jetons Puissance ajoutés précédemment) et application systématique de la tactique T1 Sur place (T1 inscrit sur le pion) en fin d’Étape 5.",
         "1.2 Distribution : chaque joueur hors pénurie pioche secrètement 1 carte du paquet Machine (incluant toutes les cartes Sabotage intégrées définitivement). Une carte Sabotage tirée n’active aucune machine (action du Contremaître perdue). S’il reste moins de cartes que de joueurs, distribution dans le sens horaire à partir du peuple ayant le plus d’Arbres debout.",
         "1.3 Dés secrets sous paravent fermé (silence complet) : chaque joueur ayant reçu une carte Machine lance ses 2D6 et retient M = min(D1, D2) (modifié par les éventuelles Lois actives), qui désigne le rang sur la Piste des Tactiques. Si ce rang contient une tuile Rêve en 3.2 (y compris un Rêve construit en 3.1), l’activation de cette machine est annulée."
       ]
@@ -2774,10 +2781,10 @@ const SPEC_FORMELLE_V5_4 = {
       "regles": [
         "3.1 Construction obligatoire : toute tuile réunissant ses 2 constructeurs (ou 1 Défenseur + 1 Insecte avec La Brèche du Tamanoir) est obligatoirement construite AVANT l’ouverture des paravents.",
         "3.1 Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
-        "3.1 Rêve : la Tactique la plus à droite sur la piste est définitivement éjectée ; seules les tuiles situées à droite de ce trou glissent d'un cran vers la gauche ; le nouveau Rêve prend place en case 6 (les Insectes Bug restent sur leur numéro d'emplacement imprimé). Ce Rêve est immédiatement présent sur la piste pour l’étape 3.2.",
+        "3.1 Rêve : un Rêve construit se pose par-dessus la case libre la plus à droite de la piste fixe T1..T6 (case 6, puis case 5 si 6 est déjà occupée par un Rêve, etc.). Aucune Tactique n'est éjectée (les Insectes Bug restent sur leur numéro d'emplacement imprimé). Ce Rêve est immédiatement présent sur la piste pour l’étape 3.2.",
         "3.1 Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents.",
-        "3.2 Ouverture simultanée des paravents et fin du silence tactique. Toute carte Sabotage révélée n’a aucun autre effet que d’avoir fait perdre une activation au Contremaître : elle est mise de côté pour être remélangée dans le paquet Machine en 6.3.",
-        "3.2 Résolution des Rêves : tout dé M désignant le rang d’un Rêve (y compris un Rêve qui vient d’être construit en 3.1 en case 6) annule sa machine, ouvre ce Rêve et le fait avancer d’1 cran vers la gauche (max 1 ouverture par Rêve et par tour en châssis standard UNIQUE_PAR_TOUR, résolue de gauche à droite)."
+        "3.2 Révélation simultanée (paravents ouverts) : résolution des déviations Bug (SLOT_BUG_CERVEAU profil B par défaut : défausser 1 Insecte posé sur la case M pour décaler le dé M de ±1 rang), puis résolution des rangs portant un Rêve selon les 2es Défenseurs posés dessus en 2.2 (Option A par défaut : 1 Défenseur annule 1 machine sur ce rang en priorisant la plus menaçante ; toute machine non annulée exécute la Tactique imprimée T1..T6 sous la case). Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre et avance vers la première case libre à sa gauche (saut/poussée d'un éventuel bloc contigu de Rêves).",
+        "3.2 Révélation simultanée (paravents ouverts) : résolution des déviations Bug (SLOT_BUG_CERVEAU profil B par défaut : défausser 1 Insecte posé sur la case M pour décaler le dé M de ±1 rang), puis résolution des rangs portant un Rêve selon les 2es Défenseurs posés dessus en 2.2 (Option A par défaut : 1 Défenseur annule 1 machine sur ce rang en priorisant la plus menaçante ; toute machine non annulée exécute la Tactique imprimée T1..T6 sous la case). Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre et avance vers la première case libre à sa gauche (saut/poussée d'un éventuel bloc contigu de Rêves)."
       ]
     },
     {
@@ -2802,19 +2809,16 @@ const SPEC_FORMELLE_V5_4 = {
         "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
         "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
         "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
-        "Vérification de fin de partie (5.3) : fin du Tour 8, Sommeil du Contremaître (toutes les tuiles Rêves en jeu — 2 par peuple onirique présent à la table, soit 2 ou 4 ; inactif si 0 — occupent en bloc les premières positions à gauche de la Piste des Tactiques), ou Réveil de la Forêt (actif si >= 1 Peuple Animal Sauvage M/R/O à la table : un Gardien Face 2 engagé au quota Q de 2es Défenseurs en fin de 2.2 et 0 dommage réel infligé par les machines ce tour — aucun Arbre coupé ni Souche retirée). Si atteint : saut de l’Apprentissage et passage direct à la Repousse Finale."
+        "Vérification de fin de partie (5.3) : fin du Tour 8, Sommeil du Contremaître (toutes les tuiles Rêves en jeu — 2 par peuple onirique présent à la table, soit 2 ou 4 ; inactif si 0 — occupent en bloc continu les premières positions à gauche 1..k de la Piste des Tactiques), ou Réveil de la Forêt (actif si >= 1 Peuple Animal Sauvage M/R/O à la table : un Gardien Face 2 engagé au quota Q de 2es Défenseurs en fin de 2.2 et 0 dommage réel infligé par les machines ce tour — aucun Arbre coupé ni Souche retirée). Si atteint : passage direct à la Repousse Finale."
       ]
     },
     {
       "numero": 6,
       "code": "APPRENTISSAGE_ET_MENAGE",
-      "nom": "Apprentissage du Contremaître et Ménage de fin de tour (6.1–6.3)",
+      "nom": "Ménage de fin de tour (6.2–6.3)",
       "regles": [
-        "Calcul par machine active ce tour-ci (activée par carte OU en Ratissage) pour sa Tactique (T1 pour un Ratissage ; sans effet si T1 a été éjectée de la piste) : +1 par parcelle réellement endommagée (>= 1 Arbre coupé ou >= 1 Souche retirée) +1 par jeton Puissance rouge acquis ce tour -1 par jeton bleu Surchauffe présent sur la machine (plancher 0 par machine).",
-        "Gain par machine : +1 par parcelle réellement endommagée (au moins 1 Arbre coupé ou 1 Souche retirée par cette machine), +1 par jeton rouge acquis en fin d'attaque, -1 par jeton bleu présent sur la machine.",
-        "Réductions : application des retraits volontaires de tuiles (Voile de l'Oubli, Brume de la Dendrobate) AVANT les Insectes Bug du Cerveau (un Bug sur une case déjà à 0 jeton n'est pas défaussé et reste en place).",
-        "Avancement : la Tactique strictement seule en tête avec au moins 1 jeton échange sa place avec sa voisine de gauche (y compris un Rêve, qui recule d’un cran à droite ; immobile si déjà en case 1). En cas d’égalité avec L’Écho des Voix Célestes regroupant en bloc à gauche toutes les tuiles Rêves en jeu, la fin de partie se déclenche immédiatement à la fin de ce tour (Repousse Finale).",
-        "Ménage systématique : remise en réserve de 100 % des jetons d’Apprentissage de toutes les tuiles dans tous les cas, retrait des marqueurs 'utilisé' des Gardiens, retour en main des Défenseurs, résolution en 6.3 d'un éventuel Gardien engagé pour un Réveil échoué (retour en lisière Face 1 par défaut ou retrait définitif), et remélange du paquet Machine (hors machines en Ratissage) avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises ce tour)."
+        "Ménage systématique (6.2) : piste des Tactiques T1..T6 fixe (aucun jeton ni déplacement de Tactique), retrait des marqueurs 'utilisé' des Gardiens, retour en main de tous les Défenseurs (y compris ceux engagés sur des Rêves ou Gardiens) et remise à zéro des modificateurs transitoires.",
+        "Clôture du tour (6.3) : résolution d'un éventuel Gardien engagé pour un Réveil échoué (retour en lisière Face 1 par défaut ou retrait définitif), passage du pion Coordonnateur au siège suivant et remélange du paquet Machine (hors machines en Ratissage) avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises ce tour)."
       ]
     }
   ],
@@ -2828,20 +2832,20 @@ const SPEC_FORMELLE_V5_4 = {
     "A07": "Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
     "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
     "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Ratissage irréversible maintenu.",
-    "A10": "Autonomie et Apprentissage du Ratissage : pion double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place ; attaque autonome même si T1 est éjectée ; en 6.1, alimente T1 en Apprentissage tant que T1 figure sur la Piste des Tactiques.",
-    "A11": "Insertion d'un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases.",
+    "A10": "Autonomie du Ratissage : pion double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place sur la piste fixe.",
+    "A11": "Piste des Tactiques fixe (T1..T6 imprimées en dur) et placement des Rêves (v5.4.2) : aucune tuile Tactique mobile ni éjection de Tactique. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.). Les Insectes Bug restent sur leur numéro d'emplacement imprimé.",
     "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
     "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
     "A14": "Réveil de la Forêt (v5.4.1) : actif uniquement si au moins 1 Peuple Animal Sauvage (M, R ou O) est autour de la table. Éveil universel Face 1 -> Face 2 à l'ouverture d'un Gardien (y compris monofaces et Mode 2 neutre ; G14:C éligible sur Face 2 Rassasié). En 2.2 (2e Défenseur), les joueurs peuvent cibler un Gardien Face 2 (max 1 Gardien engagé/tour) : si le quota Q est atteint en choix définitif, le Gardien est retiré de la piste (pouvoir/Loi inactifs ce tour, case 1..6 libre dès 3.1) ; sinon les Défenseurs orphelins restent sans effet. En 5.3, déclenchement immédiat du Réveil si 0 dommage réel ce tour (aucun Arbre coupé ni Souche retirée) ; en cas d'échec, résolution du sort du Gardien en 6.3 (retour lisière Face 1 ou retrait définitif). Les marqueurs « utilisé » des cases 1..6 servent uniquement à l'ouverture unique/tour, aux cascades 1->6, à la Résonance 4 et aux Lois passives.",
-    "A15": "Test de fin de partie : maintenu en fin d’attaques (5.3, saut Apprentissage) sur Tour 8, Réveil de la Forêt (Gardien Face 2 engagé au quota Q en 2.2 et 0 dommage réel subi ce tour) ou Sommeil du Contremaître (toutes les tuiles Rêves en jeu regroupées en bloc à gauche de la Piste des Tactiques), avec déclenchement en fin d’Apprentissage (6.2) si L’Écho des Voix Célestes complète ce bloc.",
+    "A15": "Test de fin de partie : vérification unique en fin d’attaques (5.3, passage direct à la Repousse Finale) sur Tour 8, Réveil de la Forêt (Gardien Face 2 engagé au quota Q en 2.2 et 0 dommage réel subi ce tour) ou Sommeil du Contremaître (toutes les tuiles Rêves en jeu regroupées en bloc continu à gauche cases 1..k de la Piste des Tactiques).",
     "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
     "A17": "Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
     "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
     "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
     "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
-    "A21": "Anti-blocage et Nids : pose interdite sur case morte/tuile inconstructible ; 1 seul Nid par parcelle sans machine ; choix du bâtisseur libéré par Peuple d'origine.",
+    "A21": "Activation et avancée des Rêves (v5.4.2) : en 2.2, un joueur peut poser son 2e Défenseur sur un Rêve déjà présent sur la piste (immobilisé jusqu'au ménage de fin de tour). En 3.2, selon le mode actif (Option A par défaut : 1 Défenseur annule 1 carte Machine sur ce rang M en priorisant la plus menaçante ; Option B : >=1 Défenseur annule tout le rang ; Option C : binôme >=2 Défenseurs annule tout le rang), toute machine non annulée exécute la Tactique T1..T6 imprimée sous la case. Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre (max 1 ouverture/tour par défaut) et avance d'1 cran vers la gauche en sautant/poussant tout bloc contigu de Rêves vers la première case libre à sa gauche (plafonné au Rang 1).",
     "A22": "Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l'Ara.",
-    "A23": "Apprentissage : dommage réel requis (>= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d'étape.",
+    "A23": "Apprentissage supprimé (v5.4.2) : plus aucun jeton Apprentissage ni déplacement des Tactiques en Étape 6 (piste T1..T6 imprimée en dur). SLOT_BUG_CERVEAU bascule par défaut sur le profil B (Déviation Synaptique ±1 rang en 3.2).",
     "A24": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
     "A25": "Séquence des attaques : Tactiques 1..6 puis Ratissages ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
   }

@@ -186,6 +186,30 @@ def _score_defender_target(
             return 300
         return 110
 
+    if kind == "REVE_ACTIVATION":
+        _, case_c = target
+        c_i = int(case_c)
+        if obs.reve_at_case(c_i) <= 0:
+            return 0
+        own_hand = obs.hand_of(obs.observer_seat)
+        own_hits = (
+            own_hand.card is not None and 1 <= own_hand.card <= 12 and own_hand.lecture_m == c_i
+        )
+        allies = obs.reve_activation_defenders(c_i)
+        act_mode = cfg.reve_activation_mode
+        if act_mode == "1_DEF_1_MACHINE":
+            return 435 if own_hits else 70
+        if act_mode == "1_DEF_ALL_RANK":
+            if allies >= 1:
+                return 30
+            return 450 if own_hits else 70
+        # BINOME_ALL_RANK
+        if allies >= 2:
+            return 30
+        if allies == 1:
+            return 460 if own_hits else (260 if drew_sabotage_or_none else 120)
+        return 330 if own_hits else 60
+
     return 0
 
 

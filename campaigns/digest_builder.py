@@ -32,9 +32,11 @@ __all__ = (
     "build_self_contained_digest",
     "build_tested_tiles_rules",
     "chassis_id_to_studio_index",
+    "chassis_id_to_studio_index_192",
     "chassis_id_to_studio_index_384",
     "decode_chassis_axes",
     "load_spec_bundle",
+    "studio_index_192_to_chassis_id",
     "studio_index_384_to_chassis_id",
     "studio_index_to_chassis_id",
     "write_digest_and_prompt_files",
@@ -67,7 +69,7 @@ def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
 
 
 def chassis_id_to_studio_index(chassis_id: int) -> int:
-    """Convertit un `chassis_id` moteur (0..383, LSB = Profil_Piste) en `config_index_384` Studio (1..384, MSB = Profil_Piste)."""
+    """Convertit un `chassis_id` moteur (0..191, LSB = Profil_Piste) en `config_index_192` Studio (1..192, MSB = Profil_Piste)."""
     if not (0 <= chassis_id < NUM_CHASSIS):
         raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
     decoded = decode_chassis_index(int(chassis_id))
@@ -78,7 +80,7 @@ def chassis_id_to_studio_index(chassis_id: int) -> int:
 
 
 def studio_index_to_chassis_id(studio_index: int) -> int:
-    """Convertit un `config_index_384` Doc Studio (1..384) en `chassis_id` moteur (0..383)."""
+    """Convertit un `config_index_192` Doc Studio (1..192) en `chassis_id` moteur (0..191)."""
     if not (1 <= studio_index <= NUM_CHASSIS):
         raise ValueError(f"studio_index hors plage 1..{NUM_CHASSIS} : {studio_index}")
     rem = int(studio_index) - 1
@@ -96,12 +98,14 @@ def studio_index_to_chassis_id(studio_index: int) -> int:
     return chassis_id
 
 
+chassis_id_to_studio_index_192 = chassis_id_to_studio_index
+studio_index_192_to_chassis_id = studio_index_to_chassis_id
 chassis_id_to_studio_index_384 = chassis_id_to_studio_index
 studio_index_384_to_chassis_id = studio_index_to_chassis_id
 
 
 def axes_dict_to_chassis_id(axes: Mapping[str, Any]) -> int:
-    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..383)."""
+    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..191)."""
     lowered = {str(k).lower(): v for k, v in axes.items()}
     normalized: dict[str, Any] = {}
     for axis_name, opts in CHASSIS_AXES_OPTIONS:
@@ -120,13 +124,13 @@ def axes_dict_to_chassis_id(axes: Mapping[str, Any]) -> int:
 
 
 def decode_chassis_axes(chassis_id: int) -> dict[str, Any]:
-    """Décode les valeurs exactes des 7 axes d'un `chassis_id` (0..383) avec son `studio_config_index_384` (1..384)."""
+    """Décode les valeurs exactes des 6 axes d'un `chassis_id` (0..191) avec son `studio_config_index_192` (1..192)."""
     if not (0 <= chassis_id < NUM_CHASSIS):
         raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
     decoded = decode_chassis_index(int(chassis_id))
     axes: dict[str, Any] = {
         "chassis_id": int(chassis_id),
-        "studio_config_index_384": chassis_id_to_studio_index(int(chassis_id)),
+        "studio_config_index_192": chassis_id_to_studio_index(int(chassis_id)),
     }
     for axis_name, _opts in CHASSIS_AXES_OPTIONS:
         axes[axis_name] = decoded[axis_name]
@@ -144,11 +148,11 @@ def build_active_core_rules(
     Contient :
     - `version`, `source_studio_version` et `spec_bundle_sha256`,
     - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
-    - `chassis_7_axes` (valeurs exactes des 7 axes + `chassis_id` 0..383 + `studio_config_index_384` 1..384),
-    - `tactiques` (`T1..T6`),
+    - `chassis_6_axes` (valeurs exactes des 6 axes + `chassis_id` 0..191 + `studio_config_index_192` 1..192),
+    - `tactiques` (`T1..T6` imprimées en dur),
     - `machine_damage_rules` et `machine_deck_rules`,
     - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité,
-      chaîne des Parades / Pièges, Sabotage par dilution, Apprentissage, Fins `5.4`).
+      chaîne des Parades / Pièges, Sabotage par dilution, Activation des Rêves, Fins `5.3`).
     """
     target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
     if bundle is not None:
@@ -190,7 +194,7 @@ def build_active_core_rules(
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.4.0"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.4.2"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
@@ -198,16 +202,16 @@ def build_active_core_rules(
             f"{av.get('A05', '')} | {av.get('A07', '')}"
         ),
         "sabotage_par_dilution": av.get("A24", ""),
-        "apprentissage": f"{av.get('A23', '')} | {av.get('A10', '')}",
+        "piste_tactiques_fixe_et_reves": f"{av.get('A11', '')} | {av.get('A21', '')}",
         "fins_5_3": f"{av.get('A14', '')} | {av.get('A15', '')}",
     }
 
     return {
-        "version": str(meta.get("schema_version", "5.4.0")),
+        "version": str(meta.get("schema_version", "5.4.2")),
         "source_studio_version": str(meta.get("source_studio_version", "v5.4")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
-        "chassis_7_axes": chassis_list,
+        "chassis_6_axes": chassis_list,
         "tactiques": list(spec_bundle.get("tactiques", [])),
         "machine_damage_rules": dict(spec_bundle.get("machine_damage_rules", {})),
         "machine_deck_rules": dict(spec_bundle.get("machine_deck_rules", {})),

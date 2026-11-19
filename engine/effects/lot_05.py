@@ -600,14 +600,8 @@ def bug_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
     hooks=(HOOK_6_2_AVANCEMENT,),
 )
 def bug_c_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
-    """Loi 6.2 : une Tactique sur un rang portant >= 1 Insecte Bug ne peut pas avancer en 6.2."""
-    if hook == HOOK_6_2_AVANCEMENT:
-        prim_mod_loi_du_coeur(state, "LOI_BUG_BLOQUE_AVANCEE_APPRENTISSAGE")
-        win_idx = ctx.get("winner_idx")
-        if win_idx is not None:
-            case_num = int(win_idx) + 1
-            if state.get_bugs_at_case(case_num) >= 1:
-                ctx["blocked"] = True
+    """Obsolète en v5.4.2 (piste T1..T6 fixe, Apprentissage supprimé) — no-op."""
+    _ = (state, hook, ctx)
     return None
 
 

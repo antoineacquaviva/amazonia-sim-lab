@@ -282,9 +282,9 @@ def test_g15_b_temoin_loi_4_3_deux_crans() -> None:
 def test_slot_bug_cerveau_b_temoin_deviation_synaptique_3_2() -> None:
     """Témoin SLOT_BUG_CERVEAU:B : en 3.2, défausse 1 Bug sur le rang M pour dévier la lecture vers un Rêve voisin."""
     state = _make_state(("SLOT_BUG_CERVEAU", "B"))
-    # Placer un Rêve R1 au rang 3 (index 2) et une Tactique T2 au rang 2 (index 1)
-    state.set_tactique_at_rank(1, 2)
+    # Placer un Rêve R1 au rang 3 (index 2) et un 2e Défenseur dessus pour l'activer en 3.2
     state.set_tactique_at_rank(2, TILE_R_BASE + 1)
+    state.place_defender_reve_activation(0, 3, FACE_DEFINITIF)
     # 1 Insecte Bug sur la case 2
     state.set_bugs_at_case(2, 1)
     # 1 Insecte sur la roue pour que step_until_decision s'arrête en 4.3 après 3.2
@@ -302,15 +302,9 @@ def test_slot_bug_cerveau_b_temoin_deviation_synaptique_3_2() -> None:
     assert req.decideur == 3  # Gouverneur Insectes
     assert req.options == ("PASSER", "M_MOINS_1", "M_PLUS_1")
 
-    # Dévier M=2 vers M+1=3 (qui porte le Rêve R1 !)
+    # Dévier M=2 vers M+1=3 (qui porte le Rêve R1 activé !)
     apply_choice(state, "M_PLUS_1")
     assert state.get_bugs_at_case(2) == 0
-
-    # R1:A s'ouvre en 3.2 : résoudre son échange (3, 4) puis avancer la fin de 3.2 (arrêt en 4.3)
-    req_r1 = step_until_decision(state)
-    assert isinstance(req_r1, DecisionRequest)
-    assert req_r1.decision_type == DEC_EFFET_TUILE
-    apply_choice(state, (3, 4))
 
     step_until_decision(state)
     card, _, _, lec_m, bound_t = state.get_player_hand(0)

@@ -15,7 +15,6 @@ from engine.primitives import (
     HOOK_EFFECT_RESUME,
     prim_creation_entite,
     prim_deplacement,
-    prim_mod_apprentissage,
     prim_mod_loi_du_coeur,
     prim_mod_puissance,
     prim_partage_info_etat_gardien,
@@ -31,7 +30,6 @@ from engine.state import (
     TILE_R_BASE,
     TRACK_LEN,
     GameState,
-    is_tactique_code,
 )
 
 __all__ = (
@@ -86,41 +84,10 @@ def _gov(state: GameState, peuple_code: str) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _adjacent_tactique_pairs(state: GameState) -> list[tuple[int, int]]:
-    pairs: list[tuple[int, int]] = []
-    for idx in range(TRACK_LEN - 1):
-        c_left = state.get_tactique_at_rank(idx)
-        c_right = state.get_tactique_at_rank(idx + 1)
-        if is_tactique_code(c_left) and is_tactique_code(c_right):
-            pairs.append((idx, idx + 1))
-    return pairs
-
-
 @register_tile("R1", "A", hooks=(HOOK_3_2_OUVERTURE_REVE, HOOK_EFFECT_RESUME))
 def r1_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
-    """À l'ouverture en 3.2, avant l'avancée de ce Rêve, échange deux tuiles Tactique adjacentes."""
-    if hook == HOOK_3_2_OUVERTURE_REVE:
-        pairs = _adjacent_tactique_pairs(state)
-        if not pairs:
-            return
-        if len(pairs) == 1:
-            ra, rb = pairs[0]
-            prim_permutation_piste(state, "SWAP_RANKS", rank_a=ra, rank_b=rb)
-            return
-        push_effect_decision(
-            state,
-            _gov(state, "H"),
-            tuple(pairs),
-            {"effect_kind": "TAMBOUR_SWAP_TACTIQUES"},
-            slot_id="R1",
-            profile="A",
-            resume_tag="SWAP_TACT",
-        )
-        return
-
-    if hook == HOOK_EFFECT_RESUME:
-        ra, rb = ctx["choice"]
-        prim_permutation_piste(state, "SWAP_RANKS", rank_a=int(ra), rank_b=int(rb))
+    """Neutralisé en v5.4.2 (piste T1..T6 fixe ; à réajuster pour le Mode 4)."""
+    _ = (state, hook, ctx)
 
 
 # ---------------------------------------------------------------------------
@@ -198,32 +165,8 @@ def r1_c_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 4. R2:A — Le Voile de l'Oubli (Entités Magiques) : SIMPLE_CONTINU | 3.2 -> 6.1
+# 4. R2:A — Le Voile de l'Oubli (Entités Magiques) : neutralisé en v5.4.2
 # ---------------------------------------------------------------------------
-
-
-def _r2_a_prompt_next(state: GameState, remaining: int) -> None:
-    if remaining <= 0:
-        return
-    ranks_pos = [
-        idx
-        for idx in range(TRACK_LEN)
-        if is_tactique_code(state.get_tactique_at_rank(idx))
-        and state.get_apprentissage_at_rank(idx) > 0
-    ]
-    if not ranks_pos:
-        return
-    push_effect_decision(
-        state,
-        _gov(state, "E"),
-        ("PASSER", *ranks_pos),
-        {"effect_kind": "VOILE_OUBLI_RETRAIT_6_1", "remaining": remaining, "tour": state.tour},
-        slot_id="R2",
-        profile="A",
-        resume_tag="VOILE_6_1",
-        resume_payload=(remaining,),
-        decision_type=DEC_RETRAIT_APPRENTISSAGE_6_1_NAME,
-    )
 
 
 @register_tile(
@@ -232,37 +175,12 @@ def _r2_a_prompt_next(state: GameState, remaining: int) -> None:
     hooks=(HOOK_3_2_OUVERTURE_REVE, HOOK_6_1_REDUCTION_VOLONTAIRE, HOOK_EFFECT_RESUME),
 )
 def r2_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
-    """En 6.1 ce tour-ci (avant les Insectes Bug), retire jusqu'à 2 jetons Apprentissage sur la Piste des Tactiques."""
-    if hook == HOOK_3_2_OUVERTURE_REVE:
-        for bit_idx in R2_A_OPEN_BITS:
-            if not state.has_used_once_per_turn(bit_idx):
-                state.mark_used_once_per_turn(bit_idx)
-                break
-        return
-
-    if hook == HOOK_6_1_REDUCTION_VOLONTAIRE:
-        if ctx.get("phase") is not None:
-            return
-        if state.has_slot_used_once_per_turn("R2"):
-            return
-        openings = sum(1 for bit_idx in R2_A_OPEN_BITS if state.has_used_once_per_turn(bit_idx))
-        if openings <= 0:
-            return
-        state.mark_slot_used_once_per_turn("R2")
-        _r2_a_prompt_next(state, 2 * openings)
-        return
-
-    if hook == HOOK_EFFECT_RESUME:
-        choice = ctx["choice"]
-        if choice == "PASSER":
-            return
-        rem = int(ctx["payload"][0])
-        prim_mod_apprentissage(state, int(choice), -1)
-        _r2_a_prompt_next(state, rem - 1)
+    """Neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster pour le Mode 4)."""
+    _ = (state, hook, ctx)
 
 
 # ---------------------------------------------------------------------------
-# 5. R2:B — Le Voile de l'Oubli (Entités Magiques) : SIMPLE_CONTINU | LOI 6.1
+# 5. R2:B — Le Voile de l'Oubli (Entités Magiques) : neutralisé en v5.4.2
 # ---------------------------------------------------------------------------
 
 
@@ -272,34 +190,8 @@ def r2_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
     hooks=(HOOK_5_FIN_ATTAQUE_MACHINE, HOOK_6_1_REDUCTION_VOLONTAIRE, HOOK_5_LAW_QUERY),
 )
 def r2_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
-    """Loi 6.1 : une machine dont toutes les frappes sont parées ne rapporte aucun jeton Apprentissage."""
-    if hook == HOOK_5_LAW_QUERY:
-        prim_mod_loi_du_coeur(state, "LOI_PARADE_ANNULE_APPRENTISSAGE")
-        return True
-
-    if hook == HOOK_5_FIN_ATTAQUE_MACHINE:
-        if bool(ctx.get("all_parried")):
-            ray = int(ctx["ray"])
-            m_type = int(ctx["m_type"])
-            mask = (
-                PFLAG_ALL_PARRIED_ABATTEUSE
-                if m_type == MACHINE_ABATTEUSE
-                else PFLAG_ALL_PARRIED_BULLDOZER
-            )
-            state.set_parcel_flag_turn(ray, 1, mask, True)
-        return None
-
-    if hook == HOOK_6_1_REDUCTION_VOLONTAIRE and ctx.get("phase") == "MACHINE_GAIN":
-        prim_mod_loi_du_coeur(state, "LOI_PARADE_ANNULE_APPRENTISSAGE")
-        ray = int(ctx["ray"])
-        m_type = int(ctx["m_type"])
-        mask = (
-            PFLAG_ALL_PARRIED_ABATTEUSE
-            if m_type == MACHINE_ABATTEUSE
-            else PFLAG_ALL_PARRIED_BULLDOZER
-        )
-        if state.has_parcel_flag_turn(ray, 1, mask):
-            ctx["gain"] = 0
+    """Neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster pour le Mode 4)."""
+    _ = (state, hook, ctx)
     return None
 
 

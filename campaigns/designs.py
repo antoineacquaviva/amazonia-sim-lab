@@ -221,10 +221,12 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         profil_piste=old.profil_piste,
         regle_ouverture_reve_multiple=old.regle_ouverture_reve_multiple,
         offset_seuil_parade=old.offset_seuil_parade,
-        mise_en_place_tactiques=old.mise_en_place_tactiques,
         placement_initial_machines=old.placement_initial_machines,
         role_abatteuse_fin_de_piste=old.role_abatteuse_fin_de_piste,
         synergie_binome_machines=old.synergie_binome_machines,
+        reveil_quota_mode=old.reveil_quota_mode,
+        reveil_gardien_fate=old.reveil_gardien_fate,
+        reve_activation_mode=old.reve_activation_mode,
         tile_profiles=old.tile_profiles,
     )
     cloned.cfg = new_cfg

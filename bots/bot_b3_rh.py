@@ -88,10 +88,12 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         profil_piste=cfg.profil_piste,
         regle_ouverture_reve_multiple=cfg.regle_ouverture_reve_multiple,
         offset_seuil_parade=cfg.offset_seuil_parade,
-        mise_en_place_tactiques=cfg.mise_en_place_tactiques,
         placement_initial_machines=cfg.placement_initial_machines,
         role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
         synergie_binome_machines=cfg.synergie_binome_machines,
+        reveil_quota_mode=cfg.reveil_quota_mode,
+        reveil_gardien_fate=cfg.reveil_gardien_fate,
+        reve_activation_mode=cfg.reve_activation_mode,
         tile_profiles=cfg.tile_profiles,
     )
 
@@ -453,6 +455,8 @@ def _current_def2_target(state: GameState, seat: int) -> tuple[Any, ...] | None:
         return ("LISIERE", a)
     if kind == "GARDIEN_REVEIL":
         return ("GARDIEN_REVEIL", a)
+    if kind == "REVE_ACTIVATION":
+        return ("REVE_ACTIVATION", a)
     return None
 
 
@@ -504,6 +508,28 @@ def _score_held_spot_b3(
         if q > 0 and cnt >= q:
             return base + 480.0
         return base - 260.0
+    if kind == "REVE_ACTIVATION":
+        _, case_c = cur_spot
+        c_i = int(case_c)
+        cnt = obs.reve_activation_defenders(c_i)
+        own_hand = obs.hand_of(obs.observer_seat)
+        own_hits = (
+            own_hand.card is not None and 1 <= own_hand.card <= 12 and own_hand.lecture_m == c_i
+        )
+        act_mode = cfg.reve_activation_mode
+        if act_mode == "1_DEF_1_MACHINE":
+            return base + (180.0 if own_hits else -120.0)
+        if act_mode == "1_DEF_ALL_RANK":
+            if cnt == 1 and own_hits:
+                return base + 260.0
+            if cnt >= 2:
+                return base - 220.0
+            return base - 80.0
+        if cnt == 2:
+            return base + 380.0
+        if cnt > 2:
+            return base - 220.0
+        return base - 60.0
     if kind == "LISIERE":
         _, slot_idx = cur_spot
         _, st_l, nb_c = obs.lisiere_tile_info(int(slot_idx))

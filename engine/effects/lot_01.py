@@ -592,9 +592,8 @@ def g7_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 
 @register_tile("G10", "A", hooks=(HOOK_GARDIEN_OUVERTURE,))
 def g10_a_handler(state: GameState, _hook: str, _ctx: dict[str, Any]) -> None:
-    """Mémorise -1 jeton Apprentissage volontaire en 6.1 avant la résolution des Bugs."""
-    gov = _gov(state, "R")
-    state.add_pending_voluntary_app_reduction(1, gov)
+    """Neutralisé en v5.4.2 (Apprentissage supprimé ; à réajuster pour le Mode 4)."""
+    _ = state
 
 
 # ---------------------------------------------------------------------------

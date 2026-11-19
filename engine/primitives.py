@@ -604,11 +604,8 @@ def prim_mod_puissance(
 
 
 def prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None:
-    """Primitive 5 : MOD_APPRENTISSAGE — ajoute ou retire des jetons Apprentissage."""
-    cur = state.get_apprentissage_at_rank(rank_0_5)
-    nxt = max(0, min(255, cur + delta))
-    state.set_apprentissage_at_rank(rank_0_5, nxt)
-    _record_phys_ops(state, abs(nxt - cur))
+    """Primitive 5 : MOD_APPRENTISSAGE — neutralisée (Apprentissage supprimé en v5.4.2)."""
+    _ = (state, rank_0_5, delta)
 
 
 def prim_permutation_piste(
@@ -621,22 +618,11 @@ def prim_permutation_piste(
     delta_m: int = 0,
     rebind_tactique: bool = False,
 ) -> bool:
-    """Primitive 6 : PERMUTATION_PISTE — échange sur piste centrale, avancée Rêve ou lecture M."""
+    """Primitive 6 : PERMUTATION_PISTE — avancée Rêve (saut/poussée) ou lecture M sur piste fixe T1..T6."""
     if action == "SWAP_RANKS":
-        assert 0 <= rank_a < TRACK_LEN and 0 <= rank_b < TRACK_LEN
-        if rank_a == rank_b:
-            return False
-        ca = state.get_tactique_at_rank(rank_a)
-        cb = state.get_tactique_at_rank(rank_b)
-        aa = state.get_apprentissage_at_rank(rank_a)
-        ab = state.get_apprentissage_at_rank(rank_b)
-        state.set_tactique_at_rank(rank_a, cb)
-        state.set_tactique_at_rank(rank_b, ca)
-        state.set_apprentissage_at_rank(rank_a, ab)
-        state.set_apprentissage_at_rank(rank_b, aa)
-        # Note : les Insectes Bug restent fixes sur leur numéro d'emplacement imprimé !
-        _record_phys_ops(state, 2)
-        return True
+        # Piste des Tactiques T1..T6 imprimée en dur : aucune permutation de Tactiques.
+        _ = (rank_a, rank_b)
+        return False
 
     if action == "ADVANCE_REVE_LEFT":
         assert 0 <= rank_a < TRACK_LEN
@@ -644,7 +630,20 @@ def prim_permutation_piste(
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
         if rank_a == 0:
             return False
-        return prim_permutation_piste(state, "SWAP_RANKS", rank_a=rank_a, rank_b=rank_a - 1)
+        dest: int | None = None
+        for j in range(rank_a - 1, -1, -1):
+            if not is_reve_code(state.get_tactique_at_rank(j)):
+                dest = j
+                break
+        if dest is None:
+            return False
+        # Poussée du bloc contigu de Rêves vers la première case libre à gauche ;
+        # la case libérée retrouve sa Tactique imprimée T1..T6 (rank_a + 1).
+        for idx in range(dest, rank_a):
+            state.set_tactique_at_rank(idx, state.get_tactique_at_rank(idx + 1))
+        state.set_tactique_at_rank(rank_a, rank_a + 1)
+        _record_phys_ops(state, rank_a - dest)
+        return True
 
     if action == "SHIFT_LECTURE_M":
         card, d1, d2, lec_m, bound_t = state.get_player_hand(seat)
