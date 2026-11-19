@@ -36,6 +36,7 @@ from campaigns.digest_builder import (
     write_digest_and_prompt_files,
 )
 from campaigns.worker_main import resolve_manifest_plan
+from engine.telemetry import REVEIL_ANATOMY_FIELDS
 from scripts_cloud.studio_paths import find_gcloud
 
 REGION: str = "europe-west9"
@@ -431,6 +432,142 @@ def _run_cloud_batch_job(
 
     wall_sec = time.perf_counter() - t0
     return job_name, wall_sec
+
+
+def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
+    """Convertit les sommes brutes `rs_*`/`rf_*` d'un groupe DuckDB en métriques lisibles."""
+    rs_n = int(raw.get("rs_count") or 0)
+    rf_n = int(raw.get("rf_count") or 0)
+
+    def _s_mean(key: str) -> float:
+        return round(float(raw.get(key) or 0) / rs_n, 3) if rs_n > 0 else 0.0
+
+    def _s_pct(key: str) -> float:
+        return round(float(raw.get(key) or 0) * 100.0 / rs_n, 2) if rs_n > 0 else 0.0
+
+    def _f_mean(key: str) -> float:
+        return round(float(raw.get(key) or 0) / rf_n, 3) if rf_n > 0 else 0.0
+
+    total_att = rs_n + rf_n
+    out: dict[str, Any] = {
+        "n_reveil_success": rs_n,
+        "n_reveil_failures": rf_n,
+        "success_rate_pct": round(rs_n * 100.0 / total_att, 2) if total_att > 0 else 0.0,
+        "success_turn": {
+            "mean_tour": _s_mean("rs_tour"),
+            "tour_distribution_pct": {
+                "T2": _s_pct("rs_t2"),
+                "T3": _s_pct("rs_t3"),
+                "T4": _s_pct("rs_t4"),
+                "T5": _s_pct("rs_t5"),
+                "T6": _s_pct("rs_t6"),
+                "T7": _s_pct("rs_t7"),
+                "T8": _s_pct("rs_t8"),
+            },
+            "defenders": {
+                "mean_def_on_gardien": _s_mean("rs_def_gardien"),
+                "mean_def1_on_foret": _s_mean("rs_def1_foret"),
+                "mean_def2_on_foret": _s_mean("rs_def2_foret"),
+                "mean_total_def_on_foret": round(
+                    (float(raw.get("rs_def1_foret") or 0) + float(raw.get("rs_def2_foret") or 0))
+                    / rs_n,
+                    3,
+                )
+                if rs_n > 0
+                else 0.0,
+                "mean_def_on_furtivite": _s_mean("rs_def_furtivite"),
+                "mean_def_on_lisiere": _s_mean("rs_def_lisiere"),
+            },
+            "machine_attrition": {
+                "mean_cards_sabotage_dealt": _s_mean("rs_cards_sabotage"),
+                "mean_cards_none_dealt": _s_mean("rs_cards_none"),
+                "mean_cards_machine_dealt": _s_mean("rs_cards_machine"),
+                "mean_machines_cancelled_by_reve": _s_mean("rs_cancelled_reve"),
+                "mean_machines_bound_tactique": _s_mean("rs_bound_tactique"),
+                "mean_ratissage_active": _s_mean("rs_ratissage_active"),
+                "mean_machines_retired": _s_mean("rs_machines_retired"),
+                "mean_machines_attacked": _s_mean("rs_machines_attacked"),
+                "mean_strikes": _s_mean("rs_strikes"),
+                "mean_reves_on_track": _s_mean("rs_reves_on_track"),
+                "mean_sabotage_in_deck": _s_mean("rs_sabotage_in_deck"),
+            },
+            "zero_damage_mechanisms": {
+                "mean_pre_insects_board": _s_mean("rs_pre_insects"),
+                "mean_pre_pieges_board": _s_mean("rs_pre_pieges"),
+                "mean_insects_spent_step5": _s_mean("rs_insects_spent"),
+                "mean_pieges_triggered_step5": _s_mean("rs_pieges_triggered"),
+                "pct_zero_strikes": _s_pct("rs_cat_zero_strikes"),
+                "pct_with_piege_triggered": _s_pct("rs_cat_piege"),
+                "pct_insects_without_piege": _s_pct("rs_cat_insects_no_piege"),
+                "pct_pure_def_or_zero_tree": _s_pct("rs_cat_pure_def_or_empty"),
+            },
+        },
+        "failed_attempts_comparison": {
+            "mean_tour": _f_mean("rf_tour"),
+            "mean_def_on_gardien": _f_mean("rf_def_gardien"),
+            "mean_def1_on_foret": _f_mean("rf_def1_foret"),
+            "mean_def2_on_foret": _f_mean("rf_def2_foret"),
+            "mean_cards_sabotage_dealt": _f_mean("rf_cards_sabotage"),
+            "mean_machines_cancelled_by_reve": _f_mean("rf_cancelled_reve"),
+            "mean_machines_bound_tactique": _f_mean("rf_bound_tactique"),
+            "mean_ratissage_active": _f_mean("rf_ratissage_active"),
+            "mean_machines_attacked": _f_mean("rf_machines_attacked"),
+            "mean_strikes": _f_mean("rf_strikes"),
+            "mean_insects_spent_step5": _f_mean("rf_insects_spent"),
+            "mean_pieges_triggered_step5": _f_mean("rf_pieges_triggered"),
+            "mean_reves_on_track": _f_mean("rf_reves_on_track"),
+            "mean_sabotage_in_deck": _f_mean("rf_sabotage_in_deck"),
+        },
+    }
+    return out
+
+
+def _build_reveil_anatomy_block(
+    con: duckdb.DuckDBPyConnection,
+    cell_cols: set[str],
+) -> dict[str, Any] | None:
+    if not all(col in cell_cols for col in REVEIL_ANATOMY_FIELDS):
+        return None
+    sum_cols_sql = ",\n            ".join(
+        f"CAST(SUM({col}) AS BIGINT) AS {col}" for col in REVEIL_ANATOMY_FIELDS
+    )
+    g_raw = _query_dicts(con, f"SELECT {sum_cols_sql} FROM cells")[0]
+    if int(g_raw.get("rs_count") or 0) == 0 and int(g_raw.get("rf_count") or 0) == 0:
+        return None
+
+    by_variant_raw = _query_dicts(
+        con,
+        f"""
+        SELECT
+            variant_id,
+            {sum_cols_sql}
+        FROM cells
+        GROUP BY variant_id
+        ORDER BY variant_id
+        """,
+    )
+    by_n_raw = _query_dicts(
+        con,
+        f"""
+        SELECT
+            n_players,
+            {sum_cols_sql}
+        FROM cells
+        GROUP BY n_players
+        ORDER BY n_players
+        """,
+    )
+    return {
+        "global": _format_reveil_anatomy_row(g_raw),
+        "by_variant": [
+            {"variant_id": str(r["variant_id"]), **_format_reveil_anatomy_row(r)}
+            for r in by_variant_raw
+        ],
+        "by_n_players": [
+            {"n_players": int(r["n_players"]), **_format_reveil_anatomy_row(r)}
+            for r in by_n_raw
+        ],
+    }
 
 
 def aggregate_campaign_duckdb(
@@ -908,6 +1045,9 @@ def aggregate_campaign_duckdb(
         digest_payload["by_n_animaux_sauvages"] = by_n_animaux_sauvages
     if forks_block is not None:
         digest_payload["forks"] = forks_block
+    reveil_anatomy_block = _build_reveil_anatomy_block(con, cell_cols)
+    if reveil_anatomy_block is not None:
+        digest_payload["reveil_anatomy"] = reveil_anatomy_block
 
     digest_path, prompt_path, final_digest = write_digest_and_prompt_files(
         campaign_name,

@@ -62,7 +62,7 @@ from engine.state import (
     GameState,
     decode_chassis_index,
 )
-from engine.telemetry import TelemetryTracker
+from engine.telemetry import REVEIL_ANATOMY_FIELDS, TelemetryTracker
 
 METADATA_TOKEN_URL: str = (
     "http://metadata.google.internal/computeMetadata/v1/"
@@ -654,6 +654,7 @@ def _execute_coop_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
     sum_fiddliness = 0.0
     sum_cascade_sweeps = 0
     sum_mid_combat = 0
+    reveil_anat_acc: dict[str, int] = {k: 0 for k in REVEIL_ANATOMY_FIELDS}
 
     for idx_r, rep_id in enumerate(rep_ids):
         cfg = _make_cfg_with_mode(
@@ -1921,6 +1922,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     sum_player_decisions = 0
     sum_cascade_sweeps = 0
     sum_mid_combat = 0
+    reveil_anat_acc: dict[str, int] = {k: 0 for k in REVEIL_ANATOMY_FIELDS}
 
     for i in range(n_games):
         rep_id = rep_start + i
@@ -1995,6 +1997,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         sum_player_decisions += int(ts.total_player_decisions)
         sum_cascade_sweeps += int(ts.cascade_sweeps)
         sum_mid_combat += int(ts.mid_combat_interrupts)
+        if ts.rs_count or ts.rf_count:
+            for k in REVEIL_ANATOMY_FIELDS:
+                reveil_anat_acc[k] += int(getattr(ts, k))
 
     ratios.sort()
     k20 = max(1, (len(ratios) + 4) // 5)
@@ -2002,7 +2007,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cvar20 = sum(ratios[:k20]) / k20
     wall_sec = time.perf_counter() - t0
 
-    return {
+    out_row: dict[str, Any] = {
         "campaign": str(unit["campaign"]),
         "config_id": int(unit["config_id"]),
         "n_players": n_pl,
@@ -2048,6 +2053,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "sum_mid_combat": sum_mid_combat,
         "cell_wall_sec": round(wall_sec, 4),
     }
+    out_row.update(reveil_anat_acc)
+    return out_row
 
 
 def _load_manifest_from_source(source: str) -> dict[str, Any]:
