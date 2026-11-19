@@ -50,8 +50,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     PIEGE_ACTIF,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
@@ -85,11 +85,11 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         rep_id=det_rep,
         coordonnateur_initial=cfg.coordonnateur_initial,
         max_revision_passes=cfg.max_revision_passes,
-        p_max=cfg.p_max,
+        profil_piste=cfg.profil_piste,
         regle_ouverture_reve_multiple=cfg.regle_ouverture_reve_multiple,
         offset_seuil_parade=cfg.offset_seuil_parade,
         mise_en_place_tactiques=cfg.mise_en_place_tactiques,
-        declenchement_fin_de_piste=cfg.declenchement_fin_de_piste,
+        placement_initial_machines=cfg.placement_initial_machines,
         role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
         synergie_binome_machines=cfg.synergie_binome_machines,
         tile_profiles=cfg.tile_profiles,
@@ -218,11 +218,12 @@ def evaluate_horizon_state(state: GameState) -> float:
             pos, st, _ = state.get_machine_pos_status(r, mt)
             if st == MACHINE_STATUS_RETIRED or pos == 0:
                 continue
-            rouges, bleus = state.get_machine_tokens(r, mt)
+            rouges = state.get_machine_effective_rouges(r, mt)
+            _, bleus = state.get_machine_tokens(r, mt)
             net_pow = max(0, rouges - bleus)
             depth_w = pos / p_max
-            siege_pen = 0.018 if st == MACHINE_STATUS_SIEGE else 0.0
-            danger += 0.012 * depth_w + 0.008 * net_pow + siege_pen
+            rat_pen = 0.018 if st == MACHINE_STATUS_RATISSAGE else 0.0
+            danger += 0.012 * depth_w + 0.008 * net_pow + rat_pen
 
     # Actifs défensifs et progression coopérative sur le plateau
     assets = 0.0

@@ -18,7 +18,7 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    MACHINE_STATUS_SIEGE,
+    MACHINE_STATUS_RATISSAGE,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
     PIEGE_DECLENCHE,
@@ -228,7 +228,7 @@ def test_g7_b_temoin() -> None:
     state.set_gardien_at_case(4, 3, face=1, used=False)
 
     # Rayon M (0), p=2 occupée par une Abatteuse en Siège (normalement impossible à piéger NI à saboter en 4.1 !)
-    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_SIEGE)
+    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_RATISSAGE)
     state.enter_furtivite(0, 0, 0, 2, rive=0, face=FACE_DEFINITIF)
     state.enter_furtivite(1, 0, 0, 2, rive=0, face=FACE_DEFINITIF)
     # Un Insecte témoin en (2, 1) suspendra la boucle en 4.3 juste après 4.1 (avant les Sièges 5.2 !)
@@ -243,9 +243,9 @@ def test_g7_b_temoin() -> None:
     assert state.get_parcel_defenseurs(0, 2) == 1
     assert state.get_gardien_at_case(2)[2] is True  # Case 2 s'est allumée !
 
-    # Vérification de la frappe de Siège : le Piège sous la machine pare immédiatement !
+    # Vérification de la frappe de Ratissage : le Piège sous la machine pare immédiatement !
     arbres_before = state.get_parcel_arbres(0, 2)
-    resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
+    resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_parcel_piege(0, 2) == PIEGE_DECLENCHE
     assert state.get_parcel_arbres(0, 2) == arbres_before
 
@@ -496,7 +496,7 @@ def test_g9_b_temoin() -> None:
     state.set_gardien_at_case(3, 10, face=1, used=False)
 
     # 1) Face 1 en 4.1 : binôme en Furtivité sabote même une machine en Siège !
-    state.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_SIEGE)
+    state.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_RATISSAGE)
     state.enter_furtivite(0, 0, 0, 2, rive=0, face=FACE_DEFINITIF)
     state.enter_furtivite(1, 0, 0, 2, rive=0, face=FACE_DEFINITIF)
     # 1 Insecte témoin en (2, 1) suspend la boucle en 4.3 juste après 4.1

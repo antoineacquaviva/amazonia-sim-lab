@@ -31,8 +31,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
     TACTIQUES_SPEC,
@@ -80,7 +80,7 @@ def _machines_targeting_parcel(state: GameState, ray: int, p: int) -> list[int]:
     matched: list[int] = []
     for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
         pos, st, _ = state.get_machine_pos_status(ray, mt)
-        if st == MACHINE_STATUS_SIEGE and pos == p:
+        if st == MACHINE_STATUS_RATISSAGE and pos == p:
             matched.append(mt)
     for s in range(state.cfg.n_players):
         card, _, _, _, bound_t = state.get_player_hand(s)
@@ -266,7 +266,7 @@ def r8_d_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
             m_cands = [
                 mt
                 for mt in _machines_targeting_parcel(state, int(dr), int(dp))
-                if state.get_machine_tokens(int(dr), mt)[0] >= 1
+                if state.get_machine_effective_rouges(int(dr), mt) >= 1
             ]
             if not m_cands:
                 return

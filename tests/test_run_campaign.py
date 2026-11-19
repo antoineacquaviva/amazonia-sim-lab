@@ -21,7 +21,7 @@ from run_campaign import (
 
 def _sample_manifest() -> dict[str, object]:
     return {
-        "schema_version": "5.3",
+        "schema_version": "5.4",
         "manifest_type": "campaign_plan",
         "campaign_name": "test_micro_unit",
         "description": "Test unitaire manifeste",
@@ -30,13 +30,13 @@ def _sample_manifest() -> dict[str, object]:
         "bot": "B0",
         "chassis_plan": {
             "varying_axes": [
-                {"key": "P_Max", "label": "P_Max", "values": [4, 5]},
+                {"key": "Profil_Piste", "label": "Profil_Piste", "values": ["P4_2233", "P4_2223"]},
             ],
             "fixed_axes": {
                 "Regle_Ouverture_Reve_Multiple": "UNIQUE_PAR_TOUR",
                 "Offset_Seuil_Parade": 0,
                 "Mise_En_Place_Tactiques": "ORDRE_FIXE_T1_T6",
-                "Declenchement_Fin_De_Piste": "ARRIVEE_DERNIERE_PARCELLE",
+                "Placement_Initial_Machines": "MEME_PARCELLE_P1",
                 "Role_Abatteuse_Fin_De_Piste": "STANDARD_COUPE_ARBRE",
                 "Synergie_Binome_Machines": "INDIVIDUELLE",
             },
@@ -64,7 +64,7 @@ def _create_fake_worker_tree(root: Path) -> None:
     (root / "campaigns").mkdir(parents=True, exist_ok=True)
     (root / "campaigns" / "worker_main.py").write_text("WORKER_VERSION = 1\n", encoding="utf-8")
     (root / "data").mkdir(parents=True, exist_ok=True)
-    (root / "data" / "spec_bundle_v5_3_1.json").write_text('{"version": "5.3"}\n', encoding="utf-8")
+    (root / "data" / "spec_bundle_v5_4.json").write_text('{"version": "5.4"}\n', encoding="utf-8")
 
 
 def test_resolve_manifest_plan_cartesian_and_totals() -> None:
@@ -81,7 +81,7 @@ def test_local_manifest_worker_duckdb_and_studio_index(
 ) -> None:
     manifest = _sample_manifest()
     manifest["player_counts"] = [4]
-    manifest["chassis_plan"] = {"varying_axes": [], "fixed_axes": {"P_Max": 4}}
+    manifest["chassis_plan"] = {"varying_axes": [], "fixed_axes": {"Profil_Piste": "P4_2233"}}
     manifest["games_per_configuration"] = 2
 
     manifest_file = tmp_path / "test_micro_unit.json"
@@ -181,7 +181,7 @@ def test_compute_worker_image_hash_deterministic_and_sensitive(tmp_path: Path) -
     h3 = compute_worker_image_hash(root=tmp_path)
     assert h3 != h1
 
-    (tmp_path / "data" / "spec_bundle_v5_3_1.json").write_text('{"version": "5.3.1"}\n', encoding="utf-8")
+    (tmp_path / "data" / "spec_bundle_v5_4.json").write_text('{"version": "5.3.1"}\n', encoding="utf-8")
     h4 = compute_worker_image_hash(root=tmp_path)
     assert h4 != h3
 

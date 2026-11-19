@@ -25,12 +25,13 @@ __all__ = (
     "MACHINE_ABATTEUSE",
     "MACHINE_BULLDOZER",
     "MACHINE_STATUS_NORMAL",
+    "MACHINE_STATUS_RATISSAGE",
     "MACHINE_STATUS_RETIRED",
-    "MACHINE_STATUS_SIEGE",
     "MATRICE_PAIRES",
     "MAX_N",
     "MAX_P",
     "MIN_FREE_RESERVE_BYTES",
+    "NUM_CHASSIS",
     "PEUPLES_ORDER",
     "PEUPLE_TO_ID",
     "PFLAG_AUTO_PARADE_ONCE",
@@ -40,7 +41,7 @@ __all__ = (
     "PIEGE_AUCUN",
     "PIEGE_DECLENCHE",
     "STATE_BUF_SIZE",
-    "STEP_1_1_SIEGE",
+    "STEP_1_1_RATISSAGE",
     "STEP_1_2_DEAL",
     "STEP_1_3_DICE",
     "STEP_2_1_DEF1",
@@ -51,7 +52,7 @@ __all__ = (
     "STEP_4_2_NIDS",
     "STEP_4_3_MIGRATION",
     "STEP_5_1_TACTIQUES",
-    "STEP_5_2_SIEGES",
+    "STEP_5_2_RATISSAGE",
     "STEP_5_3_END_CHECK",
     "STEP_6_1_APPRENTISSAGE",
     "STEP_6_2_EVOLUTION",
@@ -60,6 +61,7 @@ __all__ = (
     "SYNERGY_META",
     "TACTIQUES_SPEC",
     "TILE_R_BASE",
+    "TOPOLOGIES_DOTATION",
     "TRACK_LEN",
     "FurtiviteCellObs",
     "GameConfig",
@@ -72,6 +74,8 @@ __all__ = (
     "PlayerObservation",
     "TactiqueSlotObs",
     "code_to_tile_id",
+    "decode_chassis_index",
+    "encode_chassis_axes",
     "get_layout_report",
     "is_reve_code",
     "is_tactique_code",
@@ -102,9 +106,9 @@ PFLAG_AUTO_PARADE_ONCE: int = 1 << 2  # ex: G11 A Face 2 (pare auto 1 frappe si 
 MACHINE_ABATTEUSE: int = 0
 MACHINE_BULLDOZER: int = 1
 
-# Statuts machine
+# Statuts machine (pion double face : Normal / Ratissage ; ou Retirée)
 MACHINE_STATUS_NORMAL: int = 0
-MACHINE_STATUS_SIEGE: int = 1
+MACHINE_STATUS_RATISSAGE: int = 1
 MACHINE_STATUS_RETIRED: int = 2
 
 # États des pièges sur parcelle Forêt
@@ -138,7 +142,7 @@ CARD_SABOTAGE: int = 13
 TILE_R_BASE: int = 100
 
 # Étapes et sous-étapes de la machine à états
-STEP_1_1_SIEGE: int = 11
+STEP_1_1_RATISSAGE: int = 11
 STEP_1_2_DEAL: int = 12
 STEP_1_3_DICE: int = 13
 STEP_2_1_DEF1: int = 21
@@ -149,7 +153,7 @@ STEP_4_1_FURTIVITE: int = 41
 STEP_4_2_NIDS: int = 42
 STEP_4_3_MIGRATION: int = 43
 STEP_5_1_TACTIQUES: int = 51
-STEP_5_2_SIEGES: int = 52
+STEP_5_2_RATISSAGE: int = 52
 STEP_5_3_END_CHECK: int = 53
 STEP_6_1_APPRENTISSAGE: int = 61
 STEP_6_2_EVOLUTION: int = 62
@@ -244,33 +248,66 @@ class TactiqueSpec:
     avancee: int
     gain_rouge: int
     mod_seuil: int
-    est_siege_profil: bool
+    est_ratissage_profil: bool
 
 
 TACTIQUES_SPEC: dict[int, TactiqueSpec] = {
-    1: TactiqueSpec(1, "T1", ("SUR_PLACE",), 0, 0, 0, False),
+    1: TactiqueSpec(1, "T1", ("SUR_PLACE",), 0, 0, 0, True),
     2: TactiqueSpec(2, "T2", ("DEVANT",), 0, 0, 0, False),
     3: TactiqueSpec(3, "T3", ("SUR_PLACE", "DEVANT"), 1, 0, -1, False),
-    4: TactiqueSpec(4, "T4", ("SUR_PLACE",), 0, 1, -1, True),
+    4: TactiqueSpec(4, "T4", ("SUR_PLACE",), 0, 1, -1, False),
     5: TactiqueSpec(5, "T5", ("DEVANT",), 0, 1, -1, False),
     6: TactiqueSpec(6, "T6", ("SUR_PLACE", "DEVANT"), 1, 1, -2, False),
 }
 
-# Les 7 axes binaires des 128 châssis (spec_bundle_v5_3_1.json)
-CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, Any]], ...] = (
-    ("p_max", (4, 5)),
+# Les 7 axes du châssis v5.4 (produit cartésien mixte : 6 * 2^6 = 384 châssis)
+CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = (
+    ("profil_piste", ("P4_2233", "P4_2223", "P4_1223", "P5_22233", "P5_22223", "P5_12223")),
     ("regle_ouverture_reve_multiple", ("UNIQUE_PAR_TOUR", "PAR_DE_M_DESIGNE")),
     ("offset_seuil_parade", (0, 1)),
     ("mise_en_place_tactiques", ("ORDRE_FIXE_T1_T6", "ALEATOIRE")),
-    ("declenchement_fin_de_piste", ("ARRIVEE_DERNIERE_PARCELLE", "DEPASSEMENT_DERNIERE_PARCELLE")),
+    ("placement_initial_machines", ("MEME_PARCELLE_P1", "BULLDOZER_P1_ABATTEUSE_P2")),
     ("role_abatteuse_fin_de_piste", ("STANDARD_COUPE_ARBRE", "ARRACHE_1_SOUCHE_SI_SANS_ARBRE")),
     ("synergie_binome_machines", ("INDIVIDUELLE", "MUTUALISATION_PUISSANCE_MEME_PARCELLE")),
 )
 
-TOPOLOGIES_DOTATION: dict[int, tuple[int, ...]] = {
-    4: (2, 2, 3, 3),
-    5: (2, 2, 2, 3, 3),
+NUM_CHASSIS: int = 1
+for _ax_name, _ax_opts in CHASSIS_AXES_OPTIONS:
+    NUM_CHASSIS *= len(_ax_opts)
+assert NUM_CHASSIS == 384
+
+TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = {
+    "P4_2233": (2, 2, 3, 3),
+    "P4_2223": (2, 2, 2, 3),
+    "P4_1223": (1, 2, 2, 3),
+    "P5_22233": (2, 2, 2, 3, 3),
+    "P5_22223": (2, 2, 2, 2, 3),
+    "P5_12223": (1, 2, 2, 2, 3),
 }
+
+
+def decode_chassis_index(chassis_idx: int) -> dict[str, Any]:
+    """Décode un index de châssis 0..383 (base mixte LSB-first) en dictionnaire d'axes."""
+    assert 0 <= chassis_idx < NUM_CHASSIS, f"chassis_idx hors bornes : {chassis_idx}"
+    rem = chassis_idx
+    out: dict[str, Any] = {}
+    for field_name, options in CHASSIS_AXES_OPTIONS:
+        radix = len(options)
+        out[field_name] = options[rem % radix]
+        rem //= radix
+    return out
+
+
+def encode_chassis_axes(axes: dict[str, Any]) -> int:
+    """Encode un dictionnaire d'axes en index de châssis 0..383 (base mixte LSB-first)."""
+    idx = 0
+    stride = 1
+    for field_name, options in CHASSIS_AXES_OPTIONS:
+        val = axes.get(field_name, options[0])
+        pos = options.index(val)
+        idx += pos * stride
+        stride *= len(options)
+    return idx
 
 
 _GARDIEN_STR_TABLE: tuple[str | None, ...] = (None, *[f"G{i}" for i in range(1, 16)])
@@ -436,7 +473,7 @@ def get_layout_report() -> dict[str, Any]:
 
 @dataclass(frozen=True, slots=True)
 class GameConfig:
-    """Configuration immuable d'une partie (Mode 1..4 et 7 axes des 128 châssis)."""
+    """Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4)."""
 
     n_players: int = 4
     mode: int = 1
@@ -446,12 +483,12 @@ class GameConfig:
     coordonnateur_initial: int = 0
     max_revision_passes: int = 4
 
-    # 7 axes du châssis v5.3.1
-    p_max: int = 4
+    # 7 axes du châssis v5.4
+    profil_piste: str = "P4_2233"
     regle_ouverture_reve_multiple: str = "UNIQUE_PAR_TOUR"
     offset_seuil_parade: int = 0
     mise_en_place_tactiques: str = "ORDRE_FIXE_T1_T6"
-    declenchement_fin_de_piste: str = "ARRIVEE_DERNIERE_PARCELLE"
+    placement_initial_machines: str = "MEME_PARCELLE_P1"
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
@@ -459,20 +496,27 @@ class GameConfig:
     tile_profiles: tuple[tuple[str, str], ...] = ()
 
     # Champs dérivés immuables calculés à l'initialisation
+    p_max: int = 4
     dotation_arbres: tuple[int, ...] = ()
     lisiere_slots: tuple[str, ...] = ()
     total_gardiens_partie: int = 0
+    total_reves_partie: int = 0
 
     def __post_init__(self) -> None:
         assert 3 <= self.n_players <= MAX_N, f"n_players invalide : {self.n_players}"
         assert self.mode in (1, 2, 3, 4), f"mode invalide : {self.mode}"
-        assert self.p_max in TOPOLOGIES_DOTATION, f"p_max invalide : {self.p_max}"
+        # Rétro-compatibilité douce si p_max=5 est passé explicitement avec profil_piste par défaut
+        profil = self.profil_piste
+        if profil == "P4_2233" and self.p_max == 5:
+            profil = "P5_22233"
+            object.__setattr__(self, "profil_piste", profil)
+        assert profil in TOPOLOGIES_DOTATION, f"profil_piste invalide : {profil}"
         assert self.regle_ouverture_reve_multiple in ("UNIQUE_PAR_TOUR", "PAR_DE_M_DESIGNE")
         assert self.offset_seuil_parade in (0, 1)
         assert self.mise_en_place_tactiques in ("ORDRE_FIXE_T1_T6", "ALEATOIRE")
-        assert self.declenchement_fin_de_piste in (
-            "ARRIVEE_DERNIERE_PARCELLE",
-            "DEPASSEMENT_DERNIERE_PARCELLE",
+        assert self.placement_initial_machines in (
+            "MEME_PARCELLE_P1",
+            "BULLDOZER_P1_ABATTEUSE_P2",
         )
         assert self.role_abatteuse_fin_de_piste in (
             "STANDARD_COUPE_ARBRE",
@@ -491,26 +535,32 @@ class GameConfig:
             assert p in PEUPLE_TO_ID, f"Peuple inconnu : {p}"
         object.__setattr__(self, "peuples", tuple(peuples))
 
-        dotation = TOPOLOGIES_DOTATION[self.p_max]
+        dotation = TOPOLOGIES_DOTATION[profil]
+        object.__setattr__(self, "p_max", len(dotation))
         object.__setattr__(self, "dotation_arbres", dotation)
 
         if self.mode == 1:
             object.__setattr__(self, "lisiere_slots", ())
             object.__setattr__(self, "total_gardiens_partie", 0)
+            object.__setattr__(self, "total_reves_partie", 0)
         else:
             slots: list[str] = []
             g_count = 0
+            r_count = 0
             for s in range(self.n_players):
                 p_left = peuples[s]
                 p_right = peuples[(s + 1) % self.n_players]
                 t0, t1 = MATRICE_PAIRES[f"{p_left}_{p_right}"]
                 slots.extend((t0, t1))
-                if SYNERGY_META[t0][0] == FAMILLE_GARDIEN:
-                    g_count += 1
-                if SYNERGY_META[t1][0] == FAMILLE_GARDIEN:
-                    g_count += 1
+                for t_slot in (t0, t1):
+                    fam = SYNERGY_META[t_slot][0]
+                    if fam == FAMILLE_GARDIEN:
+                        g_count += 1
+                    elif fam == FAMILLE_REVE:
+                        r_count += 1
             object.__setattr__(self, "lisiere_slots", tuple(slots))
             object.__setattr__(self, "total_gardiens_partie", g_count)
+            object.__setattr__(self, "total_reves_partie", r_count)
 
     @classmethod
     def from_chassis_index(
@@ -525,8 +575,8 @@ class GameConfig:
         coordonnateur_initial: int = 0,
         max_revision_passes: int = 4,
     ) -> GameConfig:
-        """Construit l'une des 128 configurations de châssis à partir d'un index 0..127."""
-        assert 0 <= chassis_idx < 128
+        """Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383."""
+        assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
             "mode": mode,
@@ -536,8 +586,7 @@ class GameConfig:
             "coordonnateur_initial": coordonnateur_initial,
             "max_revision_passes": max_revision_passes,
         }
-        for bit_pos, (field_name, options) in enumerate(CHASSIS_AXES_OPTIONS):
-            kwargs[field_name] = options[(chassis_idx >> bit_pos) & 1]
+        kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
 
     def seat_of_peuple(self, peuple_code: str) -> int | None:
@@ -919,6 +968,26 @@ class PlayerObservation:
         ps = self._snap[_Mem.MACHINE_POS_STATUS + r * 2 + m_type]
         return ps & 0x07, (ps >> 3) & 0x03
 
+    def machine_effective_rouges(self, r: int, m_type: int) -> int:
+        """Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage)."""
+        m_idx = r * 2 + m_type
+        ps = self._snap[_Mem.MACHINE_POS_STATUS + m_idx]
+        rb = self._snap[_Mem.MACHINE_ROUGES_BLEUS + m_idx]
+        r_tok = (rb >> 4) & 0x0F
+        st = (ps >> 3) & 0x03
+        return r_tok + (1 if st == MACHINE_STATUS_RATISSAGE else 0)
+
+    def is_sommeil_victory(self) -> bool:
+        """Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche."""
+        total_r = self._cfg.total_reves_partie
+        if total_r <= 0:
+            return False
+        buf = self._snap
+        for i in range(total_r):
+            if not is_reve_code(buf[_Mem.TACTIQUES_PISTE_ID + i]):
+                return False
+        return True
+
     def gardien_available_at_case(self, case_1_6: int) -> bool:
         """Retourne True si un Gardien non encore utilisé ce tour occupe la case `1..6`."""
         gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
@@ -992,7 +1061,7 @@ class GameState:
         p_max = cfg.p_max
 
         self.tour = 1
-        self.step = STEP_1_1_SIEGE
+        self.step = STEP_1_1_RATISSAGE
         self.coordonnateur = cfg.coordonnateur_initial
         self.paravents_ouverts = False
 
@@ -1025,9 +1094,10 @@ class GameState:
         for rank_idx, t_code in enumerate(tactiques_init):
             self.set_tactique_at_rank(rank_idx, t_code)
 
-        # Machines : 1 Abatteuse + 1 Bulldozer par rayon sur p = 1
+        # Machines : 1 Abatteuse + 1 Bulldozer par rayon (face normale)
+        ab_p_init = 2 if cfg.placement_initial_machines == "BULLDOZER_P1_ABATTEUSE_P2" else 1
         for r in range(n):
-            self.set_machine_pos_status(r, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+            self.set_machine_pos_status(r, MACHINE_ABATTEUSE, ab_p_init, MACHINE_STATUS_NORMAL)
             self.set_machine_pos_status(r, MACHINE_BULLDOZER, 1, MACHINE_STATUS_NORMAL)
 
         # Paquet Machine initial (2N cartes Machine, 0 Sabotage, mélange initial reshuffle_count=0)
@@ -1614,25 +1684,31 @@ class GameState:
         return ray * 2 + m_type
 
     def get_machine_pos_status(self, ray: int, m_type: int) -> tuple[int, int, bool]:
-        """Retourne (pos 0..P_Max, status, pending_siege)."""
+        """Retourne (pos 0..P_Max, status, pending_ratissage)."""
         idx = self._machine_idx(ray, m_type)
         b = self._buf[_Mem.MACHINE_POS_STATUS + idx]
         return b & 0x07, (b >> 3) & 0x03, bool(b & 0x20)
 
     def set_machine_pos_status(
-        self, ray: int, m_type: int, pos: int, status: int, pending_siege: bool = False
+        self, ray: int, m_type: int, pos: int, status: int, pending_ratissage: bool = False
     ) -> None:
         idx = self._machine_idx(ray, m_type)
         assert 0 <= pos <= self.cfg.p_max
-        assert status in (MACHINE_STATUS_NORMAL, MACHINE_STATUS_SIEGE, MACHINE_STATUS_RETIRED)
-        val = pos | (status << 3) | (0x20 if pending_siege else 0)
+        assert status in (MACHINE_STATUS_NORMAL, MACHINE_STATUS_RATISSAGE, MACHINE_STATUS_RETIRED)
+        val = pos | (status << 3) | (0x20 if pending_ratissage else 0)
         self._buf[_Mem.MACHINE_POS_STATUS + idx] = val
 
     def get_machine_tokens(self, ray: int, m_type: int) -> tuple[int, int]:
-        """Retourne (rouges, bleus)."""
+        """Retourne (rouges physiques, bleus)."""
         idx = self._machine_idx(ray, m_type)
         b = self._buf[_Mem.MACHINE_ROUGES_BLEUS + idx]
         return (b >> 4) & 0x0F, b & 0x0F
+
+    def get_machine_effective_rouges(self, ray: int, m_type: int) -> int:
+        """Retourne la puissance rouge totale (jetons rouges + 1 imprimé si face Ratissage)."""
+        r_tok, _ = self.get_machine_tokens(ray, m_type)
+        _, st, _ = self.get_machine_pos_status(ray, m_type)
+        return r_tok + (1 if st == MACHINE_STATUS_RATISSAGE else 0)
 
     def set_machine_tokens(self, ray: int, m_type: int, rouges: int, bleus: int) -> None:
         idx = self._machine_idx(ray, m_type)
@@ -1647,6 +1723,16 @@ class GameState:
             if st != MACHINE_STATUS_RETIRED and pos == p:
                 out.append(m_type)
         return out
+
+    def is_sommeil_victory(self) -> bool:
+        """Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche."""
+        total_r = self.cfg.total_reves_partie
+        if total_r <= 0:
+            return False
+        for i in range(total_r):
+            if not is_reve_code(self.get_tactique_at_rank(i)):
+                return False
+        return True
 
     # ------------------------------------------------------------------
     # Paquet Machine, Sabotages par dilution & Mains secrètes

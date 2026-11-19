@@ -20,7 +20,7 @@ from engine.core_engine import (
     DEC_ORDRE_ATTAQUE_5_1,
     DEC_ORDRE_CONSTRUCTION_3_1,
     DEC_ORDRE_NID_4_2,
-    DEC_ORDRE_SIEGE_5_2,
+    DEC_ORDRE_RATISSAGE_5_2,
     DEC_PLACEMENT_NID_3_1,
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
@@ -38,8 +38,8 @@ from engine.state import (
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     MAX_P,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
@@ -125,11 +125,11 @@ class _EconomieStore:
 
 
 def get_economie_catalog() -> dict[tuple[str, str], EconomieNode]:
-    """Charge une seule fois le graphe orienté `economie_bot` depuis `data/spec_bundle_v5_3_1.json`."""
+    """Charge une seule fois le graphe orienté `economie_bot` depuis `data/spec_bundle_v5_4.json`."""
     if _EconomieStore.cache is not None:
         return _EconomieStore.cache
 
-    spec_path = Path(__file__).resolve().parent.parent / "data" / "spec_bundle_v5_3_1.json"
+    spec_path = Path(__file__).resolve().parent.parent / "data" / "spec_bundle_v5_4.json"
     raw = json.loads(spec_path.read_text(encoding="utf-8"))
     cat = raw["catalogue_tuiles"]
     nodes: dict[tuple[str, str], EconomieNode] = {}
@@ -282,13 +282,14 @@ def _compute_b2_resource_and_trigger_values(
             if arb <= 1:
                 fragile_parcels += 1
 
-    # Proximité des victoires anticipées en 5.3 (Sommeil Rêve rang 1 / Réveil Gardiens)
-    best_reve_rank = 99
-    for r_idx in range(TRACK_LEN):
-        t_code, _, _ = obs.tactique_code_bugs_app(r_idx)
-        if is_reve_code(t_code):
-            best_reve_rank = min(best_reve_rank, r_idx + 1)
-            break
+    # Proximité des victoires anticipées en 5.3 (Sommeil bloc des k Rêves en tête / Réveil Gardiens)
+    total_reves_cfg = cfg.total_reves_partie
+    reves_ranks = [
+        r_idx + 1
+        for r_idx in range(TRACK_LEN)
+        if is_reve_code(obs.tactique_code_bugs_app(r_idx)[0])
+    ]
+    reves_in_head = sum(1 for rk in reves_ranks if rk <= total_reves_cfg)
 
     used_g = 0
     avail_g = 0
@@ -300,7 +301,12 @@ def _compute_b2_resource_and_trigger_values(
             else:
                 avail_g += 1
 
-    reve_push_mult = 1.65 if best_reve_rank <= 3 else (1.25 if best_reve_rank <= 5 else 1.0)
+    if total_reves_cfg > 0 and len(reves_ranks) >= total_reves_cfg:
+        reve_push_mult = 1.75 if reves_in_head >= total_reves_cfg - 1 else 1.40
+    elif total_reves_cfg > 0 and len(reves_ranks) > 0:
+        reve_push_mult = 1.25
+    else:
+        reve_push_mult = 1.0
     reveil_bonus = (
         85.0
         if (obs.seuil_reveil >= 3 and used_g + avail_g >= obs.seuil_reveil)
@@ -371,12 +377,16 @@ def _score_tile_construction_b2(
 ) -> float:
     fam, _, _ = SYNERGY_META[tile_id]
     tour = obs.tour
-    # Valeur structurelle Mode 2+ (victoire Rêve, production Nid, Réveil Gardien)
+    # Valeur structurelle Mode 2+ (victoire Sommeil en bloc des k Rêves, production Nid, Réveil Gardien)
     if fam == FAMILLE_REVE:
-        # Construire 1 à 2 Rêves tôt ouvre la condition Sommeil et annule des dés M !
+        # En v5.4, TOUTES les tuiles Rêves en jeu (2 ou 4) doivent être construites et groupées en tête !
         reves_on_track = sum(1 for t in obs.piste_tactiques if is_reve_code(t.code))
-        struct_v = 195.0 if reves_on_track == 0 else (140.0 if reves_on_track == 1 else 85.0)
-        if tour >= 7 and reves_on_track == 0:
+        target_reves = max(1, cfg.total_reves_partie)
+        if reves_on_track < target_reves:
+            struct_v = 195.0 if reves_on_track == 0 else (165.0 if reves_on_track + 1 == target_reves else 145.0)
+        else:
+            struct_v = 85.0
+        if tour >= 7 and reves_on_track < target_reves - 1:
             struct_v *= 0.45
     elif fam == FAMILLE_CROISSANCE:
         struct_v = 165.0 if tour <= 5 else 90.0
@@ -503,7 +513,7 @@ def score_target_b1(
         useful_trap = (not has_m) and obs.parcel_piege(t_ray, p_i) == PIEGE_AUCUN
         # Un Sabotage 4.1 ne passe que si la machine présente n'est PAS en Siège et a une chance d'être inactive
         has_siege = any(
-            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_SIEGE)
+            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_RATISSAGE)
             for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
         )
         useful_sab = (
@@ -625,7 +635,7 @@ def score_target_b2(
             for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
         )
         has_siege = any(
-            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_SIEGE)
+            obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_RATISSAGE)
             for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
         )
         partner_ready = (nb_d == 1) or (f_ins >= 1)
@@ -1135,7 +1145,7 @@ def _score_effect_option(
         m_threat = 0.0
         for m_obj in obs.machines:
             if m_obj.ray == opt and m_obj.status != MACHINE_STATUS_RETIRED and m_obj.position > 0:
-                m_threat += 15.0 + 18.0 * m_obj.rouges + (45.0 if m_obj.status == MACHINE_STATUS_SIEGE else 0.0)
+                m_threat += 15.0 + 18.0 * m_obj.rouges + (45.0 if m_obj.status == MACHINE_STATUS_RATISSAGE else 0.0)
         return 120.0 + ray_threat * 240.0 + m_threat
 
     # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A) — explicitement gardé par effect_kind
@@ -1390,7 +1400,7 @@ def _choose_policy(
                 best_r_sc, best_r = sc, opt
         return best_r
 
-    if dtype in (DEC_ORDRE_ATTAQUE_5_1, DEC_ORDRE_SIEGE_5_2, DEC_ORDRE_NID_4_2):
+    if dtype in (DEC_ORDRE_ATTAQUE_5_1, DEC_ORDRE_RATISSAGE_5_2, DEC_ORDRE_NID_4_2):
         # Choix déterministe sans biais
         return max(opts, key=lambda o: _tiebreak(cfg, obs, hash(o) & 0xFFFF, 9))
 

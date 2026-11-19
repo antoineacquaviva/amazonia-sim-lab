@@ -1,4 +1,4 @@
-"""Tests de validation du contrat exécutable spec_bundle_v5_3_1.json et mode3_reference.json."""
+"""Tests de validation du contrat exécutable spec_bundle_v5_4.json et mode3_reference.json."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from scripts_cloud.build_spec_bundle import RES_VOCAB, TRIG_VOCAB
 
 ROOT = Path(__file__).resolve().parent.parent
-BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_3_1.json"
+BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_4.json"
 MODE3_PATH = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 VALID_ROLES = {"PRODUCTEUR", "CONSOMMATEUR", "MODULATEUR", "CONTROLE", "CATALYSEUR"}
@@ -17,14 +17,15 @@ ALLOWED_TOKENS = RES_VOCAB | TRIG_VOCAB
 
 
 def test_spec_bundle_structure_and_counts() -> None:
-    assert BUNDLE_PATH.exists(), "data/spec_bundle_v5_3_1.json manquant"
+    assert BUNDLE_PATH.exists(), "data/spec_bundle_v5_4.json manquant"
     bundle = json.loads(BUNDLE_PATH.read_text(encoding="utf-8"))
 
-    assert bundle["meta"]["schema_version"] == "5.3.1"
+    assert bundle["meta"]["schema_version"] == "5.4.0"
     assert len(bundle["chassis_axes"]) == 7
     assert [t["id"] for t in bundle["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert bundle["machine_deck_rules"]["sabotage_dilution_permanente"] is True
-    assert bundle["machine_damage_rules"]["siege_t4"]["apprentissage_sur_t4_si_presente"] is True
+    assert bundle["machine_damage_rules"]["ratissage"]["apprentissage_sur_t1_si_presente"] is True
+    assert bundle["machine_damage_rules"]["ratissage"]["bonus_puissance_imprime"] == 1
 
     cat = bundle["catalogue_tuiles"]
     assert len(cat) == 32

@@ -13,7 +13,12 @@ from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from engine.state import CHASSIS_AXES_OPTIONS
+from engine.state import (
+    CHASSIS_AXES_OPTIONS,
+    NUM_CHASSIS,
+    decode_chassis_index,
+    encode_chassis_axes,
+)
 
 __all__ = (
     "GEMINI_EDITORIAL_HEADER",
@@ -24,15 +29,17 @@ __all__ = (
     "build_prompt_gemini_markdown",
     "build_self_contained_digest",
     "build_tested_tiles_rules",
-    "chassis_id_to_studio_index_128",
+    "chassis_id_to_studio_index",
+    "chassis_id_to_studio_index_384",
     "decode_chassis_axes",
     "load_spec_bundle",
-    "studio_index_128_to_chassis_id",
+    "studio_index_384_to_chassis_id",
+    "studio_index_to_chassis_id",
     "write_digest_and_prompt_files",
 )
 
 ROOT: Path = Path(__file__).resolve().parent.parent
-DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_3_1.json"
+DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_4.json"
 DEFAULT_DIGESTS_DIR: Path = ROOT / "data" / "digests"
 MAX_DIGEST_BYTES: int = 35_000
 
@@ -57,61 +64,70 @@ def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
     return dict(json.loads(target.read_text(encoding="utf-8")))
 
 
-def chassis_id_to_studio_index_128(chassis_id: int) -> int:
-    """Convertit un `chassis_id` moteur (0..127, bit 0 = P_Max) en `config_index_128` Studio (1..128, MSB = P_Max)."""
-    if not (0 <= chassis_id < 128):
-        raise ValueError(f"chassis_id hors plage 0..127 : {chassis_id}")
-    n_axes = len(CHASSIS_AXES_OPTIONS)
+def chassis_id_to_studio_index(chassis_id: int) -> int:
+    """Convertit un `chassis_id` moteur (0..383, LSB = Profil_Piste) en `config_index_384` Studio (1..384, MSB = Profil_Piste)."""
+    if not (0 <= chassis_id < NUM_CHASSIS):
+        raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
+    decoded = decode_chassis_index(int(chassis_id))
     studio_zero = 0
-    for bit_pos in range(n_axes):
-        bit_val = (int(chassis_id) >> bit_pos) & 1
-        studio_zero |= bit_val << (n_axes - 1 - bit_pos)
+    for axis_name, opts in CHASSIS_AXES_OPTIONS:
+        studio_zero = studio_zero * len(opts) + opts.index(decoded[axis_name])
     return studio_zero + 1
 
 
-def studio_index_128_to_chassis_id(studio_index_128: int) -> int:
-    """Convertit un `config_index_128` Doc Studio (1..128) en `chassis_id` moteur (0..127)."""
-    if not (1 <= studio_index_128 <= 128):
-        raise ValueError(f"studio_index_128 hors plage 1..128 : {studio_index_128}")
-    n_axes = len(CHASSIS_AXES_OPTIONS)
-    studio_zero = int(studio_index_128) - 1
+def studio_index_to_chassis_id(studio_index: int) -> int:
+    """Convertit un `config_index_384` Doc Studio (1..384) en `chassis_id` moteur (0..383)."""
+    if not (1 <= studio_index <= NUM_CHASSIS):
+        raise ValueError(f"studio_index hors plage 1..{NUM_CHASSIS} : {studio_index}")
+    rem = int(studio_index) - 1
+    digits_rev: list[int] = []
+    for _axis_name, opts in reversed(CHASSIS_AXES_OPTIONS):
+        radix = len(opts)
+        digits_rev.append(rem % radix)
+        rem //= radix
+    digits = list(reversed(digits_rev))
     chassis_id = 0
-    for bit_pos in range(n_axes):
-        bit_val = (studio_zero >> (n_axes - 1 - bit_pos)) & 1
-        chassis_id |= bit_val << bit_pos
+    mult = 1
+    for ax_idx, (_axis_name, opts) in enumerate(CHASSIS_AXES_OPTIONS):
+        chassis_id += digits[ax_idx] * mult
+        mult *= len(opts)
     return chassis_id
+
+
+chassis_id_to_studio_index_384 = chassis_id_to_studio_index
+studio_index_384_to_chassis_id = studio_index_to_chassis_id
 
 
 def axes_dict_to_chassis_id(axes: Mapping[str, Any]) -> int:
-    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..127)."""
+    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..383)."""
     lowered = {str(k).lower(): v for k, v in axes.items()}
-    chassis_id = 0
-    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
-        raw = lowered.get(axis_name.lower(), opts_pair[0])
-        if raw == opts_pair[0] or str(raw) == str(opts_pair[0]):
-            bit_val = 0
-        elif raw == opts_pair[1] or str(raw) == str(opts_pair[1]):
-            bit_val = 1
-        else:
+    normalized: dict[str, Any] = {}
+    for axis_name, opts in CHASSIS_AXES_OPTIONS:
+        raw = lowered.get(axis_name.lower(), opts[0])
+        matched = False
+        for opt in opts:
+            if raw == opt or str(raw).strip().upper() == str(opt).strip().upper():
+                normalized[axis_name] = opt
+                matched = True
+                break
+        if not matched:
             raise ValueError(
-                f"Valeur invalide pour l'axe {axis_name!r} : {raw!r} (attendu {opts_pair!r})"
+                f"Valeur invalide pour l'axe {axis_name!r} : {raw!r} (attendu {opts!r})"
             )
-        if bit_val:
-            chassis_id |= 1 << bit_pos
-    return chassis_id
+    return encode_chassis_axes(normalized)
 
 
 def decode_chassis_axes(chassis_id: int) -> dict[str, Any]:
-    """Décode les valeurs exactes des 7 axes binaires d'un `chassis_id` (0..127) avec son `studio_config_index_128` (1..128)."""
-    if not (0 <= chassis_id < 128):
-        raise ValueError(f"chassis_id hors plage 0..127 : {chassis_id}")
+    """Décode les valeurs exactes des 7 axes d'un `chassis_id` (0..383) avec son `studio_config_index_384` (1..384)."""
+    if not (0 <= chassis_id < NUM_CHASSIS):
+        raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
+    decoded = decode_chassis_index(int(chassis_id))
     axes: dict[str, Any] = {
         "chassis_id": int(chassis_id),
-        "studio_config_index_128": chassis_id_to_studio_index_128(int(chassis_id)),
+        "studio_config_index_384": chassis_id_to_studio_index(int(chassis_id)),
     }
-    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
-        bit_val = (int(chassis_id) >> bit_pos) & 1
-        axes[axis_name] = opts_pair[bit_val]
+    for axis_name, _opts in CHASSIS_AXES_OPTIONS:
+        axes[axis_name] = decoded[axis_name]
     return axes
 
 
@@ -126,11 +142,11 @@ def build_active_core_rules(
     Contient :
     - `version`, `source_studio_version` et `spec_bundle_sha256`,
     - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
-    - `chassis_7_axes` (valeurs exactes des 7 axes + `chassis_id` 0..127 + `studio_config_index_128` 1..128),
+    - `chassis_7_axes` (valeurs exactes des 7 axes + `chassis_id` 0..383 + `studio_config_index_384` 1..384),
     - `tactiques` (`T1..T6`),
     - `machine_damage_rules` et `machine_deck_rules`,
     - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité,
-      chaîne des Parades / Pièges, Sabotage par dilution, Apprentissage, Fins `5.3`).
+      chaîne des Parades / Pièges, Sabotage par dilution, Apprentissage, Fins `5.4`).
     """
     target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
     if bundle is not None:
@@ -155,7 +171,7 @@ def build_active_core_rules(
     unique_chassis = tuple(dict.fromkeys(int(c) for c in (chassis_ids or (0,))))
     chassis_list = [decode_chassis_axes(cid) for cid in unique_chassis]
 
-    sf = spec_bundle.get("spec_formelle_v5_3", {})
+    sf = spec_bundle.get("spec_formelle_v5_4", {})
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
     etapes_raw: list[dict[str, Any]] = sorted(
         sf.get("etapes_tour", []),
@@ -172,7 +188,7 @@ def build_active_core_rules(
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.3.1"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.4.0"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (

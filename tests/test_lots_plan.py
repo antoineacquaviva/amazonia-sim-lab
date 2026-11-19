@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-SPEC_BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_3_1.json"
+SPEC_BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_4.json"
 MODE3_REF_PATH = ROOT / "engine" / "effects" / "mode3_reference.json"
 LOTS_PLAN_PATH = ROOT / "contracts" / "LOTS_PLAN.md"
 STATUS_PATH = ROOT / "STATUS.md"

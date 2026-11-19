@@ -207,10 +207,10 @@ def test_r9_a_temoin_echo_voix_celestes_mod_seuil_rayon_moins_2() -> None:
 
 
 def test_r9_b_temoin_echo_voix_celestes_egalite_6_2_declenche_repousse_finale() -> None:
-    """Témoin R9:B : en 6.2, égalité en tête (y compris 0) fait avancer R9 au Rang 1 -> Repousse Finale."""
+    """Témoin R9:B : en 6.2, égalité en tête (y compris 0) fait avancer R9 -> bloc 4 Rêves en tête -> Repousse Finale."""
     state = _make_state(("R9", "B"))
-    # Piste : [T1, R9, T2, T3, T4, T5] avec égalité générale à 0 en Apprentissage
-    track = (1, TILE_R_BASE + 9, 2, 3, 4, 5)
+    # 2 peuples oniriques (H, E) => 4 Rêves en jeu : [R1, R2, R3, T1, R9, T2] avec égalité générale à 0 en Apprentissage
+    track = (TILE_R_BASE + 1, TILE_R_BASE + 2, TILE_R_BASE + 3, 1, TILE_R_BASE + 9, 2)
     for idx, code in enumerate(track):
         state.set_tactique_at_rank(idx, code)
     # Parcelle (0, 1) avec 1 Souche pour vérifier l'exécution immédiate de la Repousse Finale
@@ -220,7 +220,7 @@ def test_r9_b_temoin_echo_voix_celestes_egalite_6_2_declenche_repousse_finale() 
     over = step_until_decision(state)
     assert isinstance(over, GameOver)
     assert state.step == STEP_GAME_OVER
-    assert state.get_tactique_at_rank(0) == TILE_R_BASE + 9
+    assert state.get_tactique_at_rank(3) == TILE_R_BASE + 9
     assert state.get_parcel_arbres(0, 1) == 2
 
 

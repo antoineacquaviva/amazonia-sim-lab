@@ -31,8 +31,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     PIEGE_AUCUN,
     STEP_3_2_REVEAL,
     TACTIQUES_SPEC,
@@ -123,7 +123,7 @@ def _is_machine_active_turn(state: GameState, ray: int, m_type: int) -> bool:
     pos, st, _ = state.get_machine_pos_status(ray, m_type)
     if st == MACHINE_STATUS_RETIRED or pos == 0:
         return False
-    if st == MACHINE_STATUS_SIEGE:
+    if st == MACHINE_STATUS_RATISSAGE:
         return True
     t_card = machine_card_code(ray, m_type)
     for s in range(state.cfg.n_players):
@@ -501,7 +501,7 @@ def g8_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
         return None
 
     if hook == HOOK_5_CIBLAGE_MACHINE:
-        if bool(ctx.get("is_siege")):
+        if bool(ctx.get("is_ratissage")):
             return False
         decoded = _decode_g8_a_shift(state)
         if decoded is None:

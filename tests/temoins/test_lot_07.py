@@ -21,7 +21,7 @@ from engine.primitives import (
 from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_STATUS_NORMAL,
-    MACHINE_STATUS_SIEGE,
+    MACHINE_STATUS_RATISSAGE,
     PIEGE_ACTIF,
     PIEGE_DECLENCHE,
     STEP_1_3_DICE,
@@ -108,7 +108,7 @@ def test_r5_c_temoin_reve_nid_vide_piege_cible_vide_ho() -> None:
     assert o_seat is not None and h_seat is not None
 
     # Machine O en Siège sur (o_seat, 2) -> parcelle ciblée et vide ; (h_seat, 1) non ciblée
-    state.set_machine_pos_status(o_seat, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_SIEGE)
+    state.set_machine_pos_status(o_seat, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_RATISSAGE)
     state.set_tactique_at_rank(4, TILE_R_BASE + 5)
     _clear_hands(state)
     _add_step_4_3_stop_anchor(state)
@@ -132,7 +132,7 @@ def test_r5_c_temoin_reve_nid_vide_piege_cible_vide_ho() -> None:
 
     # Avant la frappe, 1 Défenseur suffit à déclencher l'Embuscade
     state.set_parcel_defenseurs(o_seat, 2, 1)
-    resolve_single_machine_attack(state, o_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
+    resolve_single_machine_attack(state, o_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_parcel_piege(o_seat, 2) == PIEGE_DECLENCHE
 
 
@@ -255,10 +255,10 @@ def test_r7_a_temoin_ombre_maitre_bois_recul_machine_em_3_2() -> None:
     m_seat = state.cfg.seat_of_peuple("M")
     assert e_seat is not None and m_seat is not None
 
-    # Abatteuse E en p=3 (p=2 rasée -> recul vers p=1 !) ; Abatteuse M en Siège (exclue)
+    # Abatteuse E en p=3 (p=2 rasée -> recul vers p=1 !) ; Abatteuse M en Ratissage (exclue)
     state.set_parcel_arbres_souches(e_seat, 2, 0, 0)
     state.set_machine_pos_status(e_seat, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
-    state.set_machine_pos_status(m_seat, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_SIEGE)
+    state.set_machine_pos_status(m_seat, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_RATISSAGE)
     _setup_reve_opening_3_2(state, 7, 3, reader_seat=0)
 
     req_mig = step_until_decision(state)
@@ -268,8 +268,8 @@ def test_r7_a_temoin_ombre_maitre_bois_recul_machine_em_3_2() -> None:
     assert state.get_machine_pos_status(m_seat, MACHINE_ABATTEUSE)[0] == 3
 
 
-def test_r7_b_temoin_endiguement_siege_em_et_voisins() -> None:
-    """Témoin R7:B : machines en Siège sur E/M et voisins ne gagnent pas de rouge et ont -1 Seuil."""
+def test_r7_b_temoin_endiguement_ratissage_em_et_voisins() -> None:
+    """Témoin R7:B (v5.4) : machines en Ratissage sur E/M et voisins ont -1 Seuil de Parade (plancher 1)."""
     state = _make_state(("R7", "B"), peuples=("M", "R", "O", "H", "E", "I"))
     e_seat = state.cfg.seat_of_peuple("E")
     o_seat = state.cfg.seat_of_peuple("O")
@@ -279,23 +279,22 @@ def test_r7_b_temoin_endiguement_siege_em_et_voisins() -> None:
     assert h_seat is not None
 
     state.set_tactique_at_rank(2, TILE_R_BASE + 7)
-    # Parcelle 1 dotation 2, offset 0, T4 mod_seuil -1 -> Seuil normal = max(1, 2 - 1) = 1.
-    # Testons sur parcelle 4 (dotation 3) : Seuil normal T4 = 3 - 1 = 2 ; avec R7:B = 2 - 1 = 1 !
-    state.set_machine_pos_status(h_seat, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_SIEGE)
-    state.set_parcel_defenseurs(h_seat, 4, 1)
+    # Parcelle 4 dotation 3, offset 0, T1 mod_seuil 0, Ratissage +1 rouge imprimé -> Seuil normal = 4 ; avec R7:B = 3 !
+    state.set_machine_pos_status(h_seat, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    state.set_parcel_defenseurs(h_seat, 4, 3)
 
-    state.set_machine_pos_status(o_seat, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_SIEGE)
-    state.set_parcel_defenseurs(o_seat, 4, 1)
+    state.set_machine_pos_status(o_seat, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    state.set_parcel_defenseurs(o_seat, 4, 3)
 
-    resolve_single_machine_attack(state, h_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
-    # Sur H (voisin de E) : parée grâce au -1 Seuil (Seuil=1 <= 1 Déf) ET 0 gain rouge !
+    resolve_single_machine_attack(state, h_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
+    # Sur H (voisin de E) : parée grâce au -1 Seuil (Seuil=3 <= 3 Déf) !
     assert state.get_parcel_arbres(h_seat, 4) == state.cfg.dotation_arbres[3]
     assert state.get_machine_tokens(h_seat, MACHINE_ABATTEUSE)[0] == 0
 
-    resolve_single_machine_attack(state, o_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
-    # Sur O (hors E/M et voisins) : non parée (Seuil=2 > 1 Déf) -> Abatteuse coupe 2 Arbres + 1 rouge !
+    resolve_single_machine_attack(state, o_seat, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
+    # Sur O (hors E/M et voisins) : non parée (Seuil=4 > 3 Déf) -> Abatteuse coupe 2 Arbres (T1: 0 rouge ajouté)
     assert state.get_parcel_arbres(o_seat, 4) == state.cfg.dotation_arbres[3] - 2
-    assert state.get_machine_tokens(o_seat, MACHINE_ABATTEUSE)[0] == 1
+    assert state.get_machine_tokens(o_seat, MACHINE_ABATTEUSE)[0] == 0
 
 
 def test_r7_c_temoin_bras_mort_fleuve_passage_direct_em_4_3() -> None:

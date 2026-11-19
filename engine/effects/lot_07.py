@@ -14,7 +14,6 @@ from engine.primitives import (
     HOOK_1_3_LECTURE_DE,
     HOOK_3_2_OUVERTURE_REVE,
     HOOK_4_3_MIGRATION_DESTS,
-    HOOK_5_FIN_ATTAQUE_MACHINE,
     HOOK_5_LAW_QUERY,
     HOOK_5_SEUIL_PARADE,
     HOOK_EFFECT_RESUME,
@@ -28,7 +27,7 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    MACHINE_STATUS_SIEGE,
+    MACHINE_STATUS_RATISSAGE,
     NUM_NIDS,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
@@ -72,7 +71,7 @@ def _targeted_parcels_after_revelation(state: GameState) -> list[tuple[int, int]
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st, _ = state.get_machine_pos_status(r, mt)
             if (
-                st == MACHINE_STATUS_SIEGE
+                st == MACHINE_STATUS_RATISSAGE
                 and pos > 0
                 and not state.is_route_forestiere(r, pos)
                 and (r, pos) not in targeted
@@ -445,27 +444,24 @@ def _endiguement_rays(state: GameState) -> tuple[int, ...]:
 @register_tile(
     "R7",
     "B",
-    hooks=(HOOK_5_SEUIL_PARADE, HOOK_5_FIN_ATTAQUE_MACHINE, HOOK_5_LAW_QUERY),
+    hooks=(HOOK_5_SEUIL_PARADE, HOOK_5_LAW_QUERY),
 )
 def r7_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool:
-    """Loi 5 : machines en Siège sur E, M et leurs voisins : 0 gain rouge et -1 Seuil."""
-    prim_mod_loi_du_coeur(state, "LOI_ENDIGUEMENT_SIEGE_T4", active=True)
+    """Loi 5 : machines en Ratissage sur E, M et leurs voisins subissent -1 Seuil de Parade."""
+    prim_mod_loi_du_coeur(state, "LOI_ENDIGUEMENT_RATISSAGE", active=True)
     rays = _endiguement_rays(state)
     if hook == HOOK_5_LAW_QUERY:
         if "ray" in ctx:
             return int(ctx["ray"]) in rays
         return bool(rays)
 
-    if not bool(ctx.get("is_siege")):
+    if not bool(ctx.get("is_ratissage")):
         return False
     if int(ctx["ray"]) not in rays:
         return False
 
     if hook == HOOK_5_SEUIL_PARADE:
         ctx["delta_seuil"] = int(ctx["delta_seuil"]) - 1
-        return True
-    if hook == HOOK_5_FIN_ATTAQUE_MACHINE:
-        ctx["allow_red_gain"] = False
         return True
     return False
 

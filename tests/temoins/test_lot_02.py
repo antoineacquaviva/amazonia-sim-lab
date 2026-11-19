@@ -22,7 +22,7 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    MACHINE_STATUS_SIEGE,
+    MACHINE_STATUS_RATISSAGE,
     PFLAG_MATAMATA_MARK,
     PIEGE_ACTIF,
     PIEGE_DECLENCHE,
@@ -94,11 +94,11 @@ def test_g1_b_temoin() -> None:
     assert state.get_parcel_arbres(1, 3) == 3
     assert state.get_gardien_at_case(1)[2] is True  # Case 1 (Parade) a bien été allumée !
 
-    # En Siège : pare automatiquement en défaussant 2 bleus mais ne recule pas
-    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_SIEGE)
+    # En Ratissage : pare automatiquement en défaussant 2 bleus mais ne recule pas
+    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
     state.set_machine_tokens(2, MACHINE_ABATTEUSE, rouges=0, bleus=2)
-    resolve_single_machine_attack(state, 2, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
-    assert state.get_machine_pos_status(2, MACHINE_ABATTEUSE)[:2] == (4, MACHINE_STATUS_SIEGE)
+    resolve_single_machine_attack(state, 2, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
+    assert state.get_machine_pos_status(2, MACHINE_ABATTEUSE)[:2] == (4, MACHINE_STATUS_RATISSAGE)
     assert state.get_parcel_arbres(2, 4) == 3
 
 
@@ -112,7 +112,6 @@ def test_g2_b_temoin() -> None:
         n_players=4,
         mode=3,
         peuples=("M", "R", "O", "H"),
-        declenchement_fin_de_piste="DEPASSEMENT_DERNIERE_PARCELLE",
         tile_profiles=(("G2", "B"),),
         exp_seed=1202,
     )
@@ -136,10 +135,10 @@ def test_g2_b_temoin() -> None:
     assert state.get_machine_pos_status(1, MACHINE_BULLDOZER)[0] == 1
     assert state.get_machine_tokens(1, MACHINE_BULLDOZER) == (0, 0)
 
-    # Idem en Siège T4 entièrement paré sur Face 2 : pas de jeton rouge !
-    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_SIEGE)
+    # Idem en Ratissage T1 entièrement paré sur Face 2 : pas de jeton rouge !
+    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
     state.set_parcel_defenseurs(2, 4, 3)
-    resolve_single_machine_attack(state, 2, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4], is_siege=True)
+    resolve_single_machine_attack(state, 2, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_machine_tokens(2, MACHINE_ABATTEUSE) == (0, 0)
 
     # 3) Témoin exact : sur le rayon 3, p=4 est déjà rasée en Route Forestière (0/0) et la machine est en p=3.

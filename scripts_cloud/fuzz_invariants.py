@@ -34,6 +34,7 @@ from engine.effects.registry import list_registered_tiles
 from engine.primitives import GameOver
 from engine.rng import SRC_TACTICS_SETUP, rand_below
 from engine.state import (
+    NUM_CHASSIS,
     PEUPLES_ORDER,
     TRACK_LEN,
     GameConfig,
@@ -106,7 +107,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     for game_idx in range(start_idx, end_idx):
         mode = 1 if game_idx < t1 else (2 if game_idx < t2 else 3)
         n_players = 3 + (game_idx % 4)
-        chassis_id = (game_idx * 17) & 127
+        chassis_id = (game_idx * 17) % NUM_CHASSIS
         peuples = rotations[game_idx % 6][:n_players]
         bot_sel = game_idx % 5  # 0,1,2 -> B0 ; 3 -> B1 ; 4 -> B2
 
@@ -129,11 +130,11 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 rep_id=base_cfg.rep_id,
                 coordonnateur_initial=base_cfg.coordonnateur_initial,
                 max_revision_passes=base_cfg.max_revision_passes,
-                p_max=base_cfg.p_max,
+                profil_piste=base_cfg.profil_piste,
                 regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
                 offset_seuil_parade=base_cfg.offset_seuil_parade,
                 mise_en_place_tactiques=base_cfg.mise_en_place_tactiques,
-                declenchement_fin_de_piste=base_cfg.declenchement_fin_de_piste,
+                placement_initial_machines=base_cfg.placement_initial_machines,
                 role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
                 synergie_binome_machines=base_cfg.synergie_binome_machines,
                 tile_profiles=t_profs,

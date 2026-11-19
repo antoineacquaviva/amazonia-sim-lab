@@ -21,8 +21,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     MAX_P,
     NUM_PARCELS,
     PIEGE_ACTIF,
@@ -88,7 +88,8 @@ def _machine_effective_tokens_obs(
     machines: tuple[Any, ...], cfg: GameConfig, r: int, m_type: int
 ) -> tuple[int, int]:
     m_self = machines[r * 2 + m_type]
-    rouges, bleus = m_self.rouges, m_self.bleus
+    rouges = m_self.rouges + (1 if m_self.status == MACHINE_STATUS_RATISSAGE else 0)
+    bleus = m_self.bleus
     if cfg.synergie_binome_machines == "MUTUALISATION_PUISSANCE_MEME_PARCELLE":
         other = machines[r * 2 + (1 - m_type)]
         if (
@@ -97,7 +98,7 @@ def _machine_effective_tokens_obs(
             and m_self.position > 0
             and m_self.position == other.position
         ):
-            rouges += other.rouges
+            rouges += other.rouges + (1 if other.status == MACHINE_STATUS_RATISSAGE else 0)
             bleus += other.bleus
     return rouges, bleus
 
@@ -149,15 +150,15 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         if m_type == MACHINE_BULLDOZER:
             bulldo_prob[idx] = min(1.0, bulldo_prob[idx] + prob)
 
-    # 1. Machines en Siège : certitude publique (prob = 1.0, profil T4 : SUR_PLACE, mod_seuil = -1)
+    # 1. Machines en Ratissage : certitude publique (prob = 1.0, profil T1 : SUR_PLACE, +1 rouge imprimé, mod_seuil = 0)
     normal_deck_machines: list[tuple[int, int, int]] = []
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st = obs.machine_pos_status(r, mt)
             if st == MACHINE_STATUS_RETIRED or pos == 0:
                 continue
-            if st == MACHINE_STATUS_SIEGE:
-                _add_strike(r, mt, pos, -1, 1.0)
+            if st == MACHINE_STATUS_RATISSAGE:
+                _add_strike(r, mt, pos, 0, 1.0)
             elif st == MACHINE_STATUS_NORMAL:
                 normal_deck_machines.append((machine_card_code(r, mt), r, mt))
 

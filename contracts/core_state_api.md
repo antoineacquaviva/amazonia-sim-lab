@@ -32,7 +32,7 @@ zéro `import random`, zéro état global mutable).
 - `MACHINE_ABATTEUSE: int = 0`
 - `MACHINE_BULLDOZER: int = 1`
 - `MACHINE_STATUS_NORMAL: int = 0`
-- `MACHINE_STATUS_SIEGE: int = 1`
+- `MACHINE_STATUS_RATISSAGE: int = 1`
 - `MACHINE_STATUS_RETIRED: int = 2`
 - `PIEGE_AUCUN: int = 0`
 - `PIEGE_ACTIF: int = 1`
@@ -50,7 +50,7 @@ zéro `import random`, zéro état global mutable).
 - `CARD_NONE: int = 0`
 - `CARD_SABOTAGE: int = 13`
 - `TILE_R_BASE: int = 100`
-- `STEP_1_1_SIEGE: int = 11`
+- `STEP_1_1_RATISSAGE: int = 11`
 - `STEP_1_2_DEAL: int = 12`
 - `STEP_1_3_DICE: int = 13`
 - `STEP_2_1_DEF1: int = 21`
@@ -61,7 +61,7 @@ zéro `import random`, zéro état global mutable).
 - `STEP_4_2_NIDS: int = 42`
 - `STEP_4_3_MIGRATION: int = 43`
 - `STEP_5_1_TACTIQUES: int = 51`
-- `STEP_5_2_SIEGES: int = 52`
+- `STEP_5_2_RATISSAGE: int = 52`
 - `STEP_5_3_END_CHECK: int = 53`
 - `STEP_6_1_APPRENTISSAGE: int = 61`
 - `STEP_6_2_EVOLUTION: int = 62`
@@ -72,11 +72,14 @@ zéro `import random`, zéro état global mutable).
 - `MATRICE_PAIRES: dict[str, tuple[str, str]] = ...`
 - `SYNERGY_META: dict[str, tuple[str, str, int]] = ...`
 - `TACTIQUES_SPEC: dict[int, TactiqueSpec] = ...`
-- `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, Any]], ...] = ...`
-- `TOPOLOGIES_DOTATION: dict[int, tuple[int, ...]] = {4: (2, 2, 3, 3), 5: (2, 2, 2, 3, 3)}`
+- `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = ...`
+- `NUM_CHASSIS: int = 1`
+- `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
 
 ### Fonctions publiques
 
+- `decode_chassis_index(chassis_idx: int) -> dict[str, Any]` — Décode un index de châssis 0..383 (base mixte LSB-first) en dictionnaire d'axes.
+- `encode_chassis_axes(axes: dict[str, Any]) -> int` — Encode un dictionnaire d'axes en index de châssis 0..383 (base mixte LSB-first).
 - `is_tactique_code(code: int) -> bool`
 - `is_reve_code(code: int) -> bool`
 - `code_to_tile_id(code: int) -> str`
@@ -97,11 +100,11 @@ Profil structurel immuable d'une tuile Tactique T1..T6.
 - `avancee: int`
 - `gain_rouge: int`
 - `mod_seuil: int`
-- `est_siege_profil: bool`
+- `est_ratissage_profil: bool`
 
 ### Classe `GameConfig`
 
-Configuration immuable d'une partie (Mode 1..4 et 7 axes des 128 châssis).
+Configuration immuable d'une partie (Mode 1..4 et 7 axes des 384 châssis v5.4).
 
 **Champs :**
 - `n_players: int`
@@ -111,20 +114,22 @@ Configuration immuable d'une partie (Mode 1..4 et 7 axes des 128 châssis).
 - `rep_id: int`
 - `coordonnateur_initial: int`
 - `max_revision_passes: int`
-- `p_max: int`
+- `profil_piste: str`
 - `regle_ouverture_reve_multiple: str`
 - `offset_seuil_parade: int`
 - `mise_en_place_tactiques: str`
-- `declenchement_fin_de_piste: str`
+- `placement_initial_machines: str`
 - `role_abatteuse_fin_de_piste: str`
 - `synergie_binome_machines: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
+- `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
 - `lisiere_slots: tuple[str, ...]`
 - `total_gardiens_partie: int`
+- `total_reves_partie: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4) -> GameConfig` — Construit l'une des 128 configurations de châssis à partir d'un index 0..127.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4) -> GameConfig` — Construit l'une des 384 configurations de châssis v5.4 à partir d'un index 0..383.
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (A/A en Mode 2 uniquement pour Migration).
 
@@ -232,6 +237,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1).
 - `lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]` — Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`.
 - `machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]` — Retourne (position, status) de la machine `(r, m_type)` en O(1).
+- `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
+- `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
 - `gardien_available_at_case(self, case_1_6: int) -> bool` — Retourne True si un Gardien non encore utilisé ce tour occupe la case `1..6`.
 - `tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]` — Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques.
 
@@ -316,11 +323,13 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `set_bugs_at_case(self, case_1_6: int, count: int) -> None`
 - `get_colonie_at_case(self, case_1_6: int) -> int`
 - `set_colonie_at_case(self, case_1_6: int, count: int) -> None`
-- `get_machine_pos_status(self, ray: int, m_type: int) -> tuple[int, int, bool]` — Retourne (pos 0..P_Max, status, pending_siege).
-- `set_machine_pos_status(self, ray: int, m_type: int, pos: int, status: int, pending_siege: bool=False) -> None`
-- `get_machine_tokens(self, ray: int, m_type: int) -> tuple[int, int]` — Retourne (rouges, bleus).
+- `get_machine_pos_status(self, ray: int, m_type: int) -> tuple[int, int, bool]` — Retourne (pos 0..P_Max, status, pending_ratissage).
+- `set_machine_pos_status(self, ray: int, m_type: int, pos: int, status: int, pending_ratissage: bool=False) -> None`
+- `get_machine_tokens(self, ray: int, m_type: int) -> tuple[int, int]` — Retourne (rouges physiques, bleus).
+- `get_machine_effective_rouges(self, ray: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si face Ratissage).
 - `set_machine_tokens(self, ray: int, m_type: int, rouges: int, bleus: int) -> None`
 - `machines_on_parcel(self, ray: int, p: int) -> list[int]` — Retourne la liste des types de machines physiquement présentes sur (ray, p).
+- `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
 - `add_permanent_sabotage(self, count: int=1, *, light_case_3: bool=True) -> None` — Ajoute définitivement +count cartes Sabotage (mises de côté pour le remélange 6.3).
 - `rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None` — Reconstitue le paquet Machine hors Sièges/retirées + Sabotages et le mélange.
 - `remove_machine_card_from_deck_if_present(self, card_code: int) -> None` — Retire une carte Machine du paquet restant si elle passe en Siège en 1.1.

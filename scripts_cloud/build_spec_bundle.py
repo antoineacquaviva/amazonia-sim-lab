@@ -1,4 +1,4 @@
-"""Génère data/spec_bundle_v5_3_1.json et engine/effects/mode3_reference.json depuis le Studio."""
+"""Génère data/spec_bundle_v5_4.json et engine/effects/mode3_reference.json depuis le Studio."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from scripts_cloud.studio_paths import resolve_studio_dir
 DATA_DIR = ROOT / "data"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
 LOCK_FILE = DATA_DIR / "studio_lock.json"
-SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_3.json"
-CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_3.json"
-OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_3_1.json"
+SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_4.json"
+CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_4.json"
+OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_4.json"
 OUT_MODE3 = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 RES_VOCAB = frozenset(
@@ -43,7 +43,7 @@ TRIG_VOCAB = frozenset({f"TRIG_{i}" for i in range(1, 7)})
 
 
 def _load_studio_js_objects() -> dict[str, Any]:
-    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_3.js"
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_4.js"
     if not studio_js_path.exists():
         raise FileNotFoundError(
             f"Fichier Studio introuvable : {studio_js_path} "
@@ -56,7 +56,7 @@ def _load_studio_js_objects() -> dict[str, Any]:
         "vm.createContext(ctx);\n"
         f"const src = fs.readFileSync({json.dumps(studio_js_path.as_posix())}, 'utf8');\n"
         "const res = vm.runInContext("
-        "src + '\\n;({ PEUPLES, MATRICE_PAIRES, CHASSIS_AXES_SPEC, CATALOGUE_TUILES });', ctx);\n"
+        "src + '\\n;({ PEUPLES, MATRICE_PAIRES, TOPOLOGIES_PISTE_SPEC, CHASSIS_AXES_SPEC, CATALOGUE_TUILES });', ctx);\n"
         "process.stdout.write(JSON.stringify(res));\n"
     )
     proc = subprocess.run(
@@ -227,7 +227,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 0,
             "gain_rouge": 0,
             "mod_seuil": 0,
-            "est_siege_profil": False,
+            "est_ratissage_profil": True,
         },
         {
             "id": "T2",
@@ -236,7 +236,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 0,
             "gain_rouge": 0,
             "mod_seuil": 0,
-            "est_siege_profil": False,
+            "est_ratissage_profil": False,
         },
         {
             "id": "T3",
@@ -245,7 +245,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 1,
             "gain_rouge": 0,
             "mod_seuil": -1,
-            "est_siege_profil": False,
+            "est_ratissage_profil": False,
         },
         {
             "id": "T4",
@@ -254,7 +254,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 0,
             "gain_rouge": 1,
             "mod_seuil": -1,
-            "est_siege_profil": True,
+            "est_ratissage_profil": False,
         },
         {
             "id": "T5",
@@ -263,7 +263,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 0,
             "gain_rouge": 1,
             "mod_seuil": -1,
-            "est_siege_profil": False,
+            "est_ratissage_profil": False,
         },
         {
             "id": "T6",
@@ -272,7 +272,7 @@ def _build_tactiques() -> list[dict[str, Any]]:
             "avancee": 1,
             "gain_rouge": 1,
             "mod_seuil": -2,
-            "est_siege_profil": False,
+            "est_ratissage_profil": False,
         },
     ]
 
@@ -351,7 +351,7 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
         }
 
     return {
-        "schema_version": "5.3.1",
+        "schema_version": "5.4.0",
         "description": "Sélection de référence Mode 3 (1 profil épuré par emplacement, Migrations A/A).",
         "criteres_priorite": [
             "1. Zéro modification de l'ordre d'attaque ou du secret des paravents",
@@ -383,14 +383,14 @@ def _file_lock_entry(path: Path) -> dict[str, object]:
 
 
 def build_bundle() -> None:
-    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_3.js"
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_4.js"
     studio_js = _load_studio_js_objects()
     spec_data = json.loads(SPEC_FILE.read_text(encoding="utf-8"))
     catalog_meta = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
     studio_sha256 = {
-        "catalog_v5_3.json": _file_lock_entry(CATALOG_FILE),
-        "spec_formelle_v5_3.json": _file_lock_entry(SPEC_FILE),
-        "amazonia_data_v5_3.js": _file_lock_entry(studio_js_path),
+        "catalog_v5_4.json": _file_lock_entry(CATALOG_FILE),
+        "spec_formelle_v5_4.json": _file_lock_entry(SPEC_FILE),
+        "amazonia_data_v5_4.js": _file_lock_entry(studio_js_path),
     }
 
     catalogue = studio_js["CATALOGUE_TUILES"]
@@ -400,8 +400,8 @@ def build_bundle() -> None:
 
     bundle = {
         "meta": {
-            "schema_version": "5.3.1",
-            "source_studio_version": "v5.3",
+            "schema_version": "5.4.0",
+            "source_studio_version": "v5.4",
             "studio_sha256": studio_sha256,
             "total_emplacements": len(catalogue),
             "total_profils": sum(len(s["profils"]) for s in catalogue.values()),
@@ -420,16 +420,22 @@ def build_bundle() -> None:
             "ABATTEUSE": {
                 "arbres_coupes_max": 2,
                 "souches_retirees": 0,
-                "arrache_1_souche_si_sans_arbre_en_siege_option": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
+                "arrache_1_souche_si_sans_arbre_en_ratissage_option": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
             },
             "BULLDOZER": {
                 "arbres_coupes_max": 1,
                 "retire_toutes_souches_non_protegees": True,
                 "test_parade_unique": True,
             },
-            "siege_t4": {
-                "autonomie_attaque_si_t4_ejectee": True,
-                "apprentissage_sur_t4_si_presente": True,
+            "ratissage": {
+                "pion_double_face": True,
+                "bonus_puissance_imprime": 1,
+                "traite_comme_jeton_rouge_a_tous_egards": True,
+                "conserve_jetons_puissance_anterieurs": True,
+                "tactique_imprimee": "T1",
+                "autonomie_attaque_si_t1_ejectee": True,
+                "apprentissage_sur_t1_si_presente": True,
+                "entree_definitive_derniere_parcelle": True,
             },
         },
         "machine_deck_rules": {
@@ -442,7 +448,7 @@ def build_bundle() -> None:
             "remelange_etape": "6.3",
             "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout",
         },
-        "spec_formelle_v5_3": spec_data,
+        "spec_formelle_v5_4": spec_data,
         "catalogue_tuiles": catalogue,
     }
 

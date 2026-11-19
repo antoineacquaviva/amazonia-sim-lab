@@ -41,7 +41,7 @@ from campaigns.map_elites import (
     load_mode3_reference_genome,
 )
 from engine.effects.registry import list_registered_tiles
-from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES
+from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES, decode_chassis_index
 from scripts_cloud.publish_digest import publish_campaign_digest
 from scripts_cloud.studio_paths import find_gcloud, find_uv
 
@@ -519,18 +519,11 @@ def synthesize_palier4_with_duckdb(
     )
     top_ids_for_axes = [int(r["chassis_id"]) for r in (top16_rows or top_chassis_rows)]
     axis_trends: list[dict[str, Any]] = []
-    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
-        cnt1 = sum(1 for cid in top_ids_for_axes if ((cid >> bit_pos) & 1) == 1)
-        cnt0 = len(top_ids_for_axes) - cnt1
-        axis_trends.append(
-            {
-                "axis": axis_name,
-                "opt_0": str(opts_pair[0]),
-                "n_0": cnt0,
-                "opt_1": str(opts_pair[1]),
-                "n_1": cnt1,
-            }
-        )
+    for axis_name, opts in CHASSIS_AXES_OPTIONS:
+        counts = {str(opt): 0 for opt in opts}
+        for cid in top_ids_for_axes:
+            counts[str(decode_chassis_index(cid)[axis_name])] += 1
+        axis_trends.append({"axis": axis_name, "counts_in_top": counts})
 
     # 2. Reconstruction de l'archive globale MAP-Elites 2D & Régression de Shapley d'ordre 2
     screening_rows = _query_dicts(

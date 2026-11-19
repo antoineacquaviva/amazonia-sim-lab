@@ -63,7 +63,7 @@ __all__ = (
 )
 
 ROOT: Path = Path(__file__).resolve().parent.parent
-SPEC_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_3_1.json"
+SPEC_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_4.json"
 MODE3_REF_PATH: Path = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 Genome32 = tuple[str, ...]
@@ -458,11 +458,11 @@ def _make_mode4_cfg(
         rep_id=base.rep_id,
         coordonnateur_initial=base.coordonnateur_initial,
         max_revision_passes=base.max_revision_passes,
-        p_max=base.p_max,
+        profil_piste=base.profil_piste,
         regle_ouverture_reve_multiple=base.regle_ouverture_reve_multiple,
         offset_seuil_parade=base.offset_seuil_parade,
         mise_en_place_tactiques=base.mise_en_place_tactiques,
-        declenchement_fin_de_piste=base.declenchement_fin_de_piste,
+        placement_initial_machines=base.placement_initial_machines,
         role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
         synergie_binome_machines=base.synergie_binome_machines,
         tile_profiles=tile_profiles,

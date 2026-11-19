@@ -299,7 +299,7 @@ def test_g12_a_temoin() -> None:
     # Gardien témoin en case 5 pour vérifier que G12:A n'allume PAS la case 5
     state.set_gardien_at_case(5, 1, 1, False)
 
-    # Rêve R1 au Rang 2 (indice 1) et Rêve R2 au Rang 4 (indice 3)
+    # Rêve R1 au Rang 2 (indice 1) et Rêve R2 au Rang 4 (indice 3) — 2 candidats -> décision Oiseaux
     t_rank0 = state.get_tactique_at_rank(0)
     state.set_tactique_at_rank(1, TILE_R_BASE + 1)
     state.set_tactique_at_rank(3, TILE_R_BASE + 2)
@@ -319,7 +319,10 @@ def test_g12_a_temoin() -> None:
     assert state.has_reve_opened_this_turn(1) is False
     assert state.get_gardien_at_case(5)[2] is False
 
-    # Vérification de fin d'attaques en 5.3 : victoire Sommeil du Contremaître (REVE_RANG_1)
+    # Avec un seul Rêve en tête (sur 2 en jeu), pas encore Sommeil ; dès que R2 rejoint le Rang 2 -> Sommeil en 5.3 !
+    assert state.is_sommeil_victory() is False
+    state.set_tactique_at_rank(1, TILE_R_BASE + 2)
+    state.set_tactique_at_rank(3, t_rank0)
     state.step = STEP_5_3_END_CHECK
     res = step_until_decision(state)
     assert isinstance(res, GameOver)
@@ -352,7 +355,7 @@ def test_g12_b_temoin() -> None:
 
 
 def test_g12_c_temoin() -> None:
-    """G12:C — Peut consommer le Piège tout juste posé en 4.1 pour amener un Rêve au Rang 1 (victoire vérifiée en fin de 5.3). Un Piège ayant déjà paré ce tour ne peut pas payer ce coût."""
+    """G12:C — Peut consommer le Piège non déclenché pour avancer le Rêve le plus à gauche (excluant un Piège déclenché)."""
     state = _make_mode3_state((("G12", "C"),))
     # G12:C câblé sur 2. Piégeage
     state.set_gardien_at_case(2, 12, 1, False)
@@ -376,7 +379,8 @@ def test_g12_c_temoin() -> None:
     assert state.get_parcel_piege(0, 1) == PIEGE_AUCUN
     assert state.get_tactique_at_rank(0) == TILE_R_BASE + 1
 
-    # Fin de 5.3 : la victoire Sommeil du Contremaître est validée !
+    # Compléter le bloc de 2 Rêves en tête (R1 + R2) valide le Sommeil du Contremaître en 5.3 !
+    state.set_tactique_at_rank(1, TILE_R_BASE + 2)
     state.step = STEP_5_3_END_CHECK
     res = step_until_decision(state)
     assert isinstance(res, GameOver)

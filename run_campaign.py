@@ -31,7 +31,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from campaigns.digest_builder import (
-    chassis_id_to_studio_index_128,
+    chassis_id_to_studio_index_384,
     write_digest_and_prompt_files,
 )
 from campaigns.worker_main import resolve_manifest_plan
@@ -41,14 +41,14 @@ REGION: str = "europe-west9"
 BUCKET_NAME: str = "amazonia-sim-runs"
 IMAGE_URI: str = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
 WORKER_IMAGE_HASH_GCS_URI: str = f"gs://{BUCKET_NAME}/meta/worker_image_hash.txt"
-# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_3_1.json)
+# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_4.json)
 # ainsi que `Dockerfile.worker` lui-même (image de base PyPy et ENTRYPOINT).
 WORKER_IMAGE_SOURCE_PATHS: tuple[str, ...] = (
     "Dockerfile.worker",
     "engine",
     "bots",
     "campaigns",
-    "data/spec_bundle_v5_3_1.json",
+    "data/spec_bundle_v5_4.json",
 )
 _IGNORED_DIR_NAMES: frozenset[str] = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache"})
 _IGNORED_FILE_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo", ".pyd"})
@@ -73,7 +73,7 @@ def compute_worker_image_hash(root: Path = ROOT) -> str:
     """Calcule une empreinte SHA-256 déterministe des sources embarquées dans `Dockerfile.worker`.
 
     Couvre `Dockerfile.worker`, `engine/`, `bots/`, `campaigns/` (hors manifestes `*.json`
-    téléversés à la volée sur GCS) et `data/spec_bundle_v5_3_1.json`, en ignorant les caches
+    téléversés à la volée sur GCS) et `data/spec_bundle_v5_4.json`, en ignorant les caches
     Python (`__pycache__`, `*.pyc`, etc.) conformément à `.dockerignore`.
     """
     collected: list[tuple[str, Path]] = []
@@ -559,7 +559,7 @@ def aggregate_campaign_duckdb(
     )
     for row in by_chassis:
         cid = int(row["chassis_id"])
-        row["studio_config_index_128"] = chassis_id_to_studio_index_128(cid)
+        row["studio_config_index_384"] = chassis_id_to_studio_index_384(cid)
         row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_chassis.get(cid, []), 0.20)
 
     by_variant = _query_dicts(

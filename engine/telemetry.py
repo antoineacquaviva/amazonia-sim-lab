@@ -8,7 +8,7 @@ from typing import NamedTuple
 from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
-    STEP_1_1_SIEGE,
+    STEP_1_1_RATISSAGE,
     STEP_6_3_END_TURN,
     STEP_GAME_OVER,
     TRACK_LEN,
@@ -106,7 +106,7 @@ class TelemetryTracker:
 
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
-        if next_step == STEP_1_1_SIEGE and prev_step == STEP_6_3_END_TURN:
+        if next_step == STEP_1_1_RATISSAGE and prev_step == STEP_6_3_END_TURN:
             self._turn_closed = False
             return
         if prev_step != STEP_GAME_OVER:

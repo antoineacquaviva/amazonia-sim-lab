@@ -22,7 +22,7 @@ from campaigns.digest_builder import write_digest_and_prompt_files
 from campaigns.worker_main import build_palier2_work_units
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.effects.registry import list_registered_tiles
-from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES
+from engine.state import CHASSIS_AXES_OPTIONS, MATRICE_PAIRES, decode_chassis_index
 from scripts_cloud.publish_digest import publish_campaign_digest
 from scripts_cloud.studio_paths import find_gcloud, find_uv
 
@@ -343,21 +343,14 @@ def synthesize_with_duckdb(job_wall_sec: float, expected_total_games: int) -> di
         """,
     )
 
-    # Fréquence des 7 axes binaires parmi les 16 châssis finalistes
+    # Fréquence des 7 axes parmi les châssis finalistes
     winner_ids = [int(r["chassis_id"]) for r in top16_finalists]
     axis_trends: list[dict[str, Any]] = []
-    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
-        cnt_opt1 = sum(1 for cid in winner_ids if ((cid >> bit_pos) & 1) == 1)
-        cnt_opt0 = len(winner_ids) - cnt_opt1
-        axis_trends.append(
-            {
-                "axis": axis_name,
-                "option_0": str(opts_pair[0]),
-                "count_0_in_top16": cnt_opt0,
-                "option_1": str(opts_pair[1]),
-                "count_1_in_top16": cnt_opt1,
-            }
-        )
+    for axis_name, opts in CHASSIS_AXES_OPTIONS:
+        counts = {str(opt): 0 for opt in opts}
+        for cid in winner_ids:
+            counts[str(decode_chassis_index(cid)[axis_name])] += 1
+        axis_trends.append({"axis": axis_name, "counts_in_top": counts})
 
     digest: dict[str, Any] = {
         "campaign": "palier2_coeur_muet",

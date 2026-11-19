@@ -334,7 +334,7 @@ def m2_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
                 if (
                     st != MACHINE_STATUS_RETIRED
                     and pos > 0
-                    and state.get_machine_tokens(mr, mt)[0] >= 1
+                    and state.get_machine_effective_rouges(mr, mt) >= 1
                 ):
                     cands.append((mr, mt))
         if not cands:

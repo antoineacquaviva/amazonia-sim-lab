@@ -18,10 +18,10 @@ LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
-STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_3.json"
-STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_3.json"
-STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_3.js"
-SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_3_1.json"
+STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_4.json"
+STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_4.json"
+STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_4.js"
+SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_4.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -291,29 +291,29 @@ def verify_studio_coherence() -> None:
 
     errors: list[str] = []
 
-    # 1. Compteurs déclarés dans docs/data/catalog_v5_3.json
+    # 1. Compteurs déclarés dans docs/data/catalog_v5_4.json
     decl_slots = catalog.get("total_emplacements")
     decl_profiles = catalog.get("total_profils")
     if decl_slots != 32:
-        errors.append(f"docs/data/catalog_v5_3.json: total_emplacements={decl_slots} (attendu 32)")
+        errors.append(f"docs/data/catalog_v5_4.json: total_emplacements={decl_slots} (attendu 32)")
     if decl_profiles != 100:
-        errors.append(f"docs/data/catalog_v5_3.json: total_profils={decl_profiles} (attendu 100)")
+        errors.append(f"docs/data/catalog_v5_4.json: total_profils={decl_profiles} (attendu 100)")
 
-    arch_ref = catalog.get("spec_formelle_v5_3", {}).get("architecture_reference", {})
+    arch_ref = catalog.get("spec_formelle_v5_4", {}).get("architecture_reference", {})
     arch_slots = int(arch_ref.get("total_emplacements_synergie", 0)) + int(
         arch_ref.get("total_pistes_migration", 0)
     )
     if arch_slots != 32 or arch_ref.get("total_profils") != 100:
         errors.append(
-            f"docs/data/catalog_v5_3.json architecture_reference incohérente "
+            f"docs/data/catalog_v5_4.json architecture_reference incohérente "
             f"(slots={arch_slots}, profils={arch_ref.get('total_profils')})"
         )
 
-    # 2. Cohérence spec_formelle_v5_3.json <-> bundle
-    if bundle.get("spec_formelle_v5_3") != spec_doc:
+    # 2. Cohérence spec_formelle_v5_4.json <-> bundle
+    if bundle.get("spec_formelle_v5_4") != spec_doc:
         errors.append(
-            "Désynchronisation entre docs/data/spec_formelle_v5_3.json et "
-            "data/spec_bundle_v5_3_1.json['spec_formelle_v5_3']"
+            "Désynchronisation entre docs/data/spec_formelle_v5_4.json et "
+            "data/spec_bundle_v5_4.json['spec_formelle_v5_4']"
         )
 
     # 3. 32 emplacements & 100 profils : Studio JS/JSON <-> spec_bundle <-> registre Python
@@ -347,7 +347,7 @@ def verify_studio_coherence() -> None:
     if len(studio_slots) != decl_slots or len(studio_pairs) != decl_profiles:
         errors.append(
             f"Studio JS ({len(studio_slots)} slots, {len(studio_pairs)} profils) != "
-            f"catalog_v5_3.json ({decl_slots} slots, {decl_profiles} profils)"
+            f"catalog_v5_4.json ({decl_slots} slots, {decl_profiles} profils)"
         )
     if studio_slots != bundle_slots or studio_slots != registered_slots:
         errors.append(
@@ -364,7 +364,7 @@ def verify_studio_coherence() -> None:
             f"studio-bundle={sorted(studio_pairs - bundle_pairs)}"
         )
 
-    # Si catalog_v5_3.json expose directement catalogue_tuiles, on le vérifie aussi
+    # Si catalog_v5_4.json expose directement catalogue_tuiles, on le vérifie aussi
     if isinstance(catalog.get("catalogue_tuiles"), dict):
         cat_json_pairs = {
             (slot_id, prof_key)
@@ -372,16 +372,16 @@ def verify_studio_coherence() -> None:
             for prof_key in slot_meta["profils"]
         }
         if cat_json_pairs != registered_pairs:
-            errors.append("Écart entre catalog_v5_3.json['catalogue_tuiles'] et le simulateur")
+            errors.append("Écart entre catalog_v5_4.json['catalogue_tuiles'] et le simulateur")
 
-    # 4. Topologies déclarées dans docs/data/catalog_v5_3.json <-> engine.state.TOPOLOGIES_DOTATION
-    cat_topos: dict[int, tuple[int, ...]] = {
-        int(meta["P_Max"]): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
-        for meta in catalog.get("topologies", {}).values()
+    # 4. Topologies déclarées dans docs/data/catalog_v5_4.json <-> engine.state.TOPOLOGIES_DOTATION
+    cat_topos: dict[str, tuple[int, ...]] = {
+        str(code): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
+        for code, meta in catalog.get("topologies", {}).items()
     }
     if cat_topos != TOPOLOGIES_DOTATION:
         errors.append(
-            f"Topologies docs/data/catalog_v5_3.json ({cat_topos}) != "
+            f"Topologies docs/data/catalog_v5_4.json ({cat_topos}) != "
             f"engine.state.TOPOLOGIES_DOTATION ({TOPOLOGIES_DOTATION})"
         )
 

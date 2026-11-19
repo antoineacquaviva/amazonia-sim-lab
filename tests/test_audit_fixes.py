@@ -17,9 +17,9 @@ from campaigns.digest_builder import (
     DEFAULT_BUNDLE_PATH,
     axes_dict_to_chassis_id,
     build_active_core_rules,
-    chassis_id_to_studio_index_128,
+    chassis_id_to_studio_index_384,
     load_spec_bundle,
-    studio_index_128_to_chassis_id,
+    studio_index_384_to_chassis_id,
 )
 from campaigns.worker_main import (
     _execute_micro_fork_unit,
@@ -425,14 +425,14 @@ def test_digest_active_core_rules_chronology_matches_v5_3() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 5. Bijection exhaustive 128/128 Studio config_index_128 <-> Engine chassis_id
+# 5. Bijection exhaustive 384/384 Studio config_index_384 <-> Engine chassis_id
 # ---------------------------------------------------------------------------
-def test_studio_config_index_128_exhaustive_128_bijection() -> None:
-    """Vérifie les 128 correspondances exactes entre computeConfigurationIndex (Doc Studio) et le moteur."""
+def test_studio_config_index_384_exhaustive_384_bijection() -> None:
+    """Vérifie les 384 correspondances exactes entre computeConfigurationIndex (Doc Studio) et le moteur."""
     js_script = r"""
     const fs = require('fs');
     const vm = require('vm');
-    const code = fs.readFileSync('docs/data/amazonia_data_v5_3.js', 'utf8');
+    const code = fs.readFileSync('docs/data/amazonia_data_v5_4.js', 'utf8');
     const ctx = {};
     vm.createContext(ctx);
     vm.runInContext(code + '\nthis.__SPEC = CHASSIS_AXES_SPEC;', ctx);
@@ -451,16 +451,19 @@ def test_studio_config_index_128_exhaustive_128_bijection() -> None:
       return idx + 1;
     }
 
+    const total = spec.reduce((acc, ax) => acc * ax.options.length, 1);
     const out = [];
-    for (let mask = 0; mask < 128; mask++) {
+    for (let cid = 0; cid < total; cid++) {
+      let rem = cid;
       const chassis = {};
       for (let i = 0; i < spec.length; i++) {
-        const bit = (mask >> i) & 1;
-        chassis[spec[i].key] = spec[i].options[bit].val;
+        const radix = spec[i].options.length;
+        chassis[spec[i].key] = spec[i].options[rem % radix].val;
+        rem = Math.floor(rem / radix);
       }
       out.push({
-        engine_chassis_id: mask,
-        studio_config_index_128: computeConfigurationIndex(chassis),
+        engine_chassis_id: cid,
+        studio_config_index_384: computeConfigurationIndex(chassis),
         axes: chassis,
       });
     }
@@ -474,65 +477,65 @@ def test_studio_config_index_128_exhaustive_128_bijection() -> None:
         text=True,
     )
     rows: list[dict[str, Any]] = json.loads(proc.stdout)
-    assert len(rows) == 128
+    assert len(rows) == 384
 
     seen_studio: set[int] = set()
     for row in rows:
         cid = int(row["engine_chassis_id"])
-        studio_idx = int(row["studio_config_index_128"])
+        studio_idx = int(row["studio_config_index_384"])
         axes = dict(row["axes"])
         seen_studio.add(studio_idx)
 
-        assert chassis_id_to_studio_index_128(cid) == studio_idx
-        assert studio_index_128_to_chassis_id(studio_idx) == cid
+        assert chassis_id_to_studio_index_384(cid) == studio_idx
+        assert studio_index_384_to_chassis_id(studio_idx) == cid
         assert axes_dict_to_chassis_id(axes) == cid
 
         cfg = GameConfig.from_chassis_index(cid)
-        assert cfg.p_max == int(axes["P_Max"])
+        assert cfg.profil_piste == str(axes["Profil_Piste"])
         assert cfg.regle_ouverture_reve_multiple == str(axes["Regle_Ouverture_Reve_Multiple"])
         assert cfg.offset_seuil_parade == int(axes["Offset_Seuil_Parade"])
         assert cfg.mise_en_place_tactiques == str(axes["Mise_En_Place_Tactiques"])
-        assert cfg.declenchement_fin_de_piste == str(axes["Declenchement_Fin_De_Piste"])
+        assert cfg.placement_initial_machines == str(axes["Placement_Initial_Machines"])
         assert cfg.role_abatteuse_fin_de_piste == str(axes["Role_Abatteuse_Fin_De_Piste"])
         assert cfg.synergie_binome_machines == str(axes["Synergie_Binome_Machines"])
 
-    assert seen_studio == set(range(1, 129))
-    # Contrôles explicites cités dans l'audit : STANDARD_A = Studio 1 = Engine 0 (P4), P5-only = Studio 65 = Engine 1
-    assert studio_index_128_to_chassis_id(1) == 0
-    assert GameConfig.from_chassis_index(0).p_max == 4
-    assert studio_index_128_to_chassis_id(65) == 1
-    assert GameConfig.from_chassis_index(1).p_max == 5
+    assert seen_studio == set(range(1, 385))
+    # Contrôles explicites : STANDARD_A = Studio 1 = Engine 0 (P4_2233), P4_2223-only = Studio 65 = Engine 1
+    assert studio_index_384_to_chassis_id(1) == 0
+    assert GameConfig.from_chassis_index(0).profil_piste == "P4_2233"
+    assert studio_index_384_to_chassis_id(65) == 1
+    assert GameConfig.from_chassis_index(1).profil_piste == "P4_2223"
 
-    # Import manifeste uniquement via config_index_128 sans fixed_axes
+    # Import manifeste uniquement via config_index_384 sans fixed_axes
     plan_std = resolve_manifest_plan(
-        {"campaign_name": "check_std", "base_instance": {"config_index_128": 1}}
+        {"campaign_name": "check_std", "base_instance": {"config_index_384": 1}}
     )
     assert plan_std["chassis_ids"] == (0,)
-    assert plan_std["chassis_studio_indices_128"] == (1,)
+    assert plan_std["chassis_studio_indices_384"] == (1,)
 
-    plan_p5 = resolve_manifest_plan(
-        {"campaign_name": "check_p5", "base_instance": {"config_index_128": 65}}
+    plan_p4_2223 = resolve_manifest_plan(
+        {"campaign_name": "check_p4_2223", "base_instance": {"config_index_384": 65}}
     )
-    assert plan_p5["chassis_ids"] == (1,)
-    assert plan_p5["chassis_studio_indices_128"] == (65,)
+    assert plan_p4_2223["chassis_ids"] == (1,)
+    assert plan_p4_2223["chassis_studio_indices_384"] == (65,)
 
 
 # ---------------------------------------------------------------------------
-# 6. Traçabilité complète (amazonia_data_v5_3.js + spec_bundle_sha256) & economie_bot
+# 6. Traçabilité complète (amazonia_data_v5_4.js + spec_bundle_sha256) & economie_bot
 # ---------------------------------------------------------------------------
 def test_traceability_hashes_and_economie_bot_fixes() -> None:
     """Vérifie le verrouillage SHA-256 complet et les correctifs du graphe economie_bot."""
     lock = json.loads((ROOT / "data" / "studio_lock.json").read_text(encoding="utf-8"))
-    js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v5_3.js").read_bytes()).hexdigest()
+    js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v5_4.js").read_bytes()).hexdigest()
     bundle_sha = hashlib.sha256(DEFAULT_BUNDLE_PATH.read_bytes()).hexdigest()
 
-    assert lock["files"]["amazonia_data_v5_3.js"]["sha256"] == js_sha
+    assert lock["files"]["amazonia_data_v5_4.js"]["sha256"] == js_sha
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["studio_sha256"]["amazonia_data_v5_3.js"]["sha256"] == js_sha
+    assert bundle["meta"]["studio_sha256"]["amazonia_data_v5_4.js"]["sha256"] == js_sha
 
     rules = build_active_core_rules()
-    assert rules["studio_sha256"]["amazonia_data_v5_3.js"] == js_sha
+    assert rules["studio_sha256"]["amazonia_data_v5_4.js"] == js_sha
     assert rules["spec_bundle_sha256"] == bundle_sha
 
     # Correctifs economie_bot vérifiés dans le bundle généré
@@ -577,7 +580,7 @@ def test_shuffled_halving_cohorts_and_manifest_crn_and_duckdb(tmp_path: Path, mo
         "games_per_configuration": 4,
         "bot": "B0",
         "mode": 3,
-        "chassis_plan": {"varying_axes": [], "fixed_axes": {"P_Max": 4}},
+        "chassis_plan": {"varying_axes": [], "fixed_axes": {"Profil_Piste": "P4_2233"}},
         "slot_profile_comparisons": {"G7": ["A", "B"]},
         "base_instance": {
             "bundle_id": "LOT_01_PILOT",
@@ -589,7 +592,7 @@ def test_shuffled_halving_cohorts_and_manifest_crn_and_duckdb(tmp_path: Path, mo
     assert len(plan["base_tile_profiles"]) == 32
     assert plan["migration_policy"]["fixed"] is True
     assert len(plan["resolved_32_slots_sha256"]) == 64
-    assert plan["chassis_studio_indices_128"] == (1,)
+    assert plan["chassis_studio_indices_384"] == (1,)
 
     # Pour chaque variante, la paire miroir M-R-O-H / H-O-R-M partage rep_start == 0
     for v_id in ("G7:A", "G7:B"):
@@ -638,7 +641,7 @@ def test_shuffled_halving_cohorts_and_manifest_crn_and_duckdb(tmp_path: Path, mo
     assert "mean_player_decisions" in digest["telemetry"]
     assert digest["telemetry"]["mean_physical_ops"] > 0
     assert digest["telemetry"]["mean_player_decisions"] > 0
-    assert digest["by_chassis"][0]["studio_config_index_128"] == 1
+    assert digest["by_chassis"][0]["studio_config_index_384"] == 1
     assert digest["selection_manifest"]["base_bundle_id"] == "LOT_01_PILOT"
     assert digest["selection_manifest"]["n_resolved_slots"] == 32
     assert digest["execution"]["run_id"] == "20261119T000000Z_deadbeef"

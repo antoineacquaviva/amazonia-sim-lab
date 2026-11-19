@@ -28,19 +28,21 @@ from scripts_cloud.publish_digest import (
 def test_decode_chassis_axes_and_active_core_rules() -> None:
     c0 = decode_chassis_axes(0)
     assert c0["chassis_id"] == 0
-    assert c0["p_max"] == 4
+    assert c0["profil_piste"] == "P4_2233"
     assert c0["regle_ouverture_reve_multiple"] == "UNIQUE_PAR_TOUR"
     assert c0["offset_seuil_parade"] == 0
+    assert c0["placement_initial_machines"] == "MEME_PARCELLE_P1"
 
-    c127 = decode_chassis_axes(127)
-    assert c127["chassis_id"] == 127
-    assert c127["p_max"] == 5
-    assert c127["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
+    c383 = decode_chassis_axes(383)
+    assert c383["chassis_id"] == 383
+    assert c383["profil_piste"] == "P5_12223"
+    assert c383["placement_initial_machines"] == "BULLDOZER_P1_ABATTEUSE_P2"
+    assert c383["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
 
-    core = build_active_core_rules((0, 1, 127))
-    assert core["version"] == "5.3.1"
-    assert "catalog_v5_3.json" in core["studio_sha256"]
-    assert "spec_formelle_v5_3.json" in core["studio_sha256"]
+    core = build_active_core_rules((0, 1, 383))
+    assert core["version"] == "5.4.0"
+    assert "catalog_v5_4.json" in core["studio_sha256"]
+    assert "spec_formelle_v5_4.json" in core["studio_sha256"]
     assert len(core["chassis_7_axes"]) == 3
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True

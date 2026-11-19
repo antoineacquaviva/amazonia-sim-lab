@@ -18,7 +18,7 @@ def resolve_studio_dir(repo_root: Path) -> Path:
 
     Ordre de priorité :
     1. Variable d'environnement `AMAZONIA_STUDIO_DIR` (si définie) ;
-    2. `docs/` intégré directement dans ce dépôt (si `docs/data/catalog_v5_3.json` existe) ;
+    2. `docs/` intégré directement dans ce dépôt (si `docs/data/catalog_v5_4.json` existe) ;
     3. `../amazonia-doc-studio` à côté de ce dépôt ;
     4. `~/dev/amazonia-doc-studio` (convention Ubuntu) ;
     5. `~/Dev/Jeu/amazonia-doc-studio` (convention Windows).
@@ -28,7 +28,7 @@ def resolve_studio_dir(repo_root: Path) -> Path:
         return Path(env_override).expanduser().resolve()
 
     integrated_docs = repo_root.resolve() / "docs"
-    if (integrated_docs / "data" / "catalog_v5_3.json").exists():
+    if (integrated_docs / "data" / "catalog_v5_4.json").exists():
         return integrated_docs
 
     home = Path.home()

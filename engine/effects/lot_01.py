@@ -26,8 +26,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     PIEGE_AUCUN,
     STEP_3_2_REVEAL,
     TACTIQUES_SPEC,
@@ -274,7 +274,7 @@ def _targeted_parcels_after_revelation(state: GameState) -> list[tuple[int, int]
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st, _ = state.get_machine_pos_status(r, mt)
             if (
-                st == MACHINE_STATUS_SIEGE
+                st == MACHINE_STATUS_RATISSAGE
                 and pos > 0
                 and not state.is_route_forestiere(r, pos)
                 and (r, pos) not in targeted

@@ -334,6 +334,7 @@ def test_r5_a_temoin() -> None:
     state.set_gardien_at_case(2, 1, face=1, used=False)
     state.set_gardien_at_case(4, 10, face=1, used=False)
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=1, bleus=0)
+    state.set_parcel_insectes(0, 1, 1)  # Ancre d'arrêt en 4.3 avant la fin du Tour 1
 
     # Le joueur 3 (H) a lecture_m = 2 -> touche R5 en 3.2 !
     state.set_player_hand(3, machine_card_code(3, MACHINE_ABATTEUSE), 2, 6, 2, 0)

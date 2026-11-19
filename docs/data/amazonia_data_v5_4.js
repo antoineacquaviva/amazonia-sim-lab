@@ -1,114 +1,376 @@
-// -------------------------------------------------------------------------
-    // 1. MÉTADONNÉES DES 6 PEUPLES & MATRICE 6x5 DES 30 TUILES DE LISIÈRE
-    // -------------------------------------------------------------------------
-    const PEUPLES = {
-      M: { code: 'M', nom: 'Mammifères', famille: 'Animal Sauvage (Gardien)', badge: 'bg-amber-100 text-amber-900 border-amber-300', icon: '🐆' },
-      R: { code: 'R', nom: 'Reptiles', famille: 'Animal Sauvage (Gardien)', badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', icon: '🐍' },
-      O: { code: 'O', nom: 'Oiseaux', famille: 'Animal Sauvage (Gardien)', badge: 'bg-sky-100 text-sky-900 border-sky-300', icon: '🦜' },
-      H: { code: 'H', nom: 'Humains', famille: 'Onirique (Rêve)', badge: 'bg-rose-100 text-rose-900 border-rose-300', icon: '🏹' },
-      E: { code: 'E', nom: 'Entités Magiques', famille: 'Onirique (Rêve)', badge: 'bg-purple-100 text-purple-900 border-purple-300', icon: '✨' },
-      I: { code: 'I', nom: 'Insectes', famille: 'Symbiotique (Croissance)', badge: 'bg-lime-100 text-lime-900 border-lime-300', icon: '🐜' }
-    };
+// Amazonia : Dernier Rempart — Données Canoniques v5.4 (Source Unique)
+const PEUPLES = {
+  "M": {
+    "code": "M",
+    "nom": "Mammifères",
+    "famille": "Animal Sauvage (Gardien)",
+    "badge": "bg-amber-100 text-amber-900 border-amber-300",
+    "icon": "🐆"
+  },
+  "R": {
+    "code": "R",
+    "nom": "Reptiles",
+    "famille": "Animal Sauvage (Gardien)",
+    "badge": "bg-emerald-100 text-emerald-900 border-emerald-300",
+    "icon": "🐍"
+  },
+  "O": {
+    "code": "O",
+    "nom": "Oiseaux",
+    "famille": "Animal Sauvage (Gardien)",
+    "badge": "bg-sky-100 text-sky-900 border-sky-300",
+    "icon": "🦜"
+  },
+  "H": {
+    "code": "H",
+    "nom": "Humains",
+    "famille": "Onirique (Rêve)",
+    "badge": "bg-rose-100 text-rose-900 border-rose-300",
+    "icon": "🏹"
+  },
+  "E": {
+    "code": "E",
+    "nom": "Entités Magiques",
+    "famille": "Onirique (Rêve)",
+    "badge": "bg-purple-100 text-purple-900 border-purple-300",
+    "icon": "✨"
+  },
+  "I": {
+    "code": "I",
+    "nom": "Insectes",
+    "famille": "Symbiotique (Croissance)",
+    "badge": "bg-lime-100 text-lime-900 border-lime-300",
+    "icon": "🐜"
+  }
+};
 
-    // Matrice exacte § 2.3 : pour toute paire de voisins (X, Y), renvoie les deux tuiles présentes sur leur lisière
-    const MATRICE_PAIRES = {
-      'M_R': ['G1', 'G2'], 'R_M': ['G2', 'G1'],
-      'M_O': ['G3', 'G4'], 'O_M': ['G4', 'G3'],
-      'R_O': ['G5', 'G6'], 'O_R': ['G6', 'G5'],
-      'M_H': ['G7', 'R3'], 'H_M': ['R3', 'G7'],
-      'M_E': ['G8', 'R7'], 'E_M': ['R7', 'G8'],
-      'R_H': ['G9', 'R4'], 'H_R': ['R4', 'G9'],
-      'R_E': ['G10', 'R8'], 'E_R': ['R8', 'G10'],
-      'O_H': ['G11', 'R5'], 'H_O': ['R5', 'G11'],
-      'O_E': ['G12', 'R9'], 'E_O': ['R9', 'G12'],
-      'M_I': ['G13', 'M1'], 'I_M': ['M1', 'G13'],
-      'R_I': ['G14', 'M2'], 'I_R': ['M2', 'G14'],
-      'O_I': ['G15', 'M3'], 'I_O': ['M3', 'G15'],
-      'H_E': ['R1', 'R2'], 'E_H': ['R2', 'R1'],
-      'H_I': ['R6', 'M4'], 'I_H': ['M4', 'R6'],
-      'E_I': ['R10', 'M5'], 'I_E': ['M5', 'R10']
-    };
+const MATRICE_PAIRES = {
+  "M_R": [
+    "G1",
+    "G2"
+  ],
+  "R_M": [
+    "G2",
+    "G1"
+  ],
+  "M_O": [
+    "G3",
+    "G4"
+  ],
+  "O_M": [
+    "G4",
+    "G3"
+  ],
+  "R_O": [
+    "G5",
+    "G6"
+  ],
+  "O_R": [
+    "G6",
+    "G5"
+  ],
+  "M_H": [
+    "G7",
+    "R3"
+  ],
+  "H_M": [
+    "R3",
+    "G7"
+  ],
+  "M_E": [
+    "G8",
+    "R7"
+  ],
+  "E_M": [
+    "R7",
+    "G8"
+  ],
+  "R_H": [
+    "G9",
+    "R4"
+  ],
+  "H_R": [
+    "R4",
+    "G9"
+  ],
+  "R_E": [
+    "G10",
+    "R8"
+  ],
+  "E_R": [
+    "R8",
+    "G10"
+  ],
+  "O_H": [
+    "G11",
+    "R5"
+  ],
+  "H_O": [
+    "R5",
+    "G11"
+  ],
+  "O_E": [
+    "G12",
+    "R9"
+  ],
+  "E_O": [
+    "R9",
+    "G12"
+  ],
+  "M_I": [
+    "G13",
+    "M1"
+  ],
+  "I_M": [
+    "M1",
+    "G13"
+  ],
+  "R_I": [
+    "G14",
+    "M2"
+  ],
+  "I_R": [
+    "M2",
+    "G14"
+  ],
+  "O_I": [
+    "G15",
+    "M3"
+  ],
+  "I_O": [
+    "M3",
+    "G15"
+  ],
+  "H_E": [
+    "R1",
+    "R2"
+  ],
+  "E_H": [
+    "R2",
+    "R1"
+  ],
+  "H_I": [
+    "R6",
+    "M4"
+  ],
+  "I_H": [
+    "M4",
+    "R6"
+  ],
+  "E_I": [
+    "R10",
+    "M5"
+  ],
+  "I_E": [
+    "M5",
+    "R10"
+  ]
+};
 
-    // -------------------------------------------------------------------------
-    // 2. LES 10 AXES DU CHÂSSIS (PRODUIT CARTÉSIEN = 128 CONFIGURATIONS)
-    // -------------------------------------------------------------------------
-    const CHASSIS_AXES_SPEC = [
+const TOPOLOGIES_PISTE_SPEC = {
+  "P4_2233": {
+    "p_max": 4,
+    "dotation": [
+      2,
+      2,
+      3,
+      3
+    ],
+    "somme": 10,
+    "label": "P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)"
+  },
+  "P4_2223": {
+    "p_max": 4,
+    "dotation": [
+      2,
+      2,
+      2,
+      3
+    ],
+    "somme": 9,
+    "label": "P4_2223 : 4 parcelles [2,2,2,3] (9N Arbres)"
+  },
+  "P4_1223": {
+    "p_max": 4,
+    "dotation": [
+      1,
+      2,
+      2,
+      3
+    ],
+    "somme": 8,
+    "label": "P4_1223 : 4 parcelles [1,2,2,3] (8N Arbres)"
+  },
+  "P5_22233": {
+    "p_max": 5,
+    "dotation": [
+      2,
+      2,
+      2,
+      3,
+      3
+    ],
+    "somme": 12,
+    "label": "P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)"
+  },
+  "P5_22223": {
+    "p_max": 5,
+    "dotation": [
+      2,
+      2,
+      2,
+      2,
+      3
+    ],
+    "somme": 11,
+    "label": "P5_22223 : 5 parcelles [2,2,2,2,3] (11N Arbres)"
+  },
+  "P5_12223": {
+    "p_max": 5,
+    "dotation": [
+      1,
+      2,
+      2,
+      2,
+      3
+    ],
+    "somme": 10,
+    "label": "P5_12223 : 5 parcelles [1,2,2,2,3] (10N Arbres)"
+  }
+};
+
+const CHASSIS_AXES_SPEC = [
+  {
+    "key": "Profil_Piste",
+    "num": 1,
+    "label": "1. Profil de Piste & Dotation Seuil Imprimé",
+    "defaultVal": "P4_2233",
+    "options": [
       {
-        key: 'P_Max',
-        num: 1,
-        label: '1. Topologie & Dotation Seuil Imprimé',
-        defaultVal: 4,
-        options: [
-          { val: 4, text: 'P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)' },
-          { val: 5, text: 'P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)' }
-        ]
+        "val": "P4_2233",
+        "text": "P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)"
       },
       {
-        key: 'Regle_Ouverture_Reve_Multiple',
-        num: 2,
-        label: '2. Ouverture multiple d’un Rêve (3.2)',
-        defaultVal: 'UNIQUE_PAR_TOUR',
-        options: [
-          { val: 'UNIQUE_PAR_TOUR', text: 'Unique par tour (1 ouverture max/tour)' },
-          { val: 'PAR_DE_M_DESIGNE', text: 'Cumulatif (1 ouverture par dé M désigné)' }
-        ]
+        "val": "P4_2223",
+        "text": "P4_2223 : 4 parcelles [2,2,2,3] (9N Arbres)"
       },
       {
-        key: 'Offset_Seuil_Parade',
-        num: 3,
-        label: '3. Décalage du Seuil de Parade',
-        defaultVal: 0,
-        options: [
-          { val: 0, text: 'Offset 0 (Défense ≥ Seuil Imprimé modifié)' },
-          { val: 1, text: 'Offset +1 (Exige +1 Défenseur de plus)' }
-        ]
+        "val": "P4_1223",
+        "text": "P4_1223 : 4 parcelles [1,2,2,3] (8N Arbres)"
       },
       {
-        key: 'Mise_En_Place_Tactiques',
-        num: 4,
-        label: '4. Mise en place Piste des Tactiques',
-        defaultVal: 'ORDRE_FIXE_T1_T6',
-        options: [
-          { val: 'ORDRE_FIXE_T1_T6', text: 'Ordre croissant fixe T1 à T6 (Standard)' },
-          { val: 'ALEATOIRE', text: 'Tirage aléatoire au départ' }
-        ]
+        "val": "P5_22233",
+        "text": "P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)"
       },
       {
-        key: 'Declenchement_Fin_De_Piste',
-        num: 5,
-        label: '5. Entrée en Siège T4',
-        defaultVal: 'ARRIVEE_DERNIERE_PARCELLE',
-        options: [
-          { val: 'ARRIVEE_DERNIERE_PARCELLE', text: 'Dès présence sur la dernière parcelle intacte' },
-          { val: 'DEPASSEMENT_DERNIERE_PARCELLE', text: 'Par dépassement de la dernière parcelle' }
-        ]
+        "val": "P5_22223",
+        "text": "P5_22223 : 5 parcelles [2,2,2,2,3] (11N Arbres)"
       },
       {
-        key: 'Role_Abatteuse_Fin_De_Piste',
-        num: 6,
-        label: '6. Rôle de l’Abatteuse en Siège T4',
-        defaultVal: 'STANDARD_COUPE_ARBRE',
-        options: [
-          { val: 'STANDARD_COUPE_ARBRE', text: 'Standard (Coupe uniquement les Arbres)' },
-          { val: 'ARRACHE_1_SOUCHE_SI_SANS_ARBRE', text: 'Arrache 1 Souche s’il n’y a plus d’Arbre' }
-        ]
-      },
-      {
-        key: 'Synergie_Binome_Machines',
-        num: 7,
-        label: '7. Puissance du binôme de machines',
-        defaultVal: 'INDIVIDUELLE',
-        options: [
-          { val: 'INDIVIDUELLE', text: 'Individuelle (Propre à chaque machine)' },
-          { val: 'MUTUALISATION_PUISSANCE_MEME_PARCELLE', text: 'Mutualisée sur une même parcelle' }
-        ]
+        "val": "P5_12223",
+        "text": "P5_12223 : 5 parcelles [1,2,2,2,3] (10N Arbres)"
       }
-    ];
+    ]
+  },
+  {
+    "key": "Regle_Ouverture_Reve_Multiple",
+    "num": 2,
+    "label": "2. Ouverture multiple d’un Rêve (3.2)",
+    "defaultVal": "UNIQUE_PAR_TOUR",
+    "options": [
+      {
+        "val": "UNIQUE_PAR_TOUR",
+        "text": "Unique par tour (1 ouverture max/tour)"
+      },
+      {
+        "val": "PAR_DE_M_DESIGNE",
+        "text": "Cumulatif (1 ouverture par dé M désigné)"
+      }
+    ]
+  },
+  {
+    "key": "Offset_Seuil_Parade",
+    "num": 3,
+    "label": "3. Décalage du Seuil de Parade",
+    "defaultVal": 0,
+    "options": [
+      {
+        "val": 0,
+        "text": "Offset 0 (Défense ≥ Seuil Imprimé modifié)"
+      },
+      {
+        "val": 1,
+        "text": "Offset +1 (Exige +1 Défenseur de plus)"
+      }
+    ]
+  },
+  {
+    "key": "Mise_En_Place_Tactiques",
+    "num": 4,
+    "label": "4. Mise en place Piste des Tactiques",
+    "defaultVal": "ORDRE_FIXE_T1_T6",
+    "options": [
+      {
+        "val": "ORDRE_FIXE_T1_T6",
+        "text": "Ordre croissant fixe T1 à T6 (Standard)"
+      },
+      {
+        "val": "ALEATOIRE",
+        "text": "Tirage aléatoire au départ"
+      }
+    ]
+  },
+  {
+    "key": "Placement_Initial_Machines",
+    "num": 5,
+    "label": "5. Placement initial des Machines",
+    "defaultVal": "MEME_PARCELLE_P1",
+    "options": [
+      {
+        "val": "MEME_PARCELLE_P1",
+        "text": "Standard : Abatteuse et Bulldozer en p=1"
+      },
+      {
+        "val": "BULLDOZER_P1_ABATTEUSE_P2",
+        "text": "Échelonné : Bulldozer en p=1, Abatteuse en p=2"
+      }
+    ]
+  },
+  {
+    "key": "Role_Abatteuse_Fin_De_Piste",
+    "num": 6,
+    "label": "6. Rôle de l’Abatteuse en Ratissage",
+    "defaultVal": "STANDARD_COUPE_ARBRE",
+    "options": [
+      {
+        "val": "STANDARD_COUPE_ARBRE",
+        "text": "Standard (Coupe uniquement les Arbres)"
+      },
+      {
+        "val": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
+        "text": "Arrache 1 Souche s’il n’y a plus d’Arbre"
+      }
+    ]
+  },
+  {
+    "key": "Synergie_Binome_Machines",
+    "num": 7,
+    "label": "7. Puissance du binôme de machines",
+    "defaultVal": "INDIVIDUELLE",
+    "options": [
+      {
+        "val": "INDIVIDUELLE",
+        "text": "Individuelle (Propre à chaque machine)"
+      },
+      {
+        "val": "MUTUALISATION_PUISSANCE_MEME_PARCELLE",
+        "text": "Mutualisée sur une même parcelle"
+      }
+    ]
+  }
+];
 
-    // -------------------------------------------------------------------------
-    // 3. CATALOGUE COMPLET DES 32 EMPLACEMENTS ET 116 PROFILS (v5.2)
-    // -------------------------------------------------------------------------
-    const CATALOGUE_TUILES = {
+const CATALOGUE_TUILES = {
   "G1": {
     "id": "G1",
     "famille": "GARDIEN",
@@ -157,7 +419,7 @@
           "PARADE_AUTO"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 :</strong> Réduisez de -2 le Seuil de Parade d’une machine portant au moins 1 jeton Puissance (rouge ou bleu) pour le reste du tour.<br><strong>Face 2 (Loi 5) :</strong> Dès qu’une machine porte ≥ 2 jetons bleus (<em>Surchauffe</em>) au moment de frapper, défaussez 2 bleus pour <strong>parer automatiquement toutes ses frappes encore à résoudre</strong> et la faire reculer immédiatement d’1 parcelle non rasée vers la bordure au lieu de son avancée (si elle n’est pas en Siège).",
+        "texte": "<strong>Face 1 :</strong> Réduisez de -2 le Seuil de Parade d’une machine portant au moins 1 jeton Puissance (rouge ou bleu) pour le reste du tour.<br><strong>Face 2 (Loi 5) :</strong> Dès qu’une machine porte ≥ 2 jetons bleus (<em>Surchauffe</em>) au moment de frapper, défaussez 2 bleus pour <strong>parer automatiquement toutes ses frappes encore à résoudre</strong> et la faire reculer immédiatement d’1 parcelle non rasée vers la bordure au lieu de son avancée (si elle n’est pas en Ratissage).",
         "temoin": "1er maillon de la chaîne des parades (avant Harpie et Piège) : consomme automatiquement 2 bleus, allume 1. Parade et laisse un éventuel Piège intact (non déclenché)."
       }
     },
@@ -190,7 +452,7 @@
           "RECUL"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Siège située sur une parcelle avec au moins 1 Défenseur.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure n’importe quelle machine non en Siège.",
+        "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur une parcelle avec au moins 1 Défenseur.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure n’importe quelle machine non en Ratissage.",
         "temoin": "Saute les Routes Forestières (et détruit par contact un éventuel Nid non protégé à l’arrivée). Les cibles de la machine se liront depuis sa nouvelle position réelle à l’instant où elle attaque."
       },
       "B": {
@@ -210,7 +472,7 @@
           "PARADE_TOTALE"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas</strong> sur T3/T6.<br><strong>Face 2 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas ET ne gagne pas de jeton Puissance rouge</strong> sur T3 à T6 (y compris en Siège).",
+        "texte": "<strong>Face 1 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas</strong> sur T3/T6.<br><strong>Face 2 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas ET ne gagne pas de jeton Puissance rouge</strong> sur T3 à T6 (y compris en Ratissage).",
         "temoin": "Une frappe annulée sur une parcelle déjà rasée en Route Forestière ne compte pas comme parée pour cette loi."
       },
       "C": {
@@ -661,7 +923,7 @@
           "CIBLAGE"
         ],
         "requires_options": {},
-        "texte": "En 3.2 (ou à l’ouverture avant l’attaque de la machine), décalez d’1 parcelle non rasée dans le même sens le long de son rayon l’ensemble des frappes d’une machine non en Siège pour ce tour, sans déplacer la machine.",
+        "texte": "En 3.2 (ou à l’ouverture avant l’attaque de la machine), décalez d’1 parcelle non rasée dans le même sens le long de son rayon l’ensemble des frappes d’une machine non en Ratissage pour ce tour, sans déplacer la machine.",
         "temoin": "Saute les Routes Forestières ; le décalage s’applique aux cibles lues depuis la position réelle de la machine à l’instant où elle attaque."
       },
       "B": {
@@ -681,7 +943,7 @@
           "ORDRE_MACHINES"
         ],
         "requires_options": {},
-        "texte": "<strong>Loi 5 :</strong> Sur 1 rayon au choix par tour, si l’Abatteuse et le Bulldozer sont tous deux actifs, vous pouvez résoudre le <strong>Bulldozer avant l’Abatteuse</strong> (quel que soit leur rang ou en Siège).",
+        "texte": "<strong>Loi 5 :</strong> Sur 1 rayon au choix par tour, si l’Abatteuse et le Bulldozer sont tous deux actifs, vous pouvez résoudre le <strong>Bulldozer avant l’Abatteuse</strong> (quel que soit leur rang ou en Ratissage).",
         "temoin": "Sur 3 Arbres sans Souche : le Bulldozer coupe 1 Arbre (0 Souche à terrasser), puis l’Abatteuse coupe les 2 Arbres restants en 2 Souches (évite la Route Forestière !)."
       }
     },
@@ -735,7 +997,7 @@
           "FURTIVITE"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 (Loi 4.1) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Siège</strong>.<br><strong>Face 2 (Loi 4.1 & 3.2) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Siège</strong> ; de plus, en 3.2, chaque carte Sabotage révélée derrière un paravent allume la <strong>case 3. Sabotage</strong> et retire <strong>1 jeton Puissance rouge</strong> d’une machine sur les rayons R ou H.",
+        "texte": "<strong>Face 1 (Loi 4.1) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong>.<br><strong>Face 2 (Loi 4.1 & 3.2) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong> ; de plus, en 3.2, chaque carte Sabotage révélée derrière un paravent allume la <strong>case 3. Sabotage</strong> et retire <strong>1 jeton Puissance rouge</strong> d’une machine sur les rayons R ou H.",
         "temoin": "En Face 2, chaque panne tirée en 3.2 déclenche une cascade sur la case 3 (une seule activation max du Gardien câblé en 3) et affaiblit les machines sur R/H avant que la carte Sabotage ne soit remélangée en 6.3."
       },
       "C": {
@@ -980,7 +1242,7 @@
         ],
         "requires_options": {},
         "texte": "Échangez une tuile Rêve de la Piste des Tactiques avec sa voisine de gauche (r → r-1, sans ouvrir son Slot ni allumer la case 5).",
-        "temoin": "Si le Rêve atteint ainsi le Rang 1, le Sommeil du Contremaître sera validé lors de la vérification de fin d’attaques en 5.3."
+        "temoin": "Si l’échange regroupe ainsi en bloc à gauche toutes les tuiles Rêves en jeu (rangs 1..k), le Sommeil du Contremaître sera validé lors de la vérification de fin de partie en 5.3."
       },
       "B": {
         "nom": "Le Chant de l’Ibijau",
@@ -1263,7 +1525,7 @@
         ],
         "requires_options": {},
         "texte": "<strong>Loi 3.2 :</strong> Lorsqu’il s’ouvre en 3.2, ce Rêve avance de <strong>jusqu’à 2 rangs</strong> vers la gauche (plafonné au Rang 1) au lieu d’1.",
-        "temoin": "Accélère l’arrivée au Rang 1 pour déclencher le Sommeil du Contremaître en fin de 5.3."
+        "temoin": "Accélère le regroupement des tuiles Rêves en tête de piste (rangs 1..k) pour déclencher le Sommeil du Contremaître."
       },
       "C": {
         "nom": "La Part rendue à la forêt",
@@ -1587,21 +1849,22 @@
           "RECUL"
         ],
         "requires_options": {},
-        "texte": "Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Siège située sur les rayons E ou M.",
-        "temoin": "Retarde l’entrée en Siège et modifie dynamiquement les cibles que cette machine lira à l’Étape 5."
+        "texte": "Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur les rayons E ou M.",
+        "temoin": "Retarde l’entrée en Ratissage et modifie dynamiquement les cibles que cette machine lira à l’Étape 5."
       },
       "B": {
         "nom": "L’Ombre du Maître des Bois",
         "cycle": "SIMPLE_CONTINU",
         "cablage": null,
         "fenetre": "LOI 5",
-        "primitive": "MOD_LOI_DU_COEUR (LOI_ENDIGUEMENT_SIEGE_T4)",
+        "primitive": "MOD_LOI_DU_COEUR (LOI_ENDIGUEMENT_RATISSAGE)",
         "tags": [
-          "SIEGE_T4"
+          "LOI_5",
+          "RATISSAGE"
         ],
         "requires_options": {},
-        "texte": "<strong>Loi 5 (Endiguement du Siège) :</strong> Les machines en <strong>Siège</strong> sur les rayons E et M et leurs rayons voisins immédiats ne gagnent plus de jeton Puissance rouge après leur attaque et subissent -1 à leur Seuil de Parade.",
-        "temoin": "Neutralise l’escalade de Puissance des machines en Siège sans annuler leur statut."
+        "texte": "<strong>Loi 5 (Endiguement du Ratissage) :</strong> Les machines en <strong>Ratissage</strong> sur les rayons E et M et leurs rayons voisins immédiats subissent -1 à leur Seuil de Parade (annulant le +1 imprimé de la face Ratissage).",
+        "temoin": "En mode Ratissage sur E, M ou leurs voisins immédiats, le Seuil de Parade est réduit de -1 (compensant le +1 de puissance imprimé sur la face Ratissage)."
       },
       "C": {
         "nom": "Le bras mort du fleuve",
@@ -1721,8 +1984,8 @@
           "APPRENTISSAGE"
         ],
         "requires_options": {},
-        "texte": "<strong>Loi 6.2 :</strong> En cas d’égalité en tête de l’Apprentissage à l’Étape 6.2 (y compris égalité générale à 0), c’est ce Rêve qui avance d’1 rang vers la gauche (r → r−1). S’il atteint ainsi le Rang 1, la fin de partie se déclenche immédiatement à la fin de ce tour (Repousse Finale).",
-        "temoin": "Exception unique au test de 5.3 : atteindre le Rang 1 en 6.2 déclenche aussitôt la Repousse Finale. Un blocage par la Cigale (Bug C) d’un vainqueur unique n’est pas une égalité."
+        "texte": "<strong>Loi 6.2 :</strong> En cas d’égalité en tête de l’Apprentissage à l’Étape 6.2 (y compris égalité générale à 0), c’est ce Rêve qui avance d’1 rang vers la gauche (r → r−1). S’il complète ainsi le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k), la fin de partie par Sommeil se déclenche immédiatement (Repousse Finale).",
+        "temoin": "Si l’avancée de R9 sur égalité en 6.2 place en bloc toutes les tuiles Rêves en jeu aux premiers rangs à gauche, la fin de partie par Sommeil se déclenche immédiatement avant le ménage."
       }
     },
     "peuple_origine": "E"
@@ -1764,7 +2027,7 @@
         ],
         "requires_options": {},
         "texte": "<strong>Conversion 3.2 :</strong> À l’ouverture de ce Rêve, vous pouvez défausser 1 Insecte présent sur la roue pour le faire avancer d’1 rang supplémentaire vers la gauche (plafonné au Rang 1).",
-        "temoin": "Convertit un Insecte de la roue en avancée accélérée vers le Rang 1 (les Insectes déjà migrés sur Bug ou Colonie ne peuvent pas payer ce coût)."
+        "temoin": "Convertit un Insecte de la roue en 1 rang d’avancée supplémentaire pour R10 vers le bloc de tête (rangs 1..k)."
       },
       "D": {
         "nom": "La relève des lucioles",
@@ -2253,10 +2516,20 @@
   }
 };
 
-    // -------------------------------------------------------------------------
-    // 4. JOURNAL STRUCTURÉ DES ÉVOLUTIONS (v4.3 -> v4.9 -> v5.0 -> v5.1 -> v5.2)
-    // -------------------------------------------------------------------------
-    const VERSION_CHANGELOG = [
+const VERSION_CHANGELOG = [
+  {
+    "version": "v5.4",
+    "date": "2026-11-19",
+    "titre": "6 Profils de Pistes, Placement Échelonné, Sommeil en Bloc & Mode Ratissage (384 configs)",
+    "resume": "Évolution majeure du cœur de jeu : 4 nouveaux profils de pistes à tester (2223, 1223, 22223, 12223), option de placement initial échelonné (Bulldozer p=1, Abatteuse p=2), victoire par Sommeil exigeant le regroupement en bloc à gauche de toutes les tuiles Rêves en jeu, et remplacement définitif du Siège T4 par le mode Ratissage (pion double face, +1 puissance imprimée, T1 Sur place, entrée définitive sur la dernière parcelle).",
+    "points": [
+      "Profils de pistes (Axe 1) : 6 profils testables (P4_2233, P4_2223, P4_1223, P5_22233, P5_22223, P5_12223) ; suppression définitive de DEPASSEMENT_DERNIERE_PARCELLE -> 7 axes, 384 configurations.",
+      "Placement initial des machines (Axe 5) : Standard (Abatteuse & Bulldozer en p=1) ou Échelonné (Bulldozer en p=1, Abatteuse en p=2).",
+      "Victoire par Sommeil : toutes les tuiles Rêves en jeu (2 par peuple onirique à la table, soit 2 ou 4 ; inactif si 0) doivent occuper en bloc les premières positions à gauche de la Piste des Tactiques.",
+      "Mode Ratissage (remplace Siège) : pion machine double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place (alimente T1 en Apprentissage en 6.1).",
+      "Cohérence catalogue : terminologie Ratissage harmonisée sur toutes les tuiles, R7:B (Endiguement du Ratissage) recentrée sur -1 Seuil, textes/témoins Sommeil alignés (G12:A, R1:B, R9:B, R10:B)."
+    ]
+  },
   {
     "version": "v5.3",
     "date": "Version consolidée en vigueur (Audit · 25 arbitrages)",
@@ -2374,36 +2647,30 @@
   }
 ];
 
-    // -------------------------------------------------------------------------
-
-// --- ÉPURATION CONSOLIDÉE v5.3 : 100 PROFILS & CHANGELOG v5.3 ---
-Object.keys(CATALOGUE_TUILES).forEach(function(tId) {
-  if (CATALOGUE_TUILES[tId].profils && CATALOGUE_TUILES[tId].profils.E) {
-    delete CATALOGUE_TUILES[tId].profils.E;
-  }
-});
-if (CATALOGUE_TUILES.SLOT_COLONISATION_GARDIENS && CATALOGUE_TUILES.SLOT_COLONISATION_GARDIENS.profils.B) {
-  delete CATALOGUE_TUILES.SLOT_COLONISATION_GARDIENS.profils.B;
-}
-
-// === BEGIN SPEC_FORMELLE_V5_3 (auto-generated by build_v5_3_audit.py) ===
-const SPEC_FORMELLE_V5_3 = {
-  "schema_version": "5.3.1-audit",
-  "date_consolidation": "2026-11-16",
+const SPEC_FORMELLE_V5_4 = {
+  "schema_version": "5.4.0",
+  "date_consolidation": "2026-11-19",
   "architecture_reference": {
     "total_emplacements_synergie": 30,
     "total_pistes_migration": 2,
     "total_profils": 100,
     "topologies_validees": {
-      "P3": [
-        2,
-        3,
-        3
-      ],
       "P4_2233": [
         2,
         2,
         3,
+        3
+      ],
+      "P4_2223": [
+        2,
+        2,
+        2,
+        3
+      ],
+      "P4_1223": [
+        1,
+        2,
+        2,
         3
       ],
       "P5_22233": [
@@ -2413,12 +2680,18 @@ const SPEC_FORMELLE_V5_3 = {
         3,
         3
       ],
-      "P6": [
+      "P5_22223": [
         2,
         2,
         2,
-        3,
-        3,
+        2,
+        3
+      ],
+      "P5_12223": [
+        1,
+        2,
+        2,
+        2,
         3
       ]
     },
@@ -2436,9 +2709,9 @@ const SPEC_FORMELLE_V5_3 = {
     {
       "numero": 1,
       "code": "PREPARATION_ET_DES_SECRETS",
-      "nom": "Siège T4, Distribution et Dés secrets (1.1–1.3)",
+      "nom": "Ratissage, Distribution et Dés secrets (1.1–1.3)",
       "regles": [
-        "1.1 Machines en Siège : toute machine déjà située sur la dernière parcelle non rasée de son rayon est en Siège T4 irréversible (carte posée sur sa parcelle). Son attaque en fin d’Étape 5 est autonome même si la tuile T4 a été éjectée par un Rêve ; en 6.1, elle alimente la tuile T4 en jetons d’Apprentissage si et seulement si T4 est encore présente sur la piste.",
+        "1.1 Machines en Ratissage : les pions machine sont double face (initialisés sur face normale). Dès qu’une machine se trouve sur la dernière parcelle non rasée de son rayon, elle est retournée définitivement sur sa face Ratissage (carte retirée du paquet Machine). En mode Ratissage : +1 en puissance directement applicable inscrit sur le pion (traité comme +1 rouge à tous égards, en conservant les éventuels jetons Puissance ajoutés précédemment) et application systématique de la tactique T1 Sur place (T1 inscrit sur le pion). Son attaque en fin d’Étape 5 est autonome même si la tuile T1 a été éjectée par un Rêve ; en 6.1, elle alimente la tuile T1 en jetons d’Apprentissage si et seulement si T1 est encore présente sur la piste.",
         "1.2 Distribution : chaque joueur hors pénurie pioche secrètement 1 carte du paquet Machine (incluant toutes les cartes Sabotage intégrées définitivement). Une carte Sabotage tirée n’active aucune machine (action du Contremaître perdue). S’il reste moins de cartes que de joueurs, distribution dans le sens horaire à partir du peuple ayant le plus d’Arbres debout.",
         "1.3 Dés secrets sous paravent fermé (silence complet) : chaque joueur ayant reçu une carte Machine lance ses 2D6 et retient M = min(D1, D2) (modifié par les éventuelles Lois actives), qui désigne le rang sur la Piste des Tactiques. Si ce rang contient une tuile Rêve en 3.2 (y compris un Rêve construit en 3.1), l’activation de cette machine est annulée."
       ]
@@ -2470,7 +2743,7 @@ const SPEC_FORMELLE_V5_3 = {
       "code": "FURTIVITE_NIDS_ET_MIGRATION",
       "nom": "Furtivité (4.1), Production des Nids (4.2) et Migration des Insectes (4.3)",
       "regles": [
-        "4.1 Furtivité : chaque binôme complet sur une case de Furtivité (2 Défenseurs sur la même rive, ou 1 Défenseur + 1 Insecte défaussé) déclenche 1 seule action, gouvernée par le joueur de la rive occupée — Piège si aucune machine présente (Déclencheur 2) OU Sabotage si au moins 1 machine présente et aucune active ce tour (Siège = active ; une machine annulée par un Rêve en 3.2 est inactive et donc sabotable ; allume Déclencheur 3).",
+        "4.1 Furtivité : chaque binôme complet sur une case de Furtivité (2 Défenseurs sur la même rive, ou 1 Défenseur + 1 Insecte défaussé) déclenche 1 seule action, gouvernée par le joueur de la rive occupée — Piège si aucune machine présente (Déclencheur 2) OU Sabotage si au moins 1 machine présente et aucune active ce tour (Ratissage = active ; une machine annulée par un Rêve en 3.2 est inactive et donc sabotable ; allume Déclencheur 3).",
         "4.2 Production des Nids : chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (y compris pour l'activation autonome des Guêpes Cazadores), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens. Une production hors phase (Le Miel des Ancêtres) ne crée que les jetons Insecte sans déclencher le pouvoir propre du Nid.",
         "4.3 Migration : chaque Insecte sur la roue peut se déplacer de 0 ou 1 cran (jusqu'à 2 avec L'Envol du Batará Suiveur), même s'il a bougé lors de la production d'un Nid. On retourne chaque jeton déplacé sur sa face verso pour suivi, puis on remet tous les jetons à l'endroit en fin de Migration avant d'évaluer la Colonisation.",
         "4.3 Pistes globales : depuis la dernière parcelle non rasée d'un rayon, 1 cran permet d'entrer sur n'importe quelle case 1..6 d'une piste globale (Bug du Cerveau ou Colonisation des Gardiens), sans limite de jetons par case. Cet aller simple est définitif."
@@ -2481,13 +2754,13 @@ const SPEC_FORMELLE_V5_3 = {
       "code": "ATTAQUES_ET_TEST_FIN",
       "nom": "Attaques des Machines et Vérification de Fin de Partie (5.1–5.3)",
       "regles": [
-        "Ordre des machines : Piste des Tactiques de 1 à 6, puis machines en Siège. Sur un même rayon au même rang (ou en Siège), l'Abatteuse agit toujours avant le Bulldozer ; entre rayons distincts au même rang, ordre libre entre les joueurs concernés.",
+        "Ordre des machines : Piste des Tactiques de 1 à 6, puis machines en Ratissage. Sur un même rayon au même rang (ou en Ratissage), l'Abatteuse agit toujours avant le Bulldozer ; entre rayons distincts au même rang, ordre libre entre les joueurs concernés.",
         "Chaque machine est résolue d'un seul tenant : lecture dynamique de ses cibles depuis sa position physique réelle à cet instant (en sautant toute Route Forestière) -> frappes -> avancée éventuelle -> gain éventuel de jeton rouge.",
         "Chaîne stricte des parades à chaque frappe : (1) Bond du Jaguar (Loi auto : 2 jetons bleus défaussés -> toutes frappes restantes de la machine parées + recul) -> (2) Piquée de la Harpie -> (3) Piège (Embuscade auto si Défense totale >= 1, locale ou soutenue à distance ; le Piège est marqué comme ayant servi) -> (4) Parade classique (Défenseurs + défausse immédiate des Insectes manquants).",
         "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
-        "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du statut de Siège ; retrait définitif de la partie si tout le rayon est rasé).",
+        "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
         "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
-        "Vérification de fin de partie : fin du Tour 8, Rêve en case 1, ou seuil fixe de Réveil atteint sur la Piste des Gardiens (seuil calculé une fois pour toutes à la mise en place : inactif si moins de 3 Gardiens dans la partie, sinon min(nb_joueurs, total_gardiens_partie) avec minimum 3 et plafond 5 à 6 joueurs ; tout Gardien renvoyé en lisière perd son marqueur). Si atteint : saut de l'Apprentissage et passage direct à la Repousse Finale."
+        "Vérification de fin de partie : fin du Tour 8, Sommeil du Contremaître (toutes les tuiles Rêves en jeu — 2 par peuple onirique présent à la table, soit 2 ou 4 ; inactif si 0 — occupent en bloc les premières positions à gauche de la Piste des Tactiques), ou seuil fixe de Réveil atteint sur la Piste des Gardiens (seuil calculé une fois pour toutes à la mise en place : inactif si moins de 3 Gardiens dans la partie, sinon min(nb_joueurs, total_gardiens_partie) avec minimum 3 et plafond 5 à 6 joueurs ; tout Gardien renvoyé en lisière perd son marqueur). Si atteint : saut de l’Apprentissage et passage direct à la Repousse Finale."
       ]
     },
     {
@@ -2495,11 +2768,11 @@ const SPEC_FORMELLE_V5_3 = {
       "code": "APPRENTISSAGE_ET_MENAGE",
       "nom": "Apprentissage du Contremaître et Ménage de fin de tour (6.1–6.3)",
       "regles": [
-        "Calcul par machine active ce tour-ci (activée par carte OU en Siège T4) pour sa Tactique (T4 pour un Siège ; sans effet si T4 a été éjectée de la piste) : +1 par parcelle réellement endommagée (>= 1 Arbre coupé ou >= 1 Souche retirée) +1 par jeton Puissance rouge acquis ce tour -1 par jeton bleu Surchauffe présent sur la machine (plancher 0 par machine).",
+        "Calcul par machine active ce tour-ci (activée par carte OU en Ratissage) pour sa Tactique (T1 pour un Ratissage ; sans effet si T1 a été éjectée de la piste) : +1 par parcelle réellement endommagée (>= 1 Arbre coupé ou >= 1 Souche retirée) +1 par jeton Puissance rouge acquis ce tour -1 par jeton bleu Surchauffe présent sur la machine (plancher 0 par machine).",
         "Gain par machine : +1 par parcelle réellement endommagée (au moins 1 Arbre coupé ou 1 Souche retirée par cette machine), +1 par jeton rouge acquis en fin d'attaque, -1 par jeton bleu présent sur la machine.",
         "Réductions : application des retraits volontaires de tuiles (Voile de l'Oubli, Brume de la Dendrobate) AVANT les Insectes Bug du Cerveau (un Bug sur une case déjà à 0 jeton n'est pas défaussé et reste en place).",
-        "Avancement : la Tactique strictement seule en tête avec au moins 1 jeton échange sa place avec sa voisine de gauche (y compris un Rêve, qui recule d'un cran à droite ; immobile si déjà en case 1). En cas d'égalité avec L'Écho des Voix Célestes amenant son Rêve en case 1, la fin de partie se déclenche immédiatement à la fin de ce tour (Repousse Finale).",
-        "Ménage systématique : remise en réserve de 100 % des jetons d’Apprentissage de toutes les tuiles dans tous les cas, retrait des marqueurs 'utilisé' des Gardiens, retour en main des Défenseurs, et remélange du paquet Machine (hors machines en Siège) avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises ce tour)."
+        "Avancement : la Tactique strictement seule en tête avec au moins 1 jeton échange sa place avec sa voisine de gauche (y compris un Rêve, qui recule d’un cran à droite ; immobile si déjà en case 1). En cas d’égalité avec L’Écho des Voix Célestes regroupant en bloc à gauche toutes les tuiles Rêves en jeu, la fin de partie se déclenche immédiatement à la fin de ce tour (Repousse Finale).",
+        "Ménage systématique : remise en réserve de 100 % des jetons d’Apprentissage de toutes les tuiles dans tous les cas, retrait des marqueurs 'utilisé' des Gardiens, retour en main des Défenseurs, et remélange du paquet Machine (hors machines en Ratissage) avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises ce tour)."
       ]
     }
   ],
@@ -2512,13 +2785,13 @@ const SPEC_FORMELLE_V5_3 = {
     "A06": "Armement des Pièges : Embuscade dès que Défense totale >= 1 (locale ou à distance) ; tout Piège ayant paré >= 1 fois dans le tour est retiré en fin d'attaques.",
     "A07": "Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
     "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
-    "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Siège irréversible maintenu.",
-    "A10": "Autonomie et Apprentissage du Siège : l’attaque d’une machine en Siège reste active même si la tuile T4 est éjectée ; en 6.1, une machine en Siège génère normalement ses jetons d’Apprentissage sur T4 tant que T4 figure sur la Piste des Tactiques (ignorés si T4 est éjectée).",
+    "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Ratissage irréversible maintenu.",
+    "A10": "Autonomie et Apprentissage du Ratissage : pion double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place ; attaque autonome même si T1 est éjectée ; en 6.1, alimente T1 en Apprentissage tant que T1 figure sur la Piste des Tactiques.",
     "A11": "Insertion d'un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases.",
     "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
     "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
     "A14": "Seuil de Réveil fixe : calculé à la mise en place (inactif si < 3 Gardiens en jeu) ; retour en lisière efface le marqueur.",
-    "A15": "Test de fin de partie : maintenu en fin d'attaques (saut Apprentissage), avec déclenchement en fin d'Apprentissage si L'Écho des Voix Célestes amène son Rêve en case 1.",
+    "A15": "Test de fin de partie : maintenu en fin d’attaques (saut Apprentissage) sur Tour 8, Réveil Gardiens ou Sommeil (toutes les tuiles Rêves en jeu regroupées en bloc à gauche de la Piste des Tactiques), avec déclenchement en fin d’Apprentissage si L’Écho des Voix Célestes complète ce bloc.",
     "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
     "A17": "Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
     "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
@@ -2528,10 +2801,6 @@ const SPEC_FORMELLE_V5_3 = {
     "A22": "Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l'Ara.",
     "A23": "Apprentissage : dommage réel requis (>= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d'étape.",
     "A24": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
-    "A25": "Séquence des attaques : Tactiques 1..6 puis Sièges ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
+    "A25": "Séquence des attaques : Tactiques 1..6 puis Ratissages ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
   }
 };
-if (typeof window !== "undefined") {
-  window.SPEC_FORMELLE_V5_3 = SPEC_FORMELLE_V5_3;
-}
-// === END SPEC_FORMELLE_V5_3 ===

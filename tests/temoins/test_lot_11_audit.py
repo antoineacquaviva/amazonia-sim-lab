@@ -17,7 +17,7 @@ from engine.primitives import GameOver
 from engine.state import STEP_GAME_OVER, GameConfig, GameState
 
 ROOT = Path(__file__).resolve().parent.parent.parent
-SPEC_PATH = ROOT / "data" / "spec_bundle_v5_3_1.json"
+SPEC_PATH = ROOT / "data" / "spec_bundle_v5_4.json"
 MODE3_REF_PATH = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 
@@ -28,7 +28,7 @@ def _load_spec_pairs() -> set[tuple[str, str]]:
 
 
 def test_lot_11_catalogue_100_pour_100_couverture() -> None:
-    """Vérifie la couverture exacte 100/100 contre data/spec_bundle_v5_3_1.json."""
+    """Vérifie la couverture exacte 100/100 contre data/spec_bundle_v5_4.json."""
     clear_tile_registry()
     ensure_builtin_migration_registered()
     load_all_effects()
@@ -55,7 +55,7 @@ def test_lot_11_mode3_reference_json_valide() -> None:
     spec_pairs = _load_spec_pairs()
 
     ref = json.loads(MODE3_REF_PATH.read_text(encoding="utf-8"))
-    assert ref["schema_version"] == "5.3.1"
+    assert ref["schema_version"] == "5.4.0"
     selections = ref["selections"]
     assert len(selections) == 32
 

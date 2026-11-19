@@ -1,5 +1,5 @@
 {
-  "schema_version": "5.3.1",
+  "schema_version": "5.4.0",
   "description": "Sélection de référence Mode 3 (1 profil épuré par emplacement, Migrations A/A).",
   "criteres_priorite": [
     "1. Zéro modification de l'ordre d'attaque ou du secret des paravents",

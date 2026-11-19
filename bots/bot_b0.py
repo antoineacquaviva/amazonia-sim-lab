@@ -26,8 +26,8 @@ from engine.state import (
     FAMILLE_REVE,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     MAX_P,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
@@ -78,7 +78,7 @@ def _compute_threat_and_machine_masks(
             if st != MACHINE_STATUS_RETIRED and pos > 0:
                 bit = 1 << (r * MAX_P + (pos - 1))
                 machine_mask |= bit
-                if st == MACHINE_STATUS_SIEGE:
+                if st == MACHINE_STATUS_RATISSAGE:
                     threat_mask |= bit
 
     if own_hand.card is not None and 1 <= own_hand.card <= 2 * n:

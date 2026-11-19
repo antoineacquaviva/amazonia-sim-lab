@@ -33,8 +33,8 @@ from campaigns.digest_builder import (
     build_mobile_one_tap_html,
     build_prompt_gemini_markdown,
     build_self_contained_digest,
-    chassis_id_to_studio_index_128,
-    studio_index_128_to_chassis_id,
+    chassis_id_to_studio_index_384,
+    studio_index_384_to_chassis_id,
 )
 from campaigns.map_elites import (
     CANONICAL_32_SLOTS,
@@ -54,10 +54,12 @@ from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TO
 from engine.rng import SRC_BOT_TIEBREAK, shuffle_deterministic
 from engine.state import (
     CHASSIS_AXES_OPTIONS,
+    NUM_CHASSIS,
     PEUPLES_ORDER,
     STATE_BUF_SIZE,
     GameConfig,
     GameState,
+    decode_chassis_index,
 )
 from engine.telemetry import TelemetryTracker
 
@@ -504,11 +506,11 @@ def _make_cfg_with_mode(
         rep_id=base.rep_id,
         coordonnateur_initial=base.coordonnateur_initial,
         max_revision_passes=base.max_revision_passes,
-        p_max=base.p_max,
+        profil_piste=base.profil_piste,
         regle_ouverture_reve_multiple=base.regle_ouverture_reve_multiple,
         offset_seuil_parade=base.offset_seuil_parade,
         mise_en_place_tactiques=base.mise_en_place_tactiques,
-        declenchement_fin_de_piste=base.declenchement_fin_de_piste,
+        placement_initial_machines=base.placement_initial_machines,
         role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
         synergie_binome_machines=base.synergie_binome_machines,
         tile_profiles=LOT_01_PROFILES,
@@ -522,7 +524,7 @@ def _canonical_rot(peuples: tuple[str, ...]) -> tuple[str, ...]:
 
 
 def build_shuffled_halving_cohorts(
-    n_chassis: int = 128,
+    n_chassis: int = NUM_CHASSIS,
     n_cohorts: int = 16,
     *,
     seed: int = 20264010,
@@ -609,8 +611,8 @@ def build_palier2_work_units(
                         }
                     )
 
-    # Volet C : CHASSIS_HALVING (128 châssis mélangés de façon déterministe sans biais modulo)
-    cohorts = build_shuffled_halving_cohorts(128, halving_cohorts, seed=exp_seed + 300_000)
+    # Volet C : CHASSIS_HALVING (384 châssis mélangés de façon déterministe sans biais modulo)
+    cohorts = build_shuffled_halving_cohorts(NUM_CHASSIS, halving_cohorts, seed=exp_seed + 300_000)
     for cohort_idx, cohort_chassis in enumerate(cohorts):
         units.append(
             {
@@ -1251,7 +1253,7 @@ def run_campaign_palier4_phase_a(
             }
         ]
     else:
-        cohorts = build_shuffled_halving_cohorts(128, halving_cohorts, seed=20264010)
+        cohorts = build_shuffled_halving_cohorts(NUM_CHASSIS, halving_cohorts, seed=20264010)
         all_units = [
             {
                 "cohort_id": c_idx,
@@ -1527,28 +1529,28 @@ _MANIFEST_D_SLOTS: tuple[str, ...] = (
 
 def _sanitize_slug(raw: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "_", raw.strip().lower()).strip("_")
-    return cleaned or "campagne_v5_3"
+    return cleaned or "campagne_v5_4"
 
 
-def _match_axis_bit(axis_name: str, val: Any, opts_pair: tuple[Any, Any]) -> int:
-    for bit_idx, opt in enumerate(opts_pair):
+def _match_axis_bit(axis_name: str, val: Any, opts_tuple: tuple[Any, ...]) -> int:
+    for opt_idx, opt in enumerate(opts_tuple):
         if val == opt:
-            return bit_idx
+            return opt_idx
         if (
             isinstance(opt, int)
             and isinstance(val, str)
             and val.strip().lstrip("-").isdigit()
             and int(val) == opt
         ):
-            return bit_idx
+            return opt_idx
         if isinstance(opt, str) and isinstance(val, str) and val.strip().upper() == opt.upper():
-            return bit_idx
-    raise ValueError(f"Valeur invalide pour l'axe {axis_name!r} : {val!r} (attendu {opts_pair})")
+            return opt_idx
+    raise ValueError(f"Valeur invalide pour l'axe {axis_name!r} : {val!r} (attendu {opts_tuple})")
 
 
 def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     """Résout un manifeste JSON `campaigns/<nom>.json` en plan exécutable déterministe."""
-    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v5_3")))
+    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v5_4")))
     raw_players = manifest.get("player_counts", [4])
     player_counts = sorted({int(n) for n in raw_players})
     if not player_counts or any(n not in (3, 4, 5, 6) for n in player_counts):
@@ -1563,14 +1565,17 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     exp_seed = int(manifest.get("seed", 20261119))
 
     # 1. Résolution des châssis (produit cartésien des axes variables + axes figés,
-    #    avec repli éventuel sur base_instance.config_index_128 au format Studio 1..128)
+    #    avec repli éventuel sur base_instance.config_index_384 au format Studio 1..384)
     base_inst = manifest.get("base_instance", {})
-    raw_studio_idx = base_inst.get("config_index_128")
+    raw_studio_idx = base_inst.get("config_index_384")
+    if raw_studio_idx is None:
+        raw_studio_idx = base_inst.get("config_index_128")
     base_chassis_default: int = (
-        studio_index_128_to_chassis_id(int(raw_studio_idx))
+        studio_index_384_to_chassis_id(int(raw_studio_idx))
         if raw_studio_idx is not None
         else 0
     )
+    base_decoded = decode_chassis_index(base_chassis_default)
 
     chassis_plan = manifest.get("chassis_plan", {})
     fixed_raw = chassis_plan.get("fixed_axes", {})
@@ -1586,32 +1591,34 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             vals = list(item.get("values", []))
             varying_norm[ax_key] = vals
 
-    axis_bit_choices: list[list[int]] = []
-    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
+    axis_opt_choices: list[list[int]] = []
+    for axis_name, opts_tuple in CHASSIS_AXES_OPTIONS:
         ax_low = axis_name.lower()
         if ax_low in varying_norm:
             raw_vals = varying_norm[ax_low]
             if not raw_vals:
-                axis_bit_choices.append([0, 1])
+                axis_opt_choices.append(list(range(len(opts_tuple))))
             else:
-                bits = sorted(
-                    {_match_axis_bit(axis_name, v, opts_pair) for v in raw_vals}
+                idxs = sorted(
+                    {_match_axis_bit(axis_name, v, opts_tuple) for v in raw_vals}
                 )
-                axis_bit_choices.append(bits)
+                axis_opt_choices.append(idxs)
         elif ax_low in fixed_norm:
-            bit_val = _match_axis_bit(axis_name, fixed_norm[ax_low], opts_pair)
-            axis_bit_choices.append([bit_val])
+            opt_idx = _match_axis_bit(axis_name, fixed_norm[ax_low], opts_tuple)
+            axis_opt_choices.append([opt_idx])
         else:
-            axis_bit_choices.append([(base_chassis_default >> bit_pos) & 1])
+            axis_opt_choices.append([opts_tuple.index(base_decoded[axis_name])])
 
     chassis_ids: list[int] = []
-    for combo in itertools.product(*axis_bit_choices):
+    for combo in itertools.product(*axis_opt_choices):
         cid = 0
-        for bit_pos, b in enumerate(combo):
-            cid |= b << bit_pos
+        mult = 1
+        for ax_idx, opt_idx in enumerate(combo):
+            cid += opt_idx * mult
+            mult *= len(CHASSIS_AXES_OPTIONS[ax_idx][1])
         chassis_ids.append(cid)
     chassis_ids = sorted(set(chassis_ids))
-    chassis_studio_indices_128 = tuple(chassis_id_to_studio_index_128(c) for c in chassis_ids)
+    chassis_studio_indices_384 = tuple(chassis_id_to_studio_index_384(c) for c in chassis_ids)
 
     # 2. Résolution explicite du génome de base (32 slots)
     bundle_id = str(base_inst.get("bundle_id", "STANDARD_A")).strip().upper()
@@ -1771,8 +1778,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "campaign_name": campaign_name,
         "player_counts": player_counts,
         "chassis_ids": tuple(chassis_ids),
-        "chassis_studio_indices_128": chassis_studio_indices_128,
-        "base_studio_config_index_128": (
+        "chassis_studio_indices_384": chassis_studio_indices_384,
+        "base_studio_config_index_384": (
             int(raw_studio_idx) if raw_studio_idx is not None else None
         ),
         "base_bundle_id": bundle_id,
@@ -1845,11 +1852,11 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             rep_id=base_cfg.rep_id,
             coordonnateur_initial=base_cfg.coordonnateur_initial,
             max_revision_passes=base_cfg.max_revision_passes,
-            p_max=base_cfg.p_max,
+            profil_piste=base_cfg.profil_piste,
             regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
             offset_seuil_parade=base_cfg.offset_seuil_parade,
             mise_en_place_tactiques=base_cfg.mise_en_place_tactiques,
-            declenchement_fin_de_piste=base_cfg.declenchement_fin_de_piste,
+            placement_initial_machines=base_cfg.placement_initial_machines,
             role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
             synergie_binome_machines=base_cfg.synergie_binome_machines,
             tile_profiles=tile_profiles if mode >= 3 else (),

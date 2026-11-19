@@ -66,8 +66,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     MAX_N,
     MAX_P,
     NUM_SYNERGY_SLOTS,
@@ -78,7 +78,7 @@ from engine.state import (
     PIEGE_ACTIF,
     PIEGE_AUCUN,
     PIEGE_DECLENCHE,
-    STEP_1_1_SIEGE,
+    STEP_1_1_RATISSAGE,
     STEP_1_2_DEAL,
     STEP_1_3_DICE,
     STEP_2_1_DEF1,
@@ -89,7 +89,7 @@ from engine.state import (
     STEP_4_2_NIDS,
     STEP_4_3_MIGRATION,
     STEP_5_1_TACTIQUES,
-    STEP_5_2_SIEGES,
+    STEP_5_2_RATISSAGE,
     STEP_5_3_END_CHECK,
     STEP_6_1_APPRENTISSAGE,
     STEP_6_2_EVOLUTION,
@@ -115,7 +115,7 @@ __all__ = (
     "DEC_ORDRE_ATTAQUE_5_1",
     "DEC_ORDRE_CONSTRUCTION_3_1",
     "DEC_ORDRE_NID_4_2",
-    "DEC_ORDRE_SIEGE_5_2",
+    "DEC_ORDRE_RATISSAGE_5_2",
     "DEC_PLACEMENT_NID_3_1",
     "DEC_POSE_DEFENSEUR_1",
     "DEC_POSE_DEFENSEUR_2",
@@ -152,7 +152,7 @@ DEC_ORDRE_NID_4_2: str = "ORDRE_NID_4_2"
 DEC_MIGRATION_INSECTE_4_3: str = "MIGRATION_INSECTE_4_3"
 DEC_COLONIE_A_OPEN: str = "COLONIE_A_OPEN"
 DEC_ORDRE_ATTAQUE_5_1: str = "ORDRE_ATTAQUE_TACTIQUE_5_1"
-DEC_ORDRE_SIEGE_5_2: str = "ORDRE_SIEGE_5_2"
+DEC_ORDRE_RATISSAGE_5_2: str = "ORDRE_RATISSAGE_5_2"
 DEC_RETRAIT_APPRENTISSAGE_6_1: str = "RETRAIT_APPRENTISSAGE_6_1"
 
 
@@ -275,7 +275,7 @@ def sweep_gardiens(state: GameState, *, telemetry: Any | None = None) -> int:
             return 0
         if state.triggers_lit == 0:
             return 0
-        in_combat = state.step in (STEP_5_1_TACTIQUES, STEP_5_2_SIEGES)
+        in_combat = state.step in (STEP_5_1_TACTIQUES, STEP_5_2_RATISSAGE)
         return _sweep_gardiens_from(state, 1, False, 0, in_combat, 0)
     finally:
         if telemetry is not None:
@@ -701,11 +701,11 @@ def rebind_step_3_2_hand(state: GameState, seat: int) -> None:
 
 
 def is_machine_active_this_turn(state: GameState, ray: int, m_type: int) -> bool:
-    """Vrai si la machine est en Siège ou activée par une carte non annulée en 3.2."""
+    """Vrai si la machine est en Ratissage ou activée par une carte non annulée en 3.2."""
     pos, st, _ = state.get_machine_pos_status(ray, m_type)
     if st == MACHINE_STATUS_RETIRED or pos == 0:
         return False
-    if st == MACHINE_STATUS_SIEGE:
+    if st == MACHINE_STATUS_RATISSAGE:
         return True
     target_card = machine_card_code(ray, m_type)
     for s in range(state.cfg.n_players):
@@ -716,7 +716,8 @@ def is_machine_active_this_turn(state: GameState, ray: int, m_type: int) -> bool
 
 
 def _effective_machine_power(state: GameState, ray: int, m_type: int) -> tuple[int, int]:
-    rouges, bleus = state.get_machine_tokens(ray, m_type)
+    rouges = state.get_machine_effective_rouges(ray, m_type)
+    _, bleus = state.get_machine_tokens(ray, m_type)
     if state.cfg.synergie_binome_machines == "MUTUALISATION_PUISSANCE_MEME_PARCELLE":
         pos_self, st_self, _ = state.get_machine_pos_status(ray, m_type)
         other_type = MACHINE_BULLDOZER if m_type == MACHINE_ABATTEUSE else MACHINE_ABATTEUSE
@@ -727,7 +728,8 @@ def _effective_machine_power(state: GameState, ray: int, m_type: int) -> tuple[i
             and pos_self > 0
             and pos_self == pos_other
         ):
-            r_o, b_o = state.get_machine_tokens(ray, other_type)
+            r_o = state.get_machine_effective_rouges(ray, other_type)
+            _, b_o = state.get_machine_tokens(ray, other_type)
             rouges += r_o
             bleus += b_o
     return rouges, bleus
@@ -741,7 +743,7 @@ def compute_parade_seuil(
     tactique: TactiqueSpec,
     *,
     cible_type: str = "SUR_PLACE",
-    is_siege: bool = False,
+    is_ratissage: bool = False,
 ) -> int:
     """Calcule le Seuil de Parade effectif (plancher 1) pour une frappe sur (ray, target_p)."""
     base = state.cfg.dotation_arbres[target_p - 1]
@@ -764,7 +766,7 @@ def compute_parade_seuil(
         "target_p": target_p,
         "tactique": tactique.tile_id,
         "cible_type": cible_type,
-        "is_siege": is_siege,
+        "is_ratissage": is_ratissage,
         "rouges": rouges,
         "bleus": bleus,
         "delta_seuil": 0,
@@ -842,7 +844,7 @@ def _resolve_machine_targets_from(
     ray: int,
     m_type: int,
     tactique: TactiqueSpec,
-    effective_siege: bool,
+    effective_ratissage: bool,
     targets: tuple[tuple[str, int], ...],
     start_idx: int,
     damaged_parcels: int,
@@ -866,7 +868,7 @@ def _resolve_machine_targets_from(
                     "m_type": m_type,
                     "target_p": target_p,
                     "cible_type": c_type,
-                    "is_siege": effective_siege,
+                    "is_ratissage": effective_ratissage,
                 },
             )
             trk.on_machine_strike(state, ray, sum(1 for x in law_res if x))
@@ -936,7 +938,7 @@ def _resolve_machine_targets_from(
                 ray,
                 m_type,
                 tactique.code,
-                1 if effective_siege else 0,
+                1 if effective_ratissage else 0,
                 targets,
                 t_idx + 1,
                 damaged_parcels,
@@ -965,7 +967,7 @@ def _resolve_machine_targets_from(
             target_p,
             tactique,
             cible_type=c_type,
-            is_siege=effective_siege,
+            is_ratissage=effective_ratissage,
         )
         if total_def >= seuil:
             manque = max(0, seuil - def_non_ins)
@@ -1001,7 +1003,7 @@ def _resolve_machine_targets_from(
                 souches_after += cut
                 dmg_ops += cut
             elif (
-                effective_siege
+                effective_ratissage
                 and state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
                 and souches_before > 0
             ):
@@ -1040,7 +1042,7 @@ def _resolve_machine_targets_from(
         "ray": ray,
         "m_type": m_type,
         "tactique": tactique.tile_id,
-        "is_siege": effective_siege,
+        "is_ratissage": effective_ratissage,
         "all_parried": all_parried,
         "damaged_parcels": damaged_parcels,
         "allow_advance": True,
@@ -1048,7 +1050,7 @@ def _resolve_machine_targets_from(
     }
     dispatch_hook(state, HOOK_5_FIN_ATTAQUE_MACHINE, fin_ctx)
 
-    # 3. Avancée éventuelle (T3 / T6) si machine toujours en jeu et hors Siège
+    # 3. Avancée éventuelle (T3 / T6) si machine toujours en jeu et hors Ratissage
     cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
     if (
         not aborted_by_jaguar
@@ -1071,11 +1073,8 @@ def _resolve_machine_targets_from(
                     dst_ray=ray,
                     dst_p=p_next,
                 )
-            else:
-                if state.cfg.declenchement_fin_de_piste == "DEPASSEMENT_DERNIERE_PARCELLE":
-                    state.set_machine_pos_status(ray, m_type, cur_pos, cur_st, True)
 
-    # 4. Gain éventuel de jeton Puissance rouge (T4 / T5 / T6 / Siège)
+    # 4. Gain éventuel de jeton Puissance rouge (T4 / T5 / T6)
     cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
     gained_red = False
     if (
@@ -1102,7 +1101,7 @@ def resolve_single_machine_attack(
     m_type: int,
     tactique: TactiqueSpec,
     *,
-    is_siege: bool = False,
+    is_ratissage: bool = False,
     telemetry: Any | None = None,
 ) -> None:
     """Résout une machine d'un seul tenant : cibles dynamiques -> frappes -> avancée -> Rouge -> Gardiens."""
@@ -1113,7 +1112,7 @@ def resolve_single_machine_attack(
             state.set_machine_turn_stats(ray, m_type, 0, False, True)
             return
 
-        effective_siege = is_siege or st == MACHINE_STATUS_SIEGE
+        effective_ratissage = is_ratissage or st == MACHINE_STATUS_RATISSAGE
 
         # 1. Lecture dynamique des cibles depuis la position réelle (en sautant toute Route)
         targets: list[tuple[str, int]] = []
@@ -1131,7 +1130,7 @@ def resolve_single_machine_attack(
                 "m_type": m_type,
                 "pos": pos,
                 "tactique": tactique.tile_id,
-                "is_siege": effective_siege,
+                "is_ratissage": effective_ratissage,
                 "targets": targets,
             }
             dispatch_hook(state, HOOK_5_CIBLAGE_MACHINE, cib_ctx)
@@ -1142,7 +1141,7 @@ def resolve_single_machine_attack(
             ray,
             m_type,
             tactique,
-            effective_siege,
+            effective_ratissage,
             tuple(targets),
             0,
             0,
@@ -1164,7 +1163,7 @@ def apply_repousse_finale(state: GameState) -> GameOver:
     plafonné à la dotation initiale) de manière strictement idempotente et retourne l'objet GameOver.
     """
     cause = CAUSE_TOUR_8
-    if state.cfg.mode >= 2 and is_reve_code(state.get_tactique_at_rank(0)):
+    if state.cfg.mode >= 2 and state.is_sommeil_victory():
         cause = CAUSE_REVE_RANG_1
     elif (
         state.cfg.mode >= 2
@@ -1210,7 +1209,7 @@ def apply_repousse_finale(state: GameState) -> GameOver:
 
 def _check_end_of_game_condition(state: GameState) -> bool:
     if state.cfg.mode >= 2:
-        if is_reve_code(state.get_tactique_at_rank(0)):
+        if state.is_sommeil_victory():
             return True
         if state.seuil_reveil >= 3 and state.count_used_gardiens_on_track() >= state.seuil_reveil:
             return True
@@ -1218,25 +1217,20 @@ def _check_end_of_game_condition(state: GameState) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Helpers internes pour Migration 4.3, Siège 1.1/6.3 et files d'attente
+# Helpers internes pour Migration 4.3, Ratissage 1.1/6.3 et files d'attente
 # ---------------------------------------------------------------------------
 
 
-def _transition_eligible_machines_to_siege(state: GameState, *, remove_from_deck: bool) -> None:
+def _transition_eligible_machines_to_ratissage(state: GameState, *, remove_from_deck: bool) -> None:
     ops = 0
     for r in range(state.cfg.n_players):
         last_p = state.last_non_razed_parcel(r)
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
-            pos, st, pending_s = state.get_machine_pos_status(r, mt)
+            pos, st, _ = state.get_machine_pos_status(r, mt)
             if st != MACHINE_STATUS_NORMAL or pos == 0:
                 continue
-            should_siege = pending_s or (
-                state.cfg.declenchement_fin_de_piste == "ARRIVEE_DERNIERE_PARCELLE"
-                and last_p is not None
-                and pos == last_p
-            )
-            if should_siege:
-                state.set_machine_pos_status(r, mt, pos, MACHINE_STATUS_SIEGE, False)
+            if last_p is not None and pos == last_p:
+                state.set_machine_pos_status(r, mt, pos, MACHINE_STATUS_RATISSAGE, False)
                 ops += 1
                 if remove_from_deck:
                     state.remove_machine_card_from_deck_if_present(machine_card_code(r, mt))
@@ -1304,8 +1298,8 @@ def _is_ray_bulldozer_first(state: GameState, ray: int) -> bool:
 
 def _resolve_tactique_5_1_machine(state: GameState, rm: int, mt: int, rank_t_code: int) -> None:
     _, st, _ = state.get_machine_pos_status(rm, mt)
-    if st == MACHINE_STATUS_SIEGE:
-        resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[4], is_siege=True)
+    if st == MACHINE_STATUS_RATISSAGE:
+        resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[1], is_ratissage=True)
         return
     eff_code = rank_t_code
     t_card = machine_card_code(rm, mt)
@@ -1355,7 +1349,7 @@ def _eligible_tactique_machines_at_rank(state: GameState, t_code: int) -> list[t
     return eligible
 
 
-def _eligible_siege_machines(state: GameState) -> list[tuple[int, int]]:
+def _eligible_ratissage_machines(state: GameState) -> list[tuple[int, int]]:
     eligible: list[tuple[int, int]] = []
     for offset in range(state.cfg.n_players):
         r = (state.coordonnateur + offset) % state.cfg.n_players
@@ -1364,8 +1358,8 @@ def _eligible_siege_machines(state: GameState) -> list[tuple[int, int]]:
         bu_pos, bu_st, _ = state.get_machine_pos_status(r, MACHINE_BULLDOZER)
         _, _, bu_att = state.get_machine_turn_stats(r, MACHINE_BULLDOZER)
 
-        ab_ok = ab_st == MACHINE_STATUS_SIEGE and ab_pos > 0 and not ab_att
-        bu_ok = bu_st == MACHINE_STATUS_SIEGE and bu_pos > 0 and not bu_att
+        ab_ok = ab_st == MACHINE_STATUS_RATISSAGE and ab_pos > 0 and not ab_att
+        bu_ok = bu_st == MACHINE_STATUS_RATISSAGE and bu_pos > 0 and not bu_att
         if _is_ray_bulldozer_first(state, r) and bu_ok:
             eligible.append((r, MACHINE_BULLDOZER))
         elif ab_ok:
@@ -1730,7 +1724,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             ray,
             m_type,
             t_code,
-            eff_siege_i,
+            eff_ratissage_i,
             targets,
             next_t_idx,
             dmg_cnt,
@@ -1742,7 +1736,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             int(ray),
             int(m_type),
             TACTIQUES_SPEC[int(t_code)],
-            bool(eff_siege_i),
+            bool(eff_ratissage_i),
             targets,
             int(next_t_idx),
             int(dmg_cnt),
@@ -1975,7 +1969,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
         r_idx = int(top[1])
         if r_idx >= TRACK_LEN:
             state._continuation.pop(0)
-            _transition_step(state, STEP_5_2_SIEGES)
+            _transition_step(state, STEP_5_2_RATISSAGE)
             return None
         code = state.get_tactique_at_rank(r_idx)
         if not is_tactique_code(code):
@@ -2069,8 +2063,8 @@ def _run_step_6_1(state: GameState) -> None:
             if st == MACHINE_STATUS_RETIRED or pos == 0:
                 continue
             target_t_code: int | None = None
-            if st == MACHINE_STATUS_SIEGE:
-                target_t_code = 4
+            if st == MACHINE_STATUS_RATISSAGE:
+                target_t_code = 1
             elif (r, mt) in card_tactique_by_machine:
                 target_t_code = card_tactique_by_machine[(r, mt)]
 
@@ -2129,7 +2123,7 @@ def _run_step_6_2(state: GameState) -> GameOver | None:
     else:
         dispatch_hook(state, HOOK_6_2_AVANCEMENT, {"winner_idx": None, "tie": True})
 
-    if state.cfg.mode >= 3 and is_reve_code(state.get_tactique_at_rank(0)):
+    if state.cfg.mode >= 3 and state.is_sommeil_victory():
         return apply_repousse_finale(state)
 
     trk = _get_active_telemetry()
@@ -2197,8 +2191,8 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
     if step == STEP_GAME_OVER:
         return apply_repousse_finale(state)
 
-    if step == STEP_1_1_SIEGE:
-        _transition_eligible_machines_to_siege(state, remove_from_deck=True)
+    if step == STEP_1_1_RATISSAGE:
+        _transition_eligible_machines_to_ratissage(state, remove_from_deck=True)
         _transition_step(state, STEP_1_2_DEAL)
         return None
 
@@ -2388,19 +2382,19 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
             dispatch_hook(state, HOOK_5_DEBUT, {})
         return None
 
-    if step == STEP_5_2_SIEGES:
-        eligible_s = _eligible_siege_machines(state)
+    if step == STEP_5_2_RATISSAGE:
+        eligible_s = _eligible_ratissage_machines(state)
         if not eligible_s:
             _transition_step(state, STEP_5_3_END_CHECK)
             return None
         if len(eligible_s) == 1:
             rm, mt = eligible_s[0]
-            resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[4], is_siege=True)
+            resolve_single_machine_attack(state, rm, mt, TACTIQUES_SPEC[1], is_ratissage=True)
             return None
         req = DecisionRequest(
-            state.coordonnateur, DEC_ORDRE_SIEGE_5_2, tuple(eligible_s), {"tour": state.tour}
+            state.coordonnateur, DEC_ORDRE_RATISSAGE_5_2, tuple(eligible_s), {"tour": state.tour}
         )
-        state._continuation.append(("APPLY_SIEGE_5_2",))
+        state._continuation.append(("APPLY_RATISSAGE_5_2",))
         state._continuation.insert(0, ("WAIT_DECISION", req))
         return req
 
@@ -2423,7 +2417,7 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
         return _run_step_6_2(state)
 
     if step == STEP_6_3_END_TURN:
-        _transition_eligible_machines_to_siege(state, remove_from_deck=False)
+        _transition_eligible_machines_to_ratissage(state, remove_from_deck=False)
         state.rebuild_and_shuffle_machine_deck(increment_reshuffle=True)
         _record_phys_ops(state, 1)
         trk = _get_active_telemetry()
@@ -2431,7 +2425,7 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
             trk.on_end_turn(state, game_over=False)
         state.coordonnateur = (state.coordonnateur + 1) % n
         state.tour += 1
-        _transition_step(state, STEP_1_1_SIEGE)
+        _transition_step(state, STEP_1_1_RATISSAGE)
         return None
 
     raise RuntimeError(f"Étape moteur inconnue : {step}")
@@ -2810,10 +2804,12 @@ def apply_choice(
             _resolve_tactique_5_1_machine(state, int(rm), int(mt), int(t_code))
             return
 
-        if tag == "APPLY_SIEGE_5_2":
+        if tag == "APPLY_RATISSAGE_5_2":
             state._continuation.pop(0)
             rm, mt = choice
-            resolve_single_machine_attack(state, int(rm), int(mt), TACTIQUES_SPEC[4], is_siege=True)
+            resolve_single_machine_attack(
+                state, int(rm), int(mt), TACTIQUES_SPEC[1], is_ratissage=True
+            )
             return
 
         if tag == "APPLY_VOLUNTARY_APP_6_1":

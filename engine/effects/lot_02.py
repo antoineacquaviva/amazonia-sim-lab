@@ -27,8 +27,8 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
-    MACHINE_STATUS_SIEGE,
     PFLAG_MATAMATA_MARK,
     PIEGE_AUCUN,
     TACTIQUES_SPEC,
@@ -138,7 +138,7 @@ def _is_machine_active_turn(state: GameState, ray: int, m_type: int) -> bool:
     pos, st, _ = state.get_machine_pos_status(ray, m_type)
     if st == MACHINE_STATUS_RETIRED or pos == 0:
         return False
-    if st == MACHINE_STATUS_SIEGE:
+    if st == MACHINE_STATUS_RATISSAGE:
         return True
     t_card = machine_card_code(ray, m_type)
     for s in range(state.cfg.n_players):
@@ -159,7 +159,8 @@ def _machines_with_power(state: GameState) -> list[tuple[int, int]]:
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st, _ = state.get_machine_pos_status(r, mt)
             if st != MACHINE_STATUS_RETIRED and pos > 0:
-                rouges, bleus = state.get_machine_tokens(r, mt)
+                rouges = state.get_machine_effective_rouges(r, mt)
+                _, bleus = state.get_machine_tokens(r, mt)
                 if rouges + bleus >= 1:
                     out.append((r, mt))
     return out
@@ -291,7 +292,7 @@ def g2_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
             return True
 
         # Branche Face 2 strictement autonome
-        if tid in ("T3", "T4", "T5", "T6") or bool(ctx.get("is_siege")):
+        if tid in ("T3", "T4", "T5", "T6") or bool(ctx.get("is_ratissage")):
             ctx["allow_advance"] = False
             ctx["allow_red_gain"] = False
         return True

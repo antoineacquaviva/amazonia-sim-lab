@@ -130,25 +130,26 @@ def test_r1_a_temoin_tambour_echange_tactiques_avant_avancee() -> None:
 
 
 def test_r1_b_temoin_double_avancee_sommeil_contremaitre() -> None:
-    """Témoin R1:B : avance de jusqu'à 2 rangs vers la gauche (plafonné au Rang 1) pour gagner en 5.3."""
-    state = _make_state(("R1", "B"))
-    # R1 au Rang 3 (index 2) : [T1, T2, R1, T3, T4, T5]
-    track_init = (1, 2, TILE_R_BASE + 1, 3, 4, 5)
+    """Témoin R1:B : avance de jusqu'à 2 rangs vers la gauche pour compléter le bloc de Rêves en tête (5.3)."""
+    state = _make_state(("R1", "B"), peuples=("H", "R", "O", "M"))
+    # 1 peuple onirique (H) => 2 Rêves en jeu : R2 déjà en rang 1 (index 0), R1 en rang 4 (index 3)
+    track_init = (TILE_R_BASE + 2, 1, 2, TILE_R_BASE + 1, 3, 4)
     for idx, code in enumerate(track_init):
         state.set_tactique_at_rank(idx, code)
-    _setup_reve_opening_3_2(state, 1, 2, reader_seat=0)
+    _setup_reve_opening_3_2(state, 1, 3, reader_seat=0)
 
     req = step_until_decision(state)
     assert isinstance(req, DecisionRequest)
     assert req.decideur == 0  # Humains
     assert req.options == (1, 2)
 
-    # Choisir d'avancer de 2 rangs -> R1 atteint directement le Rang 1 (index 0) !
+    # Choisir d'avancer de 2 rangs -> R1 atteint le Rang 2 (index 1), complétant le bloc [R2, R1] !
     apply_choice(state, 2)
     step_until_decision(state)
-    assert state.get_tactique_at_rank(0) == TILE_R_BASE + 1
+    assert state.get_tactique_at_rank(0) == TILE_R_BASE + 2
+    assert state.get_tactique_at_rank(1) == TILE_R_BASE + 1
 
-    # En fin de 5.3, le Sommeil du Contremaître déclenche la victoire par Rêve au Rang 1
+    # En fin de 5.3, le Sommeil du Contremaître déclenche la victoire par bloc de Rêves en tête
     state._continuation.clear()
     state.step = STEP_5_3_END_CHECK
     out = step_until_decision(state)
