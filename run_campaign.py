@@ -5,6 +5,7 @@ dans Amazonia Doc Studio (`docs/digests/`) et pousser sur `origin main`.
 Usage :
     uv run python run_campaign.py campaigns/<nom>.json
     uv run python run_campaign.py campaigns/<nom>.json --build
+    uv run python run_campaign.py campaigns/<nom>.json --no-build
     uv run python run_campaign.py campaigns/<nom>.json --backend batch
 """
 
@@ -17,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -38,6 +40,18 @@ from scripts_cloud.studio_paths import find_gcloud
 REGION: str = "europe-west9"
 BUCKET_NAME: str = "amazonia-sim-runs"
 IMAGE_URI: str = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
+WORKER_IMAGE_HASH_GCS_URI: str = f"gs://{BUCKET_NAME}/meta/worker_image_hash.txt"
+# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_3_1.json)
+# ainsi que `Dockerfile.worker` lui-même (image de base PyPy et ENTRYPOINT).
+WORKER_IMAGE_SOURCE_PATHS: tuple[str, ...] = (
+    "Dockerfile.worker",
+    "engine",
+    "bots",
+    "campaigns",
+    "data/spec_bundle_v5_3_1.json",
+)
+_IGNORED_DIR_NAMES: frozenset[str] = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache"})
+_IGNORED_FILE_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo", ".pyd"})
 CLOUD_RUN_JOB_NAME: str = "amazonia-campaign"
 BATCH_THRESHOLD_GAMES: int = 50_000
 DOCS_DIGESTS_DIR: Path = ROOT / "docs" / "digests"
@@ -53,6 +67,127 @@ def _run(cmd: list[str], *, check: bool = True, capture: bool = False) -> subpro
         text=True,
         capture_output=capture,
     )
+
+
+def compute_worker_image_hash(root: Path = ROOT) -> str:
+    """Calcule une empreinte SHA-256 déterministe des sources embarquées dans `Dockerfile.worker`.
+
+    Couvre `Dockerfile.worker`, `engine/`, `bots/`, `campaigns/` (hors manifestes `*.json`
+    téléversés à la volée sur GCS) et `data/spec_bundle_v5_3_1.json`, en ignorant les caches
+    Python (`__pycache__`, `*.pyc`, etc.) conformément à `.dockerignore`.
+    """
+    collected: list[tuple[str, Path]] = []
+    for rel_entry in WORKER_IMAGE_SOURCE_PATHS:
+        target = root / rel_entry
+        if not target.exists():
+            raise FileNotFoundError(f"Source requise par Dockerfile.worker introuvable : {target}")
+        if target.is_file():
+            collected.append((target.relative_to(root).as_posix(), target))
+            continue
+        is_campaigns_dir = rel_entry == "campaigns"
+        for file_path in target.rglob("*"):
+            if not file_path.is_file():
+                continue
+            rel_path = file_path.relative_to(root)
+            if any(part in _IGNORED_DIR_NAMES for part in rel_path.parts):
+                continue
+            if file_path.suffix in _IGNORED_FILE_SUFFIXES or file_path.name == ".DS_Store":
+                continue
+            if is_campaigns_dir and file_path.suffix == ".json":
+                continue
+            collected.append((rel_path.as_posix(), file_path))
+
+    collected.sort(key=lambda item: item[0])
+    hasher = hashlib.sha256()
+    for rel_posix, file_path in collected:
+        data = file_path.read_bytes()
+        hasher.update(rel_posix.encode("utf-8"))
+        hasher.update(b"\0")
+        hasher.update(str(len(data)).encode("ascii"))
+        hasher.update(b"\0")
+        hasher.update(data)
+        hasher.update(b"\n")
+    return hasher.hexdigest()
+
+
+def _read_remote_worker_image_hash(
+    gcloud: str,
+    gcs_uri: str = WORKER_IMAGE_HASH_GCS_URI,
+) -> str | None:
+    """Lit l'empreinte distante stockée sur GCS (`None` si absente ou illisible)."""
+    proc = _run([gcloud, "storage", "cat", gcs_uri], check=False, capture=True)
+    if proc.returncode != 0:
+        return None
+    value = proc.stdout.strip()
+    return value or None
+
+
+def _write_remote_worker_image_hash(
+    gcloud: str,
+    image_hash: str,
+    gcs_uri: str = WORKER_IMAGE_HASH_GCS_URI,
+) -> None:
+    """Écrit la nouvelle empreinte de l'image worker dans GCS après un build réussi."""
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        tmp_file = Path(tmp_dir) / "worker_image_hash.txt"
+        tmp_file.write_text(f"{image_hash}\n", encoding="utf-8")
+        _run([gcloud, "storage", "cp", str(tmp_file), gcs_uri])
+
+
+def ensure_worker_image_up_to_date(
+    gcloud: str,
+    *,
+    force_build: bool = False,
+    no_build: bool = False,
+    root: Path = ROOT,
+    hash_gcs_uri: str = WORKER_IMAGE_HASH_GCS_URI,
+) -> bool:
+    """Vérifie si l'image `worker-pypy` doit être reconstruite avant le job Cloud.
+
+    Retourne `True` si Cloud Build a été exécuté, `False` si le build a été sauté.
+    """
+    if force_build and no_build:
+        raise ValueError("Les options --build et --no-build sont mutuellement exclusives.")
+
+    if no_build:
+        print("Build image worker sauté : option --no-build active.", flush=True)
+        return False
+
+    local_hash = compute_worker_image_hash(root=root)
+
+    if force_build:
+        print(
+            f"Build image worker déclenché : reconstruction manuelle forcée (--build, empreinte={local_hash[:12]}).",
+            flush=True,
+        )
+        _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])
+        _write_remote_worker_image_hash(gcloud, local_hash, gcs_uri=hash_gcs_uri)
+        return True
+
+    remote_hash = _read_remote_worker_image_hash(gcloud, gcs_uri=hash_gcs_uri)
+    if remote_hash == local_hash:
+        print(
+            f"Build image worker sauté : empreinte locale identique à GCS ({local_hash[:12]}).",
+            flush=True,
+        )
+        return False
+
+    if remote_hash is None:
+        print(
+            f"Build image worker déclenché : aucune empreinte distante trouvée sur {hash_gcs_uri} "
+            f"(empreinte locale={local_hash[:12]}).",
+            flush=True,
+        )
+    else:
+        print(
+            f"Build image worker déclenché : sources modifiées "
+            f"(GCS={remote_hash[:12]} != local={local_hash[:12]}).",
+            flush=True,
+        )
+
+    _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])
+    _write_remote_worker_image_hash(gcloud, local_hash, gcs_uri=hash_gcs_uri)
+    return True
 
 
 def _query_dicts(con: duckdb.DuckDBPyConnection, sql: str) -> list[dict[str, Any]]:
@@ -700,10 +835,16 @@ def main(argv: list[str] | None = None) -> int:
         default=IMAGE_URI,
         help="URI d'image Docker worker PyPy (recommandé : digest immuable @sha256:... pour reproductibilité).",
     )
-    parser.add_argument(
+    build_group = parser.add_mutually_exclusive_group()
+    build_group.add_argument(
         "--build",
         action="store_true",
-        help="Reconstruit et pousse l'image worker PyPy via Cloud Build avant exécution.",
+        help="Force la reconstruction et le push de l'image worker PyPy via Cloud Build avant exécution.",
+    )
+    build_group.add_argument(
+        "--no-build",
+        action="store_true",
+        help="Force le saut du build Cloud même si les sources locales diffèrent de GCS.",
     )
     parser.add_argument(
         "--skip-git-push",
@@ -751,9 +892,12 @@ def main(argv: list[str] | None = None) -> int:
     manifest_gcs_uri = f"gs://{BUCKET_NAME}/{gcs_prefix}/manifest.json"
     shards_gcs_glob = f"gs://{BUCKET_NAME}/{gcs_prefix}/shard_*.jsonl.gz"
 
-    # 1. Optionnel : build & push de l'image PyPy via Cloud Build
-    if args.build:
-        _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])
+    # 1. Auto-détection (ou forçage --build / saut --no-build) du build de l'image worker PyPy
+    ensure_worker_image_up_to_date(
+        gcloud,
+        force_build=bool(args.build),
+        no_build=bool(args.no_build),
+    )
 
     # 2. Upload du manifeste sous préfixe GCS isolé par run_id (aucun `rm` destructif sur un préfixe partagé)
     _run([gcloud, "storage", "cp", str(manifest_path), manifest_gcs_uri])

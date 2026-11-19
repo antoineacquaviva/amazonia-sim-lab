@@ -1,7 +1,7 @@
 ---
 trigger: glob
 description: Règles des workers Cloud PyPy, plans d'expérience et optimisation MAP-Elites
-globs: "campaigns/**/*.py, scripts_cloud/**/*.py, Dockerfile*"
+globs: "campaigns/**/*.py, scripts_cloud/**/*.py, run_campaign.py, Dockerfile*"
 ---
 
 # Règles Cloud & Campagnes (`campaigns/`, `scripts_cloud/`)
@@ -31,3 +31,7 @@ globs: "campaigns/**/*.py, scripts_cloud/**/*.py, Dockerfile*"
 ## 5. Verrouillage Zéro Facturation API Gemini / LLM
 - **Interdiction absolue** d'installer `google-genai`, `google-generativeai` ou `vertexai`, de lire une variable `GEMINI_API_KEY`, ou d'effectuer le moindre appel HTTP vers une API LLM payante depuis un script Python (`scripts_cloud/`, `campaigns/`, etc.).
 - Toute analyse éditoriale passe exclusivement par Antigravity en local et par le glisser-déposer manuel des synthèses `digest_*.json` (`< 30 Ko`) dans l'interface Gemini web.
+
+## 6. Lancement de campagne en langage naturel & Auto-build Cloud
+- Lorsque l'utilisateur décrit une hypothèse de tir en français, traduire son intention en manifeste `campaigns/<nom>.json` conforme au schéma de `campaigns/worker_main.py`, le sauvegarder, puis exécuter `uv run python run_campaign.py campaigns/<nom>.json`.
+- `run_campaign.py` compare automatiquement l'empreinte SHA-256 locale des sources embarquées par `Dockerfile.worker` à `gs://amazonia-sim-runs/meta/worker_image_hash.txt` et ne déclenche Cloud Build qu'en cas de changement (sauf `--build` pour forcer ou `--no-build` pour sauter).
