@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "diagnostic_reveil_zero_degat_v5_4",
+      "label": "Diagnostic anatomique des tours de Réveil de la Forêt sans dégât v5.4.1 (bot B2, Mode 2, N=3..6, 6 profils de piste, 6 variantes quota x sort Gardien : attribution Défenseurs, attrition Sabotage/Rêves, frappes, Pièges, Insectes, comparaison succès vs échecs). (16416 parties)",
+      "file": "digest_diagnostic_reveil_zero_degat_v5_4.json",
+      "campaign": "diagnostic_reveil_zero_degat_v5_4",
+      "generated_at_utc": "2026-11-19T19:55:27Z",
+      "total_games": 16416
+    },
+    {
       "id": "calibration_reveil_v5_4",
       "label": "Calibration Mode 2 du Réveil de la Forêt v5.4.1 (bot B2, N=3..6, toutes combinaisons de Peuples avec A>=1 Animal Sauvage, 6 profils de piste chassis_id 0..5, 6 variantes quota x sort Gardien). (16416 parties)",
       "file": "digest_calibration_reveil_v5_4.json",
