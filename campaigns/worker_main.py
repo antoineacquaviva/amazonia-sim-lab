@@ -1,4 +1,4 @@
-"""Worker Cloud PyPy 3.11 stdlib pure pour amazonia-sim-lab (Smoke, Palier 1 & Palier 2)."""
+"""Worker Cloud PyPy 3.11 stdlib pure pour amazonia-sim-lab (Smoke, Paliers 1, 2 & 4)."""
 
 from __future__ import annotations
 
@@ -31,6 +31,18 @@ from campaigns.digest_builder import (
     build_prompt_gemini_markdown,
     build_self_contained_digest,
 )
+from campaigns.map_elites import (
+    GenomeEvaluation,
+    StrategicDepthReport,
+    build_127_circular_tables,
+    encode_genome_key,
+    evaluate_genome_on_tables,
+    genome_to_tile_profiles,
+    load_mode3_reference_genome,
+    run_map_elites_island,
+    run_phase_a_chassis_halving,
+    validate_strategic_depth,
+)
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
 from engine.state import PEUPLES_ORDER, STATE_BUF_SIZE, GameConfig, GameState
@@ -45,6 +57,7 @@ SMOKE_OBJECT_NAME: str = "smoke/shard_00.jsonl.gz"
 MOBILE_LATEST_OBJECT: str = "mobile/latest.html"
 PALIER1_PREFIX: str = "palier1_baseline"
 PALIER2_PREFIX: str = "palier2_coeur_muet"
+PALIER4_PREFIX: str = "palier4_canon"
 
 PALIER1_CHASSIS_IDS: tuple[int, ...] = (0, 1, 4, 5, 127)
 
@@ -1043,6 +1056,401 @@ def run_campaign_palier2(
     return 0
 
 
+# ---------------------------------------------------------------------------
+# Campagne Palier 4 : Canon Unique 32 Tuiles (Cloud Batch Spot / Cloud Run / Local)
+# ---------------------------------------------------------------------------
+
+
+def _resolve_task_coords(
+    task_index: int | None, task_count: int | None
+) -> tuple[int, int]:
+    """Résout `(task_index, task_count)` depuis Cloud Batch, Cloud Run ou CLI."""
+    if task_index is None:
+        raw_idx = (
+            os.environ.get("BATCH_TASK_INDEX")
+            or os.environ.get("CLOUD_RUN_TASK_INDEX")
+            or os.environ.get("TASK_INDEX")
+            or "0"
+        )
+        task_index = int(raw_idx)
+    if task_count is None:
+        raw_cnt = (
+            os.environ.get("BATCH_TASK_COUNT")
+            or os.environ.get("CLOUD_RUN_TASK_COUNT")
+            or os.environ.get("TASK_COUNT")
+            or "1"
+        )
+        task_count = int(raw_cnt)
+    assert 0 <= task_index < task_count
+    return task_index, task_count
+
+
+def _normalize_p4_row(base: dict[str, Any]) -> dict[str, Any]:
+    """Garantit un schéma tabulaire uniforme pour l'ingestion DuckDB Parquet ZSTD."""
+    template: dict[str, Any] = {
+        "record_type": str(base.get("record_type", "UNKNOWN")),
+        "island_id": int(base.get("island_id", -1)),
+        "halving_round": int(base.get("halving_round", 0)),
+        "selected_next": bool(base.get("selected_next", False)),
+        "chassis_id": int(base.get("chassis_id", 0)),
+        "genome_key": str(base.get("genome_key", "")),
+        "n_tables": int(base.get("n_tables", 0)),
+        "n_games": int(base.get("n_games", 0)),
+        "mean_ratio_arbres": float(base.get("mean_ratio_arbres", 0.0)),
+        "median_table_ratio": float(base.get("median_table_ratio", 0.0)),
+        "cvar20_tables": float(base.get("cvar20_tables", 0.0)),
+        "ratio_n3": float(base.get("ratio_n3", 0.0)),
+        "ratio_n4": float(base.get("ratio_n4", 0.0)),
+        "ratio_n5": float(base.get("ratio_n5", 0.0)),
+        "ratio_n6": float(base.get("ratio_n6", 0.0)),
+        "cvar20_n3": float(base.get("cvar20_n3", 0.0)),
+        "cvar20_n4": float(base.get("cvar20_n4", 0.0)),
+        "cvar20_n5": float(base.get("cvar20_n5", 0.0)),
+        "cvar20_n6": float(base.get("cvar20_n6", 0.0)),
+        "mirror_asymmetry_mean": float(base.get("mirror_asymmetry_mean", 0.0)),
+        "mean_tours": float(base.get("mean_tours", 0.0)),
+        "pct_tour_8": float(base.get("pct_tour_8", 0.0)),
+        "pct_reve_rang_1": float(base.get("pct_reve_rang_1", 0.0)),
+        "pct_reveil_gardiens": float(base.get("pct_reveil_gardiens", 0.0)),
+        "shannon_entropy": float(base.get("shannon_entropy", 0.0)),
+        "mem_debt_mean": float(base.get("mem_debt_mean", 0.0)),
+        "law_stack_mean": float(base.get("law_stack_mean", 0.0)),
+        "law_stack_max": int(base.get("law_stack_max", 0)),
+        "fiddliness_mean": float(base.get("fiddliness_mean", 0.0)),
+        "cascade_sweeps_mean": float(base.get("cascade_sweeps_mean", 0.0)),
+        "mid_combat_interrupts_mean": float(base.get("mid_combat_interrupts_mean", 0.0)),
+        "x_cognitive": float(base.get("x_cognitive", 0.0)),
+        "cell_fitness": float(base.get("cell_fitness", base.get("chassis_fitness", 0.0))),
+        "editorial_score": float(base.get("editorial_score", base.get("chassis_fitness", 0.0))),
+        "mean_b0": float(base.get("mean_b0", 0.0)),
+        "mean_b1": float(base.get("mean_b1", 0.0)),
+        "mean_b2_k0": float(base.get("mean_b2_k0", 0.0)),
+        "mean_b2_k3": float(base.get("mean_b2_k3", 0.0)),
+        "mean_b3": float(base.get("mean_b3", 0.0)),
+        "delta_v_negociation_crn": float(base.get("delta_v_negociation_crn", 0.0)),
+        "micro_fork_delta_v_unbiased": float(base.get("micro_fork_delta_v_unbiased", 0.0)),
+        "monotone_b0_b1_b2": bool(base.get("monotone_b0_b1_b2", False)),
+        "positive_negotiation": bool(base.get("positive_negotiation", False)),
+        "b3_non_degenerate": bool(base.get("b3_non_degenerate", False)),
+        "passed_all_checks": bool(base.get("passed_all_checks", False)),
+        "guided_mutations": int(base.get("guided_mutations", 0)),
+        "uniform_mutations": int(base.get("uniform_mutations", 0)),
+        "cell_cpu_sec": float(base.get("cell_cpu_sec", 0.0)),
+    }
+    return template
+
+
+def _parse_chassis_csv(chassis_ids_csv: str | None) -> tuple[int, ...]:
+    if not chassis_ids_csv:
+        return ()
+    return tuple(int(tok.strip()) for tok in chassis_ids_csv.split(",") if tok.strip())
+
+
+def _execute_p4_phase_a_cohort(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    cohort_id = int(unit["cohort_id"])
+    chassis_ids: tuple[int, ...] = tuple(int(c) for c in unit["chassis_ids"])
+    base_reps = int(unit["base_reps"])
+    round_offset = int(unit.get("round_offset", 0))
+    exp_seed = int(unit["exp_seed"])
+    ref_key = encode_genome_key(load_mode3_reference_genome())
+
+    _, rows = run_phase_a_chassis_halving(
+        chassis_ids,
+        keep_final=1,
+        base_reps_per_table=base_reps,
+        round_offset=round_offset,
+        exp_seed=exp_seed + cohort_id * 1000,
+    )
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        r["island_id"] = cohort_id
+        r["genome_key"] = ref_key
+        r["n_tables"] = 12
+        out.append(_normalize_p4_row(r))
+    return out
+
+
+def run_campaign_palier4_phase_a(
+    *,
+    halving_cohorts: int = 16,
+    base_reps: int = 1,
+    chassis_ids_csv: str | None = None,
+    round_offset: int = 0,
+    shard_tag: str = "phaseA",
+    task_index: int | None = None,
+    task_count: int | None = None,
+    workers: int | None = None,
+    local_out_dir: str | None = None,
+) -> int:
+    """Phase A du Palier 4 : Sequential Halving des 128 châssis sur Mode 3 réf + Mode 4."""
+    t_idx, t_cnt = _resolve_task_coords(task_index, task_count)
+    explicit_chassis = _parse_chassis_csv(chassis_ids_csv)
+    if explicit_chassis:
+        all_units = [
+            {
+                "cohort_id": 99,
+                "chassis_ids": explicit_chassis,
+                "base_reps": base_reps,
+                "round_offset": round_offset,
+                "exp_seed": 20264050,
+            }
+        ]
+    else:
+        assert 128 % halving_cohorts == 0
+        all_units = [
+            {
+                "cohort_id": c_idx,
+                "chassis_ids": tuple(range(c_idx, 128, halving_cohorts)),
+                "base_reps": base_reps,
+                "round_offset": round_offset,
+                "exp_seed": 20264010,
+            }
+            for c_idx in range(halving_cohorts)
+        ]
+    my_units = [u for i, u in enumerate(all_units) if i % t_cnt == t_idx]
+    n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
+
+    t0 = time.perf_counter()
+    if n_procs > 1 and len(my_units) > 1:
+        with multiprocessing.Pool(processes=min(n_procs, len(my_units))) as pool:
+            nested = pool.map(_execute_p4_phase_a_cohort, my_units)
+    else:
+        nested = [_execute_p4_phase_a_cohort(u) for u in my_units]
+
+    records = [row for sub in nested for row in sub]
+    wall_sec = time.perf_counter() - t0
+    task_games = sum(int(r["n_games"]) for r in records)
+    task_gps = task_games / wall_sec if wall_sec > 0 else 0.0
+
+    for rec in records:
+        rec["task_index"] = t_idx
+        rec["task_count"] = t_cnt
+        rec["task_workers"] = n_procs
+        rec["task_games"] = task_games
+        rec["task_wall_sec"] = round(wall_sec, 4)
+        rec["task_games_per_sec"] = round(task_gps, 2)
+        rec["python_impl"] = platform.python_implementation()
+
+    raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
+    compressed = gzip.compress(raw_jsonl)
+    shard_filename = f"shard_{shard_tag}_{t_idx:02d}.jsonl.gz"
+
+    if local_out_dir is not None:
+        out_path = Path(local_out_dir) / shard_filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(compressed)
+        dest_uri = str(out_path)
+    else:
+        object_name = f"{PALIER4_PREFIX}/{shard_filename}"
+        token = _fetch_gcp_access_token()
+        _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
+
+    print(
+        json.dumps(
+            {
+                "status": "PALIER4_PHASE_A_SHARD_OK",
+                "shard_tag": shard_tag,
+                "task_index": t_idx,
+                "task_count": t_cnt,
+                "workers": n_procs,
+                "rows": len(records),
+                "games": task_games,
+                "wall_sec": round(wall_sec, 3),
+                "games_per_sec": round(task_gps, 1),
+                "dest": dest_uri,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+    return 0
+
+
+def _execute_p4_island_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
+    island_id = int(unit["island_id"])
+    chassis_id = int(unit["chassis_id"])
+    n_init = int(unit["n_init"])
+    n_generations = int(unit["n_generations"])
+    batch_per_gen = int(unit["batch_per_gen"])
+    reps_127 = int(unit["reps_127"])
+    top_finalists_k = int(unit["top_finalists_k"])
+    depth_finalists_k = int(unit.get("depth_finalists_k", 2))
+    depth_reps = int(unit["depth_reps"])
+    exp_seed = int(unit["exp_seed"])
+
+    archive, _, all_evals, stats = run_map_elites_island(
+        chassis_id,
+        island_id=island_id,
+        n_init=n_init,
+        n_generations=n_generations,
+        batch_per_gen=batch_per_gen,
+        screening_blocks_per_n=2,
+        reps_screening=1,
+        exp_seed=exp_seed,
+    )
+
+    out_rows: list[dict[str, Any]] = []
+    for idx_e, ev in enumerate(all_evals):
+        d = ev.to_record_dict(record_type="PHASE_B_SCREENING")
+        d["island_id"] = island_id
+        if idx_e == 0:
+            d["guided_mutations"] = stats["guided_mutations"]
+            d["uniform_mutations"] = stats["uniform_mutations"]
+        out_rows.append(_normalize_p4_row(d))
+
+    # Promotion sur les 127 tables circulaires des meilleurs finalistes Pareto de l'île
+    # (+ référence Mode 3 évaluée sur l'île 0 comme témoin de contrôle)
+    fast_smoke = bool(unit.get("fast_smoke", False))
+    tables_promo = (
+        build_127_circular_tables()[:12] if fast_smoke else build_127_circular_tables()
+    )
+    finalists: list[GenomeEvaluation] = archive.select_top_finalists(top_k=top_finalists_k)
+    cand_genomes = [f.genome for f in finalists]
+    if island_id == 0:
+        ref_g = load_mode3_reference_genome()
+        if ref_g not in cand_genomes:
+            cand_genomes.append(ref_g)
+
+    promoted_evals: list[GenomeEvaluation] = []
+    for cand_g in cand_genomes:
+        ev_127 = evaluate_genome_on_tables(
+            chassis_id,
+            cand_g,
+            tables_promo,
+            reps_per_table=max(1, reps_127),
+            exp_seed=exp_seed + 500_000,
+        )
+        promoted_evals.append(ev_127)
+        d_127 = ev_127.to_record_dict(record_type="PHASE_B_ELITE_127")
+        d_127["island_id"] = island_id
+        d_127["selected_next"] = True
+        out_rows.append(_normalize_p4_row(d_127))
+
+    # Étape 2 : Validation croisée B0 < B1 < B2 <= B3 et Delta_V_neg sur les finalistes 127 tables
+    promoted_evals.sort(key=lambda e: (-e.editorial_score, -e.cvar20_tables))
+    for top_ev in promoted_evals[: max(1, min(depth_finalists_k, len(promoted_evals)))]:
+        depth_rep: StrategicDepthReport = validate_strategic_depth(
+            chassis_id,
+            top_ev.genome,
+            reps_per_table=depth_reps,
+            b3_reps_per_table=0 if fast_smoke else 1,
+            exp_seed=exp_seed + 800_000,
+        )
+        d_dep = depth_rep.to_record_dict()
+        d_dep["island_id"] = island_id
+        out_rows.append(_normalize_p4_row(d_dep))
+
+    return out_rows
+
+
+def run_campaign_palier4_phase_b(
+    *,
+    chassis_id: int = 19,
+    chassis_ids_csv: str | None = None,
+    islands: int = 8,
+    n_init: int = 8,
+    n_generations: int = 8,
+    batch_per_gen: int = 4,
+    reps_127: int = 1,
+    top_finalists_k: int = 3,
+    depth_reps: int = 2,
+    fast_smoke: bool = False,
+    task_index: int | None = None,
+    task_count: int | None = None,
+    workers: int | None = None,
+    local_out_dir: str | None = None,
+) -> int:
+    """Phase B & Étape 2 du Palier 4 : îles MAP-Elites + Shapley + 127 tables + B0..B3."""
+    t_idx, t_cnt = _resolve_task_coords(task_index, task_count)
+    chassis_pool = _parse_chassis_csv(chassis_ids_csv) or (chassis_id,)
+    depth_per_island = 1 if fast_smoke else (3 if islands == 1 else 2)
+
+    all_units = [
+        {
+            "island_id": isl,
+            "chassis_id": chassis_pool[isl % len(chassis_pool)],
+            "n_init": n_init,
+            "n_generations": n_generations,
+            "batch_per_gen": batch_per_gen,
+            "reps_127": reps_127,
+            "top_finalists_k": top_finalists_k,
+            "depth_finalists_k": depth_per_island,
+            "depth_reps": depth_reps,
+            "fast_smoke": fast_smoke,
+            "exp_seed": 20264100,
+        }
+        for isl in range(islands)
+    ]
+    my_units = [u for i, u in enumerate(all_units) if i % t_cnt == t_idx]
+    n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
+
+    t0 = time.perf_counter()
+    if n_procs > 1 and len(my_units) > 1:
+        with multiprocessing.Pool(processes=min(n_procs, len(my_units))) as pool:
+            nested = pool.map(_execute_p4_island_unit, my_units)
+    else:
+        nested = [_execute_p4_island_unit(u) for u in my_units]
+
+    records = [row for sub in nested for row in sub]
+    wall_sec = time.perf_counter() - t0
+    task_games = sum(int(r["n_games"]) for r in records)
+    task_gps = task_games / wall_sec if wall_sec > 0 else 0.0
+
+    for rec in records:
+        rec["task_index"] = t_idx
+        rec["task_count"] = t_cnt
+        rec["task_workers"] = n_procs
+        rec["task_games"] = task_games
+        rec["task_wall_sec"] = round(wall_sec, 4)
+        rec["task_games_per_sec"] = round(task_gps, 2)
+        rec["python_impl"] = platform.python_implementation()
+
+    raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
+    compressed = gzip.compress(raw_jsonl)
+    shard_filename = f"shard_phaseB_{t_idx:02d}.jsonl.gz"
+
+    if local_out_dir is not None:
+        out_path = Path(local_out_dir) / shard_filename
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(compressed)
+        dest_uri = str(out_path)
+    else:
+        object_name = f"{PALIER4_PREFIX}/{shard_filename}"
+        token = _fetch_gcp_access_token()
+        _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        if t_idx == 0:
+            ref_tiles = genome_to_tile_profiles(load_mode3_reference_genome())
+            _upload_worker_mobile_latest_html(
+                "palier4_canon",
+                records,
+                chassis_ids=chassis_pool,
+                tested_tiles=ref_tiles,
+                token=token,
+            )
+        dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
+
+    print(
+        json.dumps(
+            {
+                "status": "PALIER4_PHASE_B_SHARD_OK",
+                "task_index": t_idx,
+                "task_count": t_cnt,
+                "workers": n_procs,
+                "islands": len(my_units),
+                "rows": len(records),
+                "games": task_games,
+                "wall_sec": round(wall_sec, 3),
+                "games_per_sec": round(task_gps, 1),
+                "dest": dest_uri,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Amazonia Sim Lab PyPy Worker")
     parser.add_argument(
@@ -1060,10 +1468,32 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Exécute la campagne Palier 2 (B0/B1/B2 K=0 vs K=3, Micro-Forks, Lot 01 & 128 châssis).",
     )
+    parser.add_argument(
+        "--campaign-palier4-phase-a",
+        action="store_true",
+        help="Exécute la Phase A du Palier 4 (Sequential Halving des 128 châssis).",
+    )
+    parser.add_argument(
+        "--campaign-palier4-phase-b",
+        action="store_true",
+        help="Exécute la Phase B & Étape 2 du Palier 4 (MAP-Elites + Shapley + 127 tables + B0..B3).",
+    )
     parser.add_argument("--total-games", type=int, default=100_000)
     parser.add_argument("--reps-coop", type=int, default=12)
     parser.add_argument("--forks-per-table", type=int, default=2)
     parser.add_argument("--halving-cohorts", type=int, default=16)
+    parser.add_argument("--base-reps", type=int, default=1)
+    parser.add_argument("--chassis-id", type=int, default=19)
+    parser.add_argument("--chassis-ids", type=str, default=None)
+    parser.add_argument("--round-offset", type=int, default=0)
+    parser.add_argument("--shard-tag", type=str, default="phaseA")
+    parser.add_argument("--islands", type=int, default=8)
+    parser.add_argument("--n-init", type=int, default=8)
+    parser.add_argument("--n-generations", type=int, default=8)
+    parser.add_argument("--batch-per-gen", type=int, default=4)
+    parser.add_argument("--reps-127", type=int, default=1)
+    parser.add_argument("--top-finalists-k", type=int, default=3)
+    parser.add_argument("--depth-reps", type=int, default=2)
     parser.add_argument("--task-index", type=int, default=None)
     parser.add_argument("--task-count", type=int, default=None)
     parser.add_argument("--workers", type=int, default=None)
@@ -1085,6 +1515,34 @@ def main(argv: list[str] | None = None) -> int:
             reps_per_table_coop=args.reps_coop,
             forks_per_table=args.forks_per_table,
             halving_cohorts=args.halving_cohorts,
+            task_index=args.task_index,
+            task_count=args.task_count,
+            workers=args.workers,
+            local_out_dir=args.local_out_dir,
+        )
+    if args.campaign_palier4_phase_a:
+        return run_campaign_palier4_phase_a(
+            halving_cohorts=args.halving_cohorts,
+            base_reps=args.base_reps,
+            chassis_ids_csv=args.chassis_ids,
+            round_offset=args.round_offset,
+            shard_tag=args.shard_tag,
+            task_index=args.task_index,
+            task_count=args.task_count,
+            workers=args.workers,
+            local_out_dir=args.local_out_dir,
+        )
+    if args.campaign_palier4_phase_b:
+        return run_campaign_palier4_phase_b(
+            chassis_id=args.chassis_id,
+            chassis_ids_csv=args.chassis_ids,
+            islands=args.islands,
+            n_init=args.n_init,
+            n_generations=args.n_generations,
+            batch_per_gen=args.batch_per_gen,
+            reps_127=args.reps_127,
+            top_finalists_k=args.top_finalists_k,
+            depth_reps=args.depth_reps,
             task_index=args.task_index,
             task_count=args.task_count,
             workers=args.workers,

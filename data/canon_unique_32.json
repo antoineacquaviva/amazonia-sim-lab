@@ -1,0 +1,661 @@
+{
+  "schema_version": "5.3.1",
+  "campaign": "palier4_canon",
+  "generated_at_utc": "2026-11-19T05:30:59Z",
+  "recommended_chassis": {
+    "chassis_id": 18,
+    "p_max": 4,
+    "regle_ouverture_reve_multiple": "PAR_DE_M_DESIGNE",
+    "offset_seuil_parade": 0,
+    "mise_en_place_tactiques": "ORDRE_FIXE_T1_T6",
+    "declenchement_fin_de_piste": "DEPASSEMENT_DERNIERE_PARCELLE",
+    "role_abatteuse_fin_de_piste": "STANDARD_COUPE_ARBRE",
+    "synergie_binome_machines": "INDIVIDUELLE"
+  },
+  "canon_32_list": [
+    "G1:A",
+    "G2:C",
+    "G3:C",
+    "G4:A",
+    "G5:C",
+    "G6:C",
+    "G7:B",
+    "G8:A",
+    "G9:C",
+    "G10:C",
+    "G11:D",
+    "G12:C",
+    "G13:A",
+    "G14:C",
+    "G15:A",
+    "R1:C",
+    "R2:B",
+    "R3:B",
+    "R4:C",
+    "R5:D",
+    "R6:C",
+    "R7:C",
+    "R8:C",
+    "R9:A",
+    "R10:A",
+    "M1:C",
+    "M2:C",
+    "M3:C",
+    "M4:A",
+    "M5:C",
+    "SLOT_BUG_CERVEAU:C",
+    "SLOT_COLONISATION_GARDIENS:C"
+  ],
+  "changes_vs_mode3_reference": [
+    "G2:A->C",
+    "G3:A->C",
+    "G5:B->C",
+    "G6:A->C",
+    "G7:A->B",
+    "G9:A->C",
+    "G10:A->C",
+    "G11:A->D",
+    "G12:A->C",
+    "G14:A->C",
+    "R1:A->C",
+    "R3:A->B",
+    "R4:A->C",
+    "R5:C->D",
+    "R6:A->C",
+    "R7:A->C",
+    "R8:A->C",
+    "M1:A->C",
+    "M2:A->C",
+    "M3:A->C",
+    "M5:A->C",
+    "SLOT_BUG_CERVEAU:A->C",
+    "SLOT_COLONISATION_GARDIENS:A->C"
+  ],
+  "selections": {
+    "G1": {
+      "profile": "A",
+      "nom": "Le Bond du Jaguar",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.01683,
+      "texte": "<strong>Face 1 :</strong> Retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>.<br><strong>Face 2 :</strong> Retournez jusqu’à 2 jetons rouges en bleus <em>Surchauffe</em> (répartis librement entre des machines)."
+    },
+    "G2": {
+      "profile": "C",
+      "nom": "La fuite sous les feuilles",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.00048,
+      "texte": "Vous pouvez déplacer <strong>tous les Insectes</strong> d’une parcelle vers la prochaine parcelle non rasée du même rayon, côté bordure ou côté cœur."
+    },
+    "G3": {
+      "profile": "C",
+      "nom": "Le passage des singes-lianes",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.03672,
+      "texte": "Vous pouvez faire passer un Défenseur du rayon des Mammifères à celui des Oiseaux, ou inversement, à la même profondeur. Les deux parcelles doivent être non rasées."
+    },
+    "G4": {
+      "profile": "A",
+      "nom": "Le Cri d’Alarme de l’Ara",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.00092,
+      "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées (renvoyez G4 sur sa Face 1 en lisière ; il libère sa case et perd son marqueur « utilisé »)."
+    },
+    "G5": {
+      "profile": "C",
+      "nom": "Le Perchoir du caïman",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.00873,
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Oiseaux, quand une machine frappe devant elle, chaque Défenseur situé sur la parcelle de la machine apporte aussi +1 point de Défense à la parcelle frappée."
+    },
+    "G6": {
+      "profile": "C",
+      "nom": "Le Vol en ciseaux",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.02743,
+      "texte": "Vous pouvez échanger simultanément 1 Défenseur d’une parcelle des Oiseaux ou des Reptiles avec 1 Insecte de la case Furtivité qui lui fait face sur leur lisière commune (posez ce Défenseur sur un emplacement valide de la case en tirant l’éventuel autre Défenseur sur son jumeau)."
+    },
+    "G7": {
+      "profile": "B",
+      "nom": "Le Barrage du Capybara",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.04039,
+      "texte": "<strong>Loi 4.1 :</strong> Les binômes en Furtivité peuvent poser un Piège <strong>même sur une parcelle occupée par une machine</strong> (et ce Piège s’arme immédiatement si au moins 1 Défenseur du binôme glisse dessus ou soutient la parcelle)."
+    },
+    "G8": {
+      "profile": "A",
+      "nom": "Le Sillage du Boto",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.00666,
+      "texte": "En 3.2 (ou à l’ouverture avant l’attaque de la machine), décalez d’1 parcelle non rasée dans le même sens le long de son rayon l’ensemble des frappes d’une machine non en Siège pour ce tour, sans déplacer la machine."
+    },
+    "G9": {
+      "profile": "C",
+      "nom": "La Peau de boue",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.01187,
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Humains, ignorez tous les jetons Puissance rouges d’une machine quand elle frappe la parcelle située devant elle."
+    },
+    "G10": {
+      "profile": "C",
+      "nom": "La Rainette géante",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.02054,
+      "texte": "<em>(Câblage obligatoire sur 6. Insecte)</em> À l’ouverture, vous pouvez défausser 1 Insecte d’une parcelle Forêt pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3)."
+    },
+    "G11": {
+      "profile": "D",
+      "nom": "La veille de la Harpie",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.01019,
+      "texte": "<strong>Loi 5 :</strong> Chaque case Furtivité contenant au moins 1 Défenseur (isolé ou en binôme) fournit au total 1 point de Défense aux parcelles <strong>piégées</strong> des Oiseaux ou des Humains qui lui font face."
+    },
+    "G12": {
+      "profile": "C",
+      "nom": "Le Vautour-Roi",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.01503,
+      "texte": "<em>(Câblage obligatoire sur 2. Piégeage)</em> À l’ouverture, vous pouvez retirer de la forêt 1 Piège non déclenché ce tour-ci pour faire avancer d’1 rang vers la gauche le Rêve le plus à gauche."
+    },
+    "G13": {
+      "profile": "A",
+      "nom": "La Brèche du Tamanoir",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.00348,
+      "texte": "Posez 1 jeton Insecte sur une parcelle non rasée ou une case Furtivité contenant au moins 1 Défenseur (allume la case 6)."
+    },
+    "G14": {
+      "profile": "C",
+      "nom": "Le ventre plein",
+      "famille": "GARDIEN",
+      "shapley_phi": -0.00181,
+      "texte": "<strong>Face 1 (À jeun) :</strong> Défaussez 1 Insecte d’une parcelle du rayon des Reptiles pour retourner ce Gardien sur <em>Rassasié</em>.<br><strong>Face 2 (Rassasié) :</strong> Posez 1 Piège sur une parcelle non rasée des Reptiles sans machine ni Piège, puis retournez ce Gardien sur <em>À jeun</em> (allume la case 2)."
+    },
+    "G15": {
+      "profile": "A",
+      "nom": "L’Envol du Batará Suiveur",
+      "famille": "GARDIEN",
+      "shapley_phi": 0.01668,
+      "texte": "Faites migrer immédiatement 1 Insecte depuis n’importe quelle parcelle ou case Furtivité de la roue vers une case 1..6 d’une piste globale (<code>Bug</code> ou <code>Colonie</code>, aller simple définitif)."
+    },
+    "R1": {
+      "profile": "C",
+      "nom": "La Part rendue à la forêt",
+      "famille": "REVE",
+      "shapley_phi": -0.00952,
+      "texte": "À chaque ouverture en 3.2, vous pouvez renvoyer 1 Gardien de la piste vers sa lisière (sur sa Face 1, en retirant son marqueur « utilisé ») pour faire avancer ce Rêve de <strong>jusqu’à 2 rangs</strong> au lieu d’1."
+    },
+    "R2": {
+      "profile": "B",
+      "nom": "Le Voile de l’Oubli",
+      "famille": "REVE",
+      "shapley_phi": 0.00297,
+      "texte": "<strong>Loi 6.1 :</strong> Une machine dont toutes les frappes sont parées ce tour-ci ne rapporte <strong>aucun jeton Apprentissage</strong> (même via son gain de Puissance T4/T5/T6)."
+    },
+    "R3": {
+      "profile": "B",
+      "nom": "La Danse des Esprits-Fauves",
+      "famille": "REVE",
+      "shapley_phi": 0.00193,
+      "texte": "<strong>Loi 3.1 :</strong> Lors d’une construction (G ou R), le Peuple d’origine de la tuile construite libère <strong>1 des 2 Défenseurs bâtisseurs</strong> vers la 1re parcelle adjacente non rasée de son choix (ou <strong>tous les Défenseurs bâtisseurs à N=3 joueurs</strong>, chacun choisissant sa rive)."
+    },
+    "R4": {
+      "profile": "C",
+      "nom": "Le Rêve de la seconde rive",
+      "famille": "REVE",
+      "shapley_phi": 0.00547,
+      "texte": "Face à une Route Forestière de l’autre rayon sur la lisière Humains–Reptiles, vous pouvez poser 1 Piège sur la parcelle non rasée sans Piège en face, même ne portant que des Souches, ciblée ou occupée par une machine (allume la case 2)."
+    },
+    "R5": {
+      "profile": "D",
+      "nom": "Le rêve du veilleur",
+      "famille": "REVE",
+      "shapley_phi": 0.0077,
+      "texte": "Vous pouvez créer 1 Insecte sur une parcelle piégée des Humains ou des Oiseaux (allume la case 6)."
+    },
+    "R6": {
+      "profile": "C",
+      "nom": "La Terra Preta",
+      "famille": "REVE",
+      "shapley_phi": 0.0,
+      "texte": "<strong>Loi de Repousse finale :</strong> À la fin de la partie, sur chaque parcelle non rasée des Humains ou des Insectes ayant conservé au moins 1 Souche, retournez jusqu’à <strong>2 Souches</strong> en Arbres debout (dans la limite de la dotation initiale de la parcelle)."
+    },
+    "R7": {
+      "profile": "C",
+      "nom": "Le bras mort du fleuve",
+      "famille": "REVE",
+      "shapley_phi": 0.0239,
+      "texte": "<strong>Loi 4.3 :</strong> En 4.3, un Insecte peut utiliser son déplacement (1 cran) pour traverser directement entre les rayons des Entités et des Mammifères à la même profondeur."
+    },
+    "R8": {
+      "profile": "C",
+      "nom": "Le Mapinguari",
+      "famille": "REVE",
+      "shapley_phi": -0.00189,
+      "texte": "<strong>Loi 3.2 :</strong> Chaque machine dont ce Rêve annule l’attaque en 3.2 recule immédiatement d’1 parcelle vers la bordure, si elle le peut."
+    },
+    "R9": {
+      "profile": "A",
+      "nom": "L’Écho des Voix Célestes",
+      "famille": "REVE",
+      "shapley_phi": 0.01251,
+      "texte": "Réduisez de -2 le Seuil de Parade sur toutes les parcelles d’un rayon au choix pour ce tour."
+    },
+    "R10": {
+      "profile": "A",
+      "nom": "La Nuée des Songes",
+      "famille": "REVE",
+      "shapley_phi": -0.00303,
+      "texte": "Réduisez le Seuil de Parade d’une machine de -1 par Insecte présent sur son rayon (<code>NB_INSECTES_RAYON</code>)."
+    },
+    "M1": {
+      "profile": "C",
+      "nom": "La piste des fourmis légionnaires",
+      "famille": "CROISSANCE",
+      "shapley_phi": 0.00662,
+      "texte": "Après sa production en 4.2, vous pouvez déplacer 1 Insecte de ce Nid vers toute autre parcelle non rasée de son rayon."
+    },
+    "M2": {
+      "profile": "C",
+      "nom": "La souche creuse",
+      "famille": "CROISSANCE",
+      "shapley_phi": 0.01816,
+      "texte": "<strong>Loi de contact :</strong> Quand une machine entre sur cette parcelle, ce Nid et ses Insectes survivent au contact si la parcelle porte au moins <strong>1 Souche</strong> à cet instant."
+    },
+    "M3": {
+      "profile": "C",
+      "nom": "Le Scarabée Hercule",
+      "famille": "CROISSANCE",
+      "shapley_phi": -0.03089,
+      "texte": "<strong>Loi 5 :</strong> Sur la parcelle de ce Nid, chaque Insecte physiquement présent apporte <strong>2 points de Défense</strong> (lors d’une Parade classique, défaussez immédiatement le nombre d’Insectes arrondi au supérieur du manque)."
+    },
+    "M4": {
+      "profile": "A",
+      "nom": "La Ruche des Mélipones",
+      "famille": "CROISSANCE",
+      "shapley_phi": 0.00618,
+      "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3)."
+    },
+    "M5": {
+      "profile": "C",
+      "nom": "Le Figuier étrangleur",
+      "famille": "CROISSANCE",
+      "shapley_phi": -0.00463,
+      "texte": "<strong>Loi de terrassement :</strong> Sur la parcelle de ce Nid, les Bulldozers coupent normalement jusqu’à 1 Arbre mais <strong>ne terrassent aucune Souche</strong>."
+    },
+    "SLOT_BUG_CERVEAU": {
+      "profile": "C",
+      "nom": "La Cigale dans l’engrenage",
+      "famille": "MIGRATION",
+      "shapley_phi": 0.03254,
+      "texte": "<strong>Loi 6.2 :</strong> Une Tactique qui occupe un rang portant au moins 1 Insecte ne peut pas avancer par Apprentissage en 6.2. L’Insecte reste sur son numéro de rang."
+    },
+    "SLOT_COLONISATION_GARDIENS": {
+      "profile": "C",
+      "nom": "Les Lucioles",
+      "famille": "MIGRATION",
+      "shapley_phi": -0.01229,
+      "texte": "À la fin de chaque Étape 4.3, chaque case occupée par au moins 1 Insecte ouvre automatiquement son Gardien disponible. <strong>L’Insecte reste sur sa case.</strong>"
+    }
+  },
+  "scores_127_tables": {
+    "n_circular_tables": 127,
+    "n_games": 127,
+    "mean_ratio_arbres": 0.8296,
+    "median_table_ratio": 0.85,
+    "cvar20_127_tables": 0.6857,
+    "mirror_asymmetry_mean": 0.0594,
+    "by_n_players": {
+      "3": {
+        "mean_ratio_arbres": 0.8167,
+        "cvar20_tables": 0.66
+      },
+      "4": {
+        "mean_ratio_arbres": 0.7868,
+        "cvar20_tables": 0.6571
+      },
+      "5": {
+        "mean_ratio_arbres": 0.8406,
+        "cvar20_tables": 0.6914
+      },
+      "6": {
+        "mean_ratio_arbres": 0.8727,
+        "cvar20_tables": 0.7976
+      }
+    },
+    "mean_tours": 4.323,
+    "end_causes_pct": {
+      "TOUR_8": 11.02,
+      "REVE_RANG_1": 55.91,
+      "REVEIL_GARDIENS": 33.07
+    },
+    "shannon_entropy_3_ends": 0.8503,
+    "editorial_score": 0.6423
+  },
+  "cognitive_sensors": {
+    "mem_debt_score": 21.071,
+    "law_stack_mean": 1.5978,
+    "law_stack_max": 4,
+    "fiddliness_ratio": 2.857,
+    "cascade_sweeps": 5.063,
+    "mid_combat_interrupts": 1.827,
+    "x_cognitive_normalized": 0.7796
+  },
+  "strategic_depth_validation": {
+    "genome_key": "A.C.C.A.C.C.B.A.C.C.D.C.A.C.A.C.B.B.C.D.C.C.C.A.A.C.C.C.A.C.C.C",
+    "chassis_id": 18,
+    "n_games": 186,
+    "mean_b0": 0.7751,
+    "mean_b1": 0.8197,
+    "mean_b2_k0": 0.8263,
+    "mean_b2_k3": 0.8375,
+    "mean_b3": 0.8842,
+    "delta_v_negociation_crn": 0.0113,
+    "micro_fork_delta_v_unbiased": 0.0014,
+    "monotone_b0_b1_b2": true,
+    "positive_negotiation": true,
+    "b3_non_degenerate": true,
+    "passed_all_checks": true
+  },
+  "vs_mode3_reference_127_tables": {
+    "mode3_mean_ratio": 0.7539,
+    "mode3_cvar20": 0.5801,
+    "mode3_entropy": 0.84,
+    "delta_cvar20_canon_minus_mode3": 0.1057,
+    "delta_editorial_score": 0.0179
+  },
+  "pareto_top5_finalists": [
+    {
+      "rank": 1,
+      "chassis_id": 18,
+      "is_mode3_ref": false,
+      "n_diffs_vs_mode3_ref": 23,
+      "diffs_vs_mode3_ref": [
+        "G2:C",
+        "G3:C",
+        "G5:C",
+        "G6:C",
+        "G7:B",
+        "G9:C",
+        "G10:C",
+        "G11:D",
+        "G12:C",
+        "G14:C",
+        "R1:C",
+        "R3:B"
+      ],
+      "mean_ratio_arbres": 0.8296,
+      "median_table_ratio": 0.85,
+      "cvar20_127_tables": 0.6857,
+      "by_n": {
+        "3": 0.8167,
+        "4": 0.7868,
+        "5": 0.8406,
+        "6": 0.8727
+      },
+      "mirror_asymmetry": 0.0594,
+      "shannon_entropy": 0.8503,
+      "x_cognitive": 0.7796,
+      "editorial_score": 0.6423,
+      "depth_passed": true,
+      "b0_b1_b2_b3": [
+        0.7751,
+        0.8197,
+        0.8375,
+        0.8842
+      ]
+    },
+    {
+      "rank": 2,
+      "chassis_id": 18,
+      "is_mode3_ref": false,
+      "n_diffs_vs_mode3_ref": 21,
+      "diffs_vs_mode3_ref": [
+        "G2:C",
+        "G3:C",
+        "G5:C",
+        "G6:C",
+        "G7:C",
+        "G9:B",
+        "G10:C",
+        "G11:C",
+        "G12:C",
+        "G14:C",
+        "R1:C",
+        "R4:C"
+      ],
+      "mean_ratio_arbres": 0.8167,
+      "median_table_ratio": 0.825,
+      "cvar20_127_tables": 0.6719,
+      "by_n": {
+        "3": 0.8167,
+        "4": 0.7471,
+        "5": 0.8341,
+        "6": 0.8707
+      },
+      "mirror_asymmetry": 0.0559,
+      "shannon_entropy": 0.8714,
+      "x_cognitive": 0.7905,
+      "editorial_score": 0.6408,
+      "depth_passed": true,
+      "b0_b1_b2_b3": [
+        0.7682,
+        0.8208,
+        0.8208,
+        0.8675
+      ]
+    },
+    {
+      "rank": 3,
+      "chassis_id": 60,
+      "is_mode3_ref": false,
+      "n_diffs_vs_mode3_ref": 3,
+      "diffs_vs_mode3_ref": [
+        "G5:A",
+        "R2:A",
+        "R5:A"
+      ],
+      "mean_ratio_arbres": 0.7321,
+      "median_table_ratio": 0.74,
+      "cvar20_127_tables": 0.5676,
+      "by_n": {
+        "3": 0.6949,
+        "4": 0.7081,
+        "5": 0.7588,
+        "6": 0.7586
+      },
+      "mirror_asymmetry": 0.0783,
+      "shannon_entropy": 0.8443,
+      "x_cognitive": 0.5092,
+      "editorial_score": 0.6381,
+      "depth_passed": true,
+      "b0_b1_b2_b3": [
+        0.574,
+        0.6574,
+        0.705,
+        0.7738
+      ]
+    },
+    {
+      "rank": 4,
+      "chassis_id": 60,
+      "is_mode3_ref": true,
+      "n_diffs_vs_mode3_ref": 0,
+      "diffs_vs_mode3_ref": [],
+      "mean_ratio_arbres": 0.7539,
+      "median_table_ratio": 0.775,
+      "cvar20_127_tables": 0.5801,
+      "by_n": {
+        "3": 0.7038,
+        "4": 0.7265,
+        "5": 0.7835,
+        "6": 0.7909
+      },
+      "mirror_asymmetry": 0.0724,
+      "shannon_entropy": 0.84,
+      "x_cognitive": 0.5982,
+      "editorial_score": 0.6245,
+      "depth_passed": true,
+      "b0_b1_b2_b3": [
+        0.5865,
+        0.6576,
+        0.7299,
+        0.7746
+      ]
+    },
+    {
+      "rank": 5,
+      "chassis_id": 60,
+      "is_mode3_ref": false,
+      "n_diffs_vs_mode3_ref": 5,
+      "diffs_vs_mode3_ref": [
+        "G3:D",
+        "G5:A",
+        "G9:B",
+        "R2:A",
+        "R5:A"
+      ],
+      "mean_ratio_arbres": 0.718,
+      "median_table_ratio": 0.725,
+      "cvar20_127_tables": 0.5355,
+      "by_n": {
+        "3": 0.6833,
+        "4": 0.6912,
+        "5": 0.7306,
+        "6": 0.7601
+      },
+      "mirror_asymmetry": 0.0767,
+      "shannon_entropy": 0.8953,
+      "x_cognitive": 0.51,
+      "editorial_score": 0.6151,
+      "depth_passed": true,
+      "b0_b1_b2_b3": [
+        0.5695,
+        0.6608,
+        0.6991,
+        0.7863
+      ]
+    }
+  ],
+  "shapley_order2_highlights": {
+    "n_unique_genomes_fitted": 81,
+    "guided_mutations": 49,
+    "uniform_mutations": 23,
+    "guided_ratio_actual": 0.681,
+    "top_positive_profiles": [
+      {
+        "slot": "G7",
+        "profile": "B",
+        "shapley_phi": 0.04039,
+        "samples": 24
+      },
+      {
+        "slot": "G3",
+        "profile": "C",
+        "shapley_phi": 0.03672,
+        "samples": 30
+      },
+      {
+        "slot": "SLOT_BUG_CERVEAU",
+        "profile": "C",
+        "shapley_phi": 0.03254,
+        "samples": 29
+      },
+      {
+        "slot": "G12",
+        "profile": "B",
+        "shapley_phi": 0.02841,
+        "samples": 10
+      },
+      {
+        "slot": "G6",
+        "profile": "C",
+        "shapley_phi": 0.02743,
+        "samples": 37
+      },
+      {
+        "slot": "G14",
+        "profile": "B",
+        "shapley_phi": 0.02709,
+        "samples": 19
+      },
+      {
+        "slot": "M3",
+        "profile": "D",
+        "shapley_phi": 0.02658,
+        "samples": 19
+      },
+      {
+        "slot": "R7",
+        "profile": "C",
+        "shapley_phi": 0.0239,
+        "samples": 48
+      },
+      {
+        "slot": "R4",
+        "profile": "B",
+        "shapley_phi": 0.02372,
+        "samples": 15
+      },
+      {
+        "slot": "G11",
+        "profile": "A",
+        "shapley_phi": 0.02299,
+        "samples": 20
+      },
+      {
+        "slot": "M4",
+        "profile": "D",
+        "shapley_phi": 0.02071,
+        "samples": 18
+      },
+      {
+        "slot": "M2",
+        "profile": "C",
+        "shapley_phi": 0.01816,
+        "samples": 34
+      }
+    ],
+    "top_border_pair_synergies": [
+      {
+        "pair": "G11:C+R5:C",
+        "shapley_interaction_phi": -0.01986
+      },
+      {
+        "pair": "G11:C+R5:A",
+        "shapley_interaction_phi": 0.01628
+      },
+      {
+        "pair": "G11:B+R5:C",
+        "shapley_interaction_phi": 0.01585
+      },
+      {
+        "pair": "G3:C+G4:A",
+        "shapley_interaction_phi": 0.01534
+      },
+      {
+        "pair": "G3:C+G4:B",
+        "shapley_interaction_phi": -0.01534
+      },
+      {
+        "pair": "G11:B+R5:A",
+        "shapley_interaction_phi": -0.01473
+      },
+      {
+        "pair": "G5:B+G6:B",
+        "shapley_interaction_phi": 0.01427
+      },
+      {
+        "pair": "G13:A+M1:A",
+        "shapley_interaction_phi": 0.01366
+      },
+      {
+        "pair": "G13:B+M1:A",
+        "shapley_interaction_phi": -0.01366
+      },
+      {
+        "pair": "R10:D+M5:A",
+        "shapley_interaction_phi": -0.01357
+      }
+    ]
+  }
+}
