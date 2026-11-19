@@ -98,19 +98,19 @@
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
 
   <!-- ===================================================================== -->
-  <!-- BANDEAU SUPÉRIEUR PERSISTANT : IDENTITÉ, VERSION & CONFIGURATEUR      -->
+  <!-- BANDEAU SUPÉRIEUR : IDENTITÉ, VERSION, BILAN & CONFIGURATEUR          -->
   <!-- ===================================================================== -->
-  <header class="bg-forest-950 text-white shadow-xl sticky top-0 z-40 no-print border-b border-forest-800">
-    <div class="max-w-7xl mx-auto px-4 py-3">
+  <header class="bg-forest-950 text-white shadow-md no-print border-b border-forest-800">
+    <div id="header-collapsible-body" class="max-w-7xl mx-auto px-4 py-2.5">
       <!-- Ligne 1 : Titre, Version & Actions Globales -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-forest-800/80">
+      <div class="flex flex-wrap items-center justify-between gap-2.5 pb-2.5 border-b border-forest-800/80">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center font-serif font-bold text-xl shadow-inner border border-emerald-400/30">
+          <div class="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center font-serif font-bold text-lg shadow-inner border border-emerald-400/30">
             A
           </div>
           <div>
             <div class="flex items-center gap-2 flex-wrap">
-              <h1 class="font-bold text-lg tracking-tight text-white">AMAZONIA : DERNIER REMPART</h1>
+              <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">AMAZONIA : DERNIER REMPART</h1>
               <span class="px-2.5 py-0.5 text-xs font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 v5.4 · Source Unique
               </span>
@@ -143,31 +143,25 @@
             <span>⚙️ Configurer l'Instance (7 Axes & Peuples)</span>
             <span id="modified-axes-count" class="px-1.5 py-0.2 bg-emerald-950 text-emerald-200 rounded-full text-[11px] font-mono">0 écart</span>
           </button>
-		  <button onclick="copyContextForGemini(event)" id="btn-copy-gemini" title="Copie le châssis actif + les tuiles filtrées (ou les 2N tuiles en jeu) + l'extrait du bilan de simulation actif. Shift+Clic = Catalogue complet." class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/50 shadow">
+          <button onclick="copyContextForGemini(event)" id="btn-copy-gemini" title="Copie le châssis actif + les tuiles filtrées (ou les 2N tuiles en jeu) + l'extrait du bilan de simulation actif. Shift+Clic = Catalogue complet." class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition flex items-center gap-1.5 border border-indigo-400/50 shadow">
             <span>✨ Copier contexte Gemini</span>
           </button>
           <button onclick="window.print()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold transition border border-slate-600">
             🖨️ Imprimer Livret PDF
-			
           </button>
         </div>
       </div>
 
-      <!-- Ligne 2 : Résumé de l'instance active + Navigation Onglets -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pt-2.5">
-        <!-- Résumé synthétique de l'instance -->
+      <!-- Ligne 2 : Résumé de l'instance active -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
         <div class="flex items-center gap-2 flex-wrap text-xs">
           <span class="text-forest-300 font-medium">Instance active :</span>
           <select id="preset-bundle-select" onchange="applyPresetBundle(this.value)" class="bg-forest-900 text-emerald-200 font-semibold rounded-lg px-2.5 py-1 border border-forest-700 focus:outline-none">
             <option value="STANDARD_A">Socle Standard v5.4 (Profils A · P4_2233)</option>
             <option value="ESSAI_52_EMBUSCADE">Bundle : ESSAI_52_EMBUSCADE (15 subst. D)</option>
-            
             <option value="52_CAPYBARA_D">Module N=3 : 52_CAPYBARA (M–H–I · Embuscade D)</option>
-            
             <option value="52_HARPIE_D">Module N=3 : 52_HARPIE (H–O–I · Embuscade D)</option>
-            
             <option value="52_DENDROBATE_D">Module N=3 : 52_DENDROBATE (R–E–I · Embuscade D)</option>
-            
             <option value="52_PIERRE_D">Module N=3 : 52_PIERRE (H–R–I · Embuscade D)</option>
             <option value="52_ATELE_D">Module N=3 : 52_ATELE (M–O–I · Embuscade D)</option>
             <option value="CUSTOM">Configuration Personnalisée</option>
@@ -183,22 +177,6 @@
             Capital : 40 Arbres (P4_2233 · 10×4)
           </span>
         </div>
-
-        <!-- Barre d'onglets -->
-        <nav class="flex items-center gap-1 bg-forest-900/90 p-1 rounded-xl border border-forest-800">
-          <button onclick="switchTab('livret')" id="tab-btn-livret" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow">
-            📖 1. Livret Didactique (Joueurs)
-          </button>
-          <button onclick="switchTab('catalogue')" id="tab-btn-catalogue" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
-            🧩 2. Explorateur (100 Profils)
-          </button>
-          <button onclick="switchTab('changelog')" id="tab-btn-changelog" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
-            🔍 3. Évolutions & Arbitrages
-          </button>
-          <button onclick="switchTab('json')" id="tab-btn-json" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
-            💻 4. Spec & JSON (Simulateur)
-          </button>
-        </nav>
       </div>
 
       <!-- Ligne 3 : Sélecteur de Bilan Simulation (digests/index.json + import local file://) -->
@@ -221,7 +199,7 @@
         </div>
       </div>
 
-      <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DES 10 AXES & DU CERCLE DE TABLE -->
+      <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DES 7 AXES & DU CERCLE DE TABLE -->
       <div id="config-drawer" class="hidden mt-3 pt-3 border-t border-forest-700 bg-forest-900/95 rounded-xl p-4 shadow-2xl">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <!-- Colonne Gauche : Cercle des Peuples autour de la table -->
@@ -284,6 +262,31 @@
       </div>
     </div>
   </header>
+
+  <!-- BARRE D'ONGLETS COMPACTE ET PERSISTANTE (1 SEULE LIGNE) -->
+  <div class="bg-forest-950/95 backdrop-blur text-white shadow-lg sticky top-0 z-40 no-print border-b border-forest-800">
+    <div class="max-w-7xl mx-auto px-4 py-1.5 flex flex-wrap items-center justify-between gap-2">
+      <nav class="flex items-center gap-1 flex-wrap">
+        <button onclick="switchTab('livret')" id="tab-btn-livret" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow">
+          📖 1. Livret Didactique
+        </button>
+        <button onclick="switchTab('catalogue')" id="tab-btn-catalogue" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+          🧩 2. Explorateur (100 Profils)
+        </button>
+        <button onclick="switchTab('changelog')" id="tab-btn-changelog" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+          🔍 3. Évolutions & Arbitrages
+        </button>
+        <button onclick="switchTab('json')" id="tab-btn-json" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+          💻 4. Spec & JSON
+        </button>
+      </nav>
+      <div class="flex items-center gap-2 text-xs">
+        <button type="button" onclick="toggleHeaderCollapsed()" id="btn-toggle-header" title="Réduire ou déplier le bandeau supérieur" class="px-2.5 py-1 rounded-lg bg-forest-900 hover:bg-forest-800 text-forest-200 hover:text-white font-medium border border-forest-700 transition">
+          ▲ Réduire le bandeau
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Notification / Alerte de contrainte -->
   <div id="toast-notification" class="fixed bottom-5 right-5 z-50 hidden max-w-md bg-red-900 text-white px-4 py-3 rounded-xl shadow-2xl border border-red-500 text-xs flex items-start gap-3 no-print">
@@ -1926,6 +1929,29 @@
       });
     }
 
+    function applyHeaderCollapsedState(collapsed) {
+      const body = document.getElementById('header-collapsible-body');
+      const btn = document.getElementById('btn-toggle-header');
+      if (!body || !btn) return;
+      if (collapsed) {
+        body.classList.add('hidden');
+        btn.textContent = '▼ Afficher le bandeau';
+      } else {
+        body.classList.remove('hidden');
+        btn.textContent = '▲ Réduire le bandeau';
+      }
+    }
+
+    function toggleHeaderCollapsed() {
+      const body = document.getElementById('header-collapsible-body');
+      if (!body) return;
+      const nextCollapsed = !body.classList.contains('hidden');
+      applyHeaderCollapsedState(nextCollapsed);
+      try {
+        localStorage.setItem('amazonia_header_collapsed', nextCollapsed ? '1' : '0');
+      } catch (e) {}
+    }
+
     function refreshAllUI() {
       renderConfigHeaderAndDrawer();
       renderDidacticRulebook();
@@ -1936,6 +1962,11 @@
     }
 
     window.onload = function () {
+      try {
+        if (localStorage.getItem('amazonia_header_collapsed') === '1') {
+          applyHeaderCollapsedState(true);
+        }
+      } catch (e) {}
       refreshAllUI();
       loadDigestIndex();
     };
