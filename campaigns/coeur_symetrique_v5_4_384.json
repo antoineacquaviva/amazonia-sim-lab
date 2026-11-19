@@ -1,0 +1,42 @@
+{
+  "schema_version": "5.4",
+  "manifest_type": "campaign_plan",
+  "campaign_name": "coeur_symetrique_v5_4_384",
+  "target_path": "campaigns/coeur_symetrique_v5_4_384.json",
+  "description": "Exploration complète du cœur symétrique v5.4 (Mode 2, tuiles neutres, 384 châssis, 3 à 6 joueurs)",
+  "mode": 2,
+  "bot": "B2",
+  "k_max": 3,
+  "seed": 20261119,
+  "player_counts": [3, 4, 5, 6],
+  "games_per_configuration": 48,
+  "chassis_plan": {
+    "varying_axes": [
+      "Profil_Piste",
+      "Regle_Ouverture_Reve_Multiple",
+      "Offset_Seuil_Parade",
+      "Mise_En_Place_Tactiques",
+      "Placement_Initial_Machines",
+      "Role_Abatteuse_Fin_De_Piste",
+      "Synergie_Binome_Machines"
+    ],
+    "fixed_axes": {},
+    "chassis_combinations_count": 384
+  },
+  "slot_profile_comparisons": {},
+  "base_instance": {
+    "bundle_id": "STANDARD_A",
+    "peuples_cercle": [],
+    "slots_insectes": {
+      "SLOT_BUG_CERVEAU": "A",
+      "SLOT_COLONISATION_GARDIENS": "A"
+    }
+  },
+  "summary": {
+    "player_counts_count": 4,
+    "chassis_combinations_count": 384,
+    "profile_combinations_count": 1,
+    "total_configurations": 1536,
+    "total_games": 73728
+  }
+}
