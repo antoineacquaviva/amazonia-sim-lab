@@ -1290,7 +1290,7 @@ const CATALOGUE_TUILES = {
         ],
         "requires_options": {},
         "texte": "<em>(Câblage obligatoire sur 2. Piégeage)</em> À l’ouverture, vous pouvez retirer de la forêt 1 Piège non déclenché ce tour-ci pour faire avancer d’1 rang vers la gauche le Rêve le plus à gauche.",
-        "temoin": "Peut consommer le Piège tout juste posé en 4.1 pour amener un Rêve au Rang 1 (victoire vérifiée en fin de 5.3). Un Piège ayant déjà paré ce tour ne peut pas payer ce coût."
+        "temoin": "Peut consommer le Piège tout juste posé en 4.1 pour avancer le Rêve le plus à gauche (vers le bloc de Rêves en tête ; victoire vérifiée en fin de 5.3). Un Piège ayant déjà paré ce tour ne peut pas payer ce coût."
       }
     },
     "peuple_origine": "O"

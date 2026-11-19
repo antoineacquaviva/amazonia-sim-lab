@@ -12,8 +12,8 @@
       "source": "docs/data/spec_formelle_v5_4.json"
     },
     "amazonia_data_v5_4.js": {
-      "sha256": "35e3cfecfebe52ba806beeccfb9be491ff9e44e42b3ff6ab41ad2f98241551ef",
-      "bytes": 118273,
+      "sha256": "0a560455656517a9a754e820b241d00c783441ad7e856711fb59850999a97ddd",
+      "bytes": 118316,
       "source": "docs/data/amazonia_data_v5_4.js"
     }
   }

@@ -1,5 +1,5 @@
 // =========================================================================
-// data/livret_v5_3.js — Socle Humain & Synthèse IA (v5.4 consolidée · 25 arbitrages)
+// data/livret_v5_4.js — Socle Humain & Synthèse IA (v5.4 consolidée · 6 profils, Ratissage T1, Sommeil en bloc)
 // =========================================================================
 
 const REGLES_COEUR_SYNTHESE = {
@@ -13,7 +13,11 @@ const REGLES_COEUR_SYNTHESE = {
   "topologie_et_seuils_imprimes": {
     "roue": "N pistes Forêt (rayons p=1 bordure vers p=P_Max cœur) alternées avec N pistes Furtivité (lisières X<->Y portant 2 Tuiles de Synergie en bordure et 4 emplacements jumeaux par case Furtivité).",
     "P4_2233": "4 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 3, 3] (10xN arbres).",
+    "P4_2223": "4 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 2, 3] (9xN arbres).",
+    "P4_1223": "4 parcelles : arbres initiaux et Seuils Imprimés fixes [1, 2, 2, 3] (8xN arbres).",
     "P5_22233": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 2, 3, 3] (12xN arbres).",
+    "P5_22223": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [2, 2, 2, 2, 3] (11xN arbres).",
+    "P5_12223": "5 parcelles : arbres initiaux et Seuils Imprimés fixes [1, 2, 2, 2, 3] (10xN arbres).",
     "seuil_reveil_fixe": "Calculé une fois pour toutes à la mise en place : inactif si < 3 Gardiens dans la partie ; sinon min(N, gardiensEnJeu) avec plafond 5 à 6 joueurs (minimum 3). Un Gardien renvoyé en lisière perd son marqueur."
   },
   "sequence_tour_6_etapes": {
@@ -25,7 +29,7 @@ const REGLES_COEUR_SYNTHESE = {
     "4_2_nids": "Chaque Nid avec >=1 Défenseur est un bloc indivisible : (1) +1 Insecte (si 0-1 présent à cet instant) ou +2 (si >=2 présents à cet instant, y compris Cazadores), puis (2) pouvoir propre du Nid, puis (3) balayage Gardiens 1..6 (Déclencheur 6). Miel des Ancêtres hors phase = jetons Insecte seuls.",
     "4_3_migration": "Chaque Insecte sur la roue peut bouger de 0 ou 1 cran (retourner le pion déplacé pour suivi, remettre à l'endroit en fin de 4.3). Depuis la dernière parcelle non rasée, aller simple définitif sans limite vers une case 1..6 de Bug du Cerveau ou Colonisation des Gardiens.",
     "5_attaques_sans_verrouillage": "Zéro dette d'Insectes et zéro verrouillage des parcelles (seul un Piège déjà déclenché ce tour ne peut plus payer de coût volontaire). Ordre : Tactiques 1..6 puis Ratissages (Abatteuse avant Bulldozer sur un même rayon ; libre entre rayons distincts). Chaque machine résolue d'un seul tenant : cibles lues depuis sa position réelle à l'instant de l'attaque -> chaîne parades [1° Jaguar (2 bleus) -> 2° Harpie -> 3° Piège si Déf totale >= 1 -> 4° Parade classique avec défausse immédiate des Insectes manquants] -> dégâts (Abatteuse 2 Arbres ; Bulldozer 1 Arbre + toutes Souches, si 0/0 Route Forestière et repli machines vers bordure par défaut) -> avancée T3/T6 -> +1 Rouge T4/T5/T6 -> Ratissage définitif si dernière parcelle (face Ratissage : +1 puissance imprimée + T1 Sur place). Contact Machine-Nid (tout mouvement entrant) : Nid renvoyé en lisière reconstructible + tous Insectes de la parcelle défaussés. Fin 5.4 : effets fin d'attaques, retrait Pièges déclenchés, puis test Fin de Partie (Tour 8, Sommeil (toutes les tuiles Rêves en jeu en bloc à gauche), ou marqueurs Gardiens >= seuil fixe -> Repousse Finale directe sans Étape 6).",
-    "6_apprentissage": "6.1 Toute machine active ce tour-ci (activée par carte OU en Ratissage) rapporte à sa Tactique (T4 pour un Ratissage, uniquement si T4 est encore sur la piste) : +1/parcelle réellement endommagée (>=1 Arbre coupé ou Souche retirée) +1/Rouge acquis ce tour -1/Bleu présent (plancher 0/machine). Retraits tuiles volontaires AVANT Insectes Bug (Bug économisé si déjà 0). 6.2 Tactique strictement seule en tête avec >=1 jeton échange à gauche (si Écho des Voix Célestes amène son toutes les tuiles Rêves en jeu en bloc à gauche (rangs 1..k) -> Repousse Finale fin de tour). Remise à zéro de 100 % des jetons Apprentissage dans tous les cas. 6.3 Raz marqueurs Gardiens, retour Défenseurs, et remélange du paquet Machine (hors Ratissage) avec TOUTES les cartes Sabotage (révélées ce tour + nouvellement acquises)."
+    "6_apprentissage": "6.1 Toute machine active ce tour-ci (activée par carte OU en Ratissage) rapporte à sa Tactique (T1 pour un Ratissage, uniquement si T1 est encore sur la piste) : +1/parcelle réellement endommagée (>=1 Arbre coupé ou Souche retirée) +1/Rouge acquis ce tour -1/Bleu présent (plancher 0/machine). Retraits tuiles volontaires AVANT Insectes Bug (Bug économisé si déjà 0). 6.2 Tactique strictement seule en tête avec >=1 jeton échange à gauche (si Écho des Voix Célestes complète le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k) -> Repousse Finale fin de tour). Remise à zéro de 100 % des jetons Apprentissage dans tous les cas. 6.3 Raz marqueurs Gardiens, retour Défenseurs, et remélange du paquet Machine (hors Ratissage) avec TOUTES les cartes Sabotage (révélées ce tour + nouvellement acquises)."
   },
   "supports_et_grammaire": {
     "declencheurs_gardiens_6": "1: Parade, 2: Piégeage, 3: Sabotage, 4: Gardien (Résonance), 5: Rêve, 6: Insecte.",
@@ -55,6 +59,8 @@ function renderDidacticRulebook() {
   const gardiensDispoCount = activeTileIds.filter(id => CATALOGUE_TUILES[id].famille === 'GARDIEN').length;
   const reveilActif = gardiensDispoCount >= 3;
   const seuilReveil = reveilActif ? Math.min(n === 6 ? 5 : n, gardiensDispoCount) : null;
+  const nbPeuplesOniriques = state.peuplesCercle.filter(p => p === "H" || p === "E").length;
+  const nbRevesEnJeu = 2 * nbPeuplesOniriques;
   const hasR6C = activeTileIds.includes('R6') && state.profileOverrides['R6'] === 'C';
 
   const container = document.getElementById('rulebook-article');
@@ -75,7 +81,7 @@ function renderDidacticRulebook() {
         </div>
         <div class="bg-forest-50 border border-forest-200 rounded-xl p-3 text-xs font-mono text-forest-900">
           <div><strong>Version :</strong> v5.4 (Audit consolidé)</div>
-          <div><strong>Châssis :</strong> #${configNum} / 128</div>
+          <div><strong>Châssis :</strong> #${configNum} / 384</div>
           <div><strong>Bundle :</strong> ${state.bundleId}</div>
           <div><strong>Pièges :</strong> Embuscade (Déf ≥ 1)</div>
         </div>
@@ -119,12 +125,12 @@ function renderDidacticRulebook() {
           Un But Unique : Arrêter le Chantier et Sauver les Arbres
         </h3>
         <p class="text-sm text-slate-700 mb-2">
-          L'objectif de l'équipe est de <strong>maximiser le nombre total d'Arbres debout après la Repousse Finale</strong> (sur <span class="dyn-span">${totalArbres} Arbres initiaux</span>). La <strong>vérification de fin de partie a lieu à la fin des attaques (fin de 5.4)</strong> : si l'une des conditions ci-dessous est remplie, sautez l'Étape 6 et passez directement à la Repousse Finale <em>(exception unique : si L'Écho des Voix Célestes amène son Sommeil en bloc (tous les Rêves en tête) en fin d'Apprentissage 6.2, la Repousse Finale se déclenche aussitôt à la fin de ce tour)</em> :
+          L'objectif de l'équipe est de <strong>maximiser le nombre total d'Arbres debout après la Repousse Finale</strong> (sur <span class="dyn-span">${totalArbres} Arbres initiaux</span>). La <strong>vérification de fin de partie a lieu à la fin des attaques (fin de 5.4)</strong> : si l'une des conditions ci-dessous est remplie, sautez l'Étape 6 et passez directement à la Repousse Finale <em>(exception unique : si L'Écho des Voix Célestes complète le bloc de tous les Rêves en tête en fin d'Apprentissage 6.2, la Repousse Finale se déclenche aussitôt à la fin de ce tour)</em> :
         </p>
         <ol class="list-decimal list-inside text-sm space-y-1 text-slate-800 font-medium">
           <li><strong>Fin du contrat :</strong> À la fin des attaques du 8<sup>e</sup> tour de jeu.</li>
           <li><strong>Réveil de la Forêt :</strong> <span class="dyn-span">${reveilActif ? `Au moins <strong>${seuilReveil} Gardiens</strong> présents sur la piste portent leur marqueur « utilisé » en fin de 5.4 <em>(seuil fixe calculé à la mise en place ; un Gardien renvoyé en lisière perd son marqueur)</em>.` : `<em>Condition inactive dans cette partie (moins de 3 tuiles Gardien autour de la table).</em>`}</span></li>
-          <li><strong>Sommeil du Contremaître :</strong> Une tuile Rêve occupe le <strong>Rang 1</strong> (tout à gauche) de la Piste des Tactiques.</li>
+          <li><strong>Sommeil du Contremaître :</strong> <span class="dyn-span">${nbRevesEnJeu > 0 ? `Toutes les <strong>${nbRevesEnJeu} tuiles Rêve</strong> en jeu <em>(2 par peuple onirique à la table)</em> occupent en bloc les <strong>${nbRevesEnJeu} premières positions</strong> (Rangs 1 à ${nbRevesEnJeu}, tout à gauche) de la Piste des Tactiques.` : `<em>Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table).</em>`}</span></li>
         </ol>
       </div>
     </section>
@@ -379,7 +385,7 @@ function renderDidacticRulebook() {
         </h3>
         <ol class="list-decimal list-inside text-sm space-y-1.5">
           <li>
-            <strong>6.1. Décompte (cartes Machine + machines en Ratissage sur <code>T4</code>) :</strong> Chaque machine active ce tour-ci rapporte à la tuile Tactique qu'elle a exécutée (<code>T4</code> pour une machine en Ratissage, si <code>T4</code> figure encore sur la piste) : <strong>+1</strong> par parcelle où elle a <strong>effectivement coupé au moins 1 Arbre ou retiré au moins 1 Souche</strong>, <strong>+1</strong> par jeton Rouge acquis ce tour, <strong>−1</strong> par jeton Bleu <em>Surchauffe</em> qu'elle porte (minimum 0 par machine). Appliquez ensuite les <strong>retraits volontaires de tuiles avant les Insectes Bug</strong> <em>(un Bug sur une case déjà à 0 jeton n'est pas défaussé)</em>.
+            <strong>6.1. Décompte (cartes Machine + machines en Ratissage sur <code>T1</code>) :</strong> Chaque machine active ce tour-ci rapporte à la tuile Tactique qu'elle a exécutée (<code>T1</code> pour une machine en Ratissage, si <code>T1</code> figure encore sur la piste) : <strong>+1</strong> par parcelle où elle a <strong>effectivement coupé au moins 1 Arbre ou retiré au moins 1 Souche</strong>, <strong>+1</strong> par jeton Rouge acquis ce tour, <strong>−1</strong> par jeton Bleu <em>Surchauffe</em> qu'elle porte (minimum 0 par machine). Appliquez ensuite les <strong>retraits volontaires de tuiles avant les Insectes Bug</strong> <em>(un Bug sur une case déjà à 0 jeton n'est pas défaussé)</em>.
           </li>
           <li>
             <strong>6.2. Avancée & Remise à zéro totale :</strong> La Tactique <strong>strictement seule en tête avec au moins 1 jeton</strong> échange sa place avec sa voisine de gauche (<code>r → r−1</code>, y compris un Rêve qui recule alors à droite ; immobile au Rang 1). <strong>Dans 100 % des cas</strong> (avancée, égalité ou blocage), remettez en réserve <strong>tous les jetons Apprentissage de toutes les tuiles</strong>.
@@ -412,7 +418,7 @@ function renderDidacticRulebook() {
             Entrée en <strong>case 6</strong> en éjectant la Tactique la plus à droite (seules les tuiles à droite du trou glissent à gauche).
           </p>
           <p class="text-slate-700">
-            Gouverné par son <em>Peuple d'origine</em>. S'ouvre sur un double aux dés ou un dé <code>M</code> tombant sur son rang (ce qui annule la machine) et avance vers le Rang 1.
+            Gouverné par son <em>Peuple d'origine</em>. S'ouvre sur un double aux dés ou un dé <code>M</code> tombant sur son rang (ce qui annule la machine) et avance vers la tête de la Piste des Tactiques (pour y regrouper en bloc tous les Rêves en jeu).
           </p>
         </div>
         <div class="p-4 rounded-xl bg-lime-50/70 border border-lime-200">
