@@ -656,6 +656,41 @@ def score_target_b2(
 # ---------------------------------------------------------------------------
 
 
+_MACHINE_PAIR_EFFECT_KINDS: frozenset[str] = frozenset(
+    {
+        "MACHINE_SURCHAUFFE",
+        "MACHINE_RECUL",
+        "MOD_SEUIL_MACHINE",
+        "REMOVE_RED_R_H",
+        "PIERRE_SERPENT_SURCHAUFFE",
+        "MACHINE_RECUL_EM",
+        "SCALING_INSECTES_SEUIL",
+        "M2_SURCHAUFFE_VOISINE",
+    }
+)
+
+_PARCEL_PAIR_EFFECT_KINDS: frozenset[str] = frozenset(
+    {
+        "MOD_SEUIL_PARCELLE",
+        "PIEGE_SOUCHE",
+        "PIEGE_HABITE_G7D",
+        "CONVERSION_INSECTE_SABOTAGE_G10C",
+        "SENTINELLE_EMBUSCADE_G10D",
+        "HARPIE_MOD_SEUIL_F1",
+        "HARPIE_AUTO_PARADE_F2",
+        "CONVERSION_PIEGE_REVE_G12C",
+        "SECONDE_RIVE_PIEGE_HR",
+        "PIEGE_CIBLE_VIDE_HO",
+        "INSECTE_SUR_PIEGE_HO",
+        "POSE_INSECTE_HI",
+        "PIEGE_ER_3_2",
+        "M1_DEPLACER_DEFENSEUR",
+    }
+)
+
+_TACTIQUE_DANGER: dict[int, float] = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
+
+
 def _score_effect_option(
     obs: PlayerObservation,
     cfg: GameConfig,
@@ -665,7 +700,12 @@ def _score_effect_option(
     *,
     is_b2: bool,
 ) -> float:
-    """Évalue génériquement une option de `DEC_EFFET_TUILE` (Lot 01..10) sur `PlayerObservation`."""
+    """Évalue génériquement une option de `DEC_EFFET_TUILE` (Lot 01..10) sur `PlayerObservation`.
+
+    Le dispatch est strictement gouverné par `effect_kind` afin d'éviter toute collision
+    entre tuples d'entiers de sémantiques distinctes (ex. `(seat, +1)` de `SHIFT_LECTURE_M`
+    vs `(ray, p)` d'une parcelle ou `(ray, m_type)` d'une machine).
+    """
     slot_id = str(decision.context.get("slot_id", ""))
     kind_hint = str(decision.context.get("effect_kind", ""))
 
@@ -675,64 +715,17 @@ def _score_effect_option(
             g_used = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0 and g.used_this_turn)
             near_reveil = obs.seuil_reveil >= 3 and g_used >= obs.seuil_reveil - 1
             return 520.0 if near_reveil else 240.0
+        if kind_hint == "OFFRANDE_GARDIEN_AVANCEE_REVE":
+            return 180.0
         return 25.0
 
-    # 1. Machine `(ray, m_type)` (ex: G1:A Surchauffe, G1:B -2 Seuil, G2:A Recul, G9:B -1 Rouge)
+    # 1. Décalage lecture dé M `(seat, delta_m)` (ex: G6:A) — dispatch explicite AVANT tout barème parcelle
     if (
-        isinstance(opt, tuple)
+        kind_hint == "SHIFT_LECTURE_M"
+        and isinstance(opt, tuple)
         and len(opt) == 2
         and isinstance(opt[0], int)
         and isinstance(opt[1], int)
-        and kind_hint
-        in ("MACHINE_SURCHAUFFE", "MACHINE_RECUL", "MOD_SEUIL_MACHINE", "REMOVE_RED_R_H")
-    ):
-        rm, mt = int(opt[0]), int(opt[1])
-        m_obs = obs.machines[rm * 2 + mt]
-        sc = 150.0 + m_obs.position * 45.0 + (m_obs.rouges + m_obs.bleus) * 45.0
-        if mt == MACHINE_BULLDOZER:
-            sc += 30.0
-        if is_b2 and kind_hint == "MACHINE_SURCHAUFFE" and obs.tour <= 6:
-            sc += 40.0  # -1 Apprentissage durable en 6.1 !
-        return sc
-
-    # 2. Parcelle `(ray, p)` (ex: G4:A -1 Seuil, G5:A Matamata, G7:A Souche ou G7:D Habité)
-    if (
-        isinstance(opt, tuple)
-        and len(opt) == 2
-        and isinstance(opt[0], int)
-        and isinstance(opt[1], int)
-        and 0 <= opt[0] < obs.n_players
-        and 1 <= opt[1] <= cfg.p_max
-    ):
-        r_p, p_p = int(opt[0]), int(opt[1])
-        idx = r_p * MAX_P + (p_p - 1)
-        s_prob = belief.parcel_strike_prob[idx]
-        defs = obs.parcel_defenseurs(r_p, p_p) + obs.parcel_insectes(r_p, p_p)
-        sc = 120.0 + s_prob * 300.0 + p_p * 15.0
-        if kind_hint in ("PIEGE_SOUCHE", "PIEGE_HABITE_G7D") and defs >= 1:
-            sc += 220.0  # Embuscade immédiatement armée !
-        elif kind_hint == "MOD_SEUIL_PARCELLE" and 0 < defs < belief.parcel_expected_seuil[idx]:
-            sc += 200.0
-        elif kind_hint in ("HARPIE_MOD_SEUIL_F1", "HARPIE_AUTO_PARADE_F2"):
-            if obs.parcel_defenseurs(r_p, p_p) >= 2:
-                sc += 240.0
-        elif kind_hint == "SENTINELLE_EMBUSCADE_G10D":
-            # Armer en priorité une parcelle piégée encore désarmée (0 Défenseur, 0 Insecte)
-            sc += 280.0 if defs == 0 else 60.0
-        elif kind_hint == "CONVERSION_INSECTE_SABOTAGE_G10C":
-            # Sacrifier un Insecte là où la frappe est improbable ou déjà couverte
-            sc = 210.0 - s_prob * 180.0 + (45.0 if defs >= 2 else 0.0)
-        elif kind_hint == "CONVERSION_PIEGE_REVE_G12C":
-            reve_r = int(decision.context.get("reve_rank", 2))
-            win_bonus = 600.0 if reve_r == 1 else 240.0
-            sc = 150.0 + win_bonus - s_prob * 160.0
-        return sc
-
-    # 3. Décalage lecture dé M `(seat, delta_m)` (ex: G6:A)
-    if (
-        isinstance(opt, tuple)
-        and len(opt) == 2
-        and kind_hint == "SHIFT_LECTURE_M"
     ):
         s_id, d_m = int(opt[0]), int(opt[1])
         h = obs.hand_of(s_id)
@@ -751,31 +744,140 @@ def _score_effect_option(
             return -200.0
         if is_tactique_code(old_code) and is_tactique_code(new_code):
             # Préférer T1/T2 (douces) à T6/T3/T4/T5 (violentes)
-            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
-            return 150.0 + (danger_t[old_code] - danger_t[new_code]) * 4.0
+            return 150.0 + (_TACTIQUE_DANGER[old_code] - _TACTIQUE_DANGER[new_code]) * 4.0
         return 80.0
 
-    # 4. Déplacement d'un Défenseur `(src_spec, (dst_r, dst_p))` (ex: G3:A/C/D, G4:A)
+    # 2. Machine `(ray, m_type)` (G1:A/B, G2:A, G9:B, R4:A, R7:A, R10:A, M2:A)
+    if (
+        kind_hint in _MACHINE_PAIR_EFFECT_KINDS
+        and isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+    ):
+        rm, mt = int(opt[0]), int(opt[1])
+        m_obs = obs.machines[rm * 2 + mt]
+        sc = 150.0 + m_obs.position * 45.0 + (m_obs.rouges + m_obs.bleus) * 45.0
+        if mt == MACHINE_BULLDOZER:
+            sc += 30.0
+        if (
+            is_b2
+            and kind_hint
+            in ("MACHINE_SURCHAUFFE", "PIERRE_SERPENT_SURCHAUFFE", "M2_SURCHAUFFE_VOISINE")
+            and obs.tour <= 6
+        ):
+            sc += 40.0  # -1 Apprentissage durable en 6.1 !
+        return sc
+
+    # 2b. Échange de deux tuiles Tactique adjacentes `(rank_a, rank_b)` (R1:A)
+    if (
+        kind_hint == "TAMBOUR_SWAP_TACTIQUES"
+        and isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+    ):
+        ra, rb = int(opt[0]), int(opt[1])
+        ca, _, app_a = obs.tactique_code_bugs_app(ra)
+        cb, _, app_b = obs.tactique_code_bugs_app(rb)
+        da = _TACTIQUE_DANGER.get(ca, 40.0)
+        db = _TACTIQUE_DANGER.get(cb, 40.0)
+        # Préférer placer la Tactique la plus douce vers les petits rangs (ra < rb) et éloigner la plus violente
+        return 140.0 + (da - db) * 2.5 + (app_b - app_a) * 15.0
+
+    # 2c. Offrande d'un Gardien `(case_1_6, total_steps)` (R1:C)
+    if (
+        kind_hint == "OFFRANDE_GARDIEN_AVANCEE_REVE"
+        and isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+    ):
+        case_g, total_steps = int(opt[0]), int(opt[1])
+        cur_rank = int(decision.context.get("current_rank", 4))
+        if total_steps < 2:
+            # Ne rien gagner au-delà de l'avancée gratuite : toujours inférieur à PASSER (180.0)
+            return 20.0
+        # Avancée supplémentaire de +1 rang : jackpot si le Rêve atteint le Rang 1 (victoire !)
+        win_bonus = 620.0 if cur_rank <= 3 else (260.0 if cur_rank == 4 else 140.0)
+        used_bonus = 45.0 if not obs.gardien_available_at_case(case_g) else 0.0
+        return win_bonus + used_bonus - (7 - case_g) * 8.0
+
+    # 2d. Convoi 5.3 `(src_p, dst_p)` sur un rayon fixé (M4:D)
+    if (
+        kind_hint == "M4_CONVOI_5_3"
+        and isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+    ):
+        nid_r = int(decision.context.get("ray", 0))
+        sp, dp = int(opt[0]), int(opt[1])
+        dst_idx = nid_r * MAX_P + (dp - 1)
+        dst_defs = obs.parcel_defenseurs(nid_r, dp) + obs.parcel_insectes(nid_r, dp)
+        return 150.0 + belief.parcel_strike_prob[dst_idx] * 240.0 + (120.0 if dst_defs >= 1 else 0.0) + (dp - sp) * 20.0
+
+    # 3. Parcelle `(ray, p)` — restreint aux effect_kinds parcellaires (ou hint vide défensif)
+    if (
+        (kind_hint in _PARCEL_PAIR_EFFECT_KINDS or kind_hint == "")
+        and isinstance(opt, tuple)
+        and len(opt) == 2
+        and isinstance(opt[0], int)
+        and isinstance(opt[1], int)
+        and 0 <= opt[0] < obs.n_players
+        and 1 <= opt[1] <= cfg.p_max
+    ):
+        r_p, p_p = int(opt[0]), int(opt[1])
+        idx = r_p * MAX_P + (p_p - 1)
+        s_prob = belief.parcel_strike_prob[idx]
+        defs = obs.parcel_defenseurs(r_p, p_p) + obs.parcel_insectes(r_p, p_p)
+        sc = 120.0 + s_prob * 300.0 + p_p * 15.0
+        if kind_hint in ("PIEGE_SOUCHE", "PIEGE_HABITE_G7D", "SECONDE_RIVE_PIEGE_HR", "PIEGE_ER_3_2") and defs >= 1:
+            sc += 220.0  # Embuscade immédiatement armée !
+        elif kind_hint == "MOD_SEUIL_PARCELLE" and 0 < defs < belief.parcel_expected_seuil[idx]:
+            sc += 200.0
+        elif kind_hint in ("HARPIE_MOD_SEUIL_F1", "HARPIE_AUTO_PARADE_F2"):
+            if obs.parcel_defenseurs(r_p, p_p) >= 2:
+                sc += 240.0
+        elif kind_hint in ("SENTINELLE_EMBUSCADE_G10D", "INSECTE_SUR_PIEGE_HO"):
+            # Armer en priorité une parcelle piégée encore désarmée (0 Défenseur, 0 Insecte)
+            sc += 280.0 if defs == 0 else 60.0
+        elif kind_hint == "CONVERSION_INSECTE_SABOTAGE_G10C":
+            # Sacrifier un Insecte là où la frappe est improbable ou déjà couverte
+            sc = 210.0 - s_prob * 180.0 + (45.0 if defs >= 2 else 0.0)
+        elif kind_hint == "CONVERSION_PIEGE_REVE_G12C":
+            reve_r = int(decision.context.get("reve_rank", 2))
+            win_bonus = 600.0 if reve_r == 1 else 240.0
+            sc = 150.0 + win_bonus - s_prob * 160.0
+        return sc
+
+    # 4. Déplacement d'un Défenseur `(src_spec, (dst_r, dst_p))` (G3:A/C/D, G4:A, R3:A, R8:D, M3:A)
     if isinstance(opt, tuple) and len(opt) == 2 and isinstance(opt[1], tuple) and len(opt[1]) == 2:
         src_spec, (dst_r, dst_p) = opt
         dr, dp = int(dst_r), int(dst_p)
         dst_idx = dr * MAX_P + (dp - 1)
         dst_gain = score_target_b2(obs, cfg, belief, ("FORET", dr, dp), False)
         src_loss = 80.0
-        if isinstance(src_spec, tuple) and len(src_spec) >= 3 and src_spec[0] == "FORET":
-            sr, sp = int(src_spec[1]), int(src_spec[2])
-            src_idx = sr * MAX_P + (sp - 1)
-            src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
+        if isinstance(src_spec, tuple):
+            if len(src_spec) >= 3 and src_spec[0] == "FORET":
+                sr, sp = int(src_spec[1]), int(src_spec[2])
+                src_idx = sr * MAX_P + (sp - 1)
+                src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
+            elif len(src_spec) == 2 and isinstance(src_spec[0], int) and isinstance(src_spec[1], int):
+                sr, sp = int(src_spec[0]), int(src_spec[1])
+                if 0 <= sr < obs.n_players and 1 <= sp <= cfg.p_max:
+                    src_idx = sr * MAX_P + (sp - 1)
+                    src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
         return dst_gain - src_loss + belief.parcel_strike_prob[dst_idx] * 90.0
 
-    # 5. Déplacement groupé d'Insectes `(r, src_p, dst_p)` (ex: G2:C)
+    # 5. Déplacement groupé d'Insectes `(r, src_p, dst_p)` (ex: G2:C, R10:D)
     if (
         isinstance(opt, tuple)
         and len(opt) == 3
         and isinstance(opt[0], int)
         and isinstance(opt[1], int)
         and isinstance(opt[2], int)
-        and kind_hint == "MOVE_ALL_INSECTES"
+        and kind_hint in ("MOVE_ALL_INSECTES", "PIEGE_ET_REDEPLOIEMENT_INSECTE")
     ):
         r_i, src_p, dst_p = opt
         src_idx = r_i * MAX_P + (src_p - 1)
@@ -821,7 +923,7 @@ def _score_effect_option(
         void_bonus = 180.0 if (d_dir == -1 and p_pos == 1) else (45.0 if d_dir == -1 else 0.0)
         return 140.0 + active_w * 320.0 + void_bonus + (25.0 if mt_b == MACHINE_BULLDOZER else 0.0)
 
-    # 6. Choix en 1.3 de retenir max(D1, D2) derrière paravent (G6:B)
+    # 6. Choix en 1.3 de retenir max(D1, D2) derrière paravent (G6:B, R5:B)
     if opt == "RETENIR_MAX" and kind_hint == "CHOIX_DE_M_1_3":
         min_m = int(decision.context.get("min_m", 1))
         max_m = int(decision.context.get("max_m", 1))
@@ -832,8 +934,7 @@ def _score_effect_option(
         if is_reve_code(old_c) and not is_reve_code(new_c):
             return 10.0
         if is_tactique_code(old_c) and is_tactique_code(new_c):
-            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
-            return 85.0 + (danger_t[old_c] - danger_t[new_c]) * 3.5
+            return 85.0 + (_TACTIQUE_DANGER[old_c] - _TACTIQUE_DANGER[new_c]) * 3.5
         return 70.0
 
     # 6b. Choix 4.1 entre PIEGE sous machine (G7:B) et SABOTAGE
@@ -932,14 +1033,26 @@ def _score_effect_option(
             + (belief.parcel_strike_prob[dst_idx] - belief.parcel_strike_prob[src_idx]) * 220.0
         )
 
-    # 6j. Le ventre plein Face 1 / Face 2 `p` sur le rayon des Reptiles (G14:C)
-    if isinstance(opt, int) and kind_hint in ("VENTRE_PLEIN_NOURRIR_F1", "VENTRE_PLEIN_PIEGE_F2"):
-        r_rep = int(decision.context.get("ray", 0))
+    # 6j. Profondeur `p` sur un rayon connu (G14:C, M1:C, M1:D, G13:B)
+    if isinstance(opt, int) and kind_hint in (
+        "VENTRE_PLEIN_NOURRIR_F1",
+        "VENTRE_PLEIN_PIEGE_F2",
+        "M1_DEPLACER_INSECTE_RAYON",
+        "M1_SENTINELLES_PIEGES",
+        "BRECHE_TAMANOIR_HYBRIDE_3_1",
+    ):
+        r_rep = int(decision.context.get("ray", decision.context.get("lisiere", 0)))
         p_rep = int(opt)
         idx_rep = r_rep * MAX_P + (p_rep - 1)
         defs_rep = obs.parcel_defenseurs(r_rep, p_rep) + obs.parcel_insectes(r_rep, p_rep)
         if kind_hint == "VENTRE_PLEIN_NOURRIR_F1":
             return 220.0 - belief.parcel_strike_prob[idx_rep] * 150.0 + (45.0 if defs_rep >= 2 else 0.0)
+        if kind_hint == "M1_SENTINELLES_PIEGES":
+            return 180.0 + belief.parcel_strike_prob[idx_rep] * 240.0 + (260.0 if defs_rep == 0 else 40.0)
+        if kind_hint == "M1_DEPLACER_INSECTE_RAYON":
+            return 150.0 + belief.parcel_strike_prob[idx_rep] * 260.0 + (120.0 if obs.parcel_piege(r_rep, p_rep) == PIEGE_ACTIF and defs_rep == 0 else 0.0)
+        if kind_hint == "BRECHE_TAMANOIR_HYBRIDE_3_1":
+            return 160.0 - p_rep * 10.0
         return 210.0 + belief.parcel_strike_prob[idx_rep] * 270.0 + (180.0 if defs_rep >= 1 else 0.0)
 
     # 6k. Envol du Batará Suiveur `(loc, idx_a, p, track, case_1_6)` (G15:A)
@@ -980,12 +1093,53 @@ def _score_effect_option(
         if is_reve_code(old_c) and not is_reve_code(new_c):
             return -200.0
         if is_tactique_code(old_c) and is_tactique_code(new_c):
-            danger_t = {1: 10.0, 2: 12.0, 4: 45.0, 5: 48.0, 3: 70.0, 6: 95.0}
-            return 35.0 + (danger_t[old_c] - danger_t[new_c]) * 4.0
+            return 35.0 + (_TACTIQUE_DANGER[old_c] - _TACTIQUE_DANGER[new_c]) * 4.0
         return 20.0
 
-    # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A)
-    if isinstance(opt, int) and 1 <= opt <= 6:
+    # 6m. Double avancée de Rêve `1 | 2` (R1:B)
+    if isinstance(opt, int) and kind_hint == "REVE_DOUBLE_AVANCEE":
+        cur_rank = int(decision.context.get("current_rank", 4))
+        if opt >= 2:
+            return 720.0 if cur_rank <= 3 else 420.0
+        return 120.0
+
+    # 6n. Retrait d'Apprentissage en 6.1 `rank_idx` (R2:A)
+    if isinstance(opt, int) and kind_hint == "VOILE_OUBLI_RETRAIT_6_1":
+        t_code, _, app_c = obs.tactique_code_bugs_app(opt)
+        return 180.0 + app_c * 65.0 + _TACTIQUE_DANGER.get(t_code, 30.0) + (6 - opt) * 12.0
+
+    # 6o. Activation d'un Nid `m_num` en 3.2 (R6:B)
+    if isinstance(opt, int) and kind_hint == "ACTIVER_NID_INSECTES_3_2":
+        foret_obs = obs.foret
+        for r_n in range(obs.n_players):
+            row_n = foret_obs[r_n]
+            for p_n in range(1, cfg.p_max + 1):
+                if row_n[p_n - 1].nid_id == opt:
+                    idx_n = r_n * MAX_P + (p_n - 1)
+                    return 160.0 + belief.parcel_strike_prob[idx_n] * 240.0 + obs.parcel_insectes(r_n, p_n) * 35.0
+        return 150.0
+
+    # 6p. Choix de machine `m_type` sur rayon cible (R8:D SURCHAUFFE_CIBLE_DESTINATION)
+    if isinstance(opt, int) and kind_hint == "SURCHAUFFE_CIBLE_DESTINATION":
+        dr = int(decision.context.get("ray", 0))
+        m_obs = obs.machines[dr * 2 + opt]
+        return 160.0 + m_obs.position * 45.0 + (m_obs.rouges + m_obs.bleus) * 45.0 + (30.0 if opt == MACHINE_BULLDOZER else 0.0)
+
+    # 6q. Réduction de Seuil -2 sur tout un rayon `ray` (R9:A)
+    if isinstance(opt, int) and kind_hint == "MOD_SEUIL_RAYON_MOINS_2":
+        ray_threat = sum(
+            belief.parcel_strike_prob[opt * MAX_P + (p_r - 1)]
+            * (1.0 + 0.35 * (obs.parcel_defenseurs(opt, p_r) + obs.parcel_insectes(opt, p_r)))
+            for p_r in range(1, cfg.p_max + 1)
+        )
+        m_threat = 0.0
+        for m_obj in obs.machines:
+            if m_obj.ray == opt and m_obj.status != MACHINE_STATUS_RETIRED and m_obj.position > 0:
+                m_threat += 15.0 + 18.0 * m_obj.rouges + (45.0 if m_obj.status == MACHINE_STATUS_SIEGE else 0.0)
+        return 120.0 + ray_threat * 240.0 + m_threat
+
+    # 7. Choix d'une case Gardien 1..6 à ouvrir (ex: R5:A) — explicitement gardé par effect_kind
+    if isinstance(opt, int) and kind_hint in ("OPEN_GARDIEN", "") and 1 <= opt <= 6:
         if is_b2:
             _, trig_vals = _compute_b2_resource_and_trigger_values(obs, cfg, belief)
             return 200.0 + trig_vals[opt - 1] * 2.0
