@@ -1,0 +1,286 @@
+Dossier de simulation Amazonia : Dernier Rempart — utilise les règles cœur et statistiques ci-dessous comme unique vérité terrain.
+
+```json
+{
+  "campaign": "micro_validation",
+  "generated_at_utc": "2026-11-19T07:22:44Z",
+  "active_core_rules": {
+    "version": "5.3.1",
+    "source_studio_version": "v5.3",
+    "studio_sha256": {
+      "catalog_v5_3.json": "8f9ef62b478ccef35ca3b850d647d9e125b60834f1b8e1bbdcd92cc197d76c09",
+      "spec_formelle_v5_3.json": "cd264fcf967df6f9bf61a4a8ef39b64be5576be2111d73a811afd5e1753602b6"
+    },
+    "chassis_7_axes": [
+      {
+        "chassis_id": 0,
+        "p_max": 4,
+        "regle_ouverture_reve_multiple": "UNIQUE_PAR_TOUR",
+        "offset_seuil_parade": 0,
+        "mise_en_place_tactiques": "ORDRE_FIXE_T1_T6",
+        "declenchement_fin_de_piste": "ARRIVEE_DERNIERE_PARCELLE",
+        "role_abatteuse_fin_de_piste": "STANDARD_COUPE_ARBRE",
+        "synergie_binome_machines": "INDIVIDUELLE"
+      }
+    ],
+    "tactiques": [
+      {
+        "id": "T1",
+        "nom": "Sur place",
+        "cibles": [
+          "SUR_PLACE"
+        ],
+        "avancee": 0,
+        "gain_rouge": 0,
+        "mod_seuil": 0,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T2",
+        "nom": "Devant",
+        "cibles": [
+          "DEVANT"
+        ],
+        "avancee": 0,
+        "gain_rouge": 0,
+        "mod_seuil": 0,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T3",
+        "nom": "En avançant",
+        "cibles": [
+          "SUR_PLACE",
+          "DEVANT"
+        ],
+        "avancee": 1,
+        "gain_rouge": 0,
+        "mod_seuil": -1,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T4",
+        "nom": "Sur place +",
+        "cibles": [
+          "SUR_PLACE"
+        ],
+        "avancee": 0,
+        "gain_rouge": 1,
+        "mod_seuil": -1,
+        "est_siege_profil": true
+      },
+      {
+        "id": "T5",
+        "nom": "Devant +",
+        "cibles": [
+          "DEVANT"
+        ],
+        "avancee": 0,
+        "gain_rouge": 1,
+        "mod_seuil": -1,
+        "est_siege_profil": false
+      },
+      {
+        "id": "T6",
+        "nom": "En avançant +",
+        "cibles": [
+          "SUR_PLACE",
+          "DEVANT"
+        ],
+        "avancee": 1,
+        "gain_rouge": 1,
+        "mod_seuil": -2,
+        "est_siege_profil": false
+      }
+    ],
+    "machine_damage_rules": {
+      "ABATTEUSE": {
+        "arbres_coupes_max": 2,
+        "souches_retirees": 0,
+        "arrache_1_souche_si_sans_arbre_en_siege_option": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
+      },
+      "BULLDOZER": {
+        "arbres_coupes_max": 1,
+        "retire_toutes_souches_non_protegees": true,
+        "test_parade_unique": true
+      },
+      "siege_t4": {
+        "autonomie_attaque_si_t4_ejectee": true,
+        "apprentissage_sur_t4_si_presente": true
+      }
+    },
+    "machine_deck_rules": {
+      "cartes_machine_par_rayon": 2,
+      "types_par_rayon": [
+        "ABATTEUSE",
+        "BULLDOZER"
+      ],
+      "total_initial_formula": "2 * N",
+      "sabotage_dilution_permanente": true,
+      "sabotage_effet_propre": null,
+      "sabotage_perd_activation_et_pas_de_des": true,
+      "remelange_etape": "6.3",
+      "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout"
+    },
+    "spec_formelle": {
+      "schema_version": "5.3.1-audit",
+      "etapes_1_a_6": {
+        "etape_1_PREPARATION_POSE_FURTIVITE": "Distribution, Dés secrets et Pose des Défenseurs : Lecture épurée des dés sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Si le rang M porte un Rêve en 3.2, la machine est annulée et le Rêve s’ouvre. Communication muette : silence tactique sous paravent fermé ; simple visibilité publique sans concertation orale sous l'Ara.",
+        "etape_2_REVELATION_DES_REVES_FURTIVITE": "Ouverture des Paravents, Rêves, Dés et Furtivité : Rêve sur dé Machine : annule l'activation de la machine et peut ouvrir ce Rêve (max 1 ouverture par Rêve et par tour).",
+        "etape_3_CONSTRUCTION_SYNERGIES": "Construction obligatoire des Tuiles de Synergie : Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d'origine. Insertion d'un Rêve : éjecte la Tactique la plus à droite ; seules les tuiles à droite du trou glissent à gauche ; pose en case 6 ; Bugs fixes sur les cases. Anti-blocage et Nids : pose interdite sur case morte/tuile inconstructible ; 1 seul Nid par parcelle sans machine ; choix du bâtisseur libéré par Peuple d'origine.",
+        "etape_4_NIDS_ET_MIGRATION": "Production des Nids et Migration des Insectes : Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte. Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
+        "etape_5_ATTAQUES_ET_TEST_FIN": "Attaques des Machines et Vérification de Fin de Partie : Séquence des attaques : Tactiques 1..6 puis Sièges ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant. Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque. Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement. Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Siège irréversible maintenu. Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
+        "etape_6_APPRENTISSAGE_ET_MENAGE": "Apprentissage du Contremaître et Ménage de fin de tour : Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée. Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume."
+      },
+      "furtivite": "Furtivité à 4 emplacements (2 jumeaux/rive) : entrer sur la case tire l'autre jeton sur le jumeau et oriente l'action unique ; retourner en choix définitif se fait sur place sans déplacement.",
+      "chaine_parades_et_pieges": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique. | Armement des Pièges : Embuscade dès que Défense totale >= 1 (locale ou à distance) ; tout Piège ayant paré >= 1 fois dans le tour est retiré en fin d'attaques. | Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés. | Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
+      "sabotage_par_dilution": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
+      "apprentissage": "Apprentissage : dommage réel requis (>= 1 Arbre coupé ou Souche retirée) ; retraits volontaires avant Bugs ; remise à zéro intégrale en fin d'étape. | Autonomie et Apprentissage du Siège : l’attaque d’une machine en Siège reste active même si la tuile T4 est éjectée ; en 6.1, une machine en Siège génère normalement ses jetons d’Apprentissage sur T4 tant que T4 figure sur la Piste des Tactiques (ignorés si T4 est éjectée).",
+      "fins_5_3": "Seuil de Réveil fixe : calculé à la mise en place (inactif si < 3 Gardiens en jeu) ; retour en lisière efface le marqueur. | Test de fin de partie : maintenu en fin d'attaques (saut Apprentissage), avec déclenchement en fin d'Apprentissage si L'Écho des Voix Célestes amène son Rêve en case 1."
+    }
+  },
+  "tested_tiles_rules": [
+    {
+      "slot": "G7",
+      "profil": "A",
+      "nom": "Le Barrage du Capybara",
+      "famille": "GARDIEN",
+      "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée (déclenche la case 2)."
+    },
+    {
+      "slot": "G7",
+      "profil": "B",
+      "nom": "Le Barrage du Capybara",
+      "famille": "GARDIEN",
+      "texte": "<strong>Loi 4.1 :</strong> Les binômes en Furtivité peuvent poser un Piège <strong>même sur une parcelle occupée par une machine</strong> (et ce Piège s’arme immédiatement si au moins 1 Défenseur du binôme glisse dessus ou soutient la parcelle)."
+    }
+  ],
+  "description": "Micro-tir de validation bout-en-bout (G7:A vs G7:B, N=3..4)",
+  "execution": {
+    "backend": "cloudrun",
+    "region": "europe-west9",
+    "job_name": "amazonia-campaign",
+    "image": "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest",
+    "tasks": 1,
+    "job_wall_sec": 18.57,
+    "max_worker_compute_sec": 1.651,
+    "sum_worker_games_per_sec": 9.7,
+    "effective_cluster_games_per_sec": 9.7
+  },
+  "totals": {
+    "total_games": 16,
+    "n_shards": 1,
+    "n_cells": 12,
+    "n_configurations": 4,
+    "mean_score_arbres": 22.625,
+    "mean_ratio_arbres": 0.6406,
+    "cvar20_ratio": 0.6156,
+    "survival_rate": 1.0,
+    "mean_tours": 6.5,
+    "pct_tour_8": 50.0,
+    "pct_reve_rang_1": 0.0,
+    "pct_reveil_gardiens": 50.0,
+    "tested_tiles": [
+      "G7:A",
+      "G7:B"
+    ],
+    "parquet_archive": ".tmp_runs/campaigns/micro_validation/cells.parquet"
+  },
+  "telemetry": {
+    "mean_mem_debt": 60.125,
+    "mean_active_laws": 0.174,
+    "max_active_laws": 2,
+    "mean_fiddliness_ops": 2.972,
+    "mean_cascade_sweeps": 7.625
+  },
+  "by_mode": [
+    {
+      "mode": 3,
+      "bot": "B2",
+      "n_games": 16,
+      "mean_score_arbres": 22.625,
+      "mean_ratio_arbres": 0.6406,
+      "cvar20_ratio": 0.6156,
+      "mean_tours": 6.5,
+      "pct_tour_8": 50.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 50.0
+    }
+  ],
+  "by_n_players": [
+    {
+      "n_players": 3,
+      "n_games": 8,
+      "mean_score_arbres": 18.0,
+      "mean_ratio_arbres": 0.6,
+      "cvar20_ratio": 0.6,
+      "mean_tours": 7.0,
+      "pct_tour_8": 75.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 25.0
+    },
+    {
+      "n_players": 4,
+      "n_games": 8,
+      "mean_score_arbres": 27.25,
+      "mean_ratio_arbres": 0.6812,
+      "cvar20_ratio": 0.6313,
+      "mean_tours": 6.0,
+      "pct_tour_8": 25.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 75.0
+    }
+  ],
+  "by_chassis": [
+    {
+      "chassis_id": 0,
+      "p_max": 4,
+      "n_games": 16,
+      "mean_score_arbres": 22.625,
+      "mean_ratio_arbres": 0.6406,
+      "cvar20_ratio": 0.6156,
+      "mean_tours": 6.5
+    }
+  ],
+  "by_variant": [
+    {
+      "variant_id": "G7:A",
+      "n_games": 8,
+      "mean_score_arbres": 23.25,
+      "mean_ratio_arbres": 0.6563,
+      "cvar20_ratio": 0.6438,
+      "mean_tours": 6.25,
+      "pct_tour_8": 50.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 50.0
+    },
+    {
+      "variant_id": "G7:B",
+      "n_games": 8,
+      "mean_score_arbres": 22.0,
+      "mean_ratio_arbres": 0.625,
+      "cvar20_ratio": 0.5875,
+      "mean_tours": 6.75,
+      "pct_tour_8": 50.0,
+      "pct_reve_rang_1": 0.0,
+      "pct_reveil_gardiens": 50.0
+    }
+  ],
+  "tile_metrics": {
+    "G7:A": {
+      "slot": "G7",
+      "profile": "A",
+      "n_games": 8,
+      "mean_ratio_arbres": 0.6563,
+      "cvar20": 0.6438
+    },
+    "G7:B": {
+      "slot": "G7",
+      "profile": "B",
+      "n_games": 8,
+      "mean_ratio_arbres": 0.625,
+      "cvar20": 0.5875
+    }
+  }
+}
+```

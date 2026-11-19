@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "micro_validation",
+      "label": "Micro-tir de validation bout-en-bout (G7:A vs G7:B, N=3..4) (16 parties)",
+      "file": "digest_micro_validation.json",
+      "campaign": "micro_validation",
+      "generated_at_utc": "2026-11-19T07:22:44Z",
+      "total_games": 16
+    },
+    {
       "id": "palier4_canon",
       "label": "Palier 4 — Canon Unique 32 tuiles (16 195 parties)",
       "file": "digest_palier4_canon.json",
