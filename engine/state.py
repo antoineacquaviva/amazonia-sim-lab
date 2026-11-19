@@ -159,6 +159,7 @@ STEP_GAME_OVER: int = 99
 # Bits de FLAGS (octet d'état global)
 _FLAG_PARAVENTS_OUVERTS: int = 1 << 0
 _FLAG_STEP2_LOCKED: int = 1 << 1
+_FLAG_REPOUSSE_APPLIED: int = 1 << 2
 
 # Peuples canoniques (0..5)
 PEUPLES_ORDER: tuple[str, ...] = ("M", "R", "O", "H", "E", "I")
@@ -679,6 +680,10 @@ class PlayerObservation:
         return bool(self._snap[_Mem.FLAGS] & _FLAG_PARAVENTS_OUVERTS)
 
     @property
+    def repousse_finale_applied(self) -> bool:
+        return bool(self._snap[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
+
+    @property
     def seuil_reveil(self) -> int:
         return self._snap[_Mem.SEUIL_REVEIL]
 
@@ -1115,6 +1120,17 @@ class GameState:
             self._buf[_Mem.FLAGS] |= _FLAG_STEP2_LOCKED
         else:
             self._buf[_Mem.FLAGS] &= ~_FLAG_STEP2_LOCKED
+
+    @property
+    def repousse_finale_applied(self) -> bool:
+        return bool(self._buf[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
+
+    @repousse_finale_applied.setter
+    def repousse_finale_applied(self, applied: bool) -> None:
+        if applied:
+            self._buf[_Mem.FLAGS] |= _FLAG_REPOUSSE_APPLIED
+        else:
+            self._buf[_Mem.FLAGS] &= ~_FLAG_REPOUSSE_APPLIED
 
     @property
     def seuil_reveil(self) -> int:

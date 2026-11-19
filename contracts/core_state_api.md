@@ -204,6 +204,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `step: int`
 - `coordonnateur: int`
 - `paravents_ouverts: bool`
+- `repousse_finale_applied: bool`
 - `seuil_reveil: int`
 - `triggers_lit: int`
 - `deck_remaining_count: int`
@@ -244,6 +245,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `coordonnateur: int`
 - `paravents_ouverts: bool`
 - `step2_locked: bool`
+- `repousse_finale_applied: bool`
 - `seuil_reveil: int`
 - `triggers_lit: int`
 - `deck_len: int`

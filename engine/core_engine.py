@@ -1161,7 +1161,7 @@ def resolve_single_machine_attack(
 
 def apply_repousse_finale(state: GameState) -> GameOver:
     """Applique la Repousse Finale (+1 Arbre par parcelle non rasée ayant >= 1 Souche,
-    plafonné à la dotation initiale) et retourne l'objet GameOver.
+    plafonné à la dotation initiale) de manière strictement idempotente et retourne l'objet GameOver.
     """
     cause = CAUSE_TOUR_8
     if state.cfg.mode >= 2 and is_reve_code(state.get_tactique_at_rank(0)):
@@ -1173,30 +1173,33 @@ def apply_repousse_finale(state: GameState) -> GameOver:
     ):
         cause = CAUSE_REVEIL_GARDIENS
 
-    for r in range(state.cfg.n_players):
-        for p in range(1, state.cfg.p_max + 1):
-            if state.is_route_forestiere(r, p):
-                continue
-            souches = state.get_parcel_souches(r, p)
-            if souches >= 1:
-                rep_ctx: dict[str, Any] = {"ray": r, "p": p, "max_repousse": 1}
-                dispatch_hook(state, HOOK_REPOUSSE_FINALE, rep_ctx)
-                prim_creation_entite(
-                    state,
-                    "ARBRE",
-                    ray=r,
-                    p=p,
-                    count=int(rep_ctx["max_repousse"]),
-                    light_trigger=False,
-                )
+    if not state.repousse_finale_applied:
+        for r in range(state.cfg.n_players):
+            for p in range(1, state.cfg.p_max + 1):
+                if state.is_route_forestiere(r, p):
+                    continue
+                souches = state.get_parcel_souches(r, p)
+                if souches >= 1:
+                    rep_ctx: dict[str, Any] = {"ray": r, "p": p, "max_repousse": 1}
+                    dispatch_hook(state, HOOK_REPOUSSE_FINALE, rep_ctx)
+                    prim_creation_entite(
+                        state,
+                        "ARBRE",
+                        ray=r,
+                        p=p,
+                        count=int(rep_ctx["max_repousse"]),
+                        light_trigger=False,
+                    )
+        state.repousse_finale_applied = True
+        state._continuation.clear()
+        _transition_step(state, STEP_GAME_OVER)
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.on_end_turn(state, game_over=True)
 
     score = state.total_arbres_plateau()
     init_total = state.cfg.n_players * sum(state.cfg.dotation_arbres)
     ratio = score / init_total if init_total > 0 else 0.0
-    _transition_step(state, STEP_GAME_OVER)
-    trk = _get_active_telemetry()
-    if trk is not None:
-        trk.on_end_turn(state, game_over=True)
     return GameOver(
         tour_fin=state.tour,
         cause_fin=cause,
