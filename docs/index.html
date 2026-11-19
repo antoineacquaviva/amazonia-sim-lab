@@ -184,7 +184,7 @@
         </div>
 
         <!-- Barre d'onglets -->
-        <nav class="flex items-center gap-1 bg-forest-900/90 p-1 rounded-xl border border-forest-800">
+        <nav class="flex flex-wrap items-center gap-1 bg-forest-900/90 p-1 rounded-xl border border-forest-800">
           <button onclick="switchTab('livret')" id="tab-btn-livret" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow">
             📖 1. Livret Didactique (Joueurs)
           </button>
@@ -196,6 +196,9 @@
           </button>
           <button onclick="switchTab('json')" id="tab-btn-json" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
             💻 4. Spec & JSON (Simulateur)
+          </button>
+          <button onclick="switchTab('campagnes')" id="tab-btn-campagnes" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
+            🧪 5. Campagnes
           </button>
         </nav>
       </div>
@@ -516,6 +519,171 @@
       </div>
     </section>
 
+    <!-- =================================================================== -->
+    <!-- ONGLET 5 : CONCEPTEUR DE CAMPAGNES (PLAN DE TEST JSON)              -->
+    <!-- =================================================================== -->
+    <section id="view-campagnes" class="hidden space-y-6 no-print">
+      <!-- En-tête & synthèse combinatoire -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">Concepteur de Campagnes de Simulation</h2>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Définissez visuellement un plan de test (tailles de table, axes du châssis à faire varier, profils A/B/C/D à comparer et volume de parties) puis exportez le manifeste dans <code class="font-mono text-forest-700">campaigns/&lt;nom&gt;.json</code>.
+          </p>
+        </div>
+        <div id="campaign-summary-pills" class="flex flex-wrap items-center gap-2 text-xs">
+          <!-- Injecté par renderCampaignView() -->
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- Colonne Gauche (7 cols) : Paramètres du plan de test -->
+        <div class="lg:col-span-7 space-y-5">
+
+          <!-- Bloc 1 : Identité, Nombre de joueurs & Parties par configuration -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full bg-forest-700 text-white text-[11px] font-mono inline-flex items-center justify-center">1</span>
+              <span>Cadre de la campagne, nombre de joueurs &amp; volume</span>
+            </h3>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label for="campaign-name-input" class="block font-semibold text-slate-700 mb-1">Nom de la campagne :</label>
+                <input type="text" id="campaign-name-input" value="plan_test_v5_3" oninput="updateCampaignName(this.value)" placeholder="ex: test_siege_t4_g7" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 font-mono text-xs focus:outline-none focus:border-forest-600" />
+                <div class="text-[11px] text-slate-500 mt-1">
+                  Cible : <code id="campaign-target-path" class="font-mono text-forest-700">campaigns/plan_test_v5_3.json</code>
+                </div>
+              </div>
+              <div>
+                <label for="campaign-desc-input" class="block font-semibold text-slate-700 mb-1">Objectif / note courte (optionnel) :</label>
+                <input type="text" id="campaign-desc-input" value="" oninput="updateCampaignDescription(this.value)" placeholder="Ex: Comparer G7 A vs D sous P4 et P5" class="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:outline-none focus:border-forest-600" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 text-xs">
+              <!-- Nombre de joueurs -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="font-semibold text-slate-700">Nombre de joueurs (N) :</span>
+                  <div class="flex items-center gap-1.5">
+                    <button type="button" onclick="setCampaignPlayerCounts([3, 4, 5, 6])" class="text-[11px] text-forest-700 hover:underline font-medium">Tous (3–6)</button>
+                    <span class="text-slate-300">·</span>
+                    <button type="button" onclick="setCampaignPlayerCounts([state.peuplesCercle.length])" class="text-[11px] text-slate-600 hover:underline">Table active</button>
+                  </div>
+                </div>
+                <div id="campaign-players-selector" class="grid grid-cols-4 gap-2">
+                  <!-- Injecté par renderCampaignView() -->
+                </div>
+              </div>
+
+              <!-- Parties par configuration -->
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label for="campaign-games-input" class="font-semibold text-slate-700">Parties par configuration :</label>
+                  <span class="text-[11px] text-slate-400 font-mono">Monte-Carlo</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="campaign-games-input" min="1" max="100000" step="10" value="200" oninput="updateCampaignGamesPerConfig(this.value)" class="w-28 rounded-lg border border-slate-300 px-2.5 py-1.5 font-mono text-xs font-semibold focus:outline-none focus:border-forest-600" />
+                  <div class="flex flex-wrap gap-1">
+                    <button type="button" onclick="setCampaignGamesPerConfig(50)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition">50</button>
+                    <button type="button" onclick="setCampaignGamesPerConfig(100)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition">100</button>
+                    <button type="button" onclick="setCampaignGamesPerConfig(200)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition">200</button>
+                    <button type="button" onclick="setCampaignGamesPerConfig(500)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition">500</button>
+                    <button type="button" onclick="setCampaignGamesPerConfig(1000)" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-mono text-[11px] transition">1000</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bloc 2 : Sous-ensemble des 7 axes de CHASSIS_AXES_SPEC à faire varier -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-forest-700 text-white text-[11px] font-mono inline-flex items-center justify-center">2</span>
+                <span>Axes du Châssis à faire varier (<span id="campaign-axes-count-label" class="font-mono text-forest-700">1/7</span>)</span>
+              </h3>
+              <div class="flex items-center gap-2 text-xs">
+                <button type="button" onclick="setCampaignAllAxes(false)" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition">Aucun (fixe)</button>
+                <button type="button" onclick="setCampaignAllAxes(true)" class="px-2.5 py-1 rounded-lg bg-forest-100 hover:bg-forest-200 text-forest-800 font-medium transition">Tous (7 axes · 128)</button>
+              </div>
+            </div>
+            <p class="text-xs text-slate-500">
+              Les axes cochés font varier leurs 2 modalités (produit cartésien) ; les autres restent figés sur la valeur de l'instance active.
+            </p>
+            <div id="campaign-axes-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <!-- Injecté par renderCampaignView() -->
+            </div>
+          </div>
+
+          <!-- Bloc 3 : Comparaison de profils A/B/C/D sur des slots ciblés -->
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <span class="w-5 h-5 rounded-full bg-forest-700 text-white text-[11px] font-mono inline-flex items-center justify-center">3</span>
+                <span>Profils A/B/C/D à comparer sur des slots ciblés</span>
+              </h3>
+              <div class="flex items-center gap-2 text-xs">
+                <button type="button" onclick="clearCampaignSlotComparisons()" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition">Tout effacer</button>
+              </div>
+            </div>
+
+            <!-- Slots actuellement ciblés -->
+            <div id="campaign-selected-slots-bar" class="flex flex-wrap items-center gap-1.5 text-xs bg-slate-50 p-2.5 rounded-xl border border-slate-200 min-h-[38px]">
+              <!-- Injecté par renderCampaignView() -->
+            </div>
+
+            <!-- Filtres légers pour parcourir les 32 emplacements -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+              <input type="text" id="campaign-slot-search" oninput="updateCampaignSlotFilter('search', this.value)" placeholder="Filtrer par slot ou nom (ex: G7, R5, Capybara)..." class="rounded-lg border border-slate-300 px-2.5 py-1.5 focus:outline-none focus:border-forest-600" />
+              <select id="campaign-slot-family" onchange="updateCampaignSlotFilter('family', this.value)" class="rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+                <option value="ALL">Toutes familles (32 slots)</option>
+                <option value="GARDIEN">Gardiens G1–G15</option>
+                <option value="REVE">Rêves R1–R10</option>
+                <option value="CROISSANCE">Nids Croissance M1–M5</option>
+                <option value="MIGRATION">Slots Migration (2)</option>
+              </select>
+              <select id="campaign-slot-scope" onchange="updateCampaignSlotFilter('scope', this.value)" class="rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
+                <option value="ALL">Tous les emplacements</option>
+                <option value="IN_CIRCLE_ONLY">Uniquement les 2N tuiles en jeu</option>
+                <option value="SELECTED_ONLY">Uniquement les slots ciblés</option>
+              </select>
+            </div>
+
+            <!-- Liste compacte des slots avec toggles A/B/C/D -->
+            <div id="campaign-slots-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[360px] overflow-y-auto pr-1">
+              <!-- Injecté par renderCampaignView() -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Colonne Droite (5 cols) : Manifeste JSON prêt pour campaigns/<nom>.json -->
+        <div class="lg:col-span-5 bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col lg:sticky lg:top-36">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Manifeste de Campagne JSON</h3>
+              <p class="text-[11px] text-slate-500">Prêt à enregistrer dans <code id="campaign-target-path-aside" class="font-mono text-forest-700">campaigns/plan_test_v5_3.json</code></p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="copyCampaignManifestJson()" id="btn-copy-campaign-json" class="px-3 py-1.5 rounded-lg bg-forest-700 hover:bg-forest-600 text-white text-xs font-semibold transition">
+                📋 Copier le manifeste
+              </button>
+              <button type="button" onclick="downloadCampaignManifestJson()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition">
+                💾 Télécharger .json
+              </button>
+            </div>
+          </div>
+
+          <div id="campaign-volume-warning" class="hidden mt-3 p-2.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs">
+            <!-- Alerte volume combinatoire élevé -->
+          </div>
+
+          <pre id="campaign-manifest-output" class="mt-3 flex-1 bg-slate-950 text-emerald-300 font-mono text-xs p-4 rounded-xl overflow-x-auto max-h-[600px] leading-relaxed"></pre>
+        </div>
+      </div>
+    </section>
+
   </main>
 
   <!-- ===================================================================== -->
@@ -553,7 +721,19 @@
       digestCatalog: [],
       activeDigest: null,
       activeDigestSource: null,
-      digestIndex: null
+      digestIndex: null,
+      // État du concepteur de campagnes (Onglet 5)
+      campaign: {
+        name: 'plan_test_v5_3',
+        description: '',
+        playerCounts: [4],
+        varyingAxes: ['P_Max'],
+        slotComparisons: {},
+        gamesPerConfig: 200,
+        slotFilterSearch: '',
+        slotFilterFamily: 'ALL',
+        slotFilterScope: 'ALL'
+      }
     };
 
     // Initialiser tous les emplacements à 'A' par défaut
@@ -1901,13 +2081,399 @@
     }
 
     // -------------------------------------------------------------------------
-    // 14. NAVIGATION ENTRE LES 4 ONGLETS & RAFRAÎCHISSEMENT GLOBAL
+    // 13c. CONCEPTEUR DE CAMPAGNES & EXPORT MANIFESTE JSON (ONGLET 5)
+    // -------------------------------------------------------------------------
+    function sanitizeCampaignSlug(raw) {
+      const cleaned = String(raw || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+      return cleaned || 'campagne_v5_3';
+    }
+
+    function updateCampaignName(val) {
+      state.campaign.name = val;
+      renderCampaignManifestAndSummary();
+    }
+
+    function updateCampaignDescription(val) {
+      state.campaign.description = val;
+      renderCampaignManifestAndSummary();
+    }
+
+    function toggleCampaignPlayerCount(n) {
+      const list = state.campaign.playerCounts;
+      const idx = list.indexOf(n);
+      if (idx >= 0) {
+        if (list.length <= 1) {
+          showToast('Au moins une taille de table', 'Sélectionnez au moins un nombre de joueurs (3, 4, 5 ou 6).');
+          return;
+        }
+        list.splice(idx, 1);
+      } else {
+        list.push(n);
+        list.sort((a, b) => a - b);
+      }
+      renderCampaignView();
+    }
+
+    function setCampaignPlayerCounts(counts) {
+      const valid = Array.from(new Set(counts.filter(n => [3, 4, 5, 6].includes(n)))).sort((a, b) => a - b);
+      if (valid.length === 0) return;
+      state.campaign.playerCounts = valid;
+      renderCampaignView();
+    }
+
+    function updateCampaignGamesPerConfig(rawVal) {
+      const parsed = parseInt(rawVal, 10);
+      state.campaign.gamesPerConfig = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+      renderCampaignManifestAndSummary();
+    }
+
+    function setCampaignGamesPerConfig(n) {
+      state.campaign.gamesPerConfig = Math.max(1, parseInt(n, 10) || 1);
+      const inp = document.getElementById('campaign-games-input');
+      if (inp) inp.value = String(state.campaign.gamesPerConfig);
+      renderCampaignManifestAndSummary();
+    }
+
+    function toggleCampaignAxis(axisKey) {
+      const cur = new Set(state.campaign.varyingAxes);
+      if (cur.has(axisKey)) cur.delete(axisKey);
+      else cur.add(axisKey);
+      state.campaign.varyingAxes = CHASSIS_AXES_SPEC.map(a => a.key).filter(k => cur.has(k));
+      renderCampaignView();
+    }
+
+    function setCampaignAllAxes(enableAll) {
+      state.campaign.varyingAxes = enableAll ? CHASSIS_AXES_SPEC.map(a => a.key) : [];
+      renderCampaignView();
+    }
+
+    function toggleCampaignSlotProfile(slotId, letter) {
+      const tile = CATALOGUE_TUILES[slotId];
+      if (!tile || !tile.profils || !tile.profils[letter]) return;
+      const current = Array.isArray(state.campaign.slotComparisons[slotId])
+        ? [...state.campaign.slotComparisons[slotId]]
+        : [];
+      const idx = current.indexOf(letter);
+      if (idx >= 0) {
+        current.splice(idx, 1);
+      } else {
+        current.push(letter);
+      }
+      if (current.length === 0) {
+        delete state.campaign.slotComparisons[slotId];
+      } else {
+        const order = Object.keys(tile.profils);
+        state.campaign.slotComparisons[slotId] = order.filter(l => current.includes(l));
+      }
+      renderCampaignView();
+    }
+
+    function selectAllProfilesForCampaignSlot(slotId) {
+      const tile = CATALOGUE_TUILES[slotId];
+      if (!tile || !tile.profils) return;
+      const allLetters = Object.keys(tile.profils);
+      const cur = state.campaign.slotComparisons[slotId] || [];
+      if (cur.length === allLetters.length) {
+        delete state.campaign.slotComparisons[slotId];
+      } else {
+        state.campaign.slotComparisons[slotId] = [...allLetters];
+      }
+      renderCampaignView();
+    }
+
+    function removeCampaignSlot(slotId) {
+      delete state.campaign.slotComparisons[slotId];
+      renderCampaignView();
+    }
+
+    function clearCampaignSlotComparisons() {
+      state.campaign.slotComparisons = {};
+      renderCampaignView();
+    }
+
+    function updateCampaignSlotFilter(field, val) {
+      if (field === 'search') state.campaign.slotFilterSearch = val || '';
+      else if (field === 'family') state.campaign.slotFilterFamily = val || 'ALL';
+      else if (field === 'scope') state.campaign.slotFilterScope = val || 'ALL';
+      renderCampaignSlotsGrid();
+    }
+
+    function buildCampaignManifestObject() {
+      const c = state.campaign;
+      const slug = sanitizeCampaignSlug(c.name);
+      const varyingSet = new Set(c.varyingAxes);
+
+      const varyingAxesSpec = [];
+      const fixedAxes = {};
+      let chassisCombinations = 1;
+
+      CHASSIS_AXES_SPEC.forEach(ax => {
+        if (varyingSet.has(ax.key)) {
+          const vals = ax.options.map(o => o.val);
+          varyingAxesSpec.push({
+            key: ax.key,
+            label: ax.label,
+            values: vals
+          });
+          chassisCombinations *= vals.length;
+        } else {
+          fixedAxes[ax.key] = state.chassis[ax.key];
+        }
+      });
+
+      const slotComparisonsClean = {};
+      let profileCombinations = 1;
+      Object.keys(CATALOGUE_TUILES).forEach(slotId => {
+        const letters = c.slotComparisons[slotId];
+        if (Array.isArray(letters) && letters.length > 0) {
+          slotComparisonsClean[slotId] = [...letters];
+          profileCombinations *= letters.length;
+        }
+      });
+
+      const playerCounts = [...c.playerCounts].sort((a, b) => a - b);
+      const gamesPerConfig = Math.max(1, parseInt(c.gamesPerConfig, 10) || 1);
+      const totalConfigurations = playerCounts.length * chassisCombinations * profileCombinations;
+      const totalGames = totalConfigurations * gamesPerConfig;
+
+      const manifest = {
+        schema_version: '5.3',
+        manifest_type: 'campaign_plan',
+        campaign_name: slug,
+        target_path: `campaigns/${slug}.json`,
+        ...(c.description && c.description.trim() ? { description: c.description.trim() } : {}),
+        player_counts: playerCounts,
+        games_per_configuration: gamesPerConfig,
+        chassis_plan: {
+          varying_axes: varyingAxesSpec,
+          fixed_axes: fixedAxes,
+          chassis_combinations_count: chassisCombinations
+        },
+        slot_profile_comparisons: slotComparisonsClean,
+        base_instance: {
+          bundle_id: state.bundleId,
+          peuples_cercle: [...state.peuplesCercle],
+          slots_insectes: {
+            SLOT_BUG_CERVEAU: state.slotsInsectes.SLOT_BUG_CERVEAU,
+            SLOT_COLONISATION_GARDIENS: state.slotsInsectes.SLOT_COLONISATION_GARDIENS
+          }
+        },
+        summary: {
+          player_counts_count: playerCounts.length,
+          chassis_combinations_count: chassisCombinations,
+          profile_combinations_count: profileCombinations,
+          total_configurations: totalConfigurations,
+          total_games: totalGames
+        }
+      };
+
+      return manifest;
+    }
+
+    function renderCampaignManifestAndSummary() {
+      const manifest = buildCampaignManifestObject();
+      const s = manifest.summary;
+
+      const pathMain = document.getElementById('campaign-target-path');
+      const pathAside = document.getElementById('campaign-target-path-aside');
+      if (pathMain) pathMain.textContent = manifest.target_path;
+      if (pathAside) pathAside.textContent = manifest.target_path;
+
+      const pillsEl = document.getElementById('campaign-summary-pills');
+      if (pillsEl) {
+        pillsEl.innerHTML = `
+          <span class="px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 font-mono font-semibold">N ∈ {${manifest.player_counts.join(', ')}}</span>
+          <span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-mono font-semibold">${formatInt(s.chassis_combinations_count)} châssis</span>
+          <span class="px-2.5 py-1 rounded-full bg-sky-100 text-sky-900 font-mono font-semibold">${formatInt(s.profile_combinations_count)} var. profils</span>
+          <span class="px-2.5 py-1 rounded-full bg-forest-100 text-forest-900 font-mono font-bold">${formatInt(s.total_configurations)} config${s.total_configurations > 1 ? 's' : ''}</span>
+          <span class="px-2.5 py-1 rounded-full bg-emerald-700 text-white font-mono font-bold">${formatInt(s.total_games)} parties</span>
+        `;
+      }
+
+      const warnEl = document.getElementById('campaign-volume-warning');
+      if (warnEl) {
+        if (s.total_games > 50000) {
+          warnEl.classList.remove('hidden');
+          warnEl.innerHTML = `⚠️ <strong>Volume combinatoire élevé (${formatInt(s.total_games)} parties)</strong> : envisagez un tir Cloud Batch / Cloud Run ou réduisez le nombre d'axes / de slots simultanés.`;
+        } else {
+          warnEl.classList.add('hidden');
+          warnEl.innerHTML = '';
+        }
+      }
+
+      const outEl = document.getElementById('campaign-manifest-output');
+      if (outEl) {
+        outEl.textContent = JSON.stringify(manifest, null, 2);
+      }
+    }
+
+    function renderCampaignSlotsGrid() {
+      const gridEl = document.getElementById('campaign-slots-grid');
+      if (!gridEl) return;
+
+      const search = (state.campaign.slotFilterSearch || '').toLowerCase().trim();
+      const fam = state.campaign.slotFilterFamily || 'ALL';
+      const scope = state.campaign.slotFilterScope || 'ALL';
+      const { activeTileIds } = getActiveLisieresAndTiles();
+
+      const itemsHtml = [];
+      Object.keys(CATALOGUE_TUILES).forEach(slotId => {
+        const t = CATALOGUE_TUILES[slotId];
+        const isInCircle = activeTileIds.includes(slotId) || t.famille === 'MIGRATION';
+        const selectedLetters = state.campaign.slotComparisons[slotId] || [];
+        const isTargeted = selectedLetters.length > 0;
+
+        if (fam !== 'ALL' && t.famille !== fam) return;
+        if (scope === 'IN_CIRCLE_ONLY' && !isInCircle) return;
+        if (scope === 'SELECTED_ONLY' && !isTargeted) return;
+        if (search) {
+          const hay = `${t.id} ${t.nomBase} ${t.famille} ${(t.couple || []).join(' ')}`.toLowerCase();
+          if (!hay.includes(search)) return;
+        }
+
+        const availLetters = Object.keys(t.profils);
+        const allSelected = selectedLetters.length === availLetters.length;
+
+        itemsHtml.push(`
+          <div class="p-2.5 rounded-xl border transition ${isTargeted ? 'bg-forest-50/80 border-forest-500' : 'bg-slate-50/70 border-slate-200'}">
+            <div class="flex items-center justify-between gap-2 mb-1.5">
+              <div class="min-w-0">
+                <span class="font-mono font-bold text-xs text-slate-900">${escapeHtml(t.id)}</span>
+                <span class="text-[11px] text-slate-600 ml-1 truncate">${escapeHtml(t.nomBase)}</span>
+              </div>
+              <button type="button" onclick="selectAllProfilesForCampaignSlot('${slotId}')" class="shrink-0 text-[10px] px-1.5 py-0.5 rounded border transition ${allSelected ? 'bg-forest-700 text-white border-forest-700' : 'bg-white text-slate-600 border-slate-300 hover:border-forest-600 hover:text-forest-800'}">
+                ${allSelected ? 'Tous ✓' : 'Tous'}
+              </button>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap">
+              ${availLetters.map(letter => {
+                const active = selectedLetters.includes(letter);
+                const profName = t.profils[letter] ? t.profils[letter].nom : '';
+                return `
+                  <button type="button" onclick="toggleCampaignSlotProfile('${slotId}', '${letter}')" title="${escapeHtml(letter + ' — ' + profName)}" class="px-2 py-0.5 rounded font-mono text-xs font-bold border transition ${active ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm' : 'bg-white text-slate-700 border-slate-300 hover:border-emerald-600 hover:text-emerald-800'}">
+                    ${letter}
+                  </button>
+                `;
+              }).join('')}
+              ${isInCircle ? '<span class="ml-auto text-[10px] text-emerald-700 font-medium">● table</span>' : ''}
+            </div>
+          </div>
+        `);
+      });
+
+      gridEl.innerHTML = itemsHtml.length > 0
+        ? itemsHtml.join('')
+        : `<div class="sm:col-span-2 text-center py-6 text-xs text-slate-500">Aucun emplacement ne correspond au filtre.</div>`;
+    }
+
+    function renderCampaignView() {
+      // 1. Nombre de joueurs (3 à 6)
+      const playersEl = document.getElementById('campaign-players-selector');
+      if (playersEl) {
+        playersEl.innerHTML = [3, 4, 5, 6].map(n => {
+          const active = state.campaign.playerCounts.includes(n);
+          return `
+            <button type="button" onclick="toggleCampaignPlayerCount(${n})" class="py-1.5 rounded-lg border font-mono text-xs font-bold transition ${active ? 'bg-emerald-700 text-white border-emerald-700 shadow-sm' : 'bg-slate-50 text-slate-600 border-slate-300 hover:border-emerald-600'}">
+              ${n} J
+            </button>
+          `;
+        }).join('');
+      }
+
+      // 2. Sous-ensemble des 7 axes de CHASSIS_AXES_SPEC
+      const axesCountEl = document.getElementById('campaign-axes-count-label');
+      if (axesCountEl) {
+        axesCountEl.textContent = `${state.campaign.varyingAxes.length}/${CHASSIS_AXES_SPEC.length}`;
+      }
+      const axesListEl = document.getElementById('campaign-axes-list');
+      if (axesListEl) {
+        const varyingSet = new Set(state.campaign.varyingAxes);
+        axesListEl.innerHTML = CHASSIS_AXES_SPEC.map(ax => {
+          const isVarying = varyingSet.has(ax.key);
+          const curVal = state.chassis[ax.key];
+          const optLabels = ax.options.map(o => String(o.val)).join(' vs ');
+          return `
+            <label class="cursor-pointer p-2.5 rounded-xl border transition flex items-start gap-2.5 ${isVarying ? 'bg-amber-50/80 border-amber-400' : 'bg-slate-50/70 border-slate-200 hover:border-slate-300'}">
+              <input type="checkbox" ${isVarying ? 'checked' : ''} onchange="toggleCampaignAxis('${ax.key}')" class="mt-0.5 rounded text-emerald-700 focus:ring-emerald-600" />
+              <div class="min-w-0 flex-1">
+                <div class="text-xs font-semibold text-slate-900 leading-snug">${escapeHtml(ax.label)}</div>
+                <div class="text-[11px] font-mono mt-0.5 ${isVarying ? 'text-amber-900 font-semibold' : 'text-slate-500'}">
+                  ${isVarying ? `Varie : ${escapeHtml(optLabels)}` : `Figé : ${escapeHtml(String(curVal))}`}
+                </div>
+              </div>
+            </label>
+          `;
+        }).join('');
+      }
+
+      // 3. Barre des slots ciblés
+      const selectedBarEl = document.getElementById('campaign-selected-slots-bar');
+      if (selectedBarEl) {
+        const entries = Object.entries(state.campaign.slotComparisons);
+        if (entries.length === 0) {
+          selectedBarEl.innerHTML = `<span class="text-slate-500">Aucun slot ciblé pour l'instant (seuls les profils de l'instance active seront utilisés). Cliquez sur A / B / C / D ci-dessous pour comparer des profils.</span>`;
+        } else {
+          selectedBarEl.innerHTML = entries.map(([slotId, letters]) => `
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-forest-800 text-white font-mono text-[11px] font-semibold">
+              <span>${escapeHtml(slotId)}: ${escapeHtml(letters.join('/'))}</span>
+              <button type="button" onclick="removeCampaignSlot('${slotId}')" title="Retirer ${escapeHtml(slotId)}" class="text-forest-200 hover:text-white ml-0.5">✕</button>
+            </span>
+          `).join('');
+        }
+      }
+
+      renderCampaignSlotsGrid();
+      renderCampaignManifestAndSummary();
+    }
+
+    async function copyCampaignManifestJson() {
+      const outEl = document.getElementById('campaign-manifest-output');
+      const txt = outEl ? outEl.textContent : JSON.stringify(buildCampaignManifestObject(), null, 2);
+      try {
+        await navigator.clipboard.writeText(txt);
+      } catch (e) {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      const btn = document.getElementById('btn-copy-campaign-json');
+      if (btn) {
+        const old = btn.textContent;
+        btn.textContent = '✓ Manifeste copié !';
+        setTimeout(() => { btn.textContent = old; }, 2000);
+      }
+    }
+
+    function downloadCampaignManifestJson() {
+      const manifest = buildCampaignManifestObject();
+      const txt = JSON.stringify(manifest, null, 2) + '\n';
+      const blob = new Blob([txt], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${manifest.campaign_name}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // -------------------------------------------------------------------------
+    // 14. NAVIGATION ENTRE LES 5 ONGLETS & RAFRAÎCHISSEMENT GLOBAL
     // -------------------------------------------------------------------------
     function switchTab(tabName) {
       state.activeTab = tabName;
-      ['livret', 'catalogue', 'changelog', 'json'].forEach(t => {
+      ['livret', 'catalogue', 'changelog', 'json', 'campagnes'].forEach(t => {
         const view = document.getElementById(`view-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
+        if (!view || !btn) return;
         if (t === tabName) {
           view.classList.remove('hidden');
           btn.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition bg-emerald-600 text-white shadow';
@@ -1924,6 +2490,7 @@
       renderCatalogue();
       renderChangelogView();
       renderJsonView();
+      renderCampaignView();
       renderDigestHeaderBar();
     }
 

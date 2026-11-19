@@ -65,6 +65,9 @@
   - Ajout dans le bandeau supérieur de `docs/index.html` d'un sélecteur déroulant chargeant `digests/index.json` + bouton d'import local `.json` (mode secours `file://` sans bundler).
   - Affichage sous chaque carte concernée de l'Explorateur (`#view-catalogue`) des indicateurs synthétiques du bilan actif (taux de victoire / ratio arbres, `CVaR_20%`, effectif de parties, contributions Shapley et alertes d'équilibrage).
   - Enrichissement du bouton `✨ Copier contexte Gemini` pour joindre automatiquement `bilan_simulation_extrait` limité aux tuiles filtrées ou sélectionnées dans l'instance.
+- *2026-11-18* : **5e vue légère « Campagnes » dans Amazonia Doc Studio (`docs/index.html`)** :
+  - Ajout de l'onglet `🧪 5. Campagnes` (`#view-campagnes`) synchronisé avec l'instance active pour concevoir visuellement un plan de test : sélection multi-tables du nombre de joueurs (`3..6`), sous-ensemble des 7 axes de `CHASSIS_AXES_SPEC` à faire varier, comparaison de profils `A/B/C/D` sur des slots ciblés parmi les 32 emplacements et volume de parties par configuration.
+  - Génération en temps réel d'un manifeste JSON propre prêt à enregistrer dans `campaigns/<nom>.json`, avec synthèse combinatoire et boutons `📋 Copier le manifeste` et `💾 Télécharger .json` (compatibles `file://` et HTTPS).
 
 
 
