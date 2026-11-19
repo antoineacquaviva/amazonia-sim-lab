@@ -100,9 +100,11 @@ def test_local_manifest_worker_duckdb_and_studio_index(tmp_path: Path, monkeypat
         encoding="utf-8",
     )
 
+    (tmp_path / "data").mkdir(parents=True, exist_ok=True)
     mp = monkeypatch
     assert hasattr(mp, "setattr")
     mp.setattr(db_mod, "DEFAULT_DIGESTS_DIR", digests_dir)  # type: ignore[attr-defined]
+    mp.setattr(db_mod, "ROOT", tmp_path)  # type: ignore[attr-defined]
     mp.setattr(rc_mod, "DOCS_DIGESTS_DIR", docs_digests_dir)  # type: ignore[attr-defined]
     mp.setattr(rc_mod, "DOCS_DIGESTS_INDEX", docs_index)  # type: ignore[attr-defined]
     mp.setattr(rc_mod, "ROOT", tmp_path)  # type: ignore[attr-defined]
