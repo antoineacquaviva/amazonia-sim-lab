@@ -6,9 +6,10 @@ Ce module respecte l'architecture duale stricte : stdlib Python pure uniquement
 
 from __future__ import annotations
 
+import hashlib
 import html
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -17,13 +18,16 @@ from engine.state import CHASSIS_AXES_OPTIONS
 __all__ = (
     "GEMINI_EDITORIAL_HEADER",
     "MAX_DIGEST_BYTES",
+    "axes_dict_to_chassis_id",
     "build_active_core_rules",
     "build_mobile_one_tap_html",
     "build_prompt_gemini_markdown",
     "build_self_contained_digest",
     "build_tested_tiles_rules",
+    "chassis_id_to_studio_index_128",
     "decode_chassis_axes",
     "load_spec_bundle",
+    "studio_index_128_to_chassis_id",
     "write_digest_and_prompt_files",
 )
 
@@ -37,6 +41,15 @@ GEMINI_EDITORIAL_HEADER: str = (
     "statistiques ci-dessous comme unique vérité terrain."
 )
 
+_STEP_ARBITRAGES_MAP: dict[int, tuple[str, ...]] = {
+    1: ("A01", "A22"),
+    2: ("A03",),
+    3: ("A04", "A11", "A21", "A02"),
+    4: ("A24", "A18", "A17"),
+    5: ("A25", "A19", "A08", "A09", "A16"),
+    6: ("A12", "A13"),
+}
+
 
 def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
     """Charge dynamiquement le `spec_bundle` actif (UTF-8)."""
@@ -44,11 +57,58 @@ def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
     return dict(json.loads(target.read_text(encoding="utf-8")))
 
 
-def decode_chassis_axes(chassis_id: int) -> dict[str, Any]:
-    """Décode les valeurs exactes des 7 axes binaires d'un `chassis_id` (0..127)."""
+def chassis_id_to_studio_index_128(chassis_id: int) -> int:
+    """Convertit un `chassis_id` moteur (0..127, bit 0 = P_Max) en `config_index_128` Studio (1..128, MSB = P_Max)."""
     if not (0 <= chassis_id < 128):
         raise ValueError(f"chassis_id hors plage 0..127 : {chassis_id}")
-    axes: dict[str, Any] = {"chassis_id": int(chassis_id)}
+    n_axes = len(CHASSIS_AXES_OPTIONS)
+    studio_zero = 0
+    for bit_pos in range(n_axes):
+        bit_val = (int(chassis_id) >> bit_pos) & 1
+        studio_zero |= bit_val << (n_axes - 1 - bit_pos)
+    return studio_zero + 1
+
+
+def studio_index_128_to_chassis_id(studio_index_128: int) -> int:
+    """Convertit un `config_index_128` Doc Studio (1..128) en `chassis_id` moteur (0..127)."""
+    if not (1 <= studio_index_128 <= 128):
+        raise ValueError(f"studio_index_128 hors plage 1..128 : {studio_index_128}")
+    n_axes = len(CHASSIS_AXES_OPTIONS)
+    studio_zero = int(studio_index_128) - 1
+    chassis_id = 0
+    for bit_pos in range(n_axes):
+        bit_val = (studio_zero >> (n_axes - 1 - bit_pos)) & 1
+        chassis_id |= bit_val << bit_pos
+    return chassis_id
+
+
+def axes_dict_to_chassis_id(axes: Mapping[str, Any]) -> int:
+    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..127)."""
+    lowered = {str(k).lower(): v for k, v in axes.items()}
+    chassis_id = 0
+    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
+        raw = lowered.get(axis_name.lower(), opts_pair[0])
+        if raw == opts_pair[0] or str(raw) == str(opts_pair[0]):
+            bit_val = 0
+        elif raw == opts_pair[1] or str(raw) == str(opts_pair[1]):
+            bit_val = 1
+        else:
+            raise ValueError(
+                f"Valeur invalide pour l'axe {axis_name!r} : {raw!r} (attendu {opts_pair!r})"
+            )
+        if bit_val:
+            chassis_id |= 1 << bit_pos
+    return chassis_id
+
+
+def decode_chassis_axes(chassis_id: int) -> dict[str, Any]:
+    """Décode les valeurs exactes des 7 axes binaires d'un `chassis_id` (0..127) avec son `studio_config_index_128` (1..128)."""
+    if not (0 <= chassis_id < 128):
+        raise ValueError(f"chassis_id hors plage 0..127 : {chassis_id}")
+    axes: dict[str, Any] = {
+        "chassis_id": int(chassis_id),
+        "studio_config_index_128": chassis_id_to_studio_index_128(int(chassis_id)),
+    }
     for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
         bit_val = (int(chassis_id) >> bit_pos) & 1
         axes[axis_name] = opts_pair[bit_val]
@@ -64,15 +124,25 @@ def build_active_core_rules(
     """Extrait dynamiquement `active_core_rules` depuis le `spec_bundle` actif.
 
     Contient :
-    - `version` et `source_studio_version`,
-    - `studio_sha256` (empreintes SHA-256 des sources Studio),
-    - `chassis_7_axes` (valeurs exactes des 7 axes de chaque châssis utilisé),
+    - `version`, `source_studio_version` et `spec_bundle_sha256`,
+    - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
+    - `chassis_7_axes` (valeurs exactes des 7 axes + `chassis_id` 0..127 + `studio_config_index_128` 1..128),
     - `tactiques` (`T1..T6`),
     - `machine_damage_rules` et `machine_deck_rules`,
-    - `spec_formelle` (Étapes 1 à 6, Furtivité, chaîne des Parades / Pièges,
-      Sabotage par dilution, Apprentissage, Fins `5.3`).
+    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité,
+      chaîne des Parades / Pièges, Sabotage par dilution, Apprentissage, Fins `5.3`).
     """
-    spec_bundle = bundle if bundle is not None else load_spec_bundle(bundle_path)
+    target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
+    if bundle is not None:
+        spec_bundle = bundle
+        bundle_sha256 = hashlib.sha256(
+            json.dumps(spec_bundle, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+    else:
+        raw_bundle = target_path.read_bytes()
+        bundle_sha256 = hashlib.sha256(raw_bundle).hexdigest()
+        spec_bundle = dict(json.loads(raw_bundle.decode("utf-8")))
+
     meta = spec_bundle.get("meta", {})
     raw_sha = meta.get("studio_sha256", {})
     studio_sha256: dict[str, str] = {}
@@ -87,36 +157,23 @@ def build_active_core_rules(
 
     sf = spec_bundle.get("spec_formelle_v5_3", {})
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
-    etapes_raw: list[dict[str, Any]] = list(sf.get("etapes_tour", []))
-    et_by_num: dict[int, dict[str, Any]] = {int(e["numero"]): e for e in etapes_raw}
+    etapes_raw: list[dict[str, Any]] = sorted(
+        sf.get("etapes_tour", []),
+        key=lambda e: int(e.get("numero", 0)),
+    )
 
-    def _et_title(num: int) -> str:
-        e = et_by_num.get(num, {})
-        return str(e.get("nom", f"Étape {num}"))
+    etapes_1_a_6: dict[str, str] = {}
+    for et in etapes_raw:
+        num = int(et.get("numero", 0))
+        code = str(et.get("code", f"ETAPE_{num}"))
+        nom = str(et.get("nom", f"Étape {num}"))
+        arb_codes = _STEP_ARBITRAGES_MAP.get(num, ())
+        arb_txt = " ".join(av.get(ac, "") for ac in arb_codes if av.get(ac)).strip()
+        etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
         "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.3.1"))),
-        "etapes_1_a_6": {
-            "etape_1_PREPARATION_POSE_FURTIVITE": (
-                f"{_et_title(1)} : {av.get('A01', '')} {av.get('A22', '')}".strip()
-            ),
-            "etape_2_REVELATION_DES_REVES_FURTIVITE": (
-                f"{_et_title(2)} : {av.get('A02', '')}".strip()
-            ),
-            "etape_3_CONSTRUCTION_SYNERGIES": (
-                f"{_et_title(3)} : {av.get('A04', '')} {av.get('A11', '')} {av.get('A21', '')}".strip()
-            ),
-            "etape_4_NIDS_ET_MIGRATION": (
-                f"{_et_title(4)} : {av.get('A18', '')} {av.get('A17', '')}".strip()
-            ),
-            "etape_5_ATTAQUES_ET_TEST_FIN": (
-                f"{_et_title(5)} : {av.get('A25', '')} {av.get('A19', '')} "
-                f"{av.get('A08', '')} {av.get('A09', '')} {av.get('A16', '')}".strip()
-            ),
-            "etape_6_APPRENTISSAGE_ET_MENAGE": (
-                f"{_et_title(6)} : {av.get('A12', '')} {av.get('A13', '')}".strip()
-            ),
-        },
+        "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
             f"{av.get('A20', '')} | {av.get('A06', '')} | "
@@ -130,6 +187,7 @@ def build_active_core_rules(
     return {
         "version": str(meta.get("schema_version", "5.3.1")),
         "source_studio_version": str(meta.get("source_studio_version", "v5.3")),
+        "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
         "chassis_7_axes": chassis_list,
         "tactiques": list(spec_bundle.get("tactiques", [])),
@@ -231,7 +289,9 @@ def build_self_contained_digest(
         else _infer_tested_tiles_from_payload(stats_payload)
     )
 
-    core_rules = build_active_core_rules(resolved_chassis, bundle=spec_bundle)
+    core_rules = build_active_core_rules(
+        resolved_chassis, bundle=bundle, bundle_path=bundle_path
+    )
     tiles_rules = build_tested_tiles_rules(resolved_tiles, bundle=spec_bundle)
 
     ordered: dict[str, Any] = {}

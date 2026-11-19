@@ -408,13 +408,19 @@ def micro_fork(
     n_eval_rollouts: int = 6,
     selection_seed_offset: int = 500_000,
     eval_seed_offset: int = 900_000,
+    k_max_future: int = 3,
 ) -> MicroForkRecord:
     """Exécute un micro-fork contrôlé sur `anchor_2_2.clone()` en séparant sélection et évaluation.
 
     Compare 3 branches au point exact d'entrée en 2.2 :
-    - `B_k0_priv` : `K_max = 0` passes de révision, paravents fermés ;
-    - `B_k3_priv` : `K_max = 3` passes de révision, paravents fermés ;
-    - `B_k3_open` : `K_max = 3` passes de révision, paravents révélés en contrefactuel (`C_prive`).
+    - `B_k0_priv` : `K_max = 0` passes de révision **sur ce tour 2.2 uniquement**, paravents fermés ;
+    - `B_k3_priv` : `K_max = 3` passes de révision **sur ce tour 2.2**, paravents fermés ;
+    - `B_k3_open` : `K_max = 3` passes de révision **sur ce tour 2.2**, paravents révélés (`C_prive`).
+
+    Pour isoler strictement la valeur de la révision de ce tour (sans confondre avec le droit de
+    réviser aux tours ultérieurs), toutes les branches poursuivent les tours suivants avec la même
+    politique future `k_max_future` et les mêmes tirages aléatoires CRN. Deux états identiques en
+    sortie de 2.2 produisent ainsi un écart strictement nul (`0.0`) sur chaque graine.
     """
     assert anchor_2_2.step == STEP_2_2_DEF2, "micro_fork requiert un état en début d'Étape 2.2"
     assert n_selection_rollouts >= 1 and n_eval_rollouts >= 2
@@ -452,12 +458,12 @@ def micro_fork(
         r0 = _rollout_from_post_2_2(
             _reseed_future_turns_clone(s_k0, sel_seed, sel_rep),
             is_b2=is_b2,
-            k_max_future=0,
+            k_max_future=k_max_future,
         )
         r3 = _rollout_from_post_2_2(
             _reseed_future_turns_clone(s_k3, sel_seed, sel_rep),
             is_b2=is_b2,
-            k_max_future=3,
+            k_max_future=k_max_future,
         )
         sel_k0_vals.append(r0.ratio_arbres)
         sel_k3_vals.append(r3.ratio_arbres)
@@ -477,17 +483,17 @@ def micro_fork(
         e0 = _rollout_from_post_2_2(
             _reseed_future_turns_clone(s_k0, ev_seed, ev_rep),
             is_b2=is_b2,
-            k_max_future=0,
+            k_max_future=k_max_future,
         )
         e3 = _rollout_from_post_2_2(
             _reseed_future_turns_clone(s_k3, ev_seed, ev_rep),
             is_b2=is_b2,
-            k_max_future=3,
+            k_max_future=k_max_future,
         )
         eo = _rollout_from_post_2_2(
             _reseed_future_turns_clone(s_open, ev_seed, ev_rep),
             is_b2=is_b2,
-            k_max_future=3,
+            k_max_future=k_max_future,
         )
         eval_k0_vals.append(e0.ratio_arbres)
         eval_k3_vals.append(e3.ratio_arbres)
@@ -524,6 +530,7 @@ def run_micro_fork_on_config(
     is_b2: bool = True,
     n_selection_rollouts: int = 4,
     n_eval_rollouts: int = 6,
+    k_max_future: int = 3,
 ) -> MicroForkRecord | None:
     """Construit l'ancre 2.2 au tour `target_tour` puis exécute `micro_fork`."""
     anchor = _advance_to_target_2_2_anchor(cfg, target_tour=target_tour, is_b2=is_b2)
@@ -534,6 +541,7 @@ def run_micro_fork_on_config(
         is_b2=is_b2,
         n_selection_rollouts=n_selection_rollouts,
         n_eval_rollouts=n_eval_rollouts,
+        k_max_future=k_max_future,
     )
 
 

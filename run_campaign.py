@@ -11,6 +11,7 @@ Usage :
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -27,7 +28,10 @@ ROOT: Path = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from campaigns.digest_builder import write_digest_and_prompt_files
+from campaigns.digest_builder import (
+    chassis_id_to_studio_index_128,
+    write_digest_and_prompt_files,
+)
 from campaigns.worker_main import resolve_manifest_plan
 from scripts_cloud.studio_paths import find_gcloud
 
@@ -64,6 +68,23 @@ def _sanitize_gcp_name(raw: str, max_len: int = 40) -> str:
     return cleaned[:max_len].rstrip("-")
 
 
+def _build_run_id(manifest: dict[str, Any]) -> str:
+    """Construit un identifiant unique `YYYYMMDDTHHMMSSZ_<sha8>` pour isoler les artefacts GCS/locaux."""
+    ts = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    canon = json.dumps(manifest, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    digest8 = hashlib.sha256(canon).hexdigest()[:8]
+    return f"{ts}_{digest8}"
+
+
+def _cvar_bottom_values(values: list[float], alpha: float = 0.20) -> float:
+    """Calcule la moyenne du pire quintile (CVaR_20% inter-tables) d'une liste de ratios."""
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    k = max(1, int((len(ordered) * alpha) + 0.999999))
+    return round(sum(ordered[:k]) / k, 4)
+
+
 def _auto_task_count(n_units: int, total_games: int, backend: str) -> int:
     if n_units <= 1 or total_games <= 32:
         return 1
@@ -81,6 +102,7 @@ def _run_cloud_run_job(
     cpu: str,
     memory: str,
     timeout_sec: int,
+    image_uri: str = IMAGE_URI,
 ) -> tuple[str, float]:
     args_value = (
         f"--campaign-manifest={manifest_gcs_uri},"
@@ -95,7 +117,7 @@ def _run_cloud_run_job(
             "deploy",
             CLOUD_RUN_JOB_NAME,
             "--image",
-            IMAGE_URI,
+            image_uri,
             "--region",
             REGION,
             "--tasks",
@@ -139,6 +161,7 @@ def _run_cloud_batch_job(
     tasks: int,
     timeout_sec: int,
     run_dir: Path,
+    image_uri: str = IMAGE_URI,
 ) -> tuple[str, float]:
     ts = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     job_name = f"amazonia-{_sanitize_gcp_name(campaign_name, max_len=28)}-{ts}"
@@ -149,7 +172,7 @@ def _run_cloud_batch_job(
                     "runnables": [
                         {
                             "container": {
-                                "imageUri": IMAGE_URI,
+                                "imageUri": image_uri,
                                 "commands": [
                                     f"--campaign-manifest={manifest_gcs_uri}",
                                     f"--gcs-prefix={gcs_prefix}",
@@ -233,6 +256,9 @@ def aggregate_campaign_duckdb(
     job_name: str,
     tasks: int,
     job_wall_sec: float,
+    run_id: str | None = None,
+    gcs_prefix: str | None = None,
+    image_uri: str = IMAGE_URI,
 ) -> tuple[Path, Path, dict[str, Any]]:
     """Agrège les shards JSONL.gz via DuckDB, archive Parquet et écrit le digest auto-portant."""
     campaign_name = str(plan["campaign_name"])
@@ -243,9 +269,23 @@ def aggregate_campaign_duckdb(
     con.execute(f"CREATE TABLE cells AS SELECT * FROM read_json_auto('{glob_pattern}')")
     con.execute(f"COPY cells TO '{parquet_posix}' (FORMAT PARQUET, COMPRESSION ZSTD)")
 
+    cell_cols = {str(r[0]) for r in con.sql("DESCRIBE cells").fetchall()}
+    has_ops_cols = "sum_physical_ops" in cell_cols and "sum_player_decisions" in cell_cols
+    ops_select_sql = (
+        """
+            ROUND(SUM(sum_physical_ops) * 1.0 / SUM(n_games), 3) AS mean_physical_ops,
+            ROUND(SUM(sum_player_decisions) * 1.0 / SUM(n_games), 3) AS mean_player_decisions,
+        """
+        if has_ops_cols
+        else """
+            NULL AS mean_physical_ops,
+            NULL AS mean_player_decisions,
+        """
+    )
+
     g_stats = _query_dicts(
         con,
-        """
+        f"""
         SELECT
             CAST(SUM(n_games) AS INTEGER) AS total_games,
             COUNT(DISTINCT task_index) AS n_shards,
@@ -263,10 +303,42 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(sum_law_mean) / SUM(n_games), 3) AS mean_active_laws,
             CAST(MAX(max_law_max) AS INTEGER) AS max_active_laws,
             ROUND(SUM(sum_fiddliness) / SUM(n_games), 3) AS mean_fiddliness_ops,
+            {ops_select_sql}
             ROUND(SUM(sum_cascade_sweeps) * 1.0 / SUM(n_games), 3) AS mean_cascade_sweeps
         FROM cells
         """,
     )[0]
+
+    # CVaR_20% inter-tables véritable (pire quintile des ratios moyens par table/cellule),
+    # distinct de `cvar20_ratio` (moyenne pondérée des CVaR intra-cellule).
+    cell_table_rows = _query_dicts(
+        con,
+        """
+        SELECT
+            mode,
+            bot,
+            n_players,
+            chassis_id,
+            variant_id,
+            sum_ratio_arbres * 1.0 / n_games AS table_mean_ratio
+        FROM cells
+        WHERE n_games > 0
+        """,
+    )
+    all_table_ratios: list[float] = []
+    ratios_by_mode: dict[tuple[int, str], list[float]] = {}
+    ratios_by_n: dict[int, list[float]] = {}
+    ratios_by_chassis: dict[int, list[float]] = {}
+    ratios_by_variant: dict[str, list[float]] = {}
+    for tr in cell_table_rows:
+        mr_t = float(tr["table_mean_ratio"])
+        all_table_ratios.append(mr_t)
+        ratios_by_mode.setdefault((int(tr["mode"]), str(tr["bot"])), []).append(mr_t)
+        ratios_by_n.setdefault(int(tr["n_players"]), []).append(mr_t)
+        ratios_by_chassis.setdefault(int(tr["chassis_id"]), []).append(mr_t)
+        ratios_by_variant.setdefault(str(tr["variant_id"]), []).append(mr_t)
+
+    global_table_cvar20 = _cvar_bottom_values(all_table_ratios, 0.20)
 
     task_rows = _query_dicts(
         con,
@@ -305,6 +377,10 @@ def aggregate_campaign_duckdb(
         ORDER BY mode, bot
         """,
     )
+    for row in by_mode:
+        row["table_cvar20_ratio"] = _cvar_bottom_values(
+            ratios_by_mode.get((int(row["mode"]), str(row["bot"])), []), 0.20
+        )
 
     by_n_players = _query_dicts(
         con,
@@ -324,6 +400,10 @@ def aggregate_campaign_duckdb(
         ORDER BY n_players
         """,
     )
+    for row in by_n_players:
+        row["table_cvar20_ratio"] = _cvar_bottom_values(
+            ratios_by_n.get(int(row["n_players"]), []), 0.20
+        )
 
     by_chassis = _query_dicts(
         con,
@@ -342,6 +422,10 @@ def aggregate_campaign_duckdb(
         LIMIT 24
         """,
     )
+    for row in by_chassis:
+        cid = int(row["chassis_id"])
+        row["studio_config_index_128"] = chassis_id_to_studio_index_128(cid)
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_chassis.get(cid, []), 0.20)
 
     by_variant = _query_dicts(
         con,
@@ -362,6 +446,10 @@ def aggregate_campaign_duckdb(
         ORDER BY mean_ratio_arbres DESC, variant_id ASC
         """,
     )
+    for row in by_variant:
+        row["table_cvar20_ratio"] = _cvar_bottom_values(
+            ratios_by_variant.get(str(row["variant_id"]), []), 0.20
+        )
 
     # Agrégation directe par (slot, profil) pour affichage dans Amazonia Doc Studio (tile_metrics)
     tile_acc: dict[str, dict[str, Any]] = {}
@@ -404,21 +492,50 @@ def aggregate_campaign_duckdb(
     chassis_ids: tuple[int, ...] = tuple(plan["chassis_ids"])
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    base_tile_profiles: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
+    non_default_base_slots = {s: p for s, p in base_tile_profiles.items() if p != "A"}
+    selection_manifest: dict[str, Any] = {
+        "base_bundle_id": str(plan.get("base_bundle_id", "STANDARD_A")),
+        "n_resolved_slots": len(base_tile_profiles) if base_tile_profiles else 32,
+        "non_default_base_slots": non_default_base_slots,
+        "resolved_32_slots_sha256": str(plan.get("resolved_32_slots_sha256", "")),
+        "migration_policy": dict(plan.get("migration_policy", {})),
+    }
+
+    execution_meta: dict[str, Any] = {
+        "backend": backend,
+        "region": REGION,
+        "job_name": job_name,
+        "image": image_uri,
+        "tasks": tasks,
+        "job_wall_sec": round(job_wall_sec, 3),
+        "max_worker_compute_sec": round(max_compute_sec, 3),
+        "sum_worker_games_per_sec": sum_worker_gps,
+        "effective_cluster_games_per_sec": eff_gps,
+    }
+    if run_id is not None:
+        execution_meta["run_id"] = run_id
+    if gcs_prefix is not None:
+        execution_meta["gcs_prefix"] = gcs_prefix
+
+    telemetry_block: dict[str, Any] = {
+        "mean_mem_debt": g_stats["mean_mem_debt"],
+        "mean_active_laws": g_stats["mean_active_laws"],
+        "max_active_laws": g_stats["max_active_laws"],
+        "mean_fiddliness_ops": g_stats["mean_fiddliness_ops"],
+        "mean_cascade_sweeps": g_stats["mean_cascade_sweeps"],
+    }
+    if g_stats["mean_physical_ops"] is not None:
+        telemetry_block["mean_physical_ops"] = g_stats["mean_physical_ops"]
+    if g_stats["mean_player_decisions"] is not None:
+        telemetry_block["mean_player_decisions"] = g_stats["mean_player_decisions"]
+
     digest_payload: dict[str, Any] = {
         "campaign": campaign_name,
         "description": str(manifest.get("description", "")).strip(),
         "generated_at_utc": generated_at,
-        "execution": {
-            "backend": backend,
-            "region": REGION,
-            "job_name": job_name,
-            "image": IMAGE_URI,
-            "tasks": tasks,
-            "job_wall_sec": round(job_wall_sec, 3),
-            "max_worker_compute_sec": round(max_compute_sec, 3),
-            "sum_worker_games_per_sec": sum_worker_gps,
-            "effective_cluster_games_per_sec": eff_gps,
-        },
+        "selection_manifest": selection_manifest,
+        "execution": execution_meta,
         "totals": {
             "total_games": total_games,
             "n_shards": int(g_stats["n_shards"]),
@@ -427,6 +544,8 @@ def aggregate_campaign_duckdb(
             "mean_score_arbres": g_stats["mean_score_arbres"],
             "mean_ratio_arbres": g_stats["mean_ratio_arbres"],
             "cvar20_ratio": g_stats["cvar20_ratio"],
+            "within_table_cvar20_ratio": g_stats["cvar20_ratio"],
+            "table_cvar20_ratio": global_table_cvar20,
             "survival_rate": g_stats["survival_rate"],
             "mean_tours": g_stats["mean_tours"],
             "pct_tour_8": g_stats["pct_tour_8"],
@@ -435,13 +554,7 @@ def aggregate_campaign_duckdb(
             "tested_tiles": [f"{s}:{p}" for s, p in tested_tiles],
             "parquet_archive": parquet_path.relative_to(ROOT).as_posix(),
         },
-        "telemetry": {
-            "mean_mem_debt": g_stats["mean_mem_debt"],
-            "mean_active_laws": g_stats["mean_active_laws"],
-            "max_active_laws": g_stats["max_active_laws"],
-            "mean_fiddliness_ops": g_stats["mean_fiddliness_ops"],
-            "mean_cascade_sweeps": g_stats["mean_cascade_sweeps"],
-        },
+        "telemetry": telemetry_block,
         "by_mode": by_mode,
         "by_n_players": by_n_players,
         "by_chassis": by_chassis,
@@ -582,6 +695,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Timeout max par tâche en secondes (défaut: 600).",
     )
     parser.add_argument(
+        "--image-uri",
+        type=str,
+        default=IMAGE_URI,
+        help="URI d'image Docker worker PyPy (recommandé : digest immuable @sha256:... pour reproductibilité).",
+    )
+    parser.add_argument(
         "--build",
         action="store_true",
         help="Reconstruit et pousse l'image worker PyPy via Cloud Build avant exécution.",
@@ -617,16 +736,18 @@ def main(argv: list[str] | None = None) -> int:
         if args.tasks is not None
         else _auto_task_count(n_units, total_games_planned, backend)
     )
+    image_uri = str(args.image_uri).strip() or IMAGE_URI
+    run_id = _build_run_id(manifest)
 
     print(
-        f"=== Campagne '{campaign_name}' : {total_games_planned} parties "
+        f"=== Campagne '{campaign_name}' [run_id={run_id}] : {total_games_planned} parties "
         f"({plan['total_configurations']} configs, {n_units} unités) | "
         f"backend={backend} ({REGION}, {tasks} tâche(s)) ===",
         flush=True,
     )
 
     gcloud = find_gcloud()
-    gcs_prefix = f"campaigns/{campaign_name}"
+    gcs_prefix = f"campaigns/{campaign_name}/{run_id}"
     manifest_gcs_uri = f"gs://{BUCKET_NAME}/{gcs_prefix}/manifest.json"
     shards_gcs_glob = f"gs://{BUCKET_NAME}/{gcs_prefix}/shard_*.jsonl.gz"
 
@@ -634,12 +755,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.build:
         _run([gcloud, "builds", "submit", "--config", "cloudbuild.yaml", "."])
 
-    # 2. Nettoyage d'éventuels anciens shards du même nom + upload du manifeste sur GCS
-    _run([gcloud, "storage", "rm", shards_gcs_glob], check=False)
+    # 2. Upload du manifeste sous préfixe GCS isolé par run_id (aucun `rm` destructif sur un préfixe partagé)
     _run([gcloud, "storage", "cp", str(manifest_path), manifest_gcs_uri])
 
     # 3. Exécution Cloud Run Jobs ou Cloud Batch (europe-west9) et attente synchrone
-    run_dir = ROOT / ".tmp_runs" / "campaigns" / campaign_name
+    run_dir = ROOT / ".tmp_runs" / "campaigns" / campaign_name / run_id
     shards_dir = run_dir / "shards"
     parquet_path = run_dir / "cells.parquet"
 
@@ -652,6 +772,7 @@ def main(argv: list[str] | None = None) -> int:
             tasks=tasks,
             timeout_sec=int(args.timeout),
             run_dir=run_dir,
+            image_uri=image_uri,
         )
     else:
         job_name, job_wall_sec = _run_cloud_run_job(
@@ -662,6 +783,7 @@ def main(argv: list[str] | None = None) -> int:
             cpu=str(args.cpu),
             memory=str(args.memory),
             timeout_sec=int(args.timeout),
+            image_uri=image_uri,
         )
     print(f"Calcul Cloud ({backend}/{job_name}) terminé en {job_wall_sec:.2f}s murale.", flush=True)
 
@@ -681,6 +803,9 @@ def main(argv: list[str] | None = None) -> int:
         job_name=job_name,
         tasks=tasks,
         job_wall_sec=job_wall_sec,
+        run_id=run_id,
+        gcs_prefix=gcs_prefix,
+        image_uri=image_uri,
     )
     print(f"Digest généré : {digest_path.relative_to(ROOT).as_posix()} ({digest_path.stat().st_size} octets)")
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import itertools
 import json
 import multiprocessing
@@ -32,6 +33,8 @@ from campaigns.digest_builder import (
     build_mobile_one_tap_html,
     build_prompt_gemini_markdown,
     build_self_contained_digest,
+    chassis_id_to_studio_index_128,
+    studio_index_128_to_chassis_id,
 )
 from campaigns.map_elites import (
     CANONICAL_32_SLOTS,
@@ -48,6 +51,7 @@ from campaigns.map_elites import (
 )
 from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
+from engine.rng import SRC_BOT_TIEBREAK, shuffle_deterministic
 from engine.state import (
     CHASSIS_AXES_OPTIONS,
     PEUPLES_ORDER,
@@ -517,6 +521,36 @@ def _canonical_rot(peuples: tuple[str, ...]) -> tuple[str, ...]:
     return peuples[b:] + peuples[:b]
 
 
+def build_shuffled_halving_cohorts(
+    n_chassis: int = 128,
+    n_cohorts: int = 16,
+    *,
+    seed: int = 20264010,
+) -> tuple[tuple[int, ...], ...]:
+    """Partitionne `0..n_chassis-1` en `n_cohorts` cohortes sans biais modulo sur les bits bas.
+
+    - `n_cohorts == 1` : pool global unique (Sequential Halving non partitionné sans quotas d'axes).
+    - `n_cohorts > 1` : permutation Fisher-Yates déterministe avant découpage en tranches égales,
+      éliminant le biais `cid % 16` qui imposait des quotas rigides sur les 4 premiers axes binaires.
+    """
+    assert n_cohorts >= 1 and n_chassis % n_cohorts == 0
+    if n_cohorts == 1:
+        return (tuple(range(n_chassis)),)
+    shuffled = shuffle_deterministic(
+        tuple(range(n_chassis)),
+        exp_seed=seed,
+        rep_id=0,
+        source_type=SRC_BOT_TIEBREAK,
+        tour=0,
+        entity_id=n_cohorts,
+    )
+    chunk = n_chassis // n_cohorts
+    return tuple(
+        tuple(shuffled[i * chunk : (i + 1) * chunk])
+        for i in range(n_cohorts)
+    )
+
+
 def build_palier2_work_units(
     *,
     reps_per_table_coop: int = 12,
@@ -575,10 +609,9 @@ def build_palier2_work_units(
                         }
                     )
 
-    # Volet C : CHASSIS_HALVING (128 châssis répartis en 16 cohortes équilibrées : 8 -> 4 -> 2 -> 1)
-    assert 128 % halving_cohorts == 0
-    for cohort_idx in range(halving_cohorts):
-        cohort_chassis = tuple(range(cohort_idx, 128, halving_cohorts))
+    # Volet C : CHASSIS_HALVING (128 châssis mélangés de façon déterministe sans biais modulo)
+    cohorts = build_shuffled_halving_cohorts(128, halving_cohorts, seed=exp_seed + 300_000)
+    for cohort_idx, cohort_chassis in enumerate(cohorts):
         units.append(
             {
                 "unit_kind": "CHASSIS_HALVING",
@@ -726,6 +759,7 @@ def _execute_micro_fork_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
     rollouts_per_anchor = n_sel * 2 + n_eval * 3  # 18 rollouts par ancre
 
     anchors_done = 0
+    anchors_missed = 0
     diverged_cnt = 0
     sum_dv = 0.0
     sum_cp = 0.0
@@ -754,14 +788,8 @@ def _execute_micro_fork_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
             n_eval_rollouts=n_eval,
         )
         if rec is None:
-            rec = run_micro_fork_on_config(
-                cfg,
-                target_tour=1,
-                is_b2=is_b2,
-                n_selection_rollouts=n_sel,
-                n_eval_rollouts=n_eval,
-            )
-        if rec is not None:
+            anchors_missed += 1
+        else:
             anchors_done += 1
             if rec.diverged_in_2_2:
                 diverged_cnt += 1
@@ -809,6 +837,7 @@ def _execute_micro_fork_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
             "mean_cascade_sweeps": 0.0,
             "mean_mid_combat_interrupts": 0.0,
             "fork_anchors": anchors_done,
+            "fork_anchors_missed": anchors_missed,
             "fork_diverged": diverged_cnt,
             "sum_delta_v_neg": round(sum_dv, 6),
             "sum_c_prive": round(sum_cp, 6),
@@ -821,26 +850,30 @@ def _execute_micro_fork_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def _execute_halving_cohort_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
-    """Exécute 3 rounds de Sequential Halving (8 -> 4 -> 2 -> 1) en Modes 1 & 2 sur les 6 cercles miroirs."""
+    """Exécute le Sequential Halving en Modes 1 & 2 sur les 6 paires de cercles miroirs CRN."""
     cohort_id = int(unit["cohort_id"])
     active_chassis: tuple[int, ...] = tuple(int(c) for c in unit["chassis_ids"])
     base_seed = int(unit["exp_seed"])
 
-    # 12 tables = les 6 cercles obligatoires de couverture complète + leurs 6 miroirs exacts
-    mirror_tables: list[tuple[int, str, tuple[str, ...]]] = []
+    # 6 paires = les 6 cercles obligatoires de couverture complète appariés à leurs miroirs exacts
+    mirror_pairs: list[tuple[int, tuple[str, ...], tuple[str, ...]]] = []
     for _, p_tup in MANDATORY_6_CIRCLES:
         c_a = _canonical_rot(p_tup)
         c_b = _canonical_rot(mirror_peuples(c_a))
-        mirror_tables.append((len(c_a), "-".join(c_a), c_a))
-        mirror_tables.append((len(c_b), "-".join(c_b), c_b))
+        mirror_pairs.append((len(c_a), c_a, c_b))
 
-    # Budgets doublants par round : Round 1 (1 rep/table = 24 parties/châssis),
-    # Round 2 (2 reps/table = 48 parties/châssis), Round 3 (4 reps/table = 96 parties/châssis)
-    round_specs: tuple[tuple[int, int, int], ...] = (
-        (1, 1, max(1, len(active_chassis) // 2)),
-        (2, 2, max(1, len(active_chassis) // 4)),
-        (3, 4, max(1, len(active_chassis) // 8)),
-    )
+    # Budgets doublants par round jusqu'à 1 survivant (pour 8 châssis : 1, 2, 4 reps/table)
+    round_specs_list: list[tuple[int, int, int]] = []
+    rem = len(active_chassis)
+    r_idx = 1
+    while rem > 1:
+        next_keep = max(1, rem // 2)
+        round_specs_list.append((r_idx, 1 << (r_idx - 1), next_keep))
+        rem = next_keep
+        r_idx += 1
+    if not round_specs_list:
+        round_specs_list.append((1, 1, 1))
+    round_specs: tuple[tuple[int, int, int], ...] = tuple(round_specs_list)
 
     out_records: list[dict[str, Any]] = []
     for r_num, reps_per_tbl, keep_k in round_specs:
@@ -863,42 +896,43 @@ def _execute_halving_cohort_unit(unit: dict[str, Any]) -> list[dict[str, Any]]:
                 sum_fidd = 0.0
                 p_max_val = 4
 
-                rep_seq = 0
-                for n_pl, _tid, peuples in mirror_tables:
+                # CRN strict : les deux orientations d'une paire miroir partagent le même rep_id
+                for pair_idx, (n_pl, c_a, c_b) in enumerate(mirror_pairs):
                     for rep_off in range(reps_per_tbl):
-                        cfg = _make_cfg_with_mode(
-                            ch_id,
-                            n_players=n_pl,
-                            mode=mode,
-                            peuples=peuples,
-                            exp_seed=round_seed,
-                            rep_id=rep_seq,
-                            coordonnateur_initial=rep_off % n_pl,
-                            max_revision_passes=3,
-                        )
-                        p_max_val = cfg.p_max
-                        trk = TelemetryTracker()
-                        res = play_game_b2(
-                            GameState(cfg),
-                            k_max_passes=3,
-                            max_steps=2000,
-                            chassis_id=ch_id,
-                            telemetry=trk,
-                        )
-                        rep_seq += 1
-                        rt = res.ratio_arbres
-                        ratios.append(rt)
-                        sum_arbres += res.score_arbres
-                        sum_ratio += rt
-                        sum_sq_ratio += rt * rt
-                        sum_tours += res.tour_fin
-                        if res.cause_fin == CAUSE_TOUR_8:
-                            cnt_t8 += 1
-                        elif res.cause_fin == CAUSE_REVE_RANG_1:
-                            cnt_reve += 1
-                        elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
-                            cnt_reveil += 1
-                        sum_fidd += trk.summary().fiddliness_ratio
+                        rep_id = pair_idx * reps_per_tbl + rep_off
+                        for peuples in (c_a, c_b):
+                            cfg = _make_cfg_with_mode(
+                                ch_id,
+                                n_players=n_pl,
+                                mode=mode,
+                                peuples=peuples,
+                                exp_seed=round_seed,
+                                rep_id=rep_id,
+                                coordonnateur_initial=rep_off % n_pl,
+                                max_revision_passes=3,
+                            )
+                            p_max_val = cfg.p_max
+                            trk = TelemetryTracker()
+                            res = play_game_b2(
+                                GameState(cfg),
+                                k_max_passes=3,
+                                max_steps=2000,
+                                chassis_id=ch_id,
+                                telemetry=trk,
+                            )
+                            rt = res.ratio_arbres
+                            ratios.append(rt)
+                            sum_arbres += res.score_arbres
+                            sum_ratio += rt
+                            sum_sq_ratio += rt * rt
+                            sum_tours += res.tour_fin
+                            if res.cause_fin == CAUSE_TOUR_8:
+                                cnt_t8 += 1
+                            elif res.cause_fin == CAUSE_REVE_RANG_1:
+                                cnt_reve += 1
+                            elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
+                                cnt_reveil += 1
+                            sum_fidd += trk.summary().fiddliness_ratio
 
                 ratios.sort()
                 n_g = len(ratios)
@@ -1180,7 +1214,7 @@ def _execute_p4_phase_a_cohort(unit: dict[str, Any]) -> list[dict[str, Any]]:
         keep_final=1,
         base_reps_per_table=base_reps,
         round_offset=round_offset,
-        exp_seed=exp_seed + cohort_id * 1000,
+        exp_seed=exp_seed,
     )
     out: list[dict[str, Any]] = []
     for r in rows:
@@ -1217,16 +1251,16 @@ def run_campaign_palier4_phase_a(
             }
         ]
     else:
-        assert 128 % halving_cohorts == 0
+        cohorts = build_shuffled_halving_cohorts(128, halving_cohorts, seed=20264010)
         all_units = [
             {
                 "cohort_id": c_idx,
-                "chassis_ids": tuple(range(c_idx, 128, halving_cohorts)),
+                "chassis_ids": cohort_chassis,
                 "base_reps": base_reps,
                 "round_offset": round_offset,
                 "exp_seed": 20264010,
             }
-            for c_idx in range(halving_cohorts)
+            for c_idx, cohort_chassis in enumerate(cohorts)
         ]
     my_units = [u for i, u in enumerate(all_units) if i % t_cnt == t_idx]
     n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
@@ -1528,7 +1562,16 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     mode = int(manifest.get("mode", 3))
     exp_seed = int(manifest.get("seed", 20261119))
 
-    # 1. Résolution des châssis (produit cartésien des axes variables + axes figés)
+    # 1. Résolution des châssis (produit cartésien des axes variables + axes figés,
+    #    avec repli éventuel sur base_instance.config_index_128 au format Studio 1..128)
+    base_inst = manifest.get("base_instance", {})
+    raw_studio_idx = base_inst.get("config_index_128")
+    base_chassis_default: int = (
+        studio_index_128_to_chassis_id(int(raw_studio_idx))
+        if raw_studio_idx is not None
+        else 0
+    )
+
     chassis_plan = manifest.get("chassis_plan", {})
     fixed_raw = chassis_plan.get("fixed_axes", {})
     fixed_norm: dict[str, Any] = {str(k).lower(): v for k, v in fixed_raw.items()}
@@ -1544,7 +1587,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             varying_norm[ax_key] = vals
 
     axis_bit_choices: list[list[int]] = []
-    for _bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
+    for bit_pos, (axis_name, opts_pair) in enumerate(CHASSIS_AXES_OPTIONS):
         ax_low = axis_name.lower()
         if ax_low in varying_norm:
             raw_vals = varying_norm[ax_low]
@@ -1559,7 +1602,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             bit_val = _match_axis_bit(axis_name, fixed_norm[ax_low], opts_pair)
             axis_bit_choices.append([bit_val])
         else:
-            axis_bit_choices.append([0])
+            axis_bit_choices.append([(base_chassis_default >> bit_pos) & 1])
 
     chassis_ids: list[int] = []
     for combo in itertools.product(*axis_bit_choices):
@@ -1568,16 +1611,20 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             cid |= b << bit_pos
         chassis_ids.append(cid)
     chassis_ids = sorted(set(chassis_ids))
+    chassis_studio_indices_128 = tuple(chassis_id_to_studio_index_128(c) for c in chassis_ids)
 
-    # 2. Résolution du génome de base (32 slots)
-    base_inst = manifest.get("base_instance", {})
+    # 2. Résolution explicite du génome de base (32 slots)
     bundle_id = str(base_inst.get("bundle_id", "STANDARD_A")).strip().upper()
     if bundle_id == "MODE3_REF":
         ref_genome = load_mode3_reference_genome()
         base_map: dict[str, str] = dict(zip(CANONICAL_32_SLOTS, ref_genome, strict=True))
     else:
         base_map = {slot_id: "A" for slot_id in CANONICAL_32_SLOTS}
-        if bundle_id == "ESSAI_52_EMBUSCADE":
+        if bundle_id == "LOT_01_PILOT":
+            for s, p in LOT_01_PROFILES:
+                if s in base_map:
+                    base_map[s] = p
+        elif bundle_id == "ESSAI_52_EMBUSCADE":
             for s in _MANIFEST_D_SLOTS:
                 base_map[s] = "D"
 
@@ -1592,6 +1639,17 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     raw_comps = manifest.get("slot_profile_comparisons", {})
     ordered_comp_slots = [s for s in CANONICAL_32_SLOTS if raw_comps.get(s)]
     comp_lists = [[str(p).strip().upper() for p in raw_comps[s]] for s in ordered_comp_slots]
+
+    migration_slots = ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS")
+    migration_varying = [s for s in migration_slots if s in ordered_comp_slots]
+    migration_policy: dict[str, Any] = {
+        "SLOT_BUG_CERVEAU": base_map["SLOT_BUG_CERVEAU"],
+        "SLOT_COLONISATION_GARDIENS": base_map["SLOT_COLONISATION_GARDIENS"],
+        "fixed": len(migration_varying) == 0,
+        "varying_slots": migration_varying,
+    }
+    base_slots_canonical = ",".join(f"{s}:{base_map[s]}" for s in CANONICAL_32_SLOTS)
+    resolved_32_slots_sha256 = hashlib.sha256(base_slots_canonical.encode("utf-8")).hexdigest()
 
     profile_variants: list[dict[str, Any]] = []
     tested_tiles_set: list[tuple[str, str]] = []
@@ -1628,7 +1686,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             if base_map[s] != "A":
                 tested_tiles_set.append((s, base_map[s]))
 
-    # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties)
+    # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties,
+    #    avec appariement CRN strict sur chaque paire de tables miroirs)
     base_peuples_raw = base_inst.get("peuples_cercle", [])
     base_peuples: tuple[str, ...] = tuple(str(p).strip().upper() for p in base_peuples_raw)
 
@@ -1658,40 +1717,68 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         base_per_tbl = games_per_cfg // n_tables
         rem_tbl = games_per_cfg % n_tables
 
+        # Regroupe les paires miroirs consécutives pour leur affecter le même rep_start (CRN)
+        table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
+        idx_t = 0
+        while idx_t < n_tables:
+            t_id_a, p_a = candidate_tables[idx_t]
+            if (
+                idx_t + 1 < n_tables
+                and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
+            ):
+                t_id_b, p_b = candidate_tables[idx_t + 1]
+                table_groups.append((True, ((idx_t, t_id_a, p_a), (idx_t + 1, t_id_b, p_b))))
+                idx_t += 2
+            else:
+                table_groups.append((False, ((idx_t, t_id_a, p_a),)))
+                idx_t += 1
+
         for ch_id in chassis_ids:
             for var in profile_variants:
                 rep_offset = 0
-                for t_i, (t_id, peuples) in enumerate(candidate_tables):
-                    g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
-                    if g_cnt <= 0:
-                        continue
-                    units.append(
-                        {
-                            "campaign": campaign_name,
-                            "config_id": config_idx,
-                            "n_players": n_pl,
-                            "chassis_id": ch_id,
-                            "variant_idx": var["variant_idx"],
-                            "variant_id": var["variant_id"],
-                            "compared_slots": var["compared_slots"],
-                            "tile_profiles": var["tile_profiles"],
-                            "table_id": t_id,
-                            "peuples": peuples,
-                            "bot": bot_name,
-                            "k_max": k_max,
-                            "mode": mode,
-                            "exp_seed": exp_seed,
-                            "rep_start": rep_offset,
-                            "n_games": g_cnt,
-                        }
-                    )
-                    rep_offset += g_cnt
+                for is_mirror_pair, grp in table_groups:
+                    max_g_in_grp = 0
+                    for t_i, t_id, peuples in grp:
+                        g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
+                        if g_cnt <= 0:
+                            continue
+                        max_g_in_grp = max(max_g_in_grp, g_cnt)
+                        units.append(
+                            {
+                                "campaign": campaign_name,
+                                "config_id": config_idx,
+                                "n_players": n_pl,
+                                "chassis_id": ch_id,
+                                "variant_idx": var["variant_idx"],
+                                "variant_id": var["variant_id"],
+                                "compared_slots": var["compared_slots"],
+                                "tile_profiles": var["tile_profiles"],
+                                "table_id": t_id,
+                                "peuples": peuples,
+                                "is_mirror_pair": is_mirror_pair,
+                                "bot": bot_name,
+                                "k_max": k_max,
+                                "mode": mode,
+                                "exp_seed": exp_seed,
+                                "rep_start": rep_offset,
+                                "n_games": g_cnt,
+                            }
+                        )
+                    rep_offset += max_g_in_grp
                 config_idx += 1
 
     return {
         "campaign_name": campaign_name,
         "player_counts": player_counts,
         "chassis_ids": tuple(chassis_ids),
+        "chassis_studio_indices_128": chassis_studio_indices_128,
+        "base_studio_config_index_128": (
+            int(raw_studio_idx) if raw_studio_idx is not None else None
+        ),
+        "base_bundle_id": bundle_id,
+        "base_tile_profiles": dict(base_map),
+        "resolved_32_slots_sha256": resolved_32_slots_sha256,
+        "migration_policy": migration_policy,
         "profile_variants": profile_variants,
         "tested_tiles": tuple(tested_tiles_set),
         "games_per_configuration": games_per_cfg,
@@ -1732,6 +1819,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     sum_law_mean = 0.0
     max_law_max = 0
     sum_fiddliness = 0.0
+    sum_physical_ops = 0
+    sum_player_decisions = 0
     sum_cascade_sweeps = 0
     sum_mid_combat = 0
 
@@ -1798,6 +1887,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         sum_law_mean += float(ts.law_stack_mean)
         max_law_max = max(max_law_max, int(ts.law_stack_max))
         sum_fiddliness += float(ts.fiddliness_ratio)
+        sum_physical_ops += int(ts.total_physical_ops)
+        sum_player_decisions += int(ts.total_player_decisions)
         sum_cascade_sweeps += int(ts.cascade_sweeps)
         sum_mid_combat += int(ts.mid_combat_interrupts)
 
@@ -1838,6 +1929,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "sum_law_mean": round(sum_law_mean, 4),
         "max_law_max": max_law_max,
         "sum_fiddliness": round(sum_fiddliness, 4),
+        "sum_physical_ops": sum_physical_ops,
+        "sum_player_decisions": sum_player_decisions,
         "sum_cascade_sweeps": sum_cascade_sweeps,
         "sum_mid_combat": sum_mid_combat,
         "cell_wall_sec": round(wall_sec, 4),
