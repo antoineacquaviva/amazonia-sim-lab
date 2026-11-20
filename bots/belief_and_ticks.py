@@ -465,8 +465,8 @@ def _current_def2_target_public(state: GameState, seat: int) -> tuple[Any, ...] 
         return ("FURTIVITE", a, b, c // 2)
     if kind == "LISIERE":
         return ("LISIERE", a)
-    if kind == "GARDIEN_REVEIL":
-        return ("GARDIEN_REVEIL", a)
+    if kind == "GARDIEN_PARI":
+        return ("GARDIEN_PARI", a)
     if kind == "REVE_ACTIVATION":
         return ("REVE_ACTIVATION", a)
     return None
@@ -626,30 +626,45 @@ def resolve_step2_2_from_state(
 
     # 3. Retrait propre en fin de passes « en réflexion » si un Réveil n'a pas atteint son quota Q
     #    (évite les Défenseurs orphelins inutiles, strictement sur observation publique PlayerObservation)
-    if max_passes > 0 and cfg.mode >= 2 and cfg.reveil_quota > 0:
-        q_req = cfg.reveil_quota
+    # 3a. Retrait propre en fin de passes « en réflexion » pour le Pari d'activation des Gardiens :
+    #     en Mode 2 (Gardiens neutres), si l'équipe n'a pas réuni les N 2es Défenseurs sur la piste
+    #     (ou si on est au Tour 8), un pari isolé risque de renvoyer un Gardien en lisière sans gain :
+    #     tout 2e Défenseur encore en réflexion se replie vers la meilleure cible hors GARDIEN_PARI.
+    if max_passes > 0 and cfg.mode >= 2 and cfg.nb_animaux_sauvages >= 1:
         for s in range(n):
             if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
                 continue
             obs_s = _get_isolated_obs(
                 state, s, counterfactual_open_paravents=counterfactual_open_paravents
             )
-            rev_c = obs_s.player_def2_reveil_case(s)
-            if rev_c > 0 and obs_s.gardien_reveil_defenders(rev_c) < q_req:
-                legal_non_rev = tuple(
+            pari_c = obs_s.player_def2_gardien_pari_case(s)
+            if pari_c <= 0:
+                continue
+            need_gard_retreat = False
+            if cfg.mode == 2:
+                # En Mode 2 neutre, parier n'a de sens que pour l'Éveil (N 2es Défenseurs, Tours 1..7)
+                if obs_s.tour >= 8 or obs_s.total_gardien_pari_defenders() < n:
+                    need_gard_retreat = True
+            elif pari_c == 4:
+                # Si personne n'a parié sur un autre Gardien, 4. Résonance ne s'allumera jamais !
+                other_bets = obs_s.total_gardien_pari_defenders() - obs_s.gardien_pari_defenders(4)
+                if other_bets < obs_s.gardien_pari_defenders(4):
+                    need_gard_retreat = True
+            if need_gard_retreat:
+                legal_non_pari = tuple(
                     t
                     for t in list_legal_targets(
                         state, s, is_first_defender=False, exclude_own_def2=True
                     )
-                    if t[0] != "GARDIEN_REVEIL"
+                    if t[0] != "GARDIEN_PARI"
                 )
-                if legal_non_rev:
+                if legal_non_pari:
                     bel_s = build_belief_summary(obs_s, cfg)
                     fallback_t, _ = _pick_best_target_isolated(
                         obs_s,
                         cfg,
                         bel_s,
-                        legal_non_rev,
+                        legal_non_pari,
                         scorer,
                         is_first_defender=False,
                         sous_etape_salt=249,
@@ -691,7 +706,7 @@ def resolve_step2_2_from_state(
                     for t in list_legal_targets(
                         state, s, is_first_defender=False, exclude_own_def2=True
                     )
-                    if t[0] != "REVE_ACTIVATION" and t[0] != "GARDIEN_REVEIL"
+                    if t[0] != "REVE_ACTIVATION" and t[0] != "GARDIEN_PARI"
                 )
                 if legal_alt:
                     bel_s = build_belief_summary(obs_s, cfg)
@@ -729,16 +744,14 @@ def _score_held_spot(
     kind = cur_spot[0]
     base = scorer(obs, cfg, belief, cur_spot, False)
     # Correction d'auto-occupation : dans `obs`, notre propre 2e Défenseur est déjà compté sur cur_spot !
-    if kind == "GARDIEN_REVEIL":
-        _, case_c = cur_spot
-        q = cfg.reveil_quota
-        cnt = obs.gardien_reveil_defenders(int(case_c))
-        if q > 0 and cnt >= q:
-            # Quota Q atteint -> fort bonus de maintien pour verrouiller le Réveil !
-            return base + 480.0
-        if q > 0 and cnt >= 2:
-            return base + 60.0
-        return base - 160.0
+    if kind == "GARDIEN_PARI":
+        tot_on_track = obs.total_gardien_pari_defenders()
+        if obs.tour <= 7 and tot_on_track >= obs.n_players:
+            # Tous les N 2es Défenseurs sont sur la piste -> fort bonus de maintien pour verrouiller l'Éveil !
+            return base + 420.0
+        if obs.tour <= 7 and tot_on_track >= 2:
+            return base + 55.0
+        return base - 90.0
     if kind == "REVE_ACTIVATION":
         _, case_c = cur_spot
         c_i = int(case_c)

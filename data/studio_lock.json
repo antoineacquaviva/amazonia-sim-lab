@@ -2,18 +2,18 @@
   "studio_version": "v5.4",
   "files": {
     "catalog_v5_4.json": {
-      "sha256": "6c55aea8ae0d3bf5080bb094e5de45e800debd13b849e0b03280d8c72a956ffb",
-      "bytes": 42373,
+      "sha256": "3d71aeed588326b898c4f2a9da4869c9e64f6a518c7e3c4d5b544d86462d47a8",
+      "bytes": 45501,
       "source": "docs/data/catalog_v5_4.json"
     },
     "spec_formelle_v5_4.json": {
-      "sha256": "1adfd9ca8c51de58e9a92359aab8fcceaaa67a652f6061d38924324d296d8bed",
-      "bytes": 19312,
+      "sha256": "e5f97c12735f8c95673aa46309562c9dc97a828087dca091b4b9e1226bf23cd2",
+      "bytes": 20897,
       "source": "docs/data/spec_formelle_v5_4.json"
     },
     "amazonia_data_v5_4.js": {
-      "sha256": "019b9f90a2b246e9470268c529b188554b45e933883c0cac879853dcf3e45311",
-      "bytes": 122575,
+      "sha256": "59af20234583de4525f90f8bbcee311fe62cd603d4b07ff52d2011440406bb84",
+      "bytes": 126311,
       "source": "docs/data/amazonia_data_v5_4.js"
     }
   }

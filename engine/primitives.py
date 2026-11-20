@@ -299,7 +299,7 @@ def _is_slot_in_play_for_hook(state: GameState, slot_id: str) -> bool:
     fam, _, num = meta
     if fam == FAMILLE_GARDIEN:
         for c in range(1, TRACK_LEN + 1):
-            g_num, _, _ = state.get_gardien_at_case(c)
+            g_num, _ = state.get_gardien_at_case(c)
             if g_num == num:
                 return True
         return False
@@ -678,46 +678,42 @@ def prim_partage_info_etat_gardien(
         return True
 
     if action == "MARK_GARDIEN_OPENED":
-        g_num, face, used = state.get_gardien_at_case(case_1_6)
-        if g_num == 0 or used:
+        g_num, face = state.get_gardien_at_case(case_1_6)
+        if g_num == 0:
             return False
-        # Éveil universel Face 1 -> Face 2 (y compris profils monofaces et Mode 2 neutre ;
-        # G14:C conserve son cycle autonome À jeun (Face 1) <-> Rassasié (Face 2)).
-        is_g14_c = (
-            state.cfg.mode >= 3
-            and g_num == 14
-            and state.cfg.profile_for_slot("G14") == "C"
-        )
-        next_face = 2 if (face == 1 and not is_g14_c) else face
-        # Marquage immédiat avant application du texte + Résonance 4 en fin d'effet
-        state.set_gardien_at_case(case_1_6, g_num, next_face, True)
+        if not state.consume_one_gardien_pari_defender(case_1_6):
+            return False
+        # Retrait d'1 Défenseur (mis de côté jusqu'au ménage 6.2/6.3) ;
+        # le passage Face 1 -> Face 2 des Gardiens double-face a lieu en 5.3 si le pari est gagné.
         _record_phys_ops(state, 1)
+        # Anti-boucle 4. Résonance : l'ouverture du Gardien sur 4. Résonance ne ré-allume jamais 4.
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
-        state._continuation.insert(0, sync_frame)
+        if case_1_6 != 4:
+            state._continuation.insert(0, sync_frame)
         dispatch_hook(
             state,
             HOOK_GARDIEN_OUVERTURE,
             {"slot_id": f"G{g_num}", "case": case_1_6, "face": face},
         )
-        if state._continuation and state._continuation[0] == sync_frame:
+        if case_1_6 != 4 and state._continuation and state._continuation[0] == sync_frame:
             state._continuation.pop(0)
             state.light_trigger(4)
         return True
 
     if action == "FLIP_GARDIEN_FACE":
-        g_num, old_face, used = state.get_gardien_at_case(case_1_6)
+        g_num, old_face = state.get_gardien_at_case(case_1_6)
         if g_num == 0:
             return False
-        state.set_gardien_at_case(case_1_6, g_num, new_face, used)
+        state.set_gardien_at_case(case_1_6, g_num, new_face)
         if old_face != new_face:
             _record_phys_ops(state, 1)
         return True
 
     if action == "RETURN_GARDIEN_TO_LISIERE":
-        g_num, _, _ = state.get_gardien_at_case(case_1_6)
+        g_num, _ = state.get_gardien_at_case(case_1_6)
         if g_num == 0:
             return False
-        state.set_gardien_at_case(case_1_6, 0, 1, False)
+        state.set_gardien_at_case(case_1_6, 0, 1)
         l_slot = state.find_lisiere_slot_by_tile_id(f"G{g_num}")
         if l_slot is not None:
             st, _ = state.get_lisiere_tile_state(l_slot)

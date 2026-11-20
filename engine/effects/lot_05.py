@@ -622,8 +622,8 @@ def colonie_c_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> list[
         eligible: list[tuple[str, int]] = []
         for c in range(start_case, TRACK_LEN + 1):
             if state.get_colonie_at_case(c) >= 1:
-                g_num, _, used = state.get_gardien_at_case(c)
-                if g_num > 0 and not used:
+                g_num, _ = state.get_gardien_at_case(c)
+                if g_num > 0 and state.count_gardien_pari_defenders_at_case(c) >= 1:
                     eligible.append(("AUTO", c))
         return eligible
     return []

@@ -464,9 +464,8 @@ def _make_mode4_cfg(
         placement_initial_machines=base.placement_initial_machines,
         role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
         synergie_binome_machines=base.synergie_binome_machines,
-        reveil_quota_mode=base.reveil_quota_mode,
-        reveil_gardien_fate=base.reveil_gardien_fate,
         reve_activation_mode=base.reve_activation_mode,
+        gardien_resonance_cap=base.gardien_resonance_cap,
         tile_profiles=tile_profiles,
     )
 

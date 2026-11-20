@@ -70,7 +70,8 @@ def test_lot_04_all_10_profiles_registered() -> None:
 def test_g10_b_temoin() -> None:
     """G10:B — S’applique en 5.3 avant le retrait des Pièges déclenchés, une fois par couple Piège–machine parée."""
     state = _make_mode3_state((("G10", "B"),))
-    state.set_gardien_at_case(2, 10, 1, False)
+    state.set_gardien_at_case(2, 10, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     # Sur le rayon 2 (R), p=1 a un Piège armé par 1 Défenseur ; Abatteuse et Bulldozer avec 2 jetons Rouges
     state.set_parcel_piege(2, 1, PIEGE_ACTIF)
@@ -117,8 +118,10 @@ def test_g10_c_temoin() -> None:
         peuples=("M", "O", "R", "I"),
     )
     # G10:C câblé sur 6. Insecte ; G1:A témoin sur 3. Sabotage
-    state.set_gardien_at_case(6, 10, 1, False)
-    state.set_gardien_at_case(3, 1, 1, False)
+    state.set_gardien_at_case(6, 10, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
+    state.set_gardien_at_case(3, 1, 1)
+    state.place_defender_gardien_pari(1, 3, 2)
 
     # Nid M1 sur (3, 1) habité par 1 Défenseur (0 Insecte avant 4.2)
     state.set_parcel_nid(3, 1, 1, False)
@@ -140,8 +143,8 @@ def test_g10_c_temoin() -> None:
     # Le balayage en cours fait une repasse 1..6 et ouvre G1:A en case 3 (allumée par la création du Sabotage)
     state._continuation.append(("WAIT_DECISION", DecisionRequest(0, "STOP", ("OK",), {})))
     step_until_decision(state)
-    assert state.get_gardien_at_case(3)[2] is True
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(3) >= 1
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1
 
 
 def test_g10_d_temoin() -> None:
@@ -150,7 +153,8 @@ def test_g10_d_temoin() -> None:
         (("G10", "D"),),
         peuples=("M", "O", "R", "E"),
     )
-    state.set_gardien_at_case(2, 10, 1, False)
+    state.set_gardien_at_case(2, 10, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     # Rayon 2 (R) : p=1 a un Piège armé par 1 Défenseur ; p=2 a un Piège DÉSARMÉ (0 Défenseur, 0 Insecte)
     state.set_parcel_piege(2, 1, PIEGE_ACTIF)
@@ -184,7 +188,8 @@ def test_g11_a_temoin() -> None:
     """G11:A — 2e maillon de la chaîne des parades (après Jaguar, avant Piège) : pare la frappe sans déclencher un éventuel Piège présent."""
     state = _make_mode3_state((("G11", "A"),))
     # G11:A déjà retourné en Face 2 sur la case 4
-    state.set_gardien_at_case(4, 11, 2, False)
+    state.set_gardien_at_case(4, 11, 2)
+    state.place_defender_gardien_pari(0, 4, 2)
 
     # Parcelle (1, 1) avec 2 Défenseurs ET un Piège actif ; une autre parcelle (0, 1) avec 2 Défenseurs pour provoquer le choix
     state.place_defender_foret(1, 0, 1, 1, FACE_DEFINITIF)
@@ -192,6 +197,7 @@ def test_g11_a_temoin() -> None:
     state.set_parcel_piege(1, 1, PIEGE_ACTIF)
     state.place_defender_foret(0, 0, 0, 1, FACE_DEFINITIF)
     state.place_defender_foret(0, 1, 0, 1, FACE_DEFINITIF)
+    state.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
 
     state.light_trigger(4)
     sweep_gardiens(state)
@@ -213,7 +219,8 @@ def test_g11_a_temoin() -> None:
 def test_g11_b_temoin() -> None:
     """G11:B — Fournit un soutien à distance capable d’armer les Pièges Embuscade en face."""
     state = _make_mode3_state((("G11", "B"),))
-    state.set_gardien_at_case(2, 11, 1, False)
+    state.set_gardien_at_case(2, 11, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     # Parcelle (1, 1) (Oiseaux) contient un Piège SANS Défenseur ni Insecte sur la parcelle
     state.set_parcel_piege(1, 1, PIEGE_ACTIF)
@@ -233,7 +240,8 @@ def test_g11_b_temoin() -> None:
     assert state.get_parcel_arbres(1, 1) == arbres_before
 
     # En Face 2, un Défenseur constructeur resté en bordure de lisière ajoute aussi +1 en Défense sur p=1 adjacent
-    state.set_gardien_at_case(2, 11, 2, False)
+    state.set_gardien_at_case(2, 11, 2)
+    state.place_defender_gardien_pari(1, 2, 2)
     state.remove_player_defender(0, 0)
     state.set_parcel_piege(1, 1, PIEGE_ACTIF)
     # 1 bâtisseur sur le slot 2 (lisière 1, entre rayon 1 et rayon 2)
@@ -250,7 +258,8 @@ def test_g11_c_temoin() -> None:
         (("G11", "C"),),
         peuples=("M", "O", "H", "R"),
     )
-    state.set_gardien_at_case(3, 11, 1, False)
+    state.set_gardien_at_case(3, 11, 1)
+    state.place_defender_gardien_pari(0, 3, 2)
 
     # Sans Insecte sur la lisière O–H (l_idx=1), le joueur 0 (M) n'a pas accès à la lisière 1 en 2.1
     targets_before = list_legal_targets(state, 0, is_first_defender=True)
@@ -273,7 +282,8 @@ def test_g11_d_temoin() -> None:
         (("G11", "D"),),
         peuples=("M", "O", "H", "R"),
     )
-    state.set_gardien_at_case(2, 11, 1, False)
+    state.set_gardien_at_case(2, 11, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     # Binôme de 2 Défenseurs en Furtivité sur la lisière 1 (O–H) à profondeur p=1
     state.enter_furtivite(1, 0, 1, 1, 0, FACE_DEFINITIF)
@@ -295,9 +305,11 @@ def test_g11_d_temoin() -> None:
 def test_g12_a_temoin() -> None:
     """G12:A — Si le Rêve atteint ainsi le Rang 1, le Sommeil du Contremaître sera validé lors de la vérification de fin d’attaques en 5.3."""
     state = _make_mode3_state((("G12", "A"), ("G1", "A")))
-    state.set_gardien_at_case(2, 12, 1, False)
+    state.set_gardien_at_case(2, 12, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
     # Gardien témoin en case 5 pour vérifier que G12:A n'allume PAS la case 5
-    state.set_gardien_at_case(5, 1, 1, False)
+    state.set_gardien_at_case(5, 1, 1)
+    state.place_defender_gardien_pari(1, 5, 2)
 
     # Rêve R1 au Rang 2 (indice 1) et Rêve R2 au Rang 4 (indice 3) — 2 candidats -> décision Oiseaux
     t_rank0 = state.get_tactique_at_rank(0)
@@ -317,7 +329,7 @@ def test_g12_a_temoin() -> None:
     assert state.get_tactique_at_rank(1) == 2  # Tactique imprimée T2 révélée sur la piste fixe
     # Sans ouvrir son Slot ni allumer la case 5
     assert state.has_reve_opened_this_turn(1) is False
-    assert state.get_gardien_at_case(5)[2] is False
+    assert state.count_gardien_pari_consumed_at_case(5) == 0
 
     # Avec un seul Rêve en tête (sur 2 en jeu), pas encore Sommeil ; dès que R2 rejoint le Rang 2 -> Sommeil en 5.3 !
     assert state.is_sommeil_victory() is False
@@ -333,9 +345,11 @@ def test_g12_b_temoin() -> None:
     """G12:B — Ne peut pas retourner gratuitement le cycle nourri de G14 C, mais peut ouvrir son Slot."""
     state = _make_mode3_state((("G12", "B"), ("G14", "C"), ("G11", "B")))
     # Case 1 : G12:B ; Case 3 : G14:C (DOUBLE_FACE_CYCLE, Face 1, non utilisé) ; Case 4 : G11:B (DOUBLE_FACE_UPGRADE, Face 1, déjà utilisé)
-    state.set_gardien_at_case(1, 12, 1, False)
-    state.set_gardien_at_case(3, 14, 1, False)
-    state.set_gardien_at_case(4, 11, 1, True)
+    state.set_gardien_at_case(1, 12, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
+    state.set_gardien_at_case(3, 14, 1)
+    state.place_defender_gardien_pari(1, 3, 2)
+    state.set_gardien_at_case(4, 11, 1)
 
     state.light_trigger(1)
     sweep_gardiens(state)
@@ -351,14 +365,15 @@ def test_g12_b_temoin() -> None:
     assert ("OPEN_SLOT", 4) not in req.options
 
     apply_choice(state, ("FLIP_FACE2", 4))
-    assert state.get_gardien_at_case(4) == (11, 2, True)
+    assert state.get_gardien_at_case(4) == (11, 2)
 
 
 def test_g12_c_temoin() -> None:
     """G12:C — Peut consommer le Piège non déclenché pour avancer le Rêve le plus à gauche (excluant un Piège déclenché)."""
     state = _make_mode3_state((("G12", "C"),))
     # G12:C câblé sur 2. Piégeage
-    state.set_gardien_at_case(2, 12, 1, False)
+    state.set_gardien_at_case(2, 12, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     # Rêve R1 au Rang 2 (indice 1) ; un Piège actif sur (0, 1) et un Piège déjà déclenché sur (1, 1)
     state.set_tactique_at_rank(1, TILE_R_BASE + 1)

@@ -513,9 +513,8 @@ def _make_cfg_with_mode(
         placement_initial_machines=base.placement_initial_machines,
         role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
         synergie_binome_machines=base.synergie_binome_machines,
-        reveil_quota_mode=base.reveil_quota_mode,
-        reveil_gardien_fate=base.reveil_gardien_fate,
         reve_activation_mode=base.reve_activation_mode,
+        gardien_resonance_cap=base.gardien_resonance_cap,
         tile_profiles=LOT_01_PROFILES,
     )
 
@@ -1710,35 +1709,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 if base_map[s] != "A":
                     tested_tiles_set.append((s, base_map[s]))
 
-    # 3b. Paramètres hors-châssis Réveil de la Forêt (v5.4.1) & Activation Rêves (v5.4.2)
-    raw_q_modes = manifest.get("reveil_quota_modes", manifest.get("reveil_quota_mode"))
-    if raw_q_modes is None:
-        q_modes: list[str] = ["N"]
-        explicit_reveil_sweep = False
-    elif isinstance(raw_q_modes, str):
-        q_modes = [raw_q_modes.strip().upper()]
-        explicit_reveil_sweep = "reveil_quota_modes" in manifest
-    else:
-        q_modes = [str(x).strip().upper() for x in raw_q_modes]
-        explicit_reveil_sweep = True
-    for qm in q_modes:
-        if qm not in ("N", "N_MINUS_1", "2"):
-            raise ValueError(f"reveil_quota_mode invalide : {qm!r}")
-
-    raw_fates = manifest.get("reveil_gardien_fates", manifest.get("reveil_gardien_fate"))
-    if raw_fates is None:
-        g_fates: list[str] = ["LISIERE_FACE_1"]
-    elif isinstance(raw_fates, str):
-        g_fates = [raw_fates.strip().upper()]
-        if "reveil_gardien_fates" in manifest:
-            explicit_reveil_sweep = True
-    else:
-        g_fates = [str(x).strip().upper() for x in raw_fates]
-        explicit_reveil_sweep = True
-    for gf in g_fates:
-        if gf not in ("LISIERE_FACE_1", "RETRAIT_DEFINITIF"):
-            raise ValueError(f"reveil_gardien_fate invalide : {gf!r}")
-
+    # 3b. Paramètres hors-châssis Activation Rêves (v5.4.2) & Pari Gardiens (v5.4.3)
     raw_act_modes = manifest.get("reve_activation_modes", manifest.get("reve_activation_mode"))
     if raw_act_modes is None:
         r_act_modes: list[str] = ["1_DEF_1_MACHINE"]
@@ -1753,20 +1724,34 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         if ram not in ("1_DEF_1_MACHINE", "1_DEF_ALL_RANK", "BINOME_ALL_RANK"):
             raise ValueError(f"reve_activation_mode invalide : {ram!r}")
 
-    if len(q_modes) > 1 or len(g_fates) > 1:
-        explicit_reveil_sweep = True
+    raw_res_caps = manifest.get("gardien_resonance_caps", manifest.get("gardien_resonance_cap"))
+    if raw_res_caps is None:
+        res_caps: list[str] = ["UNLIMITED"]
+        explicit_res_cap_sweep = False
+    elif isinstance(raw_res_caps, str):
+        res_caps = [raw_res_caps.strip().upper()]
+        explicit_res_cap_sweep = "gardien_resonance_caps" in manifest
+    else:
+        res_caps = [str(x).strip().upper() for x in raw_res_caps]
+        explicit_res_cap_sweep = True
+    for grc in res_caps:
+        if grc not in ("UNLIMITED", "MAX_1_DEF"):
+            raise ValueError(f"gardien_resonance_cap invalide : {grc!r}")
+
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True
+    if len(res_caps) > 1:
+        explicit_res_cap_sweep = True
 
     expanded_variants: list[dict[str, Any]] = []
     ev_idx = 0
     for var in profile_variants:
-        for qm, gf, ram in itertools.product(q_modes, g_fates, r_act_modes):
+        for ram, grc in itertools.product(r_act_modes, res_caps):
             tag_parts: list[str] = []
-            if explicit_reveil_sweep:
-                tag_parts.append(f"Q={qm},F={gf}")
             if explicit_reve_act_sweep:
                 tag_parts.append(f"REVE={ram}")
+            if explicit_res_cap_sweep:
+                tag_parts.append(f"RES={grc}")
             if tag_parts:
                 ext_tag = "|".join(tag_parts)
                 v_id = ext_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{ext_tag}"
@@ -1778,9 +1763,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "variant_id": v_id,
                     "compared_slots": dict(var["compared_slots"]),
                     "tile_profiles": var["tile_profiles"],
-                    "reveil_quota_mode": qm,
-                    "reveil_gardien_fate": gf,
                     "reve_activation_mode": ram,
+                    "gardien_resonance_cap": grc,
                 }
             )
             ev_idx += 1
@@ -1866,9 +1850,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "variant_id": var["variant_id"],
                                 "compared_slots": var["compared_slots"],
                                 "tile_profiles": var["tile_profiles"],
-                                "reveil_quota_mode": var["reveil_quota_mode"],
-                                "reveil_gardien_fate": var["reveil_gardien_fate"],
                                 "reve_activation_mode": var["reve_activation_mode"],
+                                "gardien_resonance_cap": var["gardien_resonance_cap"],
                                 "table_id": t_id,
                                 "peuples": peuples,
                                 "n_animaux_sauvages": sum(1 for p in peuples if p in ANIMAUX_SAUVAGES),
@@ -1917,9 +1900,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     mode = int(unit["mode"])
     peuples = tuple(unit["peuples"])
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
-    reveil_quota_mode = str(unit.get("reveil_quota_mode", "N"))
-    reveil_gardien_fate = str(unit.get("reveil_gardien_fate", "LISIERE_FACE_1"))
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
+    gardien_resonance_cap = str(unit.get("gardien_resonance_cap", "UNLIMITED"))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
     )
@@ -1939,6 +1921,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_reveil = 0
     cnt_reveil_attempts = 0
     cnt_reveil_failures = 0
+    cnt_gardien_bets_won = 0
+    cnt_gardien_bets_lost = 0
     cnt_reves_activated = 0
     cnt_machines_cancelled_by_reve = 0
     cnt_machines_bypassed_inactive_reve = 0
@@ -1966,9 +1950,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             rep_id=rep_id,
             coordonnateur_initial=rep_id % n_pl,
             max_revision_passes=k_max,
-            reveil_quota_mode=reveil_quota_mode,
-            reveil_gardien_fate=reveil_gardien_fate,
             reve_activation_mode=reve_activation_mode,
+            gardien_resonance_cap=gardien_resonance_cap,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1985,9 +1968,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             placement_initial_machines=base_cfg.placement_initial_machines,
             role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
             synergie_binome_machines=base_cfg.synergie_binome_machines,
-            reveil_quota_mode=reveil_quota_mode,
-            reveil_gardien_fate=reveil_gardien_fate,
             reve_activation_mode=reve_activation_mode,
+            gardien_resonance_cap=gardien_resonance_cap,
             tile_profiles=tile_profiles if mode >= 3 else (),
         )
         trk = TelemetryTracker()
@@ -2021,6 +2003,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         ts = trk.summary()
         cnt_reveil_attempts += int(ts.reveil_attempts)
         cnt_reveil_failures += int(ts.reveil_failures)
+        cnt_gardien_bets_won += int(ts.gardien_bets_won)
+        cnt_gardien_bets_lost += int(ts.gardien_bets_lost)
         cnt_reves_activated += int(ts.reves_activated)
         cnt_machines_cancelled_by_reve += int(ts.machines_cancelled_by_reve)
         cnt_machines_bypassed_inactive_reve += int(ts.machines_bypassed_inactive_reve)
@@ -2050,9 +2034,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "p_max": p_max_val,
         "variant_idx": int(unit["variant_idx"]),
         "variant_id": str(unit["variant_id"]),
-        "reveil_quota_mode": reveil_quota_mode,
-        "reveil_gardien_fate": reveil_gardien_fate,
         "reve_activation_mode": reve_activation_mode,
+        "gardien_resonance_cap": gardien_resonance_cap,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
@@ -2079,6 +2062,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_reveil_gardiens": cnt_reveil,
         "count_reveil_attempts": cnt_reveil_attempts,
         "count_reveil_failures": cnt_reveil_failures,
+        "count_gardien_bets_won": cnt_gardien_bets_won,
+        "count_gardien_bets_lost": cnt_gardien_bets_lost,
         "count_reves_activated": cnt_reves_activated,
         "count_machines_cancelled_by_reve": cnt_machines_cancelled_by_reve,
         "count_machines_bypassed_inactive_reve": cnt_machines_bypassed_inactive_reve,

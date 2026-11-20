@@ -21,7 +21,6 @@ from engine.primitives import (
     prim_deplacement,
     prim_mod_loi_du_coeur,
     prim_mod_puissance,
-    prim_partage_info_etat_gardien,
     push_effect_decision,
 )
 from engine.state import (
@@ -89,7 +88,7 @@ def _gov(state: GameState, peuple_code: str) -> int:
 
 def _gardien_face_on_track(state: GameState, g_num: int) -> int:
     for c in range(1, TRACK_LEN + 1):
-        gn, face, _ = state.get_gardien_at_case(c)
+        gn, face = state.get_gardien_at_case(c)
         if gn == g_num:
             return face
     return 0
@@ -623,15 +622,11 @@ def g8_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
 
 @register_tile("G9", "A", hooks=(HOOK_GARDIEN_OUVERTURE,))
 def g9_a_handler(state: GameState, _hook: str, ctx: dict[str, Any]) -> None:
-    """Face 1 : +1 Sabotage permanent et flip Face 2. Face 2 : +2 Sabotages permanents."""
-    case_num = int(ctx["case"])
+    """Face 1 : +1 Sabotage permanent (flip Face 2 en 5.3 si pari gagné). Face 2 : +2 Sabotages permanents."""
     face = int(ctx["face"])
 
     if face == 1:
         prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=True)
-        prim_partage_info_etat_gardien(
-            state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-        )
         return
 
     # Branche Face 2 strictement autonome
@@ -700,10 +695,6 @@ def g9_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
     gov = _gov(state, "R")
 
     if hook == HOOK_GARDIEN_OUVERTURE:
-        if int(ctx["face"]) == 1:
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=int(ctx["case"]), new_face=2
-            )
         return None
 
     face = _gardien_face_on_track(state, 9)

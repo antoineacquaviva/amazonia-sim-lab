@@ -62,7 +62,8 @@ def test_g13_a_temoin_breche_tamanoir_pose_insecte() -> None:
     Peut compléter un binôme furtif avant 4.1 ou renforcer une Parade en 5.
     """
     state = _make_state(("G13", "A"))
-    state.set_gardien_at_case(1, 13, 1, False)
+    state.set_gardien_at_case(1, 13, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # 1 Défenseur en Furtivité sur (lisière 0, p=2, rive 0) et 1 Défenseur en Forêt (2, 1)
     state.enter_furtivite(0, 0, 0, 2, 0, FACE_DEFINITIF)
     state.place_defender_foret(2, 0, 2, 1, FACE_DEFINITIF)
@@ -90,7 +91,8 @@ def test_g13_a_temoin_breche_tamanoir_pose_insecte() -> None:
 def test_g13_b_temoin_construction_hybride_insecte_3_1() -> None:
     """Témoin G13:B : en 3.1, construit une tuile en lisière avec 1 Défenseur + 1 Insecte de Furtivité."""
     state = _make_state(("G13", "B"))
-    state.set_gardien_at_case(1, 13, 1, False)
+    state.set_gardien_at_case(1, 13, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
 
     # Lisière 0 (entre siège 0 et siège 1) porte le slot 0 avec 1 seul Défenseur bâtisseur
     slot_idx = 0
@@ -103,7 +105,8 @@ def test_g13_b_temoin_construction_hybride_insecte_3_1() -> None:
 
     # Laisser uniquement la case 6 libre sur la piste des Gardiens si le slot 0 est un Gardien
     for c in range(2, 6):
-        state.set_gardien_at_case(c, c, 1, False)
+        state.set_gardien_at_case(c, c, 1)
+        state.place_defender_gardien_pari(1, c, 2)
 
     state.step = STEP_3_1_CONSTRUCT
     req = step_until_decision(state)
@@ -130,7 +133,8 @@ def test_g13_b_temoin_construction_hybride_insecte_3_1() -> None:
 def test_g14_a_temoin_ecaille_teju_conversion_piege() -> None:
     """Témoin G14:A : défausse 1 Insecte de Forêt pour poser 1 Piège sur elle ou une adjacente (allume 2)."""
     state = _make_state(("G14", "A"))
-    state.set_gardien_at_case(1, 14, 1, False)
+    state.set_gardien_at_case(1, 14, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # Parcelle (2, 2) chez Reptiles avec 1 Défenseur + 1 Insecte
     state.set_parcel_defenseurs(2, 2, 1)
     state.set_parcel_insectes(2, 2, 1)
@@ -154,7 +158,8 @@ def test_g14_a_temoin_ecaille_teju_conversion_piege() -> None:
 def test_g14_b_temoin_nid_indestructible_au_contact() -> None:
     """Témoin G14:B : protège les Nids (M) et leurs Insectes contre tout mouvement de machine, mais pas contre une Route."""
     state = _make_state(("G14", "B"))
-    state.set_gardien_at_case(1, 14, 1, False)
+    state.set_gardien_at_case(1, 14, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
 
     # Placer le Nid M1 sur (2, 2) avec 3 Insectes
     state.set_parcel_nid(2, 2, 1, False)
@@ -179,7 +184,8 @@ def test_g14_c_temoin_ventre_plein_cycle_2_temps() -> None:
     """Témoin G14:C : cycle fermé à 2 temps (À jeun -> Rassasié -> Piège + À jeun avant cascade case 2)."""
     state = _make_state(("G14", "C"))
     # G14:C en case 2 même !
-    state.set_gardien_at_case(2, 14, 1, False)
+    state.set_gardien_at_case(2, 14, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
     # Reptiles est au siège 2 : 1 Insecte sur (2, 1) et (2, 3)
     state.set_parcel_insectes(2, 1, 1)
     state.set_parcel_insectes(2, 3, 1)
@@ -192,10 +198,11 @@ def test_g14_c_temoin_ventre_plein_cycle_2_temps() -> None:
     assert req1.options == (1, 3)
     apply_choice(state, 1)
     assert state.get_parcel_insectes(2, 1) == 0
-    assert state.get_gardien_at_case(2) == (14, 2, True)
+    assert state.get_gardien_at_case(2) == (14, 2)
 
     # Tour suivant : marqueur utilisé retiré, G14:C est sur Face 2 (Rassasié)
-    state.set_gardien_at_case(2, 14, 2, False)
+    state.set_gardien_at_case(2, 14, 2)
+    state.place_defender_gardien_pari(1, 2, 2)
     # Retirer les machines de (2, 1) pour avoir plusieurs parcelles sans machine ni Piège
     state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 3, 1, False)
     state.set_machine_pos_status(2, 1, 3, 1, False)
@@ -209,13 +216,14 @@ def test_g14_c_temoin_ventre_plein_cycle_2_temps() -> None:
 
     # Le Piège est posé sur (2, 2), le Gardien est retourné sur Face 1 (À jeun), et la case 2 est allumée
     assert state.get_parcel_piege(2, 2) == PIEGE_ACTIF
-    assert state.get_gardien_at_case(2) == (14, 1, True)
+    assert state.get_gardien_at_case(2) == (14, 1)
 
 
 def test_g14_d_temoin_porteurs_teju_armement_distance() -> None:
     """Témoin G14:D : déplace 1 Insecte de R ou I vers une autre parcelle piégée du même rayon à toute distance."""
     state = _make_state(("G14", "D"))
-    state.set_gardien_at_case(1, 14, 1, False)
+    state.set_gardien_at_case(1, 14, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # Rayon Reptiles (r=2) : 1 Insecte en p=1, 1 Piège désarmé en bout de rayon p=3
     state.set_parcel_insectes(2, 1, 1)
     state.set_parcel_piege(2, 3, PIEGE_ACTIF)
@@ -235,7 +243,8 @@ def test_g14_d_temoin_porteurs_teju_armement_distance() -> None:
 def test_g15_a_temoin_batara_migration_directe() -> None:
     """Témoin G15:A : fait migrer immédiatement 1 Insecte de n'importe quelle case de la roue vers Bug ou Colonie."""
     state = _make_state(("G15", "A"))
-    state.set_gardien_at_case(1, 15, 1, False)
+    state.set_gardien_at_case(1, 15, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # 1 Insecte en p=1 (pas besoin d'attendre la dernière parcelle non rasée !)
     state.set_parcel_insectes(1, 1, 1)
 
@@ -254,7 +263,8 @@ def test_g15_a_temoin_batara_migration_directe() -> None:
 def test_g15_b_temoin_loi_4_3_deux_crans() -> None:
     """Témoin G15:B : en 4.3, un Insecte peut traverser une lisière puis entrer sur la forêt voisine (2 crans)."""
     state = _make_state(("G15", "B"))
-    state.set_gardien_at_case(1, 15, 1, False)
+    state.set_gardien_at_case(1, 15, 1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # 1 Insecte sur la parcelle Forêt (0, 2)
     state.set_parcel_insectes(0, 2, 1)
 
@@ -347,7 +357,8 @@ def test_slot_colonisation_gardiens_c_temoin_lucioles_auto_4_3() -> None:
     """Témoin SLOT_COLONISATION_GARDIENS:C : en fin de 4.3, ouvre automatiquement le Gardien disponible et l'Insecte reste sur sa case."""
     state = _make_state(("SLOT_COLONISATION_GARDIENS", "C"), ("G13", "A"))
     # G13:A en case 3, disponible, et 1 Insecte Colonie en case 3
-    state.set_gardien_at_case(3, 13, 1, False)
+    state.set_gardien_at_case(3, 13, 1)
+    state.place_defender_gardien_pari(0, 3, 2)
     state.set_colonie_at_case(3, 1)
     # 2 cibles valides pour G13:A : Forêt (0, 1) et Forêt (1, 1) -> suspend en 4.3 dès que G13:A s'ouvre automatiquement !
     state.set_parcel_defenseurs(0, 1, 1)
@@ -361,7 +372,8 @@ def test_slot_colonisation_gardiens_c_temoin_lucioles_auto_4_3() -> None:
 
     # Le Gardien G13:A en case 3 a été ouvert automatiquement sans décision de Colonisation
     # (et passe universellement en Face 2 « Éveillé »), et l'Insecte Colonie reste sur la case 3 !
-    assert state.get_gardien_at_case(3) == (13, 2, True)
+    assert state.get_gardien_at_case(3) == (13, 1)
+    assert state.count_gardien_pari_consumed_at_case(3) == 1
     assert state.get_colonie_at_case(3) == 1
     apply_choice(state, ("FORET", 0, 1))
     assert state.get_parcel_insectes(0, 1) == 1

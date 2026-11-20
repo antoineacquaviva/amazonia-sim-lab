@@ -93,7 +93,7 @@ def _gov(state: GameState, peuple_code: str) -> int:
 def _gardien_face_on_track(state: GameState, g_num: int) -> tuple[int, int]:
     """Retourne (case_1_6, face_1_2) si le Gardien g_num est en jeu sur la piste, sinon (0, 0)."""
     for c in range(1, TRACK_LEN + 1):
-        gn, face, _ = state.get_gardien_at_case(c)
+        gn, face = state.get_gardien_at_case(c)
         if gn == g_num:
             return c, face
     return 0, 0
@@ -363,17 +363,11 @@ def g11_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
                     if not state.is_route_forestiere(r, p):
                         cands_f1.append((r, p))
             if not cands_f1:
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return None
             if len(cands_f1) == 1:
                 r0, p0 = cands_f1[0]
                 delta = -2 if state.get_parcel_defenseurs(r0, p0) >= 2 else -1
                 prim_mod_seuil(state, delta, ray=r0, p=p0)
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return None
             push_effect_decision(
                 state,
@@ -427,9 +421,6 @@ def g11_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
             (case_num,) = ctx["payload"]
             delta = -2 if state.get_parcel_defenseurs(r_i, p_i) >= 2 else -1
             prim_mod_seuil(state, delta, ray=r_i, p=p_i)
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=int(case_num), new_face=2
-            )
         elif tag == "F2_AUTO_PARADE":
             state.set_parcel_flag_turn(r_i, p_i, PFLAG_AUTO_PARADE_ONCE, True)
             _record_phys_ops(state, 1)
@@ -475,10 +466,6 @@ def _g11_b_remote_support_for_parcel(state: GameState, ray: int, target_p: int, 
 def g11_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
     """Face 1/2 (Loi 5) : soutien en Défense depuis Furtivité isolée (et bâtisseurs en lisière sur p=1 en Face 2)."""
     if hook == HOOK_GARDIEN_OUVERTURE:
-        if int(ctx["face"]) == 1:
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=int(ctx["case"]), new_face=2
-            )
         return None
 
     case_num, face = _gardien_face_on_track(state, 11)
@@ -629,12 +616,12 @@ def g12_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
         for c in range(1, TRACK_LEN + 1):
             if c == my_case:
                 continue
-            g_num, face, used = state.get_gardien_at_case(c)
+            g_num, face = state.get_gardien_at_case(c)
             if g_num <= 0 or g_num == 12:
                 continue
             if face == 1 and _is_upgrade_gardien_in_game(state, g_num):
                 opts.append(("FLIP_FACE2", c))
-            if not used:
+            if state.count_gardien_pari_defenders_at_case(c) >= 1:
                 opts.append(("OPEN_SLOT", c))
         if not opts:
             return None

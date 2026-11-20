@@ -89,7 +89,8 @@ def test_r8_a_temoin_mirage_fleuve_miroir_piege_er_3_2() -> None:
     r_seat = state.cfg.seat_of_peuple("R")
     assert e_seat is not None and r_seat is not None
 
-    state.set_gardien_at_case(2, 1, 1, False)
+    state.set_gardien_at_case(2, 1, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
     _setup_reve_opening_3_2(state, 8, 3, reader_seat=0)
 
     req = step_until_decision(state)
@@ -103,7 +104,7 @@ def test_r8_a_temoin_mirage_fleuve_miroir_piege_er_3_2() -> None:
     apply_choice(state, (e_seat, 2))
     assert state.get_parcel_piege(e_seat, 2) == PIEGE_ACTIF
     step_until_decision(state)
-    assert state.get_gardien_at_case(2)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(2) >= 1
 
 
 def test_r8_b_temoin_sanctuarisation_terrassement_er() -> None:
@@ -286,7 +287,8 @@ def test_r10_d_temoin_releve_lucioles_piege_et_deplacement_atomique() -> None:
 
     state.set_parcel_defenseurs(e_seat, 1, 1)
     state.set_parcel_insectes(e_seat, 1, 1)
-    state.set_gardien_at_case(2, 1, 1, False)
+    state.set_gardien_at_case(2, 1, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
     _setup_reve_opening_3_2(state, 10, 3, reader_seat=0)
 
     req = step_until_decision(state)
@@ -303,4 +305,4 @@ def test_r10_d_temoin_releve_lucioles_piege_et_deplacement_atomique() -> None:
     assert state.get_parcel_insectes(e_seat, 4) == 1
 
     step_until_decision(state)
-    assert state.get_gardien_at_case(2)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(2) >= 1

@@ -470,26 +470,29 @@ def test_13_flat_gardien_cascade_with_resonance_4_no_infinite_loop() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1313)
     state = GameState(cfg)
 
-    # Placer G1 en case 2, G2 en case 4 (Résonance !) et G5 en case 6, tous disponibles
-    state.set_gardien_at_case(2, 1, face=1, used=False)
-    state.set_gardien_at_case(4, 2, face=1, used=False)
-    state.set_gardien_at_case(6, 5, face=1, used=False)
+    # Placer G1 en case 2, G2 en case 4 (Résonance !) et G5 en case 6, chacun avec 1 Défenseur en pari
+    state.set_gardien_at_case(2, 1, face=1)
+    state.set_gardien_at_case(4, 2, face=1)
+    state.set_gardien_at_case(6, 5, face=1)
+    state.place_defender_gardien_pari(0, 2, 2)
+    state.place_defender_gardien_pari(1, 4, 2)
+    state.place_defender_gardien_pari(2, 6, 2)
 
     # Allumer uniquement la case 2 (Piège) :
-    # En 1->6, G1 s'ouvre en case 2 -> allume Résonance 4 -> G2 s'ouvre en case 4 -> rallume 4,
-    # mais G2 est déjà marqué utilisé et case 6 n'est pas allumée -> arrêt propre à 2 ouvertures !
+    # En 1->6, G1 s'ouvre en case 2 (consomme 1 Déf) -> allume Résonance 4 -> G2 s'ouvre en case 4
+    # (consomme 1 Déf, anti-boucle : ne ré-allume pas 4) et case 6 non allumée -> arrêt propre à 2 ouvertures !
     prim_creation_entite(state, "PIEGE", ray=0, p=2, light_trigger=True)
     opened = sweep_gardiens(state)
 
     assert opened == 2
-    assert state.get_gardien_at_case(2)[2] is True
-    assert state.get_gardien_at_case(4)[2] is True
-    assert state.get_gardien_at_case(6)[2] is False
+    assert state.count_gardien_pari_defenders_at_case(2) == 0
+    assert state.count_gardien_pari_defenders_at_case(4) == 0
+    assert state.count_gardien_pari_defenders_at_case(6) == 1
     assert state.triggers_lit == 0
 
 
 # ---------------------------------------------------------------------------
-# Test 14 : Fin anticipée en 5.3 (Rêve rang 1 et Réveil Gardiens) + Repousse Finale sans Étape 6
+# Test 14 : Fin anticipée en 5.3 (Rêve rang 1 et Éveil Gardiens) + Repousse Finale sans Étape 6
 # ---------------------------------------------------------------------------
 def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> None:
     # Sous-cas A : Bloc complet de 4 Rêves (H + E = 2 peuples oniriques) en tête au Tour 3
@@ -514,13 +517,20 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     assert s_reve.get_parcel_arbres(1, 1) == 2  # Plafonné à la dotation initiale !
     assert s_reve.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Piège déclenché retiré avant fin
 
-    # Sous-cas B : Réveil de la Forêt (N=4, >= 1 Animal Sauvage -> Gardien engagé + 0 dommage réel)
+    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> N 2es Défs sur Piste Gardiens et tous paris gagnés)
     cfg_gard = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=1415)
     s_gard = GameState(cfg_gard)
-    assert cfg_gard.reveil_quota == 4
     s_gard.tour = 4
-    s_gard.reveil_engaged_gardien = 1
-    s_gard.real_damage_this_turn = False
+    s_gard.set_gardien_at_case(1, 1, face=1)
+    s_gard.set_gardien_at_case(4, 2, face=1)
+    s_gard.place_defender_gardien_pari(0, 1, 2)
+    s_gard.place_defender_gardien_pari(1, 1, 2)
+    s_gard.place_defender_gardien_pari(2, 4, 2)
+    s_gard.place_defender_gardien_pari(3, 4, 2)
+    s_gard.light_trigger(1)
+    sweep_gardiens(s_gard)
+    s_gard.light_trigger(1)
+    sweep_gardiens(s_gard)
     s_gard.step = STEP_5_3_END_CHECK
 
     res_b = step_until_decision(s_gard)

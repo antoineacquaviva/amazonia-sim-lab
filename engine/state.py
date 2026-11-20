@@ -14,6 +14,7 @@ __all__ = (
     "CARD_SABOTAGE",
     "CHASSIS_AXES_OPTIONS",
     "DECK_SLOTS_CAPACITY",
+    "DOUBLE_FACE_UPGRADE_GARDIENS",
     "FACE_DEFINITIF",
     "FACE_REFLEXION",
     "FAMILLE_CROISSANCE",
@@ -166,10 +167,24 @@ _FLAG_PARAVENTS_OUVERTS: int = 1 << 0
 _FLAG_STEP2_LOCKED: int = 1 << 1
 _FLAG_REPOUSSE_APPLIED: int = 1 << 2
 
-# Bit transitoire dans TRANS_STEP2_STATE (RAZ en 6.2) : au moins 1 dommage réel ce tour
-_TRANS_FLAG_REAL_DAMAGE_THIS_TURN: int = 1 << 5
+# Gardiens évolutifs double-face (passage Face 1 -> Face 2 en 5.3 si le pari d'activation est gagné ;
+# exclut G14:C qui gère son cycle autonome À jeun / Rassasié)
+DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = frozenset(
+    (
+        ("G1", "A"),
+        ("G1", "B"),
+        ("G2", "A"),
+        ("G2", "B"),
+        ("G5", "A"),
+        ("G5", "B"),
+        ("G9", "A"),
+        ("G9", "B"),
+        ("G11", "A"),
+        ("G11", "B"),
+    )
+)
 
-# Peuples canoniques (0..5) et Peuples Animaux Sauvages (condition d'activation du Réveil)
+# Peuples canoniques (0..5) et Peuples Animaux Sauvages (condition d'activation des paris Gardiens)
 PEUPLES_ORDER: tuple[str, ...] = ("M", "R", "O", "H", "E", "I")
 ANIMAUX_SAUVAGES: frozenset[str] = frozenset(("M", "R", "O"))
 PEUPLE_TO_ID: dict[str, int] = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}
@@ -400,7 +415,7 @@ class _Mem:
     STEP: int = _Layout.alloc(1, "STEP")
     COORDONNATEUR: int = _Layout.alloc(1, "COORDONNATEUR")
     FLAGS: int = _Layout.alloc(1, "FLAGS")
-    REVEIL_ENGAGED_GARDIEN: int = _Layout.alloc(1, "REVEIL_ENGAGED_GARDIEN")
+    RESERVED_HEADER_4: int = _Layout.alloc(1, "RESERVED_HEADER_4")
     TRIGGERS_LIT: int = _Layout.alloc(1, "TRIGGERS_LIT")
 
     # 2. Parcelles Forêt : MAX_N=6 * MAX_P=5 = 30 parcelles (88 octets)
@@ -495,10 +510,9 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Réveil de la Forêt (v5.4.1) & Activation des Rêves (v5.4.2)
-    reveil_quota_mode: str = "N"
-    reveil_gardien_fate: str = "LISIERE_FACE_1"
+    # Paramètres hors-châssis Activation des Rêves (v5.4.2) & Pari d'activation des Gardiens (v5.4.3)
     reve_activation_mode: str = "1_DEF_1_MACHINE"
+    gardien_resonance_cap: str = "UNLIMITED"
 
     # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
@@ -510,7 +524,6 @@ class GameConfig:
     total_gardiens_partie: int = 0
     total_reves_partie: int = 0
     nb_animaux_sauvages: int = 0
-    reveil_quota: int = 0
 
     def __post_init__(self) -> None:
         assert 3 <= self.n_players <= MAX_N, f"n_players invalide : {self.n_players}"
@@ -535,17 +548,14 @@ class GameConfig:
             "INDIVIDUELLE",
             "MUTUALISATION_PUISSANCE_MEME_PARCELLE",
         )
-        assert self.reveil_quota_mode in ("N", "N_MINUS_1", "2"), (
-            f"reveil_quota_mode invalide : {self.reveil_quota_mode}"
-        )
-        assert self.reveil_gardien_fate in ("LISIERE_FACE_1", "RETRAIT_DEFINITIF"), (
-            f"reveil_gardien_fate invalide : {self.reveil_gardien_fate}"
-        )
         assert self.reve_activation_mode in (
             "1_DEF_1_MACHINE",
             "1_DEF_ALL_RANK",
             "BINOME_ALL_RANK",
         ), f"reve_activation_mode invalide : {self.reve_activation_mode}"
+        assert self.gardien_resonance_cap in ("UNLIMITED", "MAX_1_DEF"), (
+            f"gardien_resonance_cap invalide : {self.gardien_resonance_cap}"
+        )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
         peuples = self.peuples if self.peuples else PEUPLES_ORDER[: self.n_players]
@@ -557,16 +567,6 @@ class GameConfig:
 
         nb_animaux = sum(1 for p in peuples if p in ANIMAUX_SAUVAGES)
         object.__setattr__(self, "nb_animaux_sauvages", nb_animaux)
-        if self.mode >= 2 and nb_animaux >= 1:
-            if self.reveil_quota_mode == "N":
-                q_val = self.n_players
-            elif self.reveil_quota_mode == "N_MINUS_1":
-                q_val = max(2, self.n_players - 1)
-            else:
-                q_val = 2
-        else:
-            q_val = 0
-        object.__setattr__(self, "reveil_quota", q_val)
 
         dotation = TOPOLOGIES_DOTATION[profil]
         object.__setattr__(self, "p_max", len(dotation))
@@ -607,9 +607,8 @@ class GameConfig:
         rep_id: int = 0,
         coordonnateur_initial: int = 0,
         max_revision_passes: int = 4,
-        reveil_quota_mode: str = "N",
-        reveil_gardien_fate: str = "LISIERE_FACE_1",
         reve_activation_mode: str = "1_DEF_1_MACHINE",
+        gardien_resonance_cap: str = "UNLIMITED",
     ) -> GameConfig:
         """Construit l'une des 192 configurations de châssis v5.4.2 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
@@ -621,9 +620,8 @@ class GameConfig:
             "rep_id": rep_id,
             "coordonnateur_initial": coordonnateur_initial,
             "max_revision_passes": max_revision_passes,
-            "reveil_quota_mode": reveil_quota_mode,
-            "reveil_gardien_fate": reveil_gardien_fate,
             "reve_activation_mode": reve_activation_mode,
+            "gardien_resonance_cap": gardien_resonance_cap,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
@@ -686,7 +684,7 @@ class GardienSlotObs(NamedTuple):
     gardien_num: int
     tile_id: str | None
     face: int
-    used_this_turn: bool
+    remaining_defenders: int
 
 
 class TactiqueSlotObs(NamedTuple):
@@ -776,16 +774,12 @@ class PlayerObservation:
         return bool(self._snap[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
 
     @property
-    def reveil_quota(self) -> int:
-        return self._cfg.reveil_quota
+    def gardien_resonance_cap(self) -> str:
+        return self._cfg.gardien_resonance_cap
 
     @property
-    def reveil_engaged_gardien(self) -> int:
-        return self._snap[_Mem.REVEIL_ENGAGED_GARDIEN]
-
-    @property
-    def real_damage_this_turn(self) -> bool:
-        return bool(self._snap[_Mem.TRANS_STEP2_STATE] & _TRANS_FLAG_REAL_DAMAGE_THIS_TURN)
+    def gardien_pari_enabled(self) -> bool:
+        return self._cfg.mode >= 2 and self._cfg.nb_animaux_sauvages >= 1
 
     @property
     def triggers_lit(self) -> int:
@@ -916,11 +910,14 @@ class PlayerObservation:
             gb = buf[_Mem.GARDIENS_PISTE + c_off]
             g_num = gb & 0x0F
             if g_num == 0:
-                out.append(GardienSlotObs(0, None, 1, False))
+                out.append(GardienSlotObs(0, None, 1, 0))
             else:
                 out.append(
                     GardienSlotObs(
-                        g_num, _GARDIEN_STR_TABLE[g_num], 2 if (gb & 0x10) else 1, bool(gb & 0x20)
+                        g_num,
+                        _GARDIEN_STR_TABLE[g_num],
+                        2 if (gb & 0x10) else 1,
+                        self.gardien_pari_defenders(c_off + 1),
                     )
                 )
         return tuple(out)
@@ -1040,27 +1037,25 @@ class PlayerObservation:
         return True
 
     def gardien_available_at_case(self, case_1_6: int) -> bool:
-        """Retourne True si un Gardien non encore utilisé ce tour occupe la case `1..6`."""
+        """Retourne True si un Gardien occupe la case `1..6` et porte >= 1 2e Défenseur actif."""
         gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
-        return (gb & 0x0F) > 0 and not (gb & 0x20)
+        return (gb & 0x0F) > 0 and self.gardien_pari_defenders(case_1_6) >= 1
+
+    def gardien_present_at_case(self, case_1_6: int) -> bool:
+        """Retourne True si un Gardien est construit sur la case `1..6`."""
+        gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
+        return (gb & 0x0F) > 0
 
     def gardien_face_at_case(self, case_1_6: int) -> int:
-        """Retourne 0 (vide), 1 (Face 1) ou 2 (Face 2 Éveillé) sur la case `1..6`."""
+        """Retourne 0 (vide), 1 (Face 1) ou 2 (Face 2) sur la case `1..6`."""
         gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
         if (gb & 0x0F) == 0:
             return 0
         return 2 if (gb & 0x10) else 1
 
-    def gardien_eligible_for_reveil(self, case_1_6: int) -> bool:
-        """Retourne True si le Gardien en case `1..6` est en Face 2 et éligible au Réveil."""
-        if self._cfg.reveil_quota <= 0:
-            return False
-        gb = self._snap[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
-        return (gb & 0x0F) > 0 and bool(gb & 0x10) and not bool(gb & 0x20)
-
-    def gardien_reveil_defenders(self, case_1_6: int) -> int:
-        """Nombre de 2es Défenseurs actuellement engagés (réflexion ou définitif) sur la case `1..6`."""
-        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+    def gardien_pari_defenders(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actifs (non consommés) posés en pari sur la case `1..6`."""
+        target_raw = _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1)
         buf = self._snap
         cnt = 0
         for s in range(self._cfg.n_players):
@@ -1068,9 +1063,19 @@ class PlayerObservation:
                 cnt += 1
         return cnt
 
-    def gardien_reveil_defenders_split(self, case_1_6: int) -> tuple[int, int]:
-        """Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur la case `1..6`."""
-        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+    def gardien_pari_consumed(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs déjà consommés par ouverture sur la case `1..6` ce tour."""
+        target_raw = _LOC_GARDIEN_PARI_CONSUMED_BASE + (case_1_6 - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                cnt += 1
+        return cnt
+
+    def gardien_pari_defenders_split(self, case_1_6: int) -> tuple[int, int]:
+        """Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs actifs sur la case `1..6`."""
+        target_raw = _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1)
         buf = self._snap
         def_mask = buf[_Mem.PLAYER_DEF2_DEF_MASK]
         n_ref = 0
@@ -1083,11 +1088,37 @@ class PlayerObservation:
                     n_ref += 1
         return n_ref, n_def
 
-    def player_def2_reveil_case(self, seat: int) -> int:
-        """Retourne la case `1..6` ciblée en Réveil par le 2e Défenseur de `seat`, ou 0."""
+    def total_gardien_pari_defenders(self) -> int:
+        """Nombre total de 2es Défenseurs actifs (non consommés) sur la Piste des Gardiens."""
+        buf = self._snap
+        cnt = 0
+        lo = _LOC_GARDIEN_PARI_BASE
+        hi = _LOC_GARDIEN_PARI_BASE + TRACK_LEN
+        for s in range(self._cfg.n_players):
+            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
+    def total_gardien_pari_engaged(self) -> int:
+        """Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés)."""
+        buf = self._snap
+        cnt = 0
+        lo1 = _LOC_GARDIEN_PARI_BASE
+        hi1 = _LOC_GARDIEN_PARI_BASE + TRACK_LEN
+        lo2 = _LOC_GARDIEN_PARI_CONSUMED_BASE
+        hi2 = _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN
+        for s in range(self._cfg.n_players):
+            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
+            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                cnt += 1
+        return cnt
+
+    def player_def2_gardien_pari_case(self, seat: int) -> int:
+        """Retourne la case `1..6` ciblée en pari Gardien par le 2e Défenseur actif de `seat`, ou 0."""
         raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
-        if _LOC_GARDIEN_REVEIL_BASE <= raw < _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN:
-            return (raw - _LOC_GARDIEN_REVEIL_BASE) + 1
+        if _LOC_GARDIEN_PARI_BASE <= raw < _LOC_GARDIEN_PARI_BASE + TRACK_LEN:
+            return (raw - _LOC_GARDIEN_PARI_BASE) + 1
         return 0
 
     def reve_at_case(self, case_1_6: int) -> int:
@@ -1137,20 +1168,22 @@ class PlayerObservation:
         )
 
 
-# --- Encodage compact des localisations de pions Défenseurs (0..174, 255) ---
+# --- Encodage compact des localisations de pions Défenseurs (0..180, 255) ---
 # 0 : en main
 # 1..30 : parcelle Forêt (1 + r * MAX_P + (p - 1))
 # 31..150 : slot jumeau Furtivité (31 + (l * MAX_P + (p - 1)) * 4 + slot_0_3)
 # 151..162 : tuile Synergie en lisière (151 + lisiere_slot_idx)
-# 163..168 : Gardien Face 2 ciblé pour le Réveil (163 + (case_1_6 - 1))
+# 163..168 : Gardien ciblé en pari d'activation 2.2 (actif, non consommé : 163 + (case_1_6 - 1))
 # 169..174 : Rêve sur piste ciblé en activation 2.2 (169 + (case_1_6 - 1))
+# 175..180 : 2e Défenseur consommé par ouverture d'un Gardien (mis de côté jusqu'en 6.2/6.3 : 175 + (case_1_6 - 1))
 # 255 : impasse (aucune case légale disponible ce tour, pion consommé hors plateau jusqu'en 6.2)
 _LOC_HAND: int = 0
 _LOC_FORET_BASE: int = 1
 _LOC_FURT_BASE: int = _LOC_FORET_BASE + NUM_PARCELS  # 31
 _LOC_LISIERE_BASE: int = _LOC_FURT_BASE + NUM_PARCELS * 4  # 151
-_LOC_GARDIEN_REVEIL_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
-_LOC_REVE_ACTIVATION_BASE: int = _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN  # 169
+_LOC_GARDIEN_PARI_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
+_LOC_REVE_ACTIVATION_BASE: int = _LOC_GARDIEN_PARI_BASE + TRACK_LEN  # 169
+_LOC_GARDIEN_PARI_CONSUMED_BASE: int = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN  # 175
 _LOC_IMPASSE: int = 255
 
 
@@ -1203,7 +1236,6 @@ class GameState:
         self.coordonnateur = cfg.coordonnateur_initial
         self.paravents_ouverts = False
 
-        self.reveil_engaged_gardien = 0
         self.triggers_lit = 0
 
         # Parcelles Forêt (dotation initiale d'Arbres, 0 Souche)
@@ -1327,15 +1359,6 @@ class GameState:
             self._buf[_Mem.FLAGS] |= _FLAG_REPOUSSE_APPLIED
         else:
             self._buf[_Mem.FLAGS] &= ~_FLAG_REPOUSSE_APPLIED
-
-    @property
-    def reveil_engaged_gardien(self) -> int:
-        return self._buf[_Mem.REVEIL_ENGAGED_GARDIEN]
-
-    @reveil_engaged_gardien.setter
-    def reveil_engaged_gardien(self, g_num: int) -> None:
-        assert 0 <= g_num <= 15
-        self._buf[_Mem.REVEIL_ENGAGED_GARDIEN] = g_num
 
     @property
     def triggers_lit(self) -> int:
@@ -1583,15 +1606,22 @@ class GameState:
             rel = raw_loc - _LOC_FURT_BASE
             cell_idx, slot_0_3 = rel // 4, rel % 4
             return ("FURTIVITE", cell_idx // MAX_P, (cell_idx % MAX_P) + 1, slot_0_3)
-        if _LOC_LISIERE_BASE <= raw_loc < _LOC_GARDIEN_REVEIL_BASE:
+        if _LOC_LISIERE_BASE <= raw_loc < _LOC_GARDIEN_PARI_BASE:
             slot_idx = raw_loc - _LOC_LISIERE_BASE
             return ("LISIERE", slot_idx, 0, 0)
-        if _LOC_GARDIEN_REVEIL_BASE <= raw_loc < _LOC_GARDIEN_REVEIL_BASE + TRACK_LEN:
-            case_1_6 = (raw_loc - _LOC_GARDIEN_REVEIL_BASE) + 1
-            return ("GARDIEN_REVEIL", case_1_6, 0, 0)
+        if _LOC_GARDIEN_PARI_BASE <= raw_loc < _LOC_GARDIEN_PARI_BASE + TRACK_LEN:
+            case_1_6 = (raw_loc - _LOC_GARDIEN_PARI_BASE) + 1
+            return ("GARDIEN_PARI", case_1_6, 0, 0)
         if _LOC_REVE_ACTIVATION_BASE <= raw_loc < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
             case_1_6 = (raw_loc - _LOC_REVE_ACTIVATION_BASE) + 1
             return ("REVE_ACTIVATION", case_1_6, 0, 0)
+        if (
+            _LOC_GARDIEN_PARI_CONSUMED_BASE
+            <= raw_loc
+            < _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN
+        ):
+            case_1_6 = (raw_loc - _LOC_GARDIEN_PARI_CONSUMED_BASE) + 1
+            return ("GARDIEN_PARI_CONSUMED", case_1_6, 0, 0)
         return ("IMPASSE", 0, 0, 0)
 
     def remove_player_defender(self, seat: int, def_idx: int) -> None:
@@ -1702,29 +1732,88 @@ class GameState:
         if def_idx == 1:
             self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
-    def count_reveil_defenders_at_case(self, case_1_6: int) -> int:
-        """Nombre de 2es Défenseurs actuellement posés en Réveil sur la case `1..6`."""
+    def count_gardien_pari_defenders_at_case(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs actifs (non consommés) posés en pari sur la case `1..6`."""
         assert 1 <= case_1_6 <= TRACK_LEN
-        target_raw = _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1)
+        target_raw = _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1)
         cnt = 0
         for s in range(self.cfg.n_players):
             if self.get_player_def_loc_raw(s, 1) == target_raw:
                 cnt += 1
         return cnt
 
-    def place_defender_gardien_reveil(self, seat: int, case_1_6: int, face: int) -> None:
-        """Engage le 2e Défenseur de `seat` sur un Gardien Face 2 en case `1..6` pour le Réveil."""
-        assert self.cfg.mode >= 2 and self.cfg.reveil_quota > 0, "Réveil de la Forêt inactif"
+    def count_gardien_pari_consumed_at_case(self, case_1_6: int) -> int:
+        """Nombre de 2es Défenseurs déjà consommés par ouverture sur la case `1..6` ce tour."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        target_raw = _LOC_GARDIEN_PARI_CONSUMED_BASE + (case_1_6 - 1)
+        cnt = 0
+        for s in range(self.cfg.n_players):
+            if self.get_player_def_loc_raw(s, 1) == target_raw:
+                cnt += 1
+        return cnt
+
+    def total_gardien_pari_remaining(self) -> int:
+        """Nombre total de 2es Défenseurs encore actifs (non consommés) sur la Piste des Gardiens."""
+        cnt = 0
+        lo = _LOC_GARDIEN_PARI_BASE
+        hi = _LOC_GARDIEN_PARI_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
+    def total_gardien_pari_engaged(self) -> int:
+        """Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés)."""
+        cnt = 0
+        lo1 = _LOC_GARDIEN_PARI_BASE
+        hi1 = _LOC_GARDIEN_PARI_BASE + TRACK_LEN
+        lo2 = _LOC_GARDIEN_PARI_CONSUMED_BASE
+        hi2 = _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                cnt += 1
+        return cnt
+
+    def place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None:
+        """Engage le 2e Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6`."""
+        assert self.cfg.mode >= 2 and self.cfg.nb_animaux_sauvages >= 1, (
+            "Pari d'activation des Gardiens inactif sans Animal Sauvage"
+        )
         assert 1 <= case_1_6 <= TRACK_LEN
         assert face in (FACE_REFLEXION, FACE_DEFINITIF)
         self.remove_player_defender(seat, 1)
-        g_num, g_face, g_used = self.get_gardien_at_case(case_1_6)
-        assert g_num > 0 and g_face == 2 and not g_used, "Gardien non éligible au Réveil"
-        assert self.count_reveil_defenders_at_case(case_1_6) < self.cfg.reveil_quota, (
-            "Quota de Réveil déjà atteint sur cette case"
-        )
-        self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_REVEIL_BASE + (case_1_6 - 1))
+        g_num, _ = self.get_gardien_at_case(case_1_6)
+        assert g_num > 0, "Aucun Gardien présent sur cette case"
+        if case_1_6 == 4 and self.cfg.gardien_resonance_cap == "MAX_1_DEF":
+            assert self.count_gardien_pari_defenders_at_case(4) < 1, (
+                "Plafond MAX_1_DEF atteint sur la case 4. Résonance"
+            )
+        self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1))
         self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
+
+    def consume_one_gardien_pari_defender(self, case_1_6: int) -> bool:
+        """Retire 1 2e Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2/6.3)."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        src_raw = _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1)
+        dst_raw = _LOC_GARDIEN_PARI_CONSUMED_BASE + (case_1_6 - 1)
+        for s in range(self.cfg.n_players):
+            if self.get_player_def_loc_raw(s, 1) == src_raw:
+                self.set_player_def_loc_raw(s, 1, dst_raw)
+                return True
+        return False
+
+    def is_eveil_gardiens_victory(self) -> bool:
+        """Éveil de la Forêt (Tours 1..7) : tous les N 2es Défenseurs engagés sur la Piste des Gardiens
+        en 2.2 ET tous les paris gagnés (0 Défenseur restant en 5.3).
+        """
+        if self.cfg.mode < 2 or self.cfg.nb_animaux_sauvages < 1 or self.tour >= 8:
+            return False
+        return (
+            self.total_gardien_pari_engaged() == self.cfg.n_players
+            and self.total_gardien_pari_remaining() == 0
+        )
 
     def count_reve_activation_defenders_at_case(self, case_1_6: int) -> int:
         """Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`."""
@@ -1777,38 +1866,27 @@ class GameState:
         return None
 
     # ------------------------------------------------------------------
-    # Piste des Gardiens 1..6 (index 0..5)
+    # Piste des Gardiens 1..6 (index 0..5) — sans marqueur « utilisé »
     # ------------------------------------------------------------------
-    def get_gardien_at_case(self, case_1_6: int) -> tuple[int, int, bool]:
-        """Retourne (g_num 0..15, face 1..2, used_this_turn) sur la case 1..6."""
+    def get_gardien_at_case(self, case_1_6: int) -> tuple[int, int]:
+        """Retourne (g_num 0..15, face 1..2) sur la case 1..6."""
         assert 1 <= case_1_6 <= TRACK_LEN
         b = self._buf[_Mem.GARDIENS_PISTE + (case_1_6 - 1)]
         g_num = b & 0x0F
         if g_num == 0:
-            return 0, 1, False
+            return 0, 1
         face = 2 if (b & 0x10) else 1
-        used = bool(b & 0x20)
-        return g_num, face, used
+        return g_num, face
 
-    def set_gardien_at_case(
-        self, case_1_6: int, g_num: int, face: int = 1, used: bool = False
-    ) -> None:
+    def set_gardien_at_case(self, case_1_6: int, g_num: int, face: int = 1) -> None:
         assert 1 <= case_1_6 <= TRACK_LEN
         assert 0 <= g_num <= 15
         if g_num == 0:
             self._buf[_Mem.GARDIENS_PISTE + (case_1_6 - 1)] = 0
             return
         assert face in (1, 2)
-        val = g_num | (0x10 if face == 2 else 0) | (0x20 if used else 0)
+        val = g_num | (0x10 if face == 2 else 0)
         self._buf[_Mem.GARDIENS_PISTE + (case_1_6 - 1)] = val
-
-    def count_used_gardiens_on_track(self) -> int:
-        total = 0
-        for c in range(1, TRACK_LEN + 1):
-            g_num, _, used = self.get_gardien_at_case(c)
-            if g_num > 0 and used:
-                total += 1
-        return total
 
     # ------------------------------------------------------------------
     # Piste des Tactiques / Rêves 1..6 & pistes Migration Bug / Colonie
@@ -2105,18 +2183,6 @@ class GameState:
         keep_hi = self._buf[_Mem.TRANS_STEP2_STATE] & 0xE0
         self._buf[_Mem.TRANS_STEP2_STATE] = keep_hi | pass_idx | (0x10 if moved_in_pass else 0)
 
-    @property
-    def real_damage_this_turn(self) -> bool:
-        """Bit transitoire TRANS_REAL_DAMAGE_THIS_TURN (vrai si >= 1 Arbre coupé ou Souche retirée ce tour)."""
-        return bool(self._buf[_Mem.TRANS_STEP2_STATE] & _TRANS_FLAG_REAL_DAMAGE_THIS_TURN)
-
-    @real_damage_this_turn.setter
-    def real_damage_this_turn(self, val: bool) -> None:
-        if val:
-            self._buf[_Mem.TRANS_STEP2_STATE] |= _TRANS_FLAG_REAL_DAMAGE_THIS_TURN
-        else:
-            self._buf[_Mem.TRANS_STEP2_STATE] &= ~_TRANS_FLAG_REAL_DAMAGE_THIS_TURN
-
     def get_global_mod_seuil_turn(self) -> int:
         """Modificateur global transitoire de Seuil de Parade pour le tour (-64..+63)."""
         raw = self._buf[_Mem.TRANS_GLOBAL_SEUIL_MOD]
@@ -2227,8 +2293,6 @@ class GameState:
         """Ménage rapide de fin de tour 6.2 par tranches mémoire contiguës."""
         buf = self._buf
         buf[_Mem.TACTIQUES_APPRENTISSAGE : _Mem.TACTIQUES_APPRENTISSAGE + TRACK_LEN] = _ZERO_6_BYTES
-        for c_off in range(TRACK_LEN):
-            buf[_Mem.GARDIENS_PISTE + c_off] &= ~0x20  # Effacer bit utilisé
         buf[_Mem.TRIGGERS_LIT] = 0
         for m_off in range(NUM_NIDS):
             buf[_Mem.NIDS_STATE + m_off] &= 0x7F  # Effacer bit activé ce tour

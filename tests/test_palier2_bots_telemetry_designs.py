@@ -140,10 +140,10 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
         rep_id=1,
     )
     st_laws = GameState(cfg_laws)
-    st_laws.set_gardien_at_case(1, 2, 1, False)
-    st_laws.set_gardien_at_case(2, 5, 1, False)
-    st_laws.set_gardien_at_case(3, 9, 1, False)
-    st_laws.set_gardien_at_case(4, 11, 1, False)
+    st_laws.set_gardien_at_case(1, 2, 1)
+    st_laws.set_gardien_at_case(2, 5, 1)
+    st_laws.set_gardien_at_case(3, 9, 1)
+    st_laws.set_gardien_at_case(4, 11, 1)
     obs_laws = st_laws.get_observation(0)
     assert count_active_laws_from_obs(obs_laws, cfg_laws) == 4
 
@@ -154,8 +154,8 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
             sc_4 = score_target_b1(obs_laws, cfg_laws, bel_laws, ("FORET", r, p), False)
             # Avec <= 2 lois (en retirant 2 Gardiens), l'oubli stochastique disparaît totalement
             st_2 = st_laws.clone()
-            st_2.set_gardien_at_case(3, 0, 1, False)
-            st_2.set_gardien_at_case(4, 0, 1, False)
+            st_2.set_gardien_at_case(3, 0, 1)
+            st_2.set_gardien_at_case(4, 0, 1)
             obs_2 = st_2.get_observation(0)
             assert count_active_laws_from_obs(obs_2, cfg_laws) == 2
             sc_2 = score_target_b1(obs_2, cfg_laws, build_belief_summary(obs_2, cfg_laws), ("FORET", r, p), False)
@@ -209,8 +209,10 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     assert trk.total_physical_ops - ops_before_stay == 0
 
     # 2) law_stack_mean / law_stack_max avec G9:C en jeu (éligible sur R=1, non éligible sur M=0)
-    state.set_gardien_at_case(1, 9, face=1, used=False)  # G9:C en case 1
-    state.set_gardien_at_case(4, 10, face=1, used=False)  # G10:A en case 4 (cascade Résonance)
+    state.set_gardien_at_case(1, 9, face=1)  # G9:C en case 1
+    state.set_gardien_at_case(4, 10, face=1)  # G10:A en case 4 (cascade Résonance)
+    state.place_defender_gardien_pari(0, 1, 2)
+    state.place_defender_gardien_pari(1, 4, 2)
     state.step = STEP_5_1_TACTIQUES
     state.set_parcel_defenseurs(1, 1, 3)  # Pare la frappe sur R -> allume case 1 -> cascade 1 -> 4 !
     resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)

@@ -150,7 +150,7 @@ def test_r1_c_temoin_offrande_gardien_sans_sacrifice() -> None:
     assert g4_slot is not None
     state.set_lisiere_tile_state(g4_slot, LISIERE_CONSTRUCTED, 0)
     # G4 sur la piste en case 2, Face 2, déjà marqué utilisé
-    state.set_gardien_at_case(2, 4, 2, True)
+    state.set_gardien_at_case(2, 4, 2)
 
     # R1 au Rang 4 (index 3)
     track_init = (1, 2, 3, TILE_R_BASE + 1, 4, 5)
@@ -167,7 +167,7 @@ def test_r1_c_temoin_offrande_gardien_sans_sacrifice() -> None:
     step_until_decision(clone_pass)
     assert clone_pass.step == STEP_4_3_MIGRATION
     assert clone_pass.find_tactique_rank(TILE_R_BASE + 1) == 2  # Avancé d'1 seul rang
-    assert clone_pass.get_gardien_at_case(2) == (4, 2, True)
+    assert clone_pass.get_gardien_at_case(2) == (4, 2)
 
     # Sur l'état principal : payer l'offrande de G4 (case 2) pour avancer de 2 rangs (index 3 -> index 1)
     req = step_until_decision(state)
@@ -178,7 +178,7 @@ def test_r1_c_temoin_offrande_gardien_sans_sacrifice() -> None:
 
     assert state.step == STEP_4_3_MIGRATION
     assert state.find_tactique_rank(TILE_R_BASE + 1) == 1
-    assert state.get_gardien_at_case(2) == (0, 1, False)
+    assert state.get_gardien_at_case(2) == (0, 1)
     assert state.get_lisiere_tile_state(g4_slot) == (LISIERE_UNCONSTRUCTED, 0)
 
 
@@ -377,7 +377,8 @@ def test_r4_d_temoin_guetteur_pierre_groupe_atomique_avant_cascade_case_2() -> N
             tile_profiles=(("R4", "D"), ("G1", "Z_SPY_R4D")),
         )
         state = GameState(cfg)
-        state.set_gardien_at_case(2, 1, 1, False)
+        state.set_gardien_at_case(2, 1, 1)
+        state.place_defender_gardien_pari(0, 2, 2)
         state.enter_furtivite(0, 0, 0, 2, 0, FACE_DEFINITIF)
         assert state.get_parcel_piege(1, 2) == PIEGE_AUCUN
         assert state.get_parcel_defenseurs(1, 2) == 0

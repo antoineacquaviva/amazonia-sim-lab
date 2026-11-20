@@ -32,7 +32,6 @@ from engine.core_engine import (
 from engine.primitives import DEC_EFFET_TUILE, DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
-    CARD_SABOTAGE,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
     LISIERE_CONSTRUCTED,
@@ -47,14 +46,12 @@ from engine.state import (
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     SYNERGY_META,
-    TACTIQUES_SPEC,
     TRACK_LEN,
     GameConfig,
     GameState,
     PlayerObservation,
     is_reve_code,
     is_tactique_code,
-    unpack_machine_card,
 )
 
 __all__ = (
@@ -311,7 +308,7 @@ def _compute_b2_resource_and_trigger_values(
     else:
         reve_push_mult = 1.0
     reveil_awaken_bonus = (
-        65.0 if (obs.reveil_quota > 0 and face2_g == 0 and face1_g > 0) else (25.0 if obs.reveil_quota > 0 else 0.0)
+        45.0 if (obs.gardien_pari_enabled and obs.mode >= 3 and face1_g > 0) else 0.0
     )
 
     res_val: dict[str, float] = {
@@ -335,7 +332,7 @@ def _compute_b2_resource_and_trigger_values(
         econ = get_economie_catalog()
         for c in range(1, TRACK_LEN + 1):
             g_slot = gardiens[c - 1]
-            if g_slot.gardien_num > 0 and not g_slot.used_this_turn and g_slot.tile_id is not None:
+            if g_slot.gardien_num > 0 and g_slot.remaining_defenders >= 1 and g_slot.tile_id is not None:
                 v_open = 38.0 + (reveil_awaken_bonus if g_slot.face == 1 else 0.0)
                 if obs.mode >= 3:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
@@ -352,7 +349,7 @@ def _compute_b2_resource_and_trigger_values(
                 trig_val[c] += 0.55 * resonance_4
             if obs.mode >= 3:
                 g_slot = gardiens[c - 1]
-                if g_slot.tile_id is not None and not g_slot.used_this_turn:
+                if g_slot.tile_id is not None and g_slot.remaining_defenders >= 1:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
                     node = econ.get((g_slot.tile_id, prof or "A"))
                     if node is not None:
@@ -378,7 +375,7 @@ def _score_tile_construction_b2(
 ) -> float:
     fam, _, _ = SYNERGY_META[tile_id]
     tour = obs.tour
-    # Valeur structurelle Mode 2+ (victoire Sommeil en bloc des k Rêves, production Nid, Réveil Gardien)
+    # Valeur structurelle Mode 2+ (victoire Sommeil en bloc des k Rêves, production Nid, Pari Gardiens)
     if fam == FAMILLE_REVE:
         # En v5.4, TOUTES les tuiles Rêves en jeu (2 ou 4) doivent être construites et groupées en tête !
         reves_on_track = sum(1 for t in obs.piste_tactiques if is_reve_code(t.code))
@@ -393,7 +390,7 @@ def _score_tile_construction_b2(
         struct_v = 165.0 if tour <= 5 else 90.0
     else:
         g_on_track = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0)
-        struct_v = 155.0 if (obs.reveil_quota > 0 and g_on_track == 0) else 105.0
+        struct_v = 160.0 if (obs.gardien_pari_enabled and g_on_track < 2) else 105.0
 
     if obs.mode < 3:
         return struct_v
@@ -428,102 +425,97 @@ def _score_tile_construction_b2(
     return struct_v + econ_bonus
 
 
-def _is_own_threat_covered_for_reveil(
+def _estimate_expected_gardien_triggers(
     obs: PlayerObservation,
     cfg: GameConfig,
     belief: BeliefSummary,
-) -> bool:
-    """Vérifie uniquement sur `PlayerObservation` si la propre menace privée du siège est parée."""
-    if belief.drew_sabotage_or_none:
-        return True
-    hand = obs.hand_of(obs.observer_seat)
-    if not hand.has_card or hand.card is None or hand.card == CARD_SABOTAGE:
-        return True
-    if hand.lecture_m is None or hand.lecture_m < 1 or hand.lecture_m > TRACK_LEN:
-        return True
-    lec = hand.lecture_m
-    t_code, _, _ = obs.tactique_code_bugs_app(lec - 1)
-    if is_reve_code(t_code):
-        n_def_r = obs.reve_activation_defenders(lec)
-        act_mode = cfg.reve_activation_mode
-        is_cancelled = (
-            (act_mode == "1_DEF_ALL_RANK" and n_def_r >= 1)
-            or (act_mode == "BINOME_ALL_RANK" and n_def_r >= 2)
-            or (
-                act_mode == "1_DEF_1_MACHINE"
-                and obs.player_def2_reve_case(obs.observer_seat) == lec
-            )
-        )
-        if is_cancelled:
-            return True
-        # Rêve non activé : la Tactique imprimée T{lec} s'exécute !
-        t_code = lec
-    elif not is_tactique_code(t_code):
-        return True
-    m_ray, m_type = unpack_machine_card(hand.card)
-    pos, st = obs.machine_pos_status(m_ray, m_type)
-    if st == MACHINE_STATUS_RETIRED or pos <= 0:
-        return True
-    t_spec = TACTIQUES_SPEC[t_code]
+) -> tuple[float, float, float, float, float, float]:
+    """Estime le nombre attendu de déclencheurs sur les cases 1..6 (strictement sur PlayerObservation).
+
+    Note : l'entrée d'indice 3 (case 4. Résonance) est calculée dynamiquement dans `_score_gardien_pari`
+    à partir des ouvertures attendues des *autres* Gardiens (anti-boucle 4. Résonance).
+    """
+    n = obs.n_players
     p_max = cfg.p_max
-    eff_rouges = obs.machine_effective_rouges(m_ray, m_type)
-    m_obs = obs.machines[m_ray * 2 + m_type]
-    bleus = m_obs.bleus
-    for c_type in t_spec.cibles:
-        tp: int | None = None
-        if c_type == "SUR_PLACE":
-            if not obs.is_route(m_ray, pos):
-                tp = pos
-        elif c_type == "DEVANT":
-            for cand in range(pos + 1, p_max + 1):
-                if not obs.is_route(m_ray, cand):
-                    tp = cand
-                    break
-        if tp is None:
-            continue
-        defs = obs.parcel_defenseurs(m_ray, tp)
-        ins = obs.parcel_insectes(m_ray, tp)
-        cur_def = defs + ins
-        if obs.parcel_piege(m_ray, tp) == PIEGE_ACTIF and cur_def >= 1:
-            continue
-        seuil_est = max(
-            1,
-            cfg.dotation_arbres[tp - 1]
-            + cfg.offset_seuil_parade
-            + eff_rouges
-            - bleus
-            + t_spec.mod_seuil,
-        )
-        if cur_def < seuil_est:
-            return False
-    return True
 
-
-def _count_uncovered_public_ratissages(obs: PlayerObservation, cfg: GameConfig) -> int:
-    """Compte les machines publiques en Ratissage non encore parées sur le plateau."""
-    uncovered = 0
-    for r in range(obs.n_players):
-        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
-            pos, st = obs.machine_pos_status(r, mt)
-            if st != MACHINE_STATUS_RATISSAGE or pos <= 0 or obs.is_route(r, pos):
+    # Case 1 : 1. Parade (parcelles menacées qui sont déjà défendues ou piégées+défendues)
+    exp_parade = 0.0
+    for r in range(n):
+        for p in range(1, p_max + 1):
+            if obs.is_route(r, p):
                 continue
-            defs = obs.parcel_defenseurs(r, pos)
-            ins = obs.parcel_insectes(r, pos)
+            idx = r * MAX_P + (p - 1)
+            s_prob = belief.parcel_strike_prob[idx]
+            if s_prob <= 0.08:
+                continue
+            defs = obs.parcel_defenseurs(r, p)
+            ins = obs.parcel_insectes(r, p)
             cur_def = defs + ins
-            if obs.parcel_piege(r, pos) == PIEGE_ACTIF and cur_def >= 1:
+            piege_armed = obs.parcel_piege(r, p) == PIEGE_ACTIF and cur_def >= 1
+            seuil_e = belief.parcel_expected_seuil[idx]
+            if piege_armed or cur_def >= seuil_e:
+                exp_parade += min(1.35, s_prob)
+            elif cur_def >= seuil_e - 0.5 and defs >= 1:
+                exp_parade += 0.45 * min(1.0, s_prob)
+
+    # Cases 2 & 3 : 2. Piège et 3. Sabotage (cases Furtivité prêtes en 4.1)
+    exp_piege = 0.0
+    exp_sabotage = 0.0
+    for l_idx in range(n):
+        for p in range(1, p_max + 1):
+            nb_d, f_ins = obs.furtivite_defs_and_ins(l_idx, p)
+            if nb_d < 2 and not (nb_d == 1 and f_ins >= 1):
                 continue
-            eff_r = obs.machine_effective_rouges(r, mt)
-            bleus = obs.machines[r * 2 + mt].bleus
-            seuil_est = max(
-                1,
-                cfg.dotation_arbres[pos - 1] + cfg.offset_seuil_parade + eff_r - bleus,
-            )
-            if cur_def < seuil_est:
-                uncovered += 1
-    return uncovered
+            # Vérifier si une des deux rives est exploitable
+            for rive in (0, 1):
+                t_ray = l_idx if rive == 0 else (l_idx + 1) % n
+                if obs.is_route(t_ray, p):
+                    continue
+                has_m = False
+                has_rat = False
+                for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                    m_pos, m_st = obs.machine_pos_status(t_ray, mt)
+                    if m_pos == p and m_st != MACHINE_STATUS_RETIRED:
+                        has_m = True
+                        if m_st == MACHINE_STATUS_RATISSAGE:
+                            has_rat = True
+                if not has_m and obs.parcel_piege(t_ray, p) == PIEGE_AUCUN:
+                    exp_piege += 0.55
+                elif has_m and not has_rat:
+                    idx = t_ray * MAX_P + (p - 1)
+                    p_inactive = max(0.15, 1.0 - min(1.0, belief.parcel_strike_prob[idx]))
+                    exp_sabotage += 0.45 * p_inactive
+
+    # Case 5 : 5. Rêve (Rêves sur piste portant déjà >= 1 Défenseur en activation 2.2)
+    exp_reve = 0.0
+    for c_r in range(1, TRACK_LEN + 1):
+        if obs.reve_at_case(c_r) > 0 and obs.reve_activation_defenders(c_r) >= 1:
+            exp_reve += 0.70
+
+    # Case 6 : 6. Nid (Nids sur le plateau portant >= 1 Défenseur en 4.2)
+    exp_nid = 0.0
+    for r in range(n):
+        for p in range(1, p_max + 1):
+            if obs.parcel_has_nid(r, p) and obs.parcel_defenseurs(r, p) >= 1:
+                exp_nid += 1.0
+
+    # Bonus Colonie 4.3 : un Insecte sur la Piste Colonie peut ouvrir directement le Gardien de sa case
+    piste_col = obs.piste_colonie
+    if piste_col[0] >= 1:
+        exp_parade += 0.85
+    if piste_col[1] >= 1:
+        exp_piege += 0.85
+    if piste_col[2] >= 1:
+        exp_sabotage += 0.85
+    if piste_col[4] >= 1:
+        exp_reve += 0.85
+    if piste_col[5] >= 1:
+        exp_nid += 0.85
+
+    return (exp_parade, exp_piege, exp_sabotage, 0.0, exp_reve, exp_nid)
 
 
-def _score_gardien_reveil(
+def _score_gardien_pari(
     obs: PlayerObservation,
     cfg: GameConfig,
     belief: BeliefSummary,
@@ -531,60 +523,117 @@ def _score_gardien_reveil(
     *,
     is_b2: bool,
 ) -> float:
-    """Évalue la cible `('GARDIEN_REVEIL', case_c)` en 2.2 (strictement sur PlayerObservation)."""
-    q = obs.reveil_quota
-    if q <= 0 or not obs.gardien_eligible_for_reveil(case_c):
+    """Évalue la cible `('GARDIEN_PARI', case_c)` en 2.2 (strictement sur PlayerObservation).
+
+    Tient compte de `gardien_resonance_cap` (`UNLIMITED` vs `MAX_1_DEF`), des activations attendues
+    sur chaque case occupée et des opportunités d'Éveil de la Forêt (Tours 1..7).
+    """
+    if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(case_c):
         return 0.0
 
-    own_covered = _is_own_threat_covered_for_reveil(obs, cfg, belief)
-    if not own_covered:
-        # Notre propre menace infligerait un dommage réel -> le Réveil échouerait !
-        return 35.0
+    own_pari_case = obs.player_def2_gardien_pari_case(obs.observer_seat)
+    allies_on_case = max(0, obs.gardien_pari_defenders(case_c) - (1 if own_pari_case == case_c else 0))
 
-    uncovered_rat = _count_uncovered_public_ratissages(obs, cfg)
-    if uncovered_rat >= 2:
-        return 45.0
+    # Respect du plafond MAX_1_DEF sur 4. Résonance
+    if case_c == 4 and cfg.gardien_resonance_cap == "MAX_1_DEF" and allies_on_case >= 1:
+        return 0.0
 
-    # Signal bayésien des alliés déjà en réflexion/définitif sur ce Gardien (en excluant soi-même)
-    total_on_case = obs.gardien_reveil_defenders(case_c)
-    own_rev_case = obs.player_def2_reveil_case(obs.observer_seat)
-    allies_on_case = max(0, total_on_case - (1 if own_rev_case == case_c else 0))
+    exp_trigs = _estimate_expected_gardien_triggers(obs, cfg, belief)
+    n = obs.n_players
 
-    # Éviter de diviser l'équipe sur 2 Gardiens Face 2 différents : converger vers le plus peuplé
-    other_max = 0
-    for c2 in range(1, TRACK_LEN + 1):
-        if c2 != case_c and obs.gardien_eligible_for_reveil(c2):
-            cnt2 = obs.gardien_reveil_defenders(c2) - (1 if own_rev_case == c2 else 0)
-            other_max = max(other_max, cnt2)
-    if other_max > allies_on_case:
-        return 70.0
+    # Capacité totale attendue hors Résonance (cases 1, 2, 3, 5, 6 occupées)
+    total_non_res_cap = 0.0
+    other_openings_expected = 0.0
+    for c_k in (1, 2, 3, 5, 6):
+        if obs.gardien_present_at_case(c_k):
+            t_k = exp_trigs[c_k - 1]
+            total_non_res_cap += t_k
+            bets_k = max(0, obs.gardien_pari_defenders(c_k) - (1 if own_pari_case == c_k else 0))
+            other_openings_expected += min(float(bets_k), t_k)
 
-    # Ratio d'Arbres actuel : plus la forêt est intacte, plus finir par Réveil est précieux !
-    total_init = max(1, obs.n_players * sum(cfg.dotation_arbres))
+    has_res = obs.gardien_present_at_case(4)
+    if has_res:
+        res_cap = (
+            min(1.0, total_non_res_cap)
+            if cfg.gardien_resonance_cap == "MAX_1_DEF"
+            else total_non_res_cap
+        )
+    else:
+        res_cap = 0.0
+
+    total_eveil_cap = total_non_res_cap + res_cap
+
+    # Nombre d'activations attendues spécifiquement sur `case_c` pour soutenir le `(allies_on_case + 1)`-ième pari
+    new_bets_c = allies_on_case + 1
+    if case_c == 4:
+        # 4. Résonance s'allume une fois par ouverture d'un *autre* Gardien (jamais par elle-même).
+        # On ajoute +0.85 si d'autres joueurs n'ont pas encore posé leur 2e Défenseur et qu'il existe
+        # une capacité non-Résonance disponible pour les accueillir.
+        allies_total = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
+        unplaced_allies = max(0, (n - 1) - allies_total)
+        potential_other = min(total_non_res_cap, other_openings_expected + 0.85 * unplaced_allies)
+        # Ajoute aussi un éventuel Insecte Colonie en case 4
+        col4_bonus = 0.85 if obs.piste_colonie[3] >= 1 else 0.0
+        exp_for_case = potential_other + col4_bonus
+    else:
+        exp_for_case = exp_trigs[case_c - 1]
+
+    # Ratio d'Arbres actuel : plus la forêt est intacte, plus l'Éveil précoce est rentable !
+    total_init = max(1, n * sum(cfg.dotation_arbres))
     cur_arbres = sum(
-        obs.parcel_arbres(r, p)
-        for r in range(obs.n_players)
-        for p in range(1, cfg.p_max + 1)
+        obs.parcel_arbres(r, p) for r in range(n) for p in range(1, cfg.p_max + 1)
     )
     tree_ratio = cur_arbres / total_init
-    rat_pen = 240.0 * uncovered_rat
 
-    if allies_on_case >= q - 1:
-        # Complétion du quota Q !
-        base = (575.0 + 230.0 * tree_ratio) if is_b2 else (535.0 + 185.0 * tree_ratio)
-        return max(40.0, base - rat_pen)
+    allies_total = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
+    supported = exp_for_case >= (new_bets_c - 0.15)
+    marginally_supported = exp_for_case >= (new_bets_c - 0.45)
 
-    if allies_on_case >= 1:
-        # Signal bayésien fort : des alliés ont déjà signalé que leur menace est couverte
-        prog = allies_on_case / max(1, q - 1)
-        base = (410.0 + 145.0 * prog + 165.0 * tree_ratio) if is_b2 else (380.0 + 120.0 * prog + 135.0 * tree_ratio)
-        return max(40.0, base - rat_pen)
+    # 1. Opportunité d'Éveil de la Forêt (Tours 1..7) : converger les N 2es Défenseurs
+    if obs.tour <= 7 and total_eveil_cap >= (n - 0.40):
+        # Si la case 4. Résonance est disponible et non-sursouscrite mais que les autres cases manquent
+        # encore de Défenseurs pour alimenter Résonance, privilégier d'abord les cases motrices !
+        if case_c == 4 and other_openings_expected < float(new_bets_c) and total_non_res_cap > other_openings_expected + 0.35:
+            # Légère préférence pour alimenter d'abord les cases 1,2,3,5,6 avant de remplir 4. Résonance
+            eveil_penalty = 35.0
+        else:
+            eveil_penalty = 0.0
 
-    # Initiation du signal de Réveil (0 allié dessus pour l'instant)
-    if uncovered_rat == 0 and (belief.drew_sabotage_or_none or q == 2 or obs.tour >= 3):
-        base = (355.0 + 175.0 * tree_ratio) if is_b2 else (325.0 + 145.0 * tree_ratio)
-        return base
-    return 145.0
+        if supported:
+            if allies_total >= n - 1:
+                # Complétion des N 2es Défenseurs sur la Piste des Gardiens -> Éveil imminent !
+                base = (615.0 + 245.0 * tree_ratio) if is_b2 else (560.0 + 195.0 * tree_ratio)
+                return max(40.0, base - eveil_penalty)
+            if allies_total >= 1:
+                prog = allies_total / max(1, n - 1)
+                base = (
+                    (445.0 + 155.0 * prog + 165.0 * tree_ratio)
+                    if is_b2
+                    else (405.0 + 125.0 * prog + 135.0 * tree_ratio)
+                )
+                return max(40.0, base - eveil_penalty)
+            # Initiation du signal d'Éveil (0 allié dessus pour l'instant)
+            if belief.drew_sabotage_or_none or total_eveil_cap >= (n + 0.15) or obs.tour >= 3:
+                base = (375.0 + 175.0 * tree_ratio) if is_b2 else (340.0 + 145.0 * tree_ratio)
+                return max(40.0, base - eveil_penalty)
+        elif marginally_supported and allies_total >= n - 1:
+            base = (485.0 + 180.0 * tree_ratio) if is_b2 else (445.0 + 145.0 * tree_ratio)
+            return max(40.0, base - eveil_penalty)
+
+    # 2. Jeu courant : pari prudent en Mode 3/4 uniquement si l'activation est probable
+    if obs.mode >= 3:
+        if exp_for_case >= (new_bets_c + 0.15):
+            # Activation très probable : valeur du Gardien + passage Face 2 en 5.3 si double-face
+            g_face = obs.gardien_face_at_case(case_c)
+            face_bonus = 45.0 if g_face == 1 else 15.0
+            return (275.0 if is_b2 else 240.0) + face_bonus
+        if supported:
+            return 165.0 if is_b2 else 145.0
+        # Pari risqué (risque de perdre le Gardien en lisière)
+        return 25.0
+
+    # En Mode 2 (Gardiens neutres), hors opportunité d'Éveil, éviter tout pari inutile/risqué
+    return 20.0
 
 
 def _score_reve_activation(
@@ -771,10 +820,10 @@ def score_target_b1(
             base_f = 135.0
         return base_f + _b1_forgetting_penalty(obs, cfg, active_laws, 500 + l_i * 10 + p_i)
 
-    if kind == "GARDIEN_REVEIL":
+    if kind == "GARDIEN_PARI":
         _, case_c = target
         c_i = int(case_c)
-        return _score_gardien_reveil(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
+        return _score_gardien_pari(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
             obs, cfg, active_laws, 700 + c_i
         )
 
@@ -912,9 +961,9 @@ def score_target_b2(
             return 320.0 + action_v * 1.15
         return 145.0 + action_v * 0.75
 
-    if kind == "GARDIEN_REVEIL":
+    if kind == "GARDIEN_PARI":
         _, case_c = target
-        return _score_gardien_reveil(obs, cfg, belief, int(case_c), is_b2=True)
+        return _score_gardien_pari(obs, cfg, belief, int(case_c), is_b2=True)
 
     if kind == "REVE_ACTIVATION":
         _, case_c = target
@@ -984,9 +1033,9 @@ def _score_effect_option(
     if opt == "PASSER":
         # Pour un sacrifice (ex: G4 A), ne sacrifier que si le gain dépasse nettement la valeur de G4 en piste !
         if "SACRIFICE" in kind_hint or slot_id == "G4":
-            g_f2 = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0 and g.face == 2)
-            sole_f2 = obs.reveil_quota > 0 and g_f2 == 1
-            return 380.0 if sole_f2 else 240.0
+            g_cnt = sum(1 for g in obs.piste_gardiens if g.gardien_num > 0)
+            sole_g = obs.gardien_pari_enabled and g_cnt == 1
+            return 380.0 if sole_g else 240.0
         if kind_hint == "OFFRANDE_GARDIEN_AVANCEE_REVE":
             return 180.0
         return 25.0

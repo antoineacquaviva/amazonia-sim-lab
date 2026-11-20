@@ -173,18 +173,22 @@ def _score_defender_target(
             return 340
         return 140
 
-    if kind == "GARDIEN_REVEIL":
+    if kind == "GARDIEN_PARI":
         _, case_c = target
         c_i = int(case_c)
-        q = obs.reveil_quota
-        if q <= 0 or not obs.gardien_eligible_for_reveil(c_i):
+        if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(c_i):
             return 0
-        allies = obs.gardien_reveil_defenders(c_i)
-        if allies >= q - 1 and drew_sabotage_or_none:
-            return 460
-        if allies >= 1 and drew_sabotage_or_none:
-            return 300
-        return 110
+        if c_i == 4 and cfg.gardien_resonance_cap == "MAX_1_DEF":
+            own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
+            allies_4 = obs.gardien_pari_defenders(4) - (1 if own_c == 4 else 0)
+            if allies_4 >= 1:
+                return 0
+        total_on_track = obs.total_gardien_pari_defenders()
+        if obs.tour <= 7 and total_on_track >= obs.n_players - 1 and drew_sabotage_or_none:
+            return 450
+        if obs.tour <= 7 and total_on_track >= 1 and drew_sabotage_or_none:
+            return 280
+        return 100
 
     if kind == "REVE_ACTIVATION":
         _, case_c = target

@@ -66,8 +66,10 @@ def test_m4_a_temoin_ruche_melipones_sabotage_4_2() -> None:
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, 1, 0)
     state.set_machine_pos_status(i_seat, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(i_seat, MACHINE_ABATTEUSE, 1, 0)
-    state.set_gardien_at_case(3, 1, 1, False)
-    state.set_gardien_at_case(6, 10, 1, False)
+    state.set_gardien_at_case(3, 1, 1)
+    state.place_defender_gardien_pari(0, 3, 2)
+    state.set_gardien_at_case(6, 10, 1)
+    state.place_defender_gardien_pari(1, 6, 2)
     sab_before = state.sabotage_pending_count
 
     state.step = STEP_4_2_NIDS
@@ -88,7 +90,7 @@ def test_m4_a_temoin_ruche_melipones_sabotage_4_2() -> None:
     req_g3 = step_until_decision(state)
     assert isinstance(req_g3, DecisionRequest)
     assert req_g3.context.get("slot_id") == "G1"
-    assert state.get_gardien_at_case(3)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(3) >= 1
     apply_choice(state, (0, 0))
 
 
@@ -231,7 +233,8 @@ def test_m5_d_temoin_jardin_releveuses_cree_insecte_5_3_allume_6() -> None:
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, 1, 0)
     state.set_machine_pos_status(i_seat, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(i_seat, MACHINE_ABATTEUSE, 1, 0)
-    state.set_gardien_at_case(6, 1, 1, False)
+    state.set_gardien_at_case(6, 1, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
 
     state.step = STEP_5_3_END_CHECK
     req = step_until_decision(state)
@@ -239,4 +242,4 @@ def test_m5_d_temoin_jardin_releveuses_cree_insecte_5_3_allume_6() -> None:
     assert isinstance(req, DecisionRequest)
     assert req.context.get("slot_id") == "G1"
     # Vérifie que le Gardien en case 6 s'est ouvert grâce à M5:D avant 6.1
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1

@@ -177,7 +177,7 @@ def test_bot_effect_option_dispatch_no_tuple_or_int_collisions() -> None:
     st.set_machine_tokens(1, MACHINE_ABATTEUSE, rouges=0, bleus=0)
     st.set_parcel_arbres_souches(0, 1, 0, 0)  # Parcelle (0, 1) rasée (0 arbre) pour démasquer une collision parcelle !
     st.set_parcel_arbres_souches(1, 1, 4, 0)
-    st.set_gardien_at_case(1, 1, face=1, used=False)
+    st.set_gardien_at_case(1, 1, face=1)
     st.set_tactique_at_rank(0, 1)  # T1 (danger faible)
     st.set_tactique_at_rank(1, 6)  # T6 (danger fort)
     st.set_tactique_at_rank(2, 2)
@@ -401,8 +401,10 @@ def test_inter_effect_composition_witness_g1_a_then_g2_a_updates_parade() -> Non
     assert seuil_avant == 5
 
     # 1) G1:A s'ouvre sur Déclencheur 1 -> transforme 1 rouge en 1 bleu sur Abatteuse (reste 1 rouge, 1 bleu)
-    st.set_gardien_at_case(1, 1, face=1, used=False)
-    st.set_gardien_at_case(2, 2, face=1, used=False)
+    st.set_gardien_at_case(1, 1, face=1)
+    st.set_gardien_at_case(2, 2, face=1)
+    st.place_defender_gardien_pari(0, 1, 2)
+    st.place_defender_gardien_pari(1, 2, 2)
     st.light_trigger(1)
     assert sweep_gardiens(st) == 1
     assert st.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 1)

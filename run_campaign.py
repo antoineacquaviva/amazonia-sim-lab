@@ -449,12 +449,18 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
         return round(float(raw.get(key) or 0) / rf_n, 3) if rf_n > 0 else 0.0
 
     total_att = rs_n + rf_n
+    mean_ratio_arbres_eveil = (
+        round(float(raw.get("rs_ratio_arbres_bp") or 0) / (rs_n * 10000.0), 4)
+        if rs_n > 0
+        else 0.0
+    )
     out: dict[str, Any] = {
         "n_reveil_success": rs_n,
         "n_reveil_failures": rf_n,
         "success_rate_pct": round(rs_n * 100.0 / total_att, 2) if total_att > 0 else 0.0,
         "success_turn": {
             "mean_tour": _s_mean("rs_tour"),
+            "mean_ratio_arbres": mean_ratio_arbres_eveil,
             "tour_distribution_pct": {
                 "T2": _s_pct("rs_t2"),
                 "T3": _s_pct("rs_t3"),
@@ -462,10 +468,11 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
                 "T5": _s_pct("rs_t5"),
                 "T6": _s_pct("rs_t6"),
                 "T7": _s_pct("rs_t7"),
-                "T8": _s_pct("rs_t8"),
             },
             "defenders": {
                 "mean_def_on_gardien": _s_mean("rs_def_gardien"),
+                "mean_def_on_resonance": _s_mean("rs_def_resonance"),
+                "mean_def_on_other_cases": _s_mean("rs_def_other_cases"),
                 "mean_def1_on_foret": _s_mean("rs_def1_foret"),
                 "mean_def2_on_foret": _s_mean("rs_def2_foret"),
                 "mean_total_def_on_foret": round(
@@ -505,6 +512,8 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
         "failed_attempts_comparison": {
             "mean_tour": _f_mean("rf_tour"),
             "mean_def_on_gardien": _f_mean("rf_def_gardien"),
+            "mean_def_on_resonance": _f_mean("rf_def_resonance"),
+            "mean_def_on_other_cases": _f_mean("rf_def_other_cases"),
             "mean_def1_on_foret": _f_mean("rf_def1_foret"),
             "mean_def2_on_foret": _f_mean("rf_def2_foret"),
             "mean_cards_sabotage_dealt": _f_mean("rf_cards_sabotage"),
@@ -632,16 +641,32 @@ def aggregate_campaign_duckdb(
     has_reveil_diag_cols = (
         "count_reveil_attempts" in cell_cols and "count_reveil_failures" in cell_cols
     )
+    has_gardien_bets_cols = (
+        "count_gardien_bets_won" in cell_cols and "count_gardien_bets_lost" in cell_cols
+    )
     reveil_diag_sql = (
-        """
+        (
+            """
             CAST(SUM(count_reveil_attempts) AS INTEGER) AS count_reveil_attempts,
             CAST(SUM(count_reveil_failures) AS INTEGER) AS count_reveil_failures,
         """
-        if has_reveil_diag_cols
-        else """
+            if has_reveil_diag_cols
+            else """
             0 AS count_reveil_attempts,
             0 AS count_reveil_failures,
         """
+        )
+        + (
+            """
+            CAST(SUM(count_gardien_bets_won) AS INTEGER) AS count_gardien_bets_won,
+            CAST(SUM(count_gardien_bets_lost) AS INTEGER) AS count_gardien_bets_lost,
+        """
+            if has_gardien_bets_cols
+            else """
+            0 AS count_gardien_bets_won,
+            0 AS count_gardien_bets_lost,
+        """
+        )
     )
     has_reve_act_cols = (
         "count_reves_activated" in cell_cols
@@ -1049,6 +1074,8 @@ def aggregate_campaign_duckdb(
             "pct_reveil_gardiens": g_stats["pct_reveil_gardiens"],
             "count_reveil_attempts": int(g_stats["count_reveil_attempts"]),
             "count_reveil_failures": int(g_stats["count_reveil_failures"]),
+            "count_gardien_bets_won": int(g_stats["count_gardien_bets_won"]),
+            "count_gardien_bets_lost": int(g_stats["count_gardien_bets_lost"]),
             "count_reves_activated": int(g_stats["count_reves_activated"]),
             "count_machines_cancelled_by_reve": int(g_stats["count_machines_cancelled_by_reve"]),
             "count_machines_bypassed_inactive_reve": int(

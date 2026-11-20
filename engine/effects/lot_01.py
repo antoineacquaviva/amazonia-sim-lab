@@ -97,16 +97,10 @@ def g1_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 
         if face == 1:
             if not cands:
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return
             if len(cands) == 1:
                 rm, mt = cands[0]
                 prim_mod_puissance(state, rm, mt, flip_rouge_to_bleu=1)
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return
             push_effect_decision(
                 state,
@@ -144,9 +138,6 @@ def g1_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
             case_num = int(payload[0])
             rm, mt = choice
             prim_mod_puissance(state, int(rm), int(mt), flip_rouge_to_bleu=1)
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-            )
             return
 
         if rtag == "F2_PICK":
@@ -210,15 +201,9 @@ def g2_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
         if face == 1:
             cands = _reculable_machines(state, require_defender=True)
             if not cands:
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return
             if len(cands) == 1:
                 _apply_machine_recul_1(state, cands[0][0], cands[0][1])
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return
             push_effect_decision(
                 state,
@@ -255,10 +240,7 @@ def g2_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
         rm, mt = ctx["choice"]
         _apply_machine_recul_1(state, int(rm), int(mt))
         if rtag == "F1_RECUL":
-            case_num = int(ctx["payload"][0])
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-            )
+            return
 
 
 # ---------------------------------------------------------------------------
@@ -610,7 +592,8 @@ def r5_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
         avail = [
             c
             for c in range(1, TRACK_LEN + 1)
-            if state.get_gardien_at_case(c)[0] > 0 and not state.get_gardien_at_case(c)[2]
+            if state.get_gardien_at_case(c)[0] > 0
+            and state.count_gardien_pari_defenders_at_case(c) >= 1
         ]
         if not avail:
             return

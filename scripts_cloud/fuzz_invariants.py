@@ -141,9 +141,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 placement_initial_machines=base_cfg.placement_initial_machines,
                 role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
                 synergie_binome_machines=base_cfg.synergie_binome_machines,
-                reveil_quota_mode=base_cfg.reveil_quota_mode,
-                reveil_gardien_fate=base_cfg.reveil_gardien_fate,
                 reve_activation_mode=base_cfg.reve_activation_mode,
+                gardien_resonance_cap=base_cfg.gardien_resonance_cap,
                 tile_profiles=t_profs,
             )
         else:

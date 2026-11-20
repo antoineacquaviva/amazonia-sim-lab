@@ -224,9 +224,8 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         placement_initial_machines=old.placement_initial_machines,
         role_abatteuse_fin_de_piste=old.role_abatteuse_fin_de_piste,
         synergie_binome_machines=old.synergie_binome_machines,
-        reveil_quota_mode=old.reveil_quota_mode,
-        reveil_gardien_fate=old.reveil_gardien_fate,
         reve_activation_mode=old.reve_activation_mode,
+        gardien_resonance_cap=old.gardien_resonance_cap,
         tile_profiles=old.tile_profiles,
     )
     cloned.cfg = new_cfg

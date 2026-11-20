@@ -91,9 +91,8 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         placement_initial_machines=cfg.placement_initial_machines,
         role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
         synergie_binome_machines=cfg.synergie_binome_machines,
-        reveil_quota_mode=cfg.reveil_quota_mode,
-        reveil_gardien_fate=cfg.reveil_gardien_fate,
         reve_activation_mode=cfg.reve_activation_mode,
+        gardien_resonance_cap=cfg.gardien_resonance_cap,
         tile_profiles=cfg.tile_profiles,
     )
 
@@ -245,14 +244,11 @@ def evaluate_horizon_state(state: GameState) -> float:
             if is_reve_code(code):
                 # Rêve proche du rang 1 (rk == 0) = victoire anticipée imminente
                 assets += 0.010 * (TRACK_LEN - rk) / TRACK_LEN
-        if cfg.reveil_quota > 0:
-            # Présence d'au moins un Gardien Face 2 éveillé rendant le Réveil possible dès le tour suivant
-            has_f2 = any(
-                state.get_gardien_at_case(c)[0] > 0 and state.get_gardien_at_case(c)[1] == 2
-                for c in range(1, TRACK_LEN + 1)
-            )
-            if has_f2:
-                assets += 0.015
+        if cfg.nb_animaux_sauvages >= 1:
+            # Présence de Gardiens sur la piste rendant les paris d'activation / Éveil possibles
+            g_cnt = sum(1 for c in range(1, TRACK_LEN + 1) if state.get_gardien_at_case(c)[0] > 0)
+            if g_cnt >= 1:
+                assets += min(0.025, 0.010 * g_cnt)
 
     return tree_ratio + assets - danger
 
@@ -453,8 +449,8 @@ def _current_def2_target(state: GameState, seat: int) -> tuple[Any, ...] | None:
         return ("FURTIVITE", a, b, c // 2)
     if kind == "LISIERE":
         return ("LISIERE", a)
-    if kind == "GARDIEN_REVEIL":
-        return ("GARDIEN_REVEIL", a)
+    if kind == "GARDIEN_PARI":
+        return ("GARDIEN_PARI", a)
     if kind == "REVE_ACTIVATION":
         return ("REVE_ACTIVATION", a)
     return None
@@ -501,13 +497,11 @@ def _score_held_spot_b3(
     """Évalue la valeur marginale du poste déjà occupé par le 2e Défenseur du joueur."""
     kind = cur_spot[0]
     base = score_target_b2(obs, cfg, belief, cur_spot, False)
-    if kind == "GARDIEN_REVEIL":
-        _, case_c = cur_spot
-        q = cfg.reveil_quota
-        cnt = obs.gardien_reveil_defenders(int(case_c))
-        if q > 0 and cnt >= q:
-            return base + 480.0
-        return base - 260.0
+    if kind == "GARDIEN_PARI":
+        tot_on_track = obs.total_gardien_pari_defenders()
+        if obs.tour <= 7 and tot_on_track >= obs.n_players:
+            return base + 420.0
+        return base - 120.0
     if kind == "REVE_ACTIVATION":
         _, case_c = cur_spot
         c_i = int(case_c)

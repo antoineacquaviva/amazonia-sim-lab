@@ -54,17 +54,22 @@ def test_g1_a_temoin() -> None:
     state = GameState(cfg)
 
     # 1) Face 1 : 1 rouge -> 1 bleu sur l'unique machine éligible, puis passage auto en Face 2
-    state.set_gardien_at_case(1, 1, face=1, used=False)
+    state.set_gardien_at_case(1, 1, face=1)
+    state.place_defender_gardien_pari(0, 1, 2)
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
     state.light_trigger(1)
     opened = sweep_gardiens(state)
     assert opened == 1
     assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 1)
-    assert state.get_gardien_at_case(1) == (1, 2, True)  # Passé sur Face 2 !
+    assert state.get_gardien_at_case(1) == (1, 1)  # Reste Face 1 avant 5.3 !
+    assert state.count_gardien_pari_consumed_at_case(1) == 1
 
-    # 2) Face 2 autonome : répartir 2 retournements entre deux machines (ou s'arrêter via PASSER)
+    # 2) Passage Face 2 en 5.3 (pari gagné) puis Face 2 autonome au tour suivant
+    from engine.core_engine import _resolve_gardien_bets_5_3
+    _resolve_gardien_bets_5_3(state)
     state.cleanup_end_of_turn_6_2()
-    assert state.get_gardien_at_case(1) == (1, 2, False)
+    assert state.get_gardien_at_case(1) == (1, 2)
+    state.place_defender_gardien_pari(0, 1, 2)
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=1, bleus=1)
     state.set_machine_tokens(1, MACHINE_BULLDOZER, rouges=2, bleus=0)
     state.light_trigger(1)
@@ -116,7 +121,8 @@ def test_g2_a_temoin() -> None:
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
     state.set_parcel_defenseurs(0, 3, 1)
 
-    state.set_gardien_at_case(2, 2, face=1, used=False)
+    state.set_gardien_at_case(2, 2, face=1)
+    state.place_defender_gardien_pari(0, 2, 2)
     state.light_trigger(2)
     sweep_gardiens(state)
 
@@ -125,7 +131,10 @@ def test_g2_a_temoin() -> None:
     assert state.get_parcel_nid(0, 1) == (0, False)
     assert state.get_parcel_insectes(0, 1) == 0
     assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_UNCONSTRUCTED, 0)
-    assert state.get_gardien_at_case(2)[1] == 2  # Passé en Face 2
+    assert state.get_gardien_at_case(2) == (2, 1)  # Reste Face 1 avant 5.3
+    from engine.core_engine import _resolve_gardien_bets_5_3
+    _resolve_gardien_bets_5_3(state)
+    assert state.get_gardien_at_case(2)[1] == 2  # Passé en Face 2 en 5.3 !
 
     # Quand l'Abatteuse attaque ensuite sur T1 (SUR_PLACE), elle frappe p=1 (et non plus p=3 !)
     arbres_p3_before = state.get_parcel_arbres(0, 3)
@@ -137,7 +146,7 @@ def test_g2_a_temoin() -> None:
 # ---------------------------------------------------------------------------
 # 3. G4:A — Le Cri d’Alarme de l’Ara (MOD_SEUIL + SACRIFICE 3.2)
 # Témoin : "Le renvoi en lisière libère la case Gardien pour une future construction ;
-# le Gardien repasse Face 1 et perd son marqueur « utilisé »."
+# le Gardien repasse Face 1."
 # ---------------------------------------------------------------------------
 def test_g4_a_temoin() -> None:
     cfg = GameConfig(
@@ -148,12 +157,13 @@ def test_g4_a_temoin() -> None:
         exp_seed=404,
     )
     state = GameState(cfg)
-    assert cfg.reveil_quota == 4
+    assert cfg.nb_animaux_sauvages == 3
 
     g4_slot = state.find_lisiere_slot_by_tile_id("G4")
     assert g4_slot is not None
     state.set_lisiere_tile_state(g4_slot, LISIERE_CONSTRUCTED, 0)
-    state.set_gardien_at_case(1, 4, face=1, used=False)
+    state.set_gardien_at_case(1, 4, face=1)
+    state.place_defender_gardien_pari(0, 1, 2)
 
     # 1) Ouverture : -1 Seuil sur une parcelle de O (siège 1) ou M (siège 0), RAZ en 6.2
     state.light_trigger(1)
@@ -190,7 +200,7 @@ def test_g4_a_temoin() -> None:
 
     # Les 2 Défenseurs sont arrivés sur (2, 2), la case 1 Gardien est vide et G4 est de retour en lisière
     assert state.get_parcel_defenseurs(2, 2) == 2
-    assert state.get_gardien_at_case(1) == (0, 1, False)
+    assert state.get_gardien_at_case(1) == (0, 1)
     assert state.get_lisiere_tile_state(g4_slot)[0] == LISIERE_UNCONSTRUCTED
 
 
@@ -214,10 +224,11 @@ def test_g6_a_temoin() -> None:
     state.set_tactique_at_rank(5, 3)
 
     # Ouvrir G6:A AVANT 3.2 (alors que state.step == 21 et paravents fermés)
-    state.set_gardien_at_case(3, 6, face=1, used=False)
+    state.set_gardien_at_case(3, 6, face=1)
+    state.place_defender_gardien_pari(0, 3, 2)
     state.light_trigger(3)
     sweep_gardiens(state)
-    assert state.get_gardien_at_case(3)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(3) >= 1
 
     # Le joueur 0 a tiré Abatteuse rayon 0 avec lecture_m = 2 (T2). Décaler de +1 l'amène sur rang 3 (R5) !
     # En v5.4.2, un 2e Défenseur est posé sur le Rêve en case 3 pour l'activer.
@@ -258,9 +269,11 @@ def test_g7_a_temoin() -> None:
     # Seule la parcelle éloignée (rayon 2, p=4) porte 1 Souche ET une machine en place !
     state.set_parcel_arbres_souches(2, 4, 2, 1)
     state.set_machine_pos_status(2, MACHINE_BULLDOZER, 4, MACHINE_STATUS_NORMAL)
-    state.set_gardien_at_case(1, 7, face=1, used=False)
+    state.set_gardien_at_case(1, 7, face=1)
+    state.place_defender_gardien_pari(0, 1, 2)
     # Placer un second Gardien neutre en case 2 pour vérifier que G7:A allume bien la case 2 !
-    state.set_gardien_at_case(2, 3, face=1, used=False)
+    state.set_gardien_at_case(2, 3, face=1)
+    state.place_defender_gardien_pari(1, 2, 2)
 
     state.light_trigger(1)
     opened = sweep_gardiens(state)
@@ -284,11 +297,13 @@ def test_g10_a_temoin() -> None:
     trk = TelemetryTracker()
 
     # G10:A s'ouvre proprement sans lever d'erreur (no-op en v5.4.2, à réajuster en Mode 4)
-    state.set_gardien_at_case(6, 10, face=1, used=False)
+    state.set_gardien_at_case(6, 10, face=1)
+    state.place_defender_gardien_pari(0, 6, 2)
     state.light_trigger(6)
     opened = sweep_gardiens(state, telemetry=trk)
     assert opened == 1
-    assert state.get_gardien_at_case(6) == (10, 2, True)
+    assert state.get_gardien_at_case(6) == (10, 1)
+    assert state.count_gardien_pari_consumed_at_case(6) == 1
     assert state.get_pending_voluntary_app_reduction() == (0, 0)
 
 
@@ -312,8 +327,10 @@ def test_r5_a_temoin() -> None:
     state.set_tactique_at_rank(5, 6)
     state.place_defender_reve_activation(3, 2, FACE_DEFINITIF)
 
-    state.set_gardien_at_case(2, 1, face=1, used=False)
-    state.set_gardien_at_case(4, 10, face=1, used=False)
+    state.set_gardien_at_case(2, 1, face=1)
+    state.place_defender_gardien_pari(0, 2, 2)
+    state.set_gardien_at_case(4, 10, face=1)
+    state.place_defender_gardien_pari(1, 4, 2)
     state.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=1, bleus=0)
     state.set_parcel_insectes(0, 1, 1)  # Ancre d'arrêt en 4.3 avant la fin du Tour 1
 
@@ -331,8 +348,8 @@ def test_r5_a_temoin() -> None:
     _ = step_until_decision(state)
 
     assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 1)
-    assert state.get_gardien_at_case(2)[2] is True
-    assert state.get_gardien_at_case(4)[2] is True  # Ouvert par Résonance 4 !
+    assert state.count_gardien_pari_consumed_at_case(2) >= 1
+    assert state.count_gardien_pari_consumed_at_case(4) >= 1  # Ouvert par Résonance 4 !
     assert state.find_tactique_rank(TILE_R_BASE + 5) == 0  # R5 avancé au rang 1 !
 
 
@@ -350,7 +367,8 @@ def test_g9_c_temoin() -> None:
         exp_seed=909,
     )
     state = GameState(cfg)
-    state.set_gardien_at_case(1, 9, face=1, used=False)
+    state.set_gardien_at_case(1, 9, face=1)
+    state.place_defender_gardien_pari(0, 1, 2)
 
     # Machine sur rayon Reptiles (siège 1) en p=2, avec 2 rouges et 1 bleu, frappant sur T6 :
     # - SUR_PLACE (p=2, base 2) : rouges NON ignorés -> 2 + 2 - 1 - 2 = 1 ? Testons sur p=3 (base 3) :

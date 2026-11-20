@@ -62,7 +62,8 @@ def test_m1_a_temoin_fourmiliere_deplace_defenseur_avant_balayage_6() -> None:
 
     state.set_parcel_nid(i_seat, 1, 1, active_ce_tour=False)
     state.set_parcel_defenseurs(i_seat, 1, 1)
-    state.set_gardien_at_case(6, 1, 1, False)
+    state.set_gardien_at_case(6, 1, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
 
     state.step = STEP_4_2_NIDS
     req = step_until_decision(state)
@@ -71,7 +72,7 @@ def test_m1_a_temoin_fourmiliere_deplace_defenseur_avant_balayage_6() -> None:
     assert req.decideur == i_seat
     assert (0, 3) in req.options
     # La case 6 n'est pas encore balayée pendant la suspension du bloc indivisible du Nid !
-    assert state.get_gardien_at_case(6)[2] is False
+    assert state.count_gardien_pari_consumed_at_case(6) == 0
 
     apply_choice(state, (0, 3))
     req_mig = step_until_decision(state)
@@ -79,7 +80,7 @@ def test_m1_a_temoin_fourmiliere_deplace_defenseur_avant_balayage_6() -> None:
     assert req_mig.decision_type == DEC_MIGRATION_INSECTE_4_3
     assert state.get_parcel_defenseurs(i_seat, 1) == 0
     assert state.get_parcel_defenseurs(0, 3) == 1
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1
 
 
 def test_m1_b_temoin_carapaces_epargne_1_insecte_parade_classique() -> None:
@@ -328,7 +329,8 @@ def test_m3_d_temoin_guepes_aguets_auto_piege_nid_4_2() -> None:
 
     state.set_parcel_nid(i_seat, 2, 3, active_ce_tour=False)
     state.set_parcel_defenseurs(i_seat, 2, 1)
-    state.set_gardien_at_case(2, 1, 1, False)
+    state.set_gardien_at_case(2, 1, 1)
+    state.place_defender_gardien_pari(0, 2, 2)
 
     state.step = STEP_4_2_NIDS
     req = step_until_decision(state)
@@ -343,4 +345,4 @@ def test_m3_d_temoin_guepes_aguets_auto_piege_nid_4_2() -> None:
     assert req_mig.decision_type == DEC_MIGRATION_INSECTE_4_3
     assert state.get_parcel_piege(i_seat, 2) == PIEGE_ACTIF
     assert state.get_parcel_insectes(i_seat, 2) == 1
-    assert state.get_gardien_at_case(2)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(2) >= 1

@@ -122,7 +122,8 @@ def test_r5_c_temoin_reve_nid_vide_piege_cible_vide_ho() -> None:
     state.step = STEP_3_2_REVEAL
 
     # Placer un Gardien G1 (effet neutre car non enregistré ici) sur la case 2 pour vérifier le déclencheur 2
-    state.set_gardien_at_case(2, 1, 1, False)
+    state.set_gardien_at_case(2, 1, 1)
+    state.place_defender_gardien_pari(2, 2, 2)
 
     req = step_until_decision(state)
     assert isinstance(req, DecisionRequest)
@@ -134,7 +135,7 @@ def test_r5_c_temoin_reve_nid_vide_piege_cible_vide_ho() -> None:
     assert state.get_parcel_piege(o_seat, 2) == PIEGE_ACTIF
     step_until_decision(state)
     # La case 2 allumée a ouvert le Gardien en case 2 !
-    assert state.get_gardien_at_case(2)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(2) >= 1
 
     # Avant la frappe, 1 Défenseur suffit à déclencher l'Embuscade
     state.set_parcel_defenseurs(o_seat, 2, 1)
@@ -150,7 +151,8 @@ def test_r5_d_temoin_reve_veilleur_arme_piege_ho() -> None:
     assert o_seat is not None and h_seat is not None
 
     state.set_parcel_piege(o_seat, 3, PIEGE_ACTIF)
-    state.set_gardien_at_case(6, 1, 1, False)
+    state.set_gardien_at_case(6, 1, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
     _setup_reve_opening_3_2(state, 5, 3, reader_seat=0)
 
     req = step_until_decision(state)
@@ -162,7 +164,7 @@ def test_r5_d_temoin_reve_veilleur_arme_piege_ho() -> None:
     apply_choice(state, (o_seat, 3))
     assert state.get_parcel_insectes(o_seat, 3) == 1
     step_until_decision(state)
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1
 
 
 def test_r6_a_temoin_miel_ancetres_pose_insecte_hi_3_2() -> None:
@@ -172,7 +174,8 @@ def test_r6_a_temoin_miel_ancetres_pose_insecte_hi_3_2() -> None:
     i_seat = state.cfg.seat_of_peuple("I")
     assert h_seat is not None and i_seat is not None
 
-    state.set_gardien_at_case(6, 1, 1, False)
+    state.set_gardien_at_case(6, 1, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
     _setup_reve_opening_3_2(state, 6, 3, reader_seat=0)
 
     req = step_until_decision(state)
@@ -186,7 +189,7 @@ def test_r6_a_temoin_miel_ancetres_pose_insecte_hi_3_2() -> None:
     apply_choice(state, (h_seat, 2))
     assert state.get_parcel_insectes(h_seat, 2) == 1
     step_until_decision(state)
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1
 
 
 def test_r6_b_temoin_miel_ancetres_active_nid_insectes_sans_bloquer_4_2() -> None:
@@ -201,7 +204,8 @@ def test_r6_b_temoin_miel_ancetres_active_nid_insectes_sans_bloquer_4_2() -> Non
     state.set_parcel_nid(i_seat, 2, 1, active_ce_tour=False)
     state.set_parcel_insectes(i_seat, 2, 2)
     state.set_parcel_defenseurs(i_seat, 2, 1)
-    state.set_gardien_at_case(6, 1, 1, False)
+    state.set_gardien_at_case(6, 1, 1)
+    state.place_defender_gardien_pari(0, 6, 2)
     _setup_reve_opening_3_2(state, 6, 3, reader_seat=0)
 
     req_mig = step_until_decision(state)
@@ -209,7 +213,7 @@ def test_r6_b_temoin_miel_ancetres_active_nid_insectes_sans_bloquer_4_2() -> Non
     assert req_mig.decision_type == DEC_MIGRATION_INSECTE_4_3
     assert state.get_parcel_insectes(i_seat, 2) == 6
     assert state.get_nid_position(1) == (i_seat, 2, True)
-    assert state.get_gardien_at_case(6)[2] is True
+    assert state.count_gardien_pari_consumed_at_case(6) >= 1
 
 
 def test_r6_c_temoin_terra_preta_repousse_deux_souches_hi() -> None:

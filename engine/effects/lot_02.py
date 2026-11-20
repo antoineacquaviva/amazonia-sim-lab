@@ -72,7 +72,7 @@ def _gov(state: GameState, peuple_code: str) -> int:
 
 def _gardien_face_on_track(state: GameState, g_num: int) -> int:
     for c in range(1, TRACK_LEN + 1):
-        gn, face, _ = state.get_gardien_at_case(c)
+        gn, face = state.get_gardien_at_case(c)
         if gn == g_num:
             return face
     return 0
@@ -181,15 +181,9 @@ def g1_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
         if face == 1:
             cands = _machines_with_power(state)
             if not cands:
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return None
             if len(cands) == 1:
                 prim_mod_seuil(state, -2, ray=cands[0][0], m_type=cands[0][1])
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return None
             push_effect_decision(
                 state,
@@ -209,9 +203,6 @@ def g1_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
         case_num = int(ctx["payload"][0])
         rm, mt = ctx["choice"]
         prim_mod_seuil(state, -2, ray=int(rm), m_type=int(mt))
-        prim_partage_info_etat_gardien(
-            state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-        )
         return None
 
     if hook == HOOK_5_LAW_QUERY:
@@ -256,10 +247,6 @@ def g1_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
 def g2_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | None:
     """Face 1 : machine toute parée n'avance pas sur T3/T6. Face 2 : ni avancée ni rouge sur T3..T6."""
     if hook == HOOK_GARDIEN_OUVERTURE:
-        if int(ctx["face"]) == 1:
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=int(ctx["case"]), new_face=2
-            )
         return None
 
     face = _gardien_face_on_track(state, 2)
@@ -677,16 +664,10 @@ def g5_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
 
         if face == 1:
             if not cands:
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-                )
                 return None
             if len(cands) == 1:
                 state.set_parcel_flag_turn(
                     cands[0][0], cands[0][1], PFLAG_MATAMATA_MARK, True
-                )
-                prim_partage_info_etat_gardien(
-                    state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
                 )
                 return None
             push_effect_decision(
@@ -725,9 +706,6 @@ def g5_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
             case_num = int(payload[0])
             r_c, p_c = choice
             state.set_parcel_flag_turn(int(r_c), int(p_c), PFLAG_MATAMATA_MARK, True)
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=case_num, new_face=2
-            )
             return None
 
         if rtag == "F2_MARK":
@@ -775,10 +753,6 @@ def g5_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | Non
 def g5_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> bool | None:
     """Face 1 (Loi 5) : -1 Seuil si >= 1 Souche sur R et O. Face 2 : sur tout le plateau."""
     if hook == HOOK_GARDIEN_OUVERTURE:
-        if int(ctx["face"]) == 1:
-            prim_partage_info_etat_gardien(
-                state, "FLIP_GARDIEN_FACE", case_1_6=int(ctx["case"]), new_face=2
-            )
         return None
 
     face = _gardien_face_on_track(state, 5)
