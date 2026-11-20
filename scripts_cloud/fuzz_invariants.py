@@ -17,22 +17,7 @@ if str(ROOT) not in sys.path:
 from bots.bot_b0 import choose_b0
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from engine.core_engine import apply_choice, step_until_decision
-from engine.effects import (  # noqa: F401
-    load_all_effects,
-    lot_01,
-    lot_02,
-    lot_03,
-    lot_04,
-    lot_05,
-    lot_06,
-    lot_07,
-    lot_08,
-    lot_09,
-    lot_10,
-)
-from engine.effects.registry import list_registered_tiles
 from engine.primitives import GameOver
-from engine.rng import SRC_TACTICS_SETUP, rand_below
 from engine.state import (
     NUM_CHASSIS,
     PEUPLES_ORDER,
@@ -82,36 +67,21 @@ def _check_board_invariants(state: GameState) -> None:
         assert state.get_colonie_at_case(c) >= 0
 
 
-def _pick_registered_tile_profiles(
-    game_idx: int,
-    by_slot: dict[str, list[str]],
-) -> tuple[tuple[str, str], ...]:
-    selected: list[tuple[str, str]] = []
-    for idx_s, (slot_id, profs) in enumerate(sorted(by_slot.items())):
-        pick = rand_below(len(profs), 777_000, game_idx, SRC_TACTICS_SETUP, 0, idx_s, 0)
-        selected.append((slot_id, profs[pick]))
-    return tuple(selected)
-
-
 def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     start_idx, end_idx, total = bounds
     rotations = tuple(PEUPLES_ORDER[rot:] + PEUPLES_ORDER[:rot] for rot in range(6))
 
-    by_slot: dict[str, list[str]] = {}
-    for s_id, prof in list_registered_tiles():
-        by_slot.setdefault(s_id, []).append(prof)
-
-    t1 = (total * 35) // 100
-    t2 = (total * 70) // 100
+    # Phase CORE_STABILIZATION : 100 % Modes 1 & 2 (30 % Mode 1, 70 % Mode 2 à blanc)
+    t1 = (total * 30) // 100
 
     for game_idx in range(start_idx, end_idx):
-        mode = 1 if game_idx < t1 else (2 if game_idx < t2 else 3)
+        mode = 1 if game_idx < t1 else 2
         n_players = 3 + (game_idx % 4)
         chassis_id = (game_idx * 17) % NUM_CHASSIS
         peuples = rotations[game_idx % 6][:n_players]
         bot_sel = game_idx % 5  # 0,1,2 -> B0 ; 3 -> B1 ; 4 -> B2
 
-        base_cfg = GameConfig.from_chassis_index(
+        cfg = GameConfig.from_chassis_index(
             chassis_id,
             n_players=n_players,
             mode=mode,
@@ -124,29 +94,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 "1_DEF_ALL_RANK",
                 "BINOME_ALL_RANK",
             )[game_idx % 3],
+            gardien_resonance_cap=("UNLIMITED", "MAX_1_DEF")[game_idx % 2],
         )
-        if mode == 3:
-            t_profs = _pick_registered_tile_profiles(game_idx, by_slot)
-            cfg = GameConfig(
-                n_players=base_cfg.n_players,
-                mode=3,
-                peuples=base_cfg.peuples,
-                exp_seed=base_cfg.exp_seed,
-                rep_id=base_cfg.rep_id,
-                coordonnateur_initial=base_cfg.coordonnateur_initial,
-                max_revision_passes=base_cfg.max_revision_passes,
-                profil_piste=base_cfg.profil_piste,
-                regle_ouverture_reve_multiple=base_cfg.regle_ouverture_reve_multiple,
-                offset_seuil_parade=base_cfg.offset_seuil_parade,
-                placement_initial_machines=base_cfg.placement_initial_machines,
-                role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
-                synergie_binome_machines=base_cfg.synergie_binome_machines,
-                reve_activation_mode=base_cfg.reve_activation_mode,
-                gardien_resonance_cap=base_cfg.gardien_resonance_cap,
-                tile_profiles=t_profs,
-            )
-        else:
-            cfg = base_cfg
 
         state = GameState(cfg)
         trk = TelemetryTracker() if (game_idx % 20 == 0) else None

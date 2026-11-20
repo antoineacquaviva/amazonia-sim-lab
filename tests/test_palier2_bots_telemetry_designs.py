@@ -34,7 +34,6 @@ from engine.core_engine import (
     resolve_single_machine_attack,
     step_until_decision,
 )
-from engine.effects.lot_01 import LOT_01_PROFILES
 from engine.primitives import DecisionRequest, prim_mod_seuil
 from engine.state import (
     CARD_SABOTAGE,
@@ -184,9 +183,8 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
 def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     cfg = GameConfig(
         n_players=4,
-        mode=3,
+        mode=2,
         peuples=("M", "R", "O", "H"),
-        tile_profiles=LOT_01_PROFILES,
         exp_seed=5150,
     )
     state = GameState(cfg)
@@ -208,9 +206,9 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     apply_choice(state, ("RESTER",), telemetry=trk)
     assert trk.total_physical_ops - ops_before_stay == 0
 
-    # 2) law_stack_mean / law_stack_max avec G9:C en jeu (éligible sur R=1, non éligible sur M=0)
-    state.set_gardien_at_case(1, 9, face=1)  # G9:C en case 1
-    state.set_gardien_at_case(4, 10, face=1)  # G10:A en case 4 (cascade Résonance)
+    # 2) Cascades & mid_combat_interrupts en Mode 2 (Pari Gardiens + Résonance)
+    state.set_gardien_at_case(1, 9, face=1)
+    state.set_gardien_at_case(4, 10, face=1)
     state.place_defender_gardien_pari(0, 1, 2)
     state.place_defender_gardien_pari(1, 4, 2)
     state.step = STEP_5_1_TACTIQUES
@@ -219,10 +217,8 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)
 
     snap_mid = trk.summary()
-    assert snap_mid.law_stack_max == 1
-    assert 0.4 <= snap_mid.law_stack_mean <= 0.6
     assert snap_mid.cascade_sweeps >= 1
-    assert snap_mid.mid_combat_interrupts == 2  # G9 ouvert en 1 + G10 ouvert en 4 durant 5.1 !
+    assert snap_mid.mid_combat_interrupts == 2  # Gardien case 1 + Gardien case 4 durant 5.1 !
 
     # 3) mem_debt_score : 1 modificateur transitoire traversant 3.2 -> 4.1 -> ... -> 6.2
     st_mem = GameState(cfg)
@@ -232,7 +228,7 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     _ = step_until_decision(st_mem, telemetry=trk_mem)
     assert trk_mem.summary().mem_debt_score >= 7
 
-    # 4) Partie complète B1 et B2 en Mode 3 (Lot 01) avec télémétrie active
+    # 4) Partie complète B1 et B2 en Mode 2 avec télémétrie active
     trk_game = TelemetryTracker()
     over_b2 = play_game_b2(GameState(cfg), telemetry=trk_game)
     s_game = trk_game.summary()

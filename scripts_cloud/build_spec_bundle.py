@@ -466,16 +466,19 @@ def build_bundle() -> None:
     )
     print(f"Wrote {OUT_BUNDLE.relative_to(ROOT).as_posix()} ({bundle['meta']['total_emplacements']} slots, {bundle['meta']['total_profils']} profils)")
 
-    mode3 = _build_mode3_reference(catalogue)
-    OUT_MODE3.write_text(
-        json.dumps(mode3, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-    print(
-        f"Wrote {OUT_MODE3.relative_to(ROOT).as_posix()} "
-        f"(kept_A={mode3['stats']['kept_A']}, replaced_A={mode3['stats']['replaced_A']})"
-    )
+    if OUT_MODE3.exists():
+        mode3 = _build_mode3_reference(catalogue)
+        OUT_MODE3.write_text(
+            json.dumps(mode3, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        print(
+            f"Wrote {OUT_MODE3.relative_to(ROOT).as_posix()} "
+            f"(kept_A={mode3['stats']['kept_A']}, replaced_A={mode3['stats']['replaced_A']})"
+        )
+    else:
+        print("Skipped mode3_reference.json (Phase CORE_STABILIZATION : stock 100 tuiles archivé)")
 
 
 if __name__ == "__main__":

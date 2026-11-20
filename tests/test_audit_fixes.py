@@ -382,42 +382,67 @@ def test_chronology_witness_3_1_reve_cancels_3_2_machine_and_enables_4_1_furtivi
 
 
 def test_inter_effect_composition_witness_g1_a_then_g2_a_updates_parade() -> None:
-    """Témoin de composition d'effets : G1:A retourne rouge->bleu puis G2:A recule la machine et le seuil reflète les deux."""
-    cfg = GameConfig(
-        n_players=4,
-        mode=3,
-        peuples=("M", "R", "O", "H"),
-        tile_profiles=(("G1", "A"), ("G2", "A")),
-        exp_seed=606,
+    """Témoin de composition d'effets : effet 1 retourne rouge->bleu puis effet 2 recule la machine et le seuil reflète les deux."""
+    from engine.effects.registry import clear_tile_registry, register_tile
+    from engine.primitives import (
+        HOOK_GARDIEN_OUVERTURE,
+        prim_deplacement,
+        prim_mod_puissance,
     )
-    st = GameState(cfg)
-    # En P4, dotation_arbres = (2, 2, 3, 3) : p=3 a dotation 3, p=2 a dotation 2.
-    st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
-    st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
-    st.set_parcel_defenseurs(0, 3, 1)
 
-    # Avant les deux effets : en p=3, dotation=3 + 2 rouges = seuil 5
-    seuil_avant = compute_parade_seuil(st, 0, MACHINE_ABATTEUSE, 3, TACTIQUES_SPEC[1])
-    assert seuil_avant == 5
+    clear_tile_registry()
+    try:
+        @register_tile("G1", "A", hooks=(HOOK_GARDIEN_OUVERTURE,))
+        def _mock_g1(state: GameState, hook: str, context: dict[str, object]) -> None:
+            del context
+            if hook == HOOK_GARDIEN_OUVERTURE:
+                prim_mod_puissance(state, 0, MACHINE_ABATTEUSE, flip_rouge_to_bleu=1)
 
-    # 1) G1:A s'ouvre sur Déclencheur 1 -> transforme 1 rouge en 1 bleu sur Abatteuse (reste 1 rouge, 1 bleu)
-    st.set_gardien_at_case(1, 1, face=1)
-    st.set_gardien_at_case(2, 2, face=1)
-    st.place_defender_gardien_pari(0, 1, 2)
-    st.place_defender_gardien_pari(1, 2, 2)
-    st.light_trigger(1)
-    assert sweep_gardiens(st) == 1
-    assert st.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 1)
+        @register_tile("G2", "A", hooks=(HOOK_GARDIEN_OUVERTURE,))
+        def _mock_g2(state: GameState, hook: str, context: dict[str, object]) -> None:
+            del context
+            if hook == HOOK_GARDIEN_OUVERTURE:
+                prim_deplacement(
+                    state, "MACHINE", src_ray=0, dst_ray=0, dst_p=2, m_type=MACHINE_ABATTEUSE
+                )
 
-    # 2) G2:A s'ouvre sur Déclencheur 2 -> recule l'Abatteuse de p=3 vers p=2
-    st.light_trigger(2)
-    assert sweep_gardiens(st) == 1
-    pos_after, _, _ = st.get_machine_pos_status(0, MACHINE_ABATTEUSE)
-    assert pos_after == 2
+        cfg = GameConfig(
+            n_players=4,
+            mode=3,
+            peuples=("M", "R", "O", "H"),
+            tile_profiles=(("G1", "A"), ("G2", "A")),
+            exp_seed=606,
+        )
+        st = GameState(cfg)
+        # En P4, dotation_arbres = (2, 2, 3, 3) : p=3 a dotation 3, p=2 a dotation 2.
+        st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
+        st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
+        st.set_parcel_defenseurs(0, 3, 1)
 
-    # Composition : nouvelle position p=2 (dotation=2) + 1 rouge - 1 bleu = seuil 2 !
-    seuil_apres = compute_parade_seuil(st, 0, MACHINE_ABATTEUSE, pos_after, TACTIQUES_SPEC[1])
-    assert seuil_apres == 2
+        # Avant les deux effets : en p=3, dotation=3 + 2 rouges = seuil 5
+        seuil_avant = compute_parade_seuil(st, 0, MACHINE_ABATTEUSE, 3, TACTIQUES_SPEC[1])
+        assert seuil_avant == 5
+
+        # 1) Effet 1 s'ouvre sur Déclencheur 1 -> transforme 1 rouge en 1 bleu sur Abatteuse
+        st.set_gardien_at_case(1, 1, face=1)
+        st.set_gardien_at_case(2, 2, face=1)
+        st.place_defender_gardien_pari(0, 1, 2)
+        st.place_defender_gardien_pari(1, 2, 2)
+        st.light_trigger(1)
+        assert sweep_gardiens(st) == 1
+        assert st.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 1)
+
+        # 2) Effet 2 s'ouvre sur Déclencheur 2 -> recule l'Abatteuse de p=3 vers p=2
+        st.light_trigger(2)
+        assert sweep_gardiens(st) == 1
+        pos_after, _, _ = st.get_machine_pos_status(0, MACHINE_ABATTEUSE)
+        assert pos_after == 2
+
+        # Composition : nouvelle position p=2 (dotation=2) + 1 rouge - 1 bleu = seuil 2 !
+        seuil_apres = compute_parade_seuil(st, 0, MACHINE_ABATTEUSE, pos_after, TACTIQUES_SPEC[1])
+        assert seuil_apres == 2
+    finally:
+        clear_tile_registry()
 
 
 def test_digest_active_core_rules_chronology_matches_v5_3() -> None:

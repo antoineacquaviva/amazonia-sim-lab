@@ -163,28 +163,42 @@ def test_step5_3_bet_won_upgrade_vs_bet_lost_return_lisiere() -> None:
     assert ts.gardien_bets_won == 1
     assert ts.gardien_bets_lost == 1
 
-    # Mode 3/4 : Gardien double-face (G1:A) passe Face 2 en 5.3 si pari gagné (et pas à l'ouverture)
-    cfg_m3 = GameConfig(
-        n_players=4,
-        mode=3,
-        peuples=("M", "R", "O", "H"),
-        tile_profiles=(("G1", "A"), ("G7", "A")),
-    )
-    st_m3 = GameState(cfg_m3)
-    st_m3.tour = 2
-    st_m3.set_gardien_at_case(1, 1, face=1)  # G1:A (double-face)
-    st_m3.set_gardien_at_case(3, 7, face=1)  # G7:A (monoface)
-    st_m3.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_m3.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
-    assert prim_partage_info_etat_gardien(st_m3, "MARK_GARDIEN_OPENED", case_1_6=1) is True
-    assert prim_partage_info_etat_gardien(st_m3, "MARK_GARDIEN_OPENED", case_1_6=3) is True
-    assert st_m3.get_gardien_at_case(1) == (1, 1)  # Encore Face 1 avant 5.3 !
-    assert st_m3.get_gardien_at_case(3) == (7, 1)
+    # Mode 3/4 : Gardien double-face passe Face 2 en 5.3 si pari gagné (et pas à l'ouverture)
+    from engine.effects.registry import clear_tile_registry, register_tile
 
-    st_m3.step = STEP_5_3_END_CHECK
-    step_until_decision(st_m3)
-    assert st_m3.get_gardien_at_case(1) == (1, 2)  # G1:A promu en Face 2 en 5.3 !
-    assert st_m3.get_gardien_at_case(3) == (7, 1)  # G7:A monoface reste Face 1 !
+    clear_tile_registry()
+    try:
+        @register_tile("G1", "A")
+        def _mock_g1_double(state: GameState, hook: str, context: dict[str, object]) -> None:
+            del state, hook, context
+
+        @register_tile("G7", "A")
+        def _mock_g7_mono(state: GameState, hook: str, context: dict[str, object]) -> None:
+            del state, hook, context
+
+        cfg_m3 = GameConfig(
+            n_players=4,
+            mode=3,
+            peuples=("M", "R", "O", "H"),
+            tile_profiles=(("G1", "A"), ("G7", "A")),
+        )
+        st_m3 = GameState(cfg_m3)
+        st_m3.tour = 2
+        st_m3.set_gardien_at_case(1, 1, face=1)  # G1:A (double-face)
+        st_m3.set_gardien_at_case(3, 7, face=1)  # G7:A (monoface)
+        st_m3.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
+        st_m3.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
+        assert prim_partage_info_etat_gardien(st_m3, "MARK_GARDIEN_OPENED", case_1_6=1) is True
+        assert prim_partage_info_etat_gardien(st_m3, "MARK_GARDIEN_OPENED", case_1_6=3) is True
+        assert st_m3.get_gardien_at_case(1) == (1, 1)  # Encore Face 1 avant 5.3 !
+        assert st_m3.get_gardien_at_case(3) == (7, 1)
+
+        st_m3.step = STEP_5_3_END_CHECK
+        step_until_decision(st_m3)
+        assert st_m3.get_gardien_at_case(1) == (1, 2)  # G1:A promu en Face 2 en 5.3 !
+        assert st_m3.get_gardien_at_case(3) == (7, 1)  # G7:A monoface reste Face 1 !
+    finally:
+        clear_tile_registry()
 
 
 def test_eveil_de_la_foret_and_tour8_priority() -> None:

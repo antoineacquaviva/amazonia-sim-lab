@@ -1,0 +1,1610 @@
+{
+  "source": "data/spec_bundle_v5_4.json (snapshot tag archive/v5.4.3-legacy-100-tiles)",
+  "total_emplacements": 32,
+  "total_profils": 100,
+  "compat_summary": {
+    "TRANSPOSABLE": 43,
+    "A_ADAPTER_V5_4_3": 50,
+    "OBSOLETE_V5_4_2": 7
+  },
+  "idees": [
+    {
+      "slot": "G1",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G1",
+      "titre": "Le Bond du Jaguar",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>.<br><strong>Face 2 :</strong> Retournez jusqu’à 2 jetons rouges en bleus <em>Surchauffe</em> (répartis librement entre des machines)."
+    },
+    {
+      "slot": "G1",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G1",
+      "titre": "Le Bond du Jaguar",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Puissance / Jetons",
+        "Mouvement Machine",
+        "Ratissage",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Réduisez de -2 le Seuil de Parade d’une machine portant au moins 1 jeton Puissance (rouge ou bleu) pour le reste du tour.<br><strong>Face 2 (Loi 5) :</strong> Dès qu’une machine porte ≥ 2 jetons bleus (<em>Surchauffe</em>) au moment de frapper, défaussez 2 bleus pour <strong>parer automatiquement toutes ses frappes encore à résoudre</strong> et la faire reculer immédiatement d’1 parcelle non rasée vers la bordure au lieu de son avancée (si elle n’est pas en Ratissage)."
+    },
+    {
+      "slot": "G2",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G2",
+      "titre": "L’Étreinte de l’Anaconda",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Ratissage",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur une parcelle avec au moins 1 Défenseur.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure n’importe quelle machine non en Ratissage."
+    },
+    {
+      "slot": "G2",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G2",
+      "titre": "L’Étreinte de l’Anaconda",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine",
+        "Ratissage",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas</strong> sur T3/T6.<br><strong>Face 2 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas ET ne gagne pas de jeton Puissance rouge</strong> sur T3 à T6 (y compris en Ratissage)."
+    },
+    {
+      "slot": "G2",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G2",
+      "titre": "La fuite sous les feuilles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez déplacer <strong>tous les Insectes</strong> d’une parcelle vers la prochaine parcelle non rasée du même rayon, côté bordure ou côté cœur."
+    },
+    {
+      "slot": "G3",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G3",
+      "titre": "La Voltige de l’Atèle",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine"
+      ],
+      "texte": "Déplacez 1 Défenseur (y compris un constructeur resté en bordure de lisière en 3.1) vers une parcelle Forêt non rasée adjacente."
+    },
+    {
+      "slot": "G3",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G3",
+      "titre": "La Voltige de l’Atèle",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil"
+      ],
+      "texte": "<strong>Loi 4.1 :</strong> Une fois par tour, après l’action d’un binôme sur l’une des lisières de M ou O, 1 de ses Défenseurs glisse gratuitement sur une parcelle Forêt non rasée adjacente en face pour l’Étape 5."
+    },
+    {
+      "slot": "G3",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G3",
+      "titre": "Le passage des singes-lianes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil"
+      ],
+      "texte": "Vous pouvez faire passer un Défenseur du rayon des Mammifères à celui des Oiseaux, ou inversement, à la même profondeur. Les deux parcelles doivent être non rasées."
+    },
+    {
+      "slot": "G3",
+      "profil": "D",
+      "famille": "GARDIEN",
+      "nom_slot": "G3",
+      "titre": "Les sentinelles des lianes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Furtivité"
+      ],
+      "texte": "Vous pouvez déplacer un Défenseur d’une case Furtivité vers une parcelle piégée des Mammifères ou des Oiseaux qui lui fait face."
+    },
+    {
+      "slot": "G4",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G4",
+      "titre": "Le Cri d’Alarme de l’Ara",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine"
+      ],
+      "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées (renvoyez G4 sur sa Face 1 en lisière ; il libère sa case et perd son marqueur « utilisé »)."
+    },
+    {
+      "slot": "G4",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G4",
+      "titre": "Le Cri d’Alarme de l’Ara",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil"
+      ],
+      "texte": "<strong>Face 1 (Loi 2.1) :</strong> Le peuple d’origine (O) et son voisin (M) posent leur 1er Défenseur à portée globale.<br><strong>Sacrifice (Début Étape 2) :</strong> Ouvrez tous les mini-paravents <strong>avant</strong> de placer les Défenseurs ce tour-ci (renvoyez G4 en lisière ; il perd son marqueur « utilisé »)."
+    },
+    {
+      "slot": "G5",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G5",
+      "titre": "L’Affût de la Matamata",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Repousse / Arbres",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Désignez 1 parcelle non rasée : pour ce tour, réduisez de <strong>−1</strong> son Seuil de Parade à chaque frappe trouvant au moins 1 Souche sur place à cet instant.<br><strong>Face 2 :</strong> Désignez jusqu’à 2 parcelles non rasées : pour ce tour, réduisez de <strong>−1</strong> leur Seuil de Parade à chaque frappe trouvant au moins 1 Souche sur place à cet instant."
+    },
+    {
+      "slot": "G5",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G5",
+      "titre": "L’Affût de la Matamata",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Parade / Seuil",
+        "Repousse / Arbres",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 (Loi 5) :</strong> Sur les rayons R et O, toute parcelle contenant au moins 1 Souche voit son Seuil de Parade réduit de <strong>−1</strong>.<br><strong>Face 2 (Loi 5) :</strong> Sur tout le plateau, toute parcelle contenant au moins 1 Souche voit son Seuil de Parade réduit de <strong>−1</strong>."
+    },
+    {
+      "slot": "G5",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G5",
+      "titre": "Le Perchoir du caïman",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Oiseaux, quand une machine frappe devant elle, chaque Défenseur situé sur la parcelle de la machine apporte aussi +1 point de Défense à la parcelle frappée."
+    },
+    {
+      "slot": "G6",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G6",
+      "titre": "L’Œil Double du Toucan",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M"
+      ],
+      "texte": "En 3.2, décalez de -1 ou +1 rang la lecture du dé M d’un joueur sur la Piste des Tactiques."
+    },
+    {
+      "slot": "G6",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G6",
+      "titre": "L’Œil Double du Toucan",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M"
+      ],
+      "texte": "<strong>Loi 1.3 :</strong> Le peuple d’origine (O) et son voisin (R) peuvent retenir le plus grand de leurs deux dés (M = max(D1, D2)) derrière leur paravent."
+    },
+    {
+      "slot": "G6",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G6",
+      "titre": "Le Vol en ciseaux",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Furtivité"
+      ],
+      "texte": "Vous pouvez échanger simultanément 1 Défenseur d’une parcelle des Oiseaux ou des Reptiles avec 1 Insecte de la case Furtivité qui lui fait face sur leur lisière commune (posez ce Défenseur sur un emplacement valide de la case en tirant l’éventuel autre Défenseur sur son jumeau)."
+    },
+    {
+      "slot": "G7",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G7",
+      "titre": "Le Barrage du Capybara",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Repousse / Arbres"
+      ],
+      "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée (déclenche la case 2)."
+    },
+    {
+      "slot": "G7",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G7",
+      "titre": "Le Barrage du Capybara",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 4.1 :</strong> Les binômes en Furtivité peuvent poser un Piège <strong>même sur une parcelle occupée par une machine</strong> (et ce Piège s’arme immédiatement si au moins 1 Défenseur du binôme glisse dessus ou soutient la parcelle)."
+    },
+    {
+      "slot": "G7",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G7",
+      "titre": "La Loutre géante",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Mammifères et des Humains, chaque Défenseur physiquement présent après le premier apporte <strong>2 points de Défense</strong> (D + max(0, D−1))."
+    },
+    {
+      "slot": "G7",
+      "profil": "D",
+      "famille": "GARDIEN",
+      "nom_slot": "G7",
+      "titre": "Le barrage habité du Capybara",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez poser 1 Piège sur une parcelle non rasée sans Piège des Mammifères ou des Humains contenant au moins 1 Défenseur ou 1 Insecte, même occupée par une machine ou ciblée (allume la case 2)."
+    },
+    {
+      "slot": "G8",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G8",
+      "titre": "Le Sillage du Boto",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Ratissage"
+      ],
+      "texte": "En 3.2 (ou à l’ouverture avant l’attaque de la machine), décalez d’1 parcelle non rasée dans le même sens le long de son rayon l’ensemble des frappes d’une machine non en Ratissage pour ce tour, sans déplacer la machine."
+    },
+    {
+      "slot": "G8",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G8",
+      "titre": "Le Sillage du Boto",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Ratissage"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Sur 1 rayon au choix par tour, si l’Abatteuse et le Bulldozer sont tous deux actifs, vous pouvez résoudre le <strong>Bulldozer avant l’Abatteuse</strong> (quel que soit leur rang ou en Ratissage)."
+    },
+    {
+      "slot": "G9",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G9",
+      "titre": "Le Guet du Caïman Noir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Sabotage / Paquet",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Ajoutez définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de 6.3 ; allume la case 3).<br><strong>Face 2 :</strong> Ajoutez définitivement 2 cartes Sabotage de la réserve au paquet Machine (allume la case 3)."
+    },
+    {
+      "slot": "G9",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G9",
+      "titre": "Le Guet du Caïman Noir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine",
+        "Sabotage / Paquet",
+        "Furtivité",
+        "Ratissage",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 (Loi 4.1) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong>.<br><strong>Face 2 (Loi 4.1 & 3.2) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong> ; de plus, en 3.2, chaque carte Sabotage révélée derrière un paravent allume la <strong>case 3. Sabotage</strong> et retire <strong>1 jeton Puissance rouge</strong> d’une machine sur les rayons R ou H."
+    },
+    {
+      "slot": "G9",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G9",
+      "titre": "La Peau de boue",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Humains, ignorez tous les jetons Puissance rouges d’une machine quand elle frappe la parcelle située devant elle."
+    },
+    {
+      "slot": "G10",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G10",
+      "titre": "La Brume de la Dendrobate",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Puissance / Jetons"
+      ],
+      "texte": "En 6.1 ce tour-ci, retirez 1 jeton Apprentissage à la tuile Tactique de votre choix."
+    },
+    {
+      "slot": "G10",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G10",
+      "titre": "La Brume de la Dendrobate",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Puissance / Jetons",
+        "Mouvement Machine"
+      ],
+      "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, chaque Piège déclenché ce tour-ci retire 1 jeton Puissance rouge (ou retourne 1 rouge en bleu) sur chaque machine dont il a paré au moins une frappe."
+    },
+    {
+      "slot": "G10",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G10",
+      "titre": "La Rainette géante",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Sabotage / Paquet",
+        "Insectes / Nids"
+      ],
+      "texte": "<em>(Câblage obligatoire sur 6. Insecte)</em> À l’ouverture, vous pouvez défausser 1 Insecte d’une parcelle Forêt pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3)."
+    },
+    {
+      "slot": "G10",
+      "profil": "D",
+      "famille": "GARDIEN",
+      "nom_slot": "G10",
+      "titre": "Les éclaireurs de la Dendrobate",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi :</strong> Une fois par tour, après une Parade par un Piège sur les rayons des Reptiles ou des Entités, vous pouvez créer 1 Insecte sur une <strong>autre</strong> parcelle piégée de ces deux rayons (allume la case 6)."
+    },
+    {
+      "slot": "G11",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G11",
+      "titre": "La Piquée de la Harpie",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle (-2 s’il s’y trouve ≥ 2 Défenseurs).<br><strong>Face 2 :</strong> Parez automatiquement 1 attaque sur une parcelle contenant ≥ 2 Défenseurs."
+    },
+    {
+      "slot": "G11",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G11",
+      "titre": "La Piquée de la Harpie",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Furtivité",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 (Loi 5) :</strong> Tout Défenseur isolé sur une case Furtivité ajoute +1 en Défense aux deux parcelles Forêt non rasées en face (même profondeur p).<br><strong>Face 2 (Loi 5) :</strong> Tout Défenseur isolé sur une case Furtivité ajoute +1 en Défense aux deux parcelles Forêt non rasées en face (même profondeur p), et chaque Défenseur constructeur resté en bordure de lisière ajoute +1 en Défense aux parcelles p=1 non rasées adjacentes."
+    },
+    {
+      "slot": "G11",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G11",
+      "titre": "L’Oiseau indicateur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 2.1 :</strong> Tout Peuple autour de la table peut poser son Premier Défenseur sur une case Furtivité de la lisière Oiseaux–Humains qui contient déjà au moins 1 Insecte."
+    },
+    {
+      "slot": "G11",
+      "profil": "D",
+      "famille": "GARDIEN",
+      "nom_slot": "G11",
+      "titre": "La veille de la Harpie",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Chaque case Furtivité contenant au moins 1 Défenseur (isolé ou en binôme) fournit au total 1 point de Défense aux parcelles <strong>piégées</strong> des Oiseaux ou des Humains qui lui font face."
+    },
+    {
+      "slot": "G12",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G12",
+      "titre": "Le Chant de l’Ibijau",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "Échangez une tuile Rêve de la Piste des Tactiques avec sa voisine de gauche (r → r-1, sans ouvrir son Slot ni allumer la case 5)."
+    },
+    {
+      "slot": "G12",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G12",
+      "titre": "Le Chant de l’Ibijau",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "Retournez gratuitement un autre Gardien évolutif en jeu sur sa Face 2 (ou ouvrez immédiatement le Slot d’un autre Gardien encore disponible ce tour-ci)."
+    },
+    {
+      "slot": "G12",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G12",
+      "titre": "Le Vautour-Roi",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<em>(Câblage obligatoire sur 2. Piégeage)</em> À l’ouverture, vous pouvez retirer de la forêt 1 Piège non déclenché ce tour-ci pour faire avancer d’1 rang vers la gauche le Rêve le plus à gauche."
+    },
+    {
+      "slot": "G13",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G13",
+      "titre": "La Brèche du Tamanoir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Puissance / Jetons",
+        "Insectes / Nids",
+        "Furtivité"
+      ],
+      "texte": "Posez 1 jeton Insecte sur une parcelle non rasée ou une case Furtivité contenant au moins 1 Défenseur (allume la case 6)."
+    },
+    {
+      "slot": "G13",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G13",
+      "titre": "La Brèche du Tamanoir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 3.1 :</strong> Vous pouvez construire une tuile en lisière avec <code>1 Défenseur + 1 Insecte</code> (pris sur une case Furtivité de cette même lisière et défaussé) au lieu de 2 Défenseurs."
+    },
+    {
+      "slot": "G14",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G14",
+      "titre": "L’Écaille du Téju",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "Défaussez 1 Insecte d’une parcelle Forêt pour poser 1 Piège sur cette parcelle ou une parcelle non rasée adjacente du même rayon sans Piège (allume la case 2)."
+    },
+    {
+      "slot": "G14",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G14",
+      "titre": "L’Écaille du Téju",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi de contact :</strong> Les Nids de Croissance (M) de toute la roue et leurs Insectes sont préservés lorsqu’une machine entre ou recule sur leur parcelle."
+    },
+    {
+      "slot": "G14",
+      "profil": "C",
+      "famille": "GARDIEN",
+      "nom_slot": "G14",
+      "titre": "Le ventre plein",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Face 1 (À jeun) :</strong> Défaussez 1 Insecte d’une parcelle du rayon des Reptiles pour retourner ce Gardien sur <em>Rassasié</em>.<br><strong>Face 2 (Rassasié) :</strong> Posez 1 Piège sur une parcelle non rasée des Reptiles sans machine ni Piège, puis retournez ce Gardien sur <em>À jeun</em> (allume la case 2)."
+    },
+    {
+      "slot": "G14",
+      "profil": "D",
+      "famille": "GARDIEN",
+      "nom_slot": "G14",
+      "titre": "Les porteurs du Téju",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez déplacer 1 Insecte d’une parcelle des Reptiles ou des Insectes vers une autre parcelle piégée du <strong>même rayon</strong>, à toute distance."
+    },
+    {
+      "slot": "G15",
+      "profil": "A",
+      "famille": "GARDIEN",
+      "nom_slot": "G15",
+      "titre": "L’Envol du Batará Suiveur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids",
+        "Migration",
+        "Furtivité"
+      ],
+      "texte": "Faites migrer immédiatement 1 Insecte depuis n’importe quelle parcelle ou case Furtivité de la roue vers une case 1..6 d’une piste globale (<code>Bug</code> ou <code>Colonie</code>, aller simple définitif)."
+    },
+    {
+      "slot": "G15",
+      "profil": "B",
+      "famille": "GARDIEN",
+      "nom_slot": "G15",
+      "titre": "L’Envol du Batará Suiveur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Migration"
+      ],
+      "texte": "<strong>Loi 4.3 :</strong> En 4.3, chaque Insecte sur la roue peut se déplacer de <strong>0, 1 ou 2 crans</strong> (au lieu de 0 ou 1)."
+    },
+    {
+      "slot": "R1",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R1",
+      "titre": "Le Tambour des Deux Mondes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "À l’ouverture en 3.2, avant l’avancée de ce Rêve, échangez deux tuiles Tactique adjacentes sur la piste centrale."
+    },
+    {
+      "slot": "R1",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R1",
+      "titre": "Le Tambour des Deux Mondes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Loi 3.2 :</strong> Lorsqu’il s’ouvre en 3.2, ce Rêve avance de <strong>jusqu’à 2 rangs</strong> vers la gauche (plafonné au Rang 1) au lieu d’1."
+    },
+    {
+      "slot": "R1",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R1",
+      "titre": "La Part rendue à la forêt",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "À chaque ouverture en 3.2, vous pouvez renvoyer 1 Gardien de la piste vers sa lisière (sur sa Face 1, en retirant son marqueur « utilisé ») pour faire avancer ce Rêve de <strong>jusqu’à 2 rangs</strong> au lieu d’1."
+    },
+    {
+      "slot": "R2",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R2",
+      "titre": "Le Voile de l’Oubli",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Puissance / Jetons"
+      ],
+      "texte": "En 6.1 ce tour-ci, retirez jusqu’à 2 jetons Apprentissage sur la Piste des Tactiques."
+    },
+    {
+      "slot": "R2",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R2",
+      "titre": "Le Voile de l’Oubli",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine"
+      ],
+      "texte": "<strong>Loi 6.1 :</strong> Une machine dont toutes les frappes sont parées ce tour-ci ne rapporte <strong>aucun jeton Apprentissage</strong> (même via son gain de Puissance T4/T5/T6)."
+    },
+    {
+      "slot": "R3",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R3",
+      "titre": "La Danse des Esprits-Fauves",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine"
+      ],
+      "texte": "À l’ouverture en 3.2, déplacez jusqu’à 2 Défenseurs (y compris des constructeurs restés en lisière en 3.1) vers des parcelles Forêt non rasées."
+    },
+    {
+      "slot": "R3",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R3",
+      "titre": "La Danse des Esprits-Fauves",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 3.1 :</strong> Lors d’une construction (G ou R), le Peuple d’origine de la tuile construite libère <strong>1 des 2 Défenseurs bâtisseurs</strong> vers la 1re parcelle adjacente non rasée de son choix (ou <strong>tous les Défenseurs bâtisseurs à N=3 joueurs</strong>, chacun choisissant sa rive)."
+    },
+    {
+      "slot": "R4",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R4",
+      "titre": "Le Sommeil de la Pierre-Serpent",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine"
+      ],
+      "texte": "À l’ouverture en 3.2, retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>."
+    },
+    {
+      "slot": "R4",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R4",
+      "titre": "Le Sommeil de la Pierre-Serpent",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Sabotage / Paquet",
+        "Furtivité"
+      ],
+      "texte": "<strong>Loi 3.2 :</strong> En 3.2, si au moins 1 Défenseur occupe une case Furtivité et qu’au moins 1 carte Sabotage est révélée à l’ouverture des paravents, ajoutez définitivement <strong>+1 nouvelle carte Sabotage</strong> de la réserve au paquet Machine (sans allumer la case 3)."
+    },
+    {
+      "slot": "R4",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R4",
+      "titre": "Le Rêve de la seconde rive",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Repousse / Arbres"
+      ],
+      "texte": "Face à une Route Forestière de l’autre rayon sur la lisière Humains–Reptiles, vous pouvez poser 1 Piège sur la parcelle non rasée sans Piège en face, même ne portant que des Souches, ciblée ou occupée par une machine (allume la case 2)."
+    },
+    {
+      "slot": "R4",
+      "profil": "D",
+      "famille": "REVE",
+      "nom_slot": "R4",
+      "titre": "Le guetteur de pierre",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Furtivité"
+      ],
+      "texte": "Vous pouvez déplacer 1 Défenseur d’une case Furtivité vers une parcelle non rasée sans Piège des Humains ou des Reptiles qui lui fait face, et y poser 1 Piège (groupe atomique, allume la case 2)."
+    },
+    {
+      "slot": "R5",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R5",
+      "titre": "La Vision des Plumes Claires",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "À l’ouverture en 3.2, ouvrez immédiatement un Gardien disponible sur la Piste des Gardiens."
+    },
+    {
+      "slot": "R5",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R5",
+      "titre": "La Vision des Plumes Claires",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Loi 1.3 :</strong> Le peuple d’origine de ce Rêve (H) peut retenir le plus grand de ses deux dés (M = max(D1, D2)) derrière son paravent."
+    },
+    {
+      "slot": "R5",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R5",
+      "titre": "Le Rêve du nid vide",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez poser 1 Piège sur une parcelle ciblée des Humains ou des Oiseaux qui ne contient ni Défenseur, ni Insecte, ni Piège (allume la case 2)."
+    },
+    {
+      "slot": "R5",
+      "profil": "D",
+      "famille": "REVE",
+      "nom_slot": "R5",
+      "titre": "Le rêve du veilleur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez créer 1 Insecte sur une parcelle piégée des Humains ou des Oiseaux (allume la case 6)."
+    },
+    {
+      "slot": "R6",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R6",
+      "titre": "Le Miel des Ancêtres",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Insectes / Nids"
+      ],
+      "texte": "Posez 1 Insecte de la réserve sur une parcelle non rasée d’un rayon de cette paire (H ou I, allume la case 6)."
+    },
+    {
+      "slot": "R6",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R6",
+      "titre": "Le Miel des Ancêtres",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Puissance / Jetons",
+        "Insectes / Nids"
+      ],
+      "texte": "Déclenchez immédiatement la création de jetons Insecte d’1 Nid en jeu (+1 ou +2 selon les Insectes présents sur sa parcelle à cet instant, même sans Défenseur dessus ; allume la case 6 sans déclencher le pouvoir propre du Nid)."
+    },
+    {
+      "slot": "R6",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R6",
+      "titre": "La Terra Preta",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Insectes / Nids",
+        "Repousse / Arbres"
+      ],
+      "texte": "<strong>Loi de Repousse finale :</strong> À la fin de la partie, sur chaque parcelle non rasée des Humains ou des Insectes ayant conservé au moins 1 Souche, retournez jusqu’à <strong>2 Souches</strong> en Arbres debout (dans la limite de la dotation initiale de la parcelle)."
+    },
+    {
+      "slot": "R6",
+      "profil": "D",
+      "famille": "REVE",
+      "nom_slot": "R6",
+      "titre": "Les chemins du veilleur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Insectes / Nids",
+        "Migration"
+      ],
+      "texte": "<strong>Loi 4.3 :</strong> En 4.3, chaque Insecte quittant un Nid situé chez les Humains ou les Insectes peut utiliser 1 cran pour rejoindre directement une parcelle piégée du même rayon, à toute distance."
+    },
+    {
+      "slot": "R7",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R7",
+      "titre": "L’Ombre du Maître des Bois",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Mouvement Machine",
+        "Ratissage"
+      ],
+      "texte": "Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur les rayons E ou M."
+    },
+    {
+      "slot": "R7",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R7",
+      "titre": "L’Ombre du Maître des Bois",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Ratissage"
+      ],
+      "texte": "<strong>Loi 5 (Endiguement du Ratissage) :</strong> Les machines en <strong>Ratissage</strong> sur les rayons E et M et leurs rayons voisins immédiats subissent -1 à leur Seuil de Parade (annulant le +1 imprimé de la face Ratissage)."
+    },
+    {
+      "slot": "R7",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R7",
+      "titre": "Le bras mort du fleuve",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Migration"
+      ],
+      "texte": "<strong>Loi 4.3 :</strong> En 4.3, un Insecte peut utiliser son déplacement (1 cran) pour traverser directement entre les rayons des Entités et des Mammifères à la même profondeur."
+    },
+    {
+      "slot": "R8",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R8",
+      "titre": "Le Mirage du Fleuve-Miroir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Parade / Seuil",
+        "Mouvement Machine"
+      ],
+      "texte": "Posez 1 Piège sur une parcelle non rasée sans Piège des rayons E ou R, même occupée par une machine ou ciblée (allume la case 2)."
+    },
+    {
+      "slot": "R8",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R8",
+      "titre": "Le Mirage du Fleuve-Miroir",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids",
+        "Repousse / Arbres"
+      ],
+      "texte": "<strong>Loi de terrassement (Sanctuarisation) :</strong> Sur les rayons E et R, les Bulldozers laissent <strong>1 Souche</strong> lors du terrassement <strong>uniquement si au moins 1 Défenseur ou 1 Insecte est présent sur la parcelle</strong>."
+    },
+    {
+      "slot": "R8",
+      "profil": "C",
+      "famille": "REVE",
+      "nom_slot": "R8",
+      "titre": "Le Mapinguari",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Mouvement Machine",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Loi 3.2 :</strong> Chaque machine dont ce Rêve annule l’attaque en 3.2 recule immédiatement d’1 parcelle vers la bordure, si elle le peut."
+    },
+    {
+      "slot": "R8",
+      "profil": "D",
+      "famille": "REVE",
+      "nom_slot": "R8",
+      "titre": "L’appel des berges gardées",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Puissance / Jetons",
+        "Mouvement Machine"
+      ],
+      "texte": "Vous pouvez transférer 1 Défenseur d’une parcelle des Entités ou des Reptiles vers une autre parcelle piégée de ces deux rayons ; puis retourner 1 jeton rouge en bleu sur une machine qui cible la destination."
+    },
+    {
+      "slot": "R9",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R9",
+      "titre": "L’Écho des Voix Célestes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Parade / Seuil"
+      ],
+      "texte": "Réduisez de -2 le Seuil de Parade sur toutes les parcelles d’un rayon au choix pour ce tour."
+    },
+    {
+      "slot": "R9",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R9",
+      "titre": "L’Écho des Voix Célestes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Repousse / Arbres",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Loi 6.2 :</strong> En cas d’égalité en tête de l’Apprentissage à l’Étape 6.2 (y compris égalité générale à 0), c’est ce Rêve qui avance d’1 rang vers la gauche (r → r−1). S’il complète ainsi le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k), la fin de partie par Sommeil se déclenche immédiatement (Repousse Finale)."
+    },
+    {
+      "slot": "R10",
+      "profil": "A",
+      "famille": "REVE",
+      "nom_slot": "R10",
+      "titre": "La Nuée des Songes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Réduisez le Seuil de Parade d’une machine de -1 par Insecte présent sur son rayon (<code>NB_INSECTES_RAYON</code>)."
+    },
+    {
+      "slot": "R10",
+      "profil": "B",
+      "famille": "REVE",
+      "nom_slot": "R10",
+      "titre": "La Nuée des Songes",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "<strong>Conversion 3.2 :</strong> À l’ouverture de ce Rêve, vous pouvez défausser 1 Insecte présent sur la roue pour le faire avancer d’1 rang supplémentaire vers la gauche (plafonné au Rang 1)."
+    },
+    {
+      "slot": "R10",
+      "profil": "D",
+      "famille": "REVE",
+      "nom_slot": "R10",
+      "titre": "La relève des lucioles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Vous pouvez poser 1 Piège sur une parcelle sans Piège des Entités ou des Insectes contenant au moins 1 Défenseur et 1 Insecte, puis déplacer 1 Insecte de cette parcelle vers une autre parcelle non rasée du même rayon, à toute distance (groupe atomique, allume la case 2)."
+    },
+    {
+      "slot": "M1",
+      "profil": "A",
+      "famille": "CROISSANCE",
+      "nom_slot": "M1",
+      "titre": "La Fourmilière Coupe-Feuilles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Après production en 4.2, déplacez 1 Défenseur présent sur ce Nid vers n’importe quelle autre parcelle Forêt non rasée du plateau."
+    },
+    {
+      "slot": "M1",
+      "profil": "B",
+      "famille": "CROISSANCE",
+      "nom_slot": "M1",
+      "titre": "La Fourmilière Coupe-Feuilles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 5 (Carapaces) :</strong> Une fois par tour, lors d’une Parade classique sur la parcelle de ce Nid à laquelle contribue au moins 1 Défenseur, épargnez 1 des Insectes qui devaient être défaussés immédiatement."
+    },
+    {
+      "slot": "M1",
+      "profil": "C",
+      "famille": "CROISSANCE",
+      "nom_slot": "M1",
+      "titre": "La piste des fourmis légionnaires",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Après sa production en 4.2, vous pouvez déplacer 1 Insecte de ce Nid vers toute autre parcelle non rasée de son rayon."
+    },
+    {
+      "slot": "M1",
+      "profil": "D",
+      "famille": "CROISSANCE",
+      "nom_slot": "M1",
+      "titre": "Les fourmis sentinelles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids"
+      ],
+      "texte": "Après production en 4.2, vous pouvez envoyer jusqu’à <strong>2 Insectes</strong> de ce Nid vers des parcelles piégées de son rayon, à toute distance (1 Insecte max par destination)."
+    },
+    {
+      "slot": "M2",
+      "profil": "A",
+      "famille": "CROISSANCE",
+      "nom_slot": "M2",
+      "titre": "La Termitière à Glu",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Puissance / Jetons",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "Après production en 4.2, retournez 1 jeton Puissance rouge d’une machine de ce rayon (ou d’un rayon voisin) sur sa face bleue <em>Surchauffe</em>."
+    },
+    {
+      "slot": "M2",
+      "profil": "B",
+      "famille": "CROISSANCE",
+      "nom_slot": "M2",
+      "titre": "La Termitière à Glu",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 4.1 :</strong> Sur les deux lisières qui bordent ce rayon, lorsqu’un binôme est formé par <code>1 Défenseur + 1 Insecte</code>, l’Insecte n’est pas défaussé."
+    },
+    {
+      "slot": "M2",
+      "profil": "C",
+      "famille": "CROISSANCE",
+      "nom_slot": "M2",
+      "titre": "La souche creuse",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Repousse / Arbres"
+      ],
+      "texte": "<strong>Loi de contact :</strong> Quand une machine entre sur cette parcelle, ce Nid et ses Insectes survivent au contact si la parcelle porte au moins <strong>1 Souche</strong> à cet instant."
+    },
+    {
+      "slot": "M2",
+      "profil": "D",
+      "famille": "CROISSANCE",
+      "nom_slot": "M2",
+      "titre": "La termitière gardée",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi de contact :</strong> Quand une machine entre sur ce Nid, le Nid et ses Insectes survivent au contact si sa parcelle contient 1 Piège ET au moins 1 Défenseur ou 1 Insecte."
+    },
+    {
+      "slot": "M3",
+      "profil": "A",
+      "famille": "CROISSANCE",
+      "nom_slot": "M3",
+      "titre": "La Branche des Guêpes Cazadores",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids",
+        "Migration"
+      ],
+      "texte": "Après production en 4.2, déplacez immédiatement d’1 cran jusqu’à 2 Insectes présents sur ce Nid (avant l’Étape 4.3)."
+    },
+    {
+      "slot": "M3",
+      "profil": "B",
+      "famille": "CROISSANCE",
+      "nom_slot": "M3",
+      "titre": "La Branche des Guêpes Cazadores",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 4.2 (Pouponnière) :</strong> Ce Nid s’active aussi sans Défenseur en 4.2 s’il contient déjà au moins 2 Insectes à l’instant où ce Nid est résolu (1 activation max/tour)."
+    },
+    {
+      "slot": "M3",
+      "profil": "C",
+      "famille": "CROISSANCE",
+      "nom_slot": "M3",
+      "titre": "Le Scarabée Hercule",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 5 :</strong> Sur la parcelle de ce Nid, chaque Insecte physiquement présent apporte <strong>2 points de Défense</strong> (lors d’une Parade classique, défaussez immédiatement le nombre d’Insectes arrondi au supérieur du manque)."
+    },
+    {
+      "slot": "M3",
+      "profil": "D",
+      "famille": "CROISSANCE",
+      "nom_slot": "M3",
+      "titre": "Les guêpes aux aguets",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "Après production en 4.2, si ce Nid contient au moins 1 Insecte et aucun Piège, vous pouvez poser 1 Piège sur sa parcelle (allume la case 2)."
+    },
+    {
+      "slot": "M4",
+      "profil": "A",
+      "famille": "CROISSANCE",
+      "nom_slot": "M4",
+      "titre": "La Ruche des Mélipones",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Sabotage / Paquet",
+        "Insectes / Nids"
+      ],
+      "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3)."
+    },
+    {
+      "slot": "M4",
+      "profil": "B",
+      "famille": "CROISSANCE",
+      "nom_slot": "M4",
+      "titre": "La Ruche des Mélipones",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Parade / Seuil"
+      ],
+      "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, sur ce rayon, chaque Piège ayant paré au moins une frappe ce tour-ci glisse sur la prochaine parcelle non rasée vers le cœur (si elle est sans Piège, sans allumer la case 2) au lieu d’être retiré."
+    },
+    {
+      "slot": "M4",
+      "profil": "D",
+      "famille": "CROISSANCE",
+      "nom_slot": "M4",
+      "titre": "Les mélipones convoyeurs",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, une fois par tour, vous pouvez faire glisser ensemble 1 Piège déclenché ce tour-ci de ce rayon ET 1 Insecte présent sur sa parcelle vers la prochaine parcelle non rasée côté cœur, si elle est sans Piège."
+    },
+    {
+      "slot": "M5",
+      "profil": "A",
+      "famille": "CROISSANCE",
+      "nom_slot": "M5",
+      "titre": "La Clairière du Jardin du Diable",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids",
+        "Repousse / Arbres"
+      ],
+      "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid : jusqu’à la fin du tour, les Bulldozers laissent toujours 1 Souche sur cette parcelle lors du terrassement, s’il y en a (<code>SANCTUAIRE_SOUCHE</code>)."
+    },
+    {
+      "slot": "M5",
+      "profil": "B",
+      "famille": "CROISSANCE",
+      "nom_slot": "M5",
+      "titre": "La Clairière du Jardin du Diable",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 4.3 (Tunnel du cœur) :</strong> Une fois par tour, défaussez 1 Insecte de ce Nid pour en faire migrer un autre directement du Nid vers une piste globale."
+    },
+    {
+      "slot": "M5",
+      "profil": "C",
+      "famille": "CROISSANCE",
+      "nom_slot": "M5",
+      "titre": "Le Figuier étrangleur",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Insectes / Nids",
+        "Repousse / Arbres"
+      ],
+      "texte": "<strong>Loi de terrassement :</strong> Sur la parcelle de ce Nid, les Bulldozers coupent normalement jusqu’à 1 Arbre mais <strong>ne terrassent aucune Souche</strong>."
+    },
+    {
+      "slot": "M5",
+      "profil": "D",
+      "famille": "CROISSANCE",
+      "nom_slot": "M5",
+      "titre": "Le jardin des relèveuses",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "A_ADAPTER_V5_4_3",
+      "leviers": [
+        "Parade / Seuil",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 5.3 :</strong> Si un Piège a paré au moins une frappe sur la parcelle de ce Nid pendant qu’il était actif ce tour-ci, créez-y 1 Insecte avant le retrait des Pièges (allume la case 6)."
+    },
+    {
+      "slot": "SLOT_BUG_CERVEAU",
+      "profil": "A",
+      "famille": "MIGRATION",
+      "nom_slot": "SLOT_BUG_CERVEAU",
+      "titre": "Court-circuit d’Apprentissage (Standard)",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Dés / Lecture M",
+        "Puissance / Jetons",
+        "Insectes / Nids"
+      ],
+      "texte": "En 6.1, après les gains et déductions de Surchauffe, défaussez automatiquement l’Insecte pour retirer -1 jeton Apprentissage à la Tactique qui occupe ce rang (s’il y en a)."
+    },
+    {
+      "slot": "SLOT_BUG_CERVEAU",
+      "profil": "B",
+      "famille": "MIGRATION",
+      "nom_slot": "SLOT_BUG_CERVEAU",
+      "titre": "Déviation Synaptique (Contrôle 3.2)",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids"
+      ],
+      "texte": "Lorsqu’un joueur obtient ce rang avec son dé M en 3.2, le gouverneur de la piste (Insectes, ou ce joueur si I est absent) peut défausser l’Insecte pour décaler la lecture de ce dé M d’1 rang (M−1 ou M+1, borné de 1 à 6)."
+    },
+    {
+      "slot": "SLOT_BUG_CERVEAU",
+      "profil": "C",
+      "famille": "MIGRATION",
+      "nom_slot": "SLOT_BUG_CERVEAU",
+      "titre": "La Cigale dans l’engrenage",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "OBSOLETE_V5_4_2",
+      "leviers": [
+        "Dés / Lecture M",
+        "Mouvement Machine",
+        "Insectes / Nids"
+      ],
+      "texte": "<strong>Loi 6.2 :</strong> Une Tactique qui occupe un rang portant au moins 1 Insecte ne peut pas avancer par Apprentissage en 6.2. L’Insecte reste sur son numéro de rang."
+    },
+    {
+      "slot": "SLOT_COLONISATION_GARDIENS",
+      "profil": "A",
+      "famille": "MIGRATION",
+      "nom_slot": "SLOT_COLONISATION_GARDIENS",
+      "titre": "Carburant Symbiotique (Standard)",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Dés / Lecture M",
+        "Insectes / Nids",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "À la fin de chaque Étape 4.3, vous pouvez défausser l’Insecte pour ouvrir immédiatement le Gardien disponible de cette case (marquez son ouverture normalement)."
+    },
+    {
+      "slot": "SLOT_COLONISATION_GARDIENS",
+      "profil": "C",
+      "famille": "MIGRATION",
+      "nom_slot": "SLOT_COLONISATION_GARDIENS",
+      "titre": "Les Lucioles",
+      "peuples": "",
+      "double_face": false,
+      "compat_v5_4_3": "TRANSPOSABLE",
+      "leviers": [
+        "Insectes / Nids",
+        "Piste Gardiens / Rêves"
+      ],
+      "texte": "À la fin de chaque Étape 4.3, chaque case occupée par au moins 1 Insecte ouvre automatiquement son Gardien disponible. <strong>L’Insecte reste sur sa case.</strong>"
+    }
+  ]
+}

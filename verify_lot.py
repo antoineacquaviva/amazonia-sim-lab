@@ -25,7 +25,7 @@ SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_4.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 _SKIP_DIRS: frozenset[str] = frozenset(
-    {".git", ".venv", ".tmp_runs", "__pycache__", ".pytest_cache", ".ruff_cache"}
+    {".git", ".venv", ".tmp_runs", "__pycache__", ".pytest_cache", ".ruff_cache", "archive"}
 )
 _FORBIDDEN_LLM_MODULES: tuple[str, ...] = (
     "google.genai",
@@ -271,14 +271,14 @@ def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
 
 
 def verify_studio_coherence() -> None:
-    """Vérifie la cohérence exacte entre docs/data/ (Studio) et le simulateur Python.
+    """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python.
 
-    Contrôle :
-    - 32 emplacements et 100 profils déclarés dans docs/data/catalog_v5_3.json & amazonia_data_v5_3.js
-      == data/spec_bundle_v5_3_1.json == registre @register_tile du simulateur ;
-    - 7 axes du châssis (clés + couples de valeurs) == engine.state.CHASSIS_AXES_OPTIONS ;
-    - Topologies (P4_2233, P5_22233) == engine.state.TOPOLOGIES_DOTATION ;
-    - docs/data/spec_formelle_v5_3.json == spec_bundle_v5_3_1.json['spec_formelle_v5_3'].
+    En phase CORE_STABILIZATION (Mode 2 à blanc), le stock historique des 100 profils
+    est archivé dans archive/legacy_tiles_v5_3/ et n'est plus vérifié ici.
+    Contrôles actifs :
+    - docs/data/spec_formelle_v5_4.json == data/spec_bundle_v5_4.json['spec_formelle_v5_4'] ;
+    - Topologies (P4_*, P5_*) == engine.state.TOPOLOGIES_DOTATION ;
+    - 6 axes du châssis (clés + valeurs) == engine.state.CHASSIS_AXES_OPTIONS.
     """
     for req_file in (STUDIO_CATALOG_FILE, STUDIO_SPEC_FILE, STUDIO_JS_FILE, SPEC_BUNDLE_FILE):
         if not req_file.is_file():
@@ -291,90 +291,16 @@ def verify_studio_coherence() -> None:
 
     errors: list[str] = []
 
-    # 1. Compteurs déclarés dans docs/data/catalog_v5_4.json
-    decl_slots = catalog.get("total_emplacements")
-    decl_profiles = catalog.get("total_profils")
-    if decl_slots != 32:
-        errors.append(f"docs/data/catalog_v5_4.json: total_emplacements={decl_slots} (attendu 32)")
-    if decl_profiles != 100:
-        errors.append(f"docs/data/catalog_v5_4.json: total_profils={decl_profiles} (attendu 100)")
-
-    arch_ref = catalog.get("spec_formelle_v5_4", {}).get("architecture_reference", {})
-    arch_slots = int(arch_ref.get("total_emplacements_synergie", 0)) + int(
-        arch_ref.get("total_pistes_migration", 0)
-    )
-    if arch_slots != 32 or arch_ref.get("total_profils") != 100:
-        errors.append(
-            f"docs/data/catalog_v5_4.json architecture_reference incohérente "
-            f"(slots={arch_slots}, profils={arch_ref.get('total_profils')})"
-        )
-
-    # 2. Cohérence spec_formelle_v5_4.json <-> bundle
+    # 1. Cohérence spec_formelle_v5_4.json <-> bundle
     if bundle.get("spec_formelle_v5_4") != spec_doc:
         errors.append(
             "Désynchronisation entre docs/data/spec_formelle_v5_4.json et "
             "data/spec_bundle_v5_4.json['spec_formelle_v5_4']"
         )
 
-    # 3. 32 emplacements & 100 profils : Studio JS/JSON <-> spec_bundle <-> registre Python
-    from engine.core_engine import ensure_builtin_migration_registered
-    from engine.effects import load_all_effects
-    from engine.effects.registry import clear_tile_registry, list_registered_tiles
     from engine.state import CHASSIS_AXES_OPTIONS, TOPOLOGIES_DOTATION
 
-    clear_tile_registry()
-    ensure_builtin_migration_registered()
-    load_all_effects()
-    registered_pairs: set[tuple[str, str]] = set(list_registered_tiles())
-    registered_slots: set[str] = {slot for slot, _ in registered_pairs}
-
-    studio_cat: dict[str, Any] = studio_js["CATALOGUE_TUILES"]
-    studio_slots: set[str] = set(studio_cat.keys())
-    studio_pairs: set[tuple[str, str]] = {
-        (slot_id, prof_key)
-        for slot_id, slot_meta in studio_cat.items()
-        for prof_key in slot_meta["profils"]
-    }
-
-    bundle_cat: dict[str, Any] = bundle["catalogue_tuiles"]
-    bundle_slots: set[str] = set(bundle_cat.keys())
-    bundle_pairs: set[tuple[str, str]] = {
-        (slot_id, prof_key)
-        for slot_id, slot_meta in bundle_cat.items()
-        for prof_key in slot_meta["profils"]
-    }
-
-    if len(studio_slots) != decl_slots or len(studio_pairs) != decl_profiles:
-        errors.append(
-            f"Studio JS ({len(studio_slots)} slots, {len(studio_pairs)} profils) != "
-            f"catalog_v5_4.json ({decl_slots} slots, {decl_profiles} profils)"
-        )
-    if studio_slots != bundle_slots or studio_slots != registered_slots:
-        errors.append(
-            f"Écart sur les 32 emplacements : "
-            f"studio-sim={sorted(studio_slots - registered_slots)}, "
-            f"sim-studio={sorted(registered_slots - studio_slots)}, "
-            f"studio-bundle={sorted(studio_slots - bundle_slots)}"
-        )
-    if studio_pairs != bundle_pairs or studio_pairs != registered_pairs:
-        errors.append(
-            f"Écart sur les 100 profils : "
-            f"studio-sim={sorted(studio_pairs - registered_pairs)}, "
-            f"sim-studio={sorted(registered_pairs - studio_pairs)}, "
-            f"studio-bundle={sorted(studio_pairs - bundle_pairs)}"
-        )
-
-    # Si catalog_v5_4.json expose directement catalogue_tuiles, on le vérifie aussi
-    if isinstance(catalog.get("catalogue_tuiles"), dict):
-        cat_json_pairs = {
-            (slot_id, prof_key)
-            for slot_id, slot_meta in catalog["catalogue_tuiles"].items()
-            for prof_key in slot_meta["profils"]
-        }
-        if cat_json_pairs != registered_pairs:
-            errors.append("Écart entre catalog_v5_4.json['catalogue_tuiles'] et le simulateur")
-
-    # 4. Topologies déclarées dans docs/data/catalog_v5_4.json <-> engine.state.TOPOLOGIES_DOTATION
+    # 2. Topologies déclarées dans docs/data/catalog_v5_4.json <-> engine.state.TOPOLOGIES_DOTATION
     cat_topos: dict[str, tuple[int, ...]] = {
         str(code): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
         for code, meta in catalog.get("topologies", {}).items()
@@ -385,7 +311,7 @@ def verify_studio_coherence() -> None:
             f"engine.state.TOPOLOGIES_DOTATION ({TOPOLOGIES_DOTATION})"
         )
 
-    # 5. 7 axes du châssis : Studio <-> spec_bundle <-> engine.state.CHASSIS_AXES_OPTIONS
+    # 3. 6 axes du châssis : Studio <-> spec_bundle <-> engine.state.CHASSIS_AXES_OPTIONS
     studio_axes_raw: list[dict[str, Any]] = studio_js["CHASSIS_AXES_SPEC"]
     bundle_axes_raw: list[dict[str, Any]] = bundle["chassis_axes"]
 
@@ -410,9 +336,9 @@ def verify_studio_coherence() -> None:
     if errors:
         raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Studio (docs/data/ <-> simulateur : "
-        f"{len(registered_slots)} emplacements, {len(registered_pairs)} profils, "
-        f"{len(engine_axes)} axes châssis) : OK"
+        f"[4/8] Cohérence Cœur Studio (docs/data/ <-> simulateur : "
+        f"spec_formelle, {len(TOPOLOGIES_DOTATION)} topologies, "
+        f"{len(engine_axes)} axes châssis ; Mode 2 à blanc) : OK"
     )
 
 

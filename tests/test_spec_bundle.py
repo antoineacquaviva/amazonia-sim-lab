@@ -9,7 +9,6 @@ from scripts_cloud.build_spec_bundle import RES_VOCAB, TRIG_VOCAB
 
 ROOT = Path(__file__).resolve().parent.parent
 BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_4.json"
-MODE3_PATH = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 VALID_ROLES = {"PRODUCTEUR", "CONSOMMATEUR", "MODULATEUR", "CONTROLE", "CATALYSEUR"}
 VALID_PORTEES = {"LOCAL_RAYON", "LISIERES_ADJACENTES", "GLOBAL_PLATEAU", "PISTE_TACTIQUES"}
@@ -76,11 +75,3 @@ def test_all_100_profiles_have_coherent_economie_bot() -> None:
                     f"{slot_id}.{prof_key}: tag SABOTAGE sans RES_DILUTION_SABOTAGE"
                 )
 
-
-def test_mode3_reference_valid() -> None:
-    assert MODE3_PATH.exists(), "engine/effects/mode3_reference.json manquant"
-    mode3 = json.loads(MODE3_PATH.read_text(encoding="utf-8"))
-    selections = mode3["selections"]
-    assert len(selections) == 32
-    assert selections["SLOT_BUG_CERVEAU"]["profile"] == "B"
-    assert selections["SLOT_COLONISATION_GARDIENS"]["profile"] == "A"

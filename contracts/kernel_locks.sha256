@@ -1,4 +1,6 @@
-3d3a42e08953ed7b698f5445941d05a7a914b97f7942a9580b47d0ec8195a3ba  engine/state.py
-ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-9e62cf4af5edc2850ad92b650fea3749f86d76b1549e9d59da2938b6630b3dc1  engine/primitives.py
-f1f6abcc0b8b527bc2b491efa5bbaa9e7859713bff20292fdb45a14bf30d9880  engine/core_engine.py
+# Phase CORE_STABILIZATION (Mode 2 à blanc) — Noyau volontairement dégelé
+# pour permettre des itérations rapides sur les règles symétriques (v5.4.x -> v5.5).
+# Le snapshot complet v5.4.3 + 100 tuiles est figé sur le tag Git :
+#   archive/v5.4.3-legacy-100-tiles
+# Re-sceller engine/{state,rng,primitives,core_engine}.py ici dès validation
+# des critères de contracts/CORE_FREEZE_CRITERIA.md.

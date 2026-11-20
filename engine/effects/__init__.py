@@ -1,53 +1,27 @@
-"""Catalogue modulaire stateless des effets de tuiles (Lots 01..10)."""
+"""Catalogue modulaire stateless des effets de tuiles.
+
+Phase CORE_STABILIZATION (Mode 2 à blanc) : le stock historique des 100 profils
+v5.3 (Lots 01..10) est archivé dans ``archive/legacy_tiles_v5_3/`` (tag Git
+``archive/v5.4.3-legacy-100-tiles``). Les futurs lots conçus après le Core Freeze
+seront enregistrés ici via ``@register_tile``.
+"""
 
 from __future__ import annotations
 
 import importlib
 
-from engine.effects import (
-    lot_01,
-    lot_02,
-    lot_03,
-    lot_04,
-    lot_05,
-    lot_06,
-    lot_07,
-    lot_08,
-    lot_09,
-    lot_10,
-)
 from engine.effects.registry import list_registered_tiles
 
 __all__ = (
+    "LOADED_LOT_MODULES",
     "load_all_effects",
-    "lot_01",
-    "lot_02",
-    "lot_03",
-    "lot_04",
-    "lot_05",
-    "lot_06",
-    "lot_07",
-    "lot_08",
-    "lot_09",
-    "lot_10",
 )
 
-LOADED_LOT_MODULES: tuple[str, ...] = (
-    "engine.effects.lot_01",
-    "engine.effects.lot_02",
-    "engine.effects.lot_03",
-    "engine.effects.lot_04",
-    "engine.effects.lot_05",
-    "engine.effects.lot_06",
-    "engine.effects.lot_07",
-    "engine.effects.lot_08",
-    "engine.effects.lot_09",
-    "engine.effects.lot_10",
-)
+LOADED_LOT_MODULES: tuple[str, ...] = ()
 
 
 def load_all_effects() -> tuple[tuple[str, str], ...]:
-    """Charge de façon idempotente tous les lots d'effets livrés (et ré-enregistre après clear)."""
+    """Charge de façon idempotente tous les lots d'effets actifs (vide en Phase Cœur)."""
     for mod_name in LOADED_LOT_MODULES:
         mod = importlib.import_module(mod_name)
         importlib.reload(mod)
