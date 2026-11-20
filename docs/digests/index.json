@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "calibration_declencheurs_v5_4",
+      "label": "Calibration Mode 2 v5.4.6 : partition stricte des 6 déclencheurs de la Piste des Gardiens (3.2 : Sabotage > Insecte > Rêve ; 5.1 : Piégeage > Insecte > Parade ; 4.1 sans déclencheur 2/3), Bouclier de lisière sur SLOT_COLONISATION_GARDIENS=B, et duel sur la case 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, reve_advance_mode=CLEAR_RANK_ONLY, gardien_bet_cap_policy=UNIFORM_MAX_2, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=B. (11520 parties)",
+      "file": "digest_calibration_declencheurs_v5_4.json",
+      "campaign": "calibration_declencheurs_v5_4",
+      "generated_at_utc": "2026-11-20T22:00:46Z",
+      "total_games": 11520
+    },
+    {
       "id": "calibration_pari_max2_v5_4",
       "label": "Calibration Mode 2 v5.4.5 : Éveil de la Forêt 100 % Piste des Gardiens (sortie des Rêves de l'Éveil), plafond de pari Gardiens à 2 Défenseurs max (UNIFORM_MAX_2 vs MAX_2_RES_MAX_1 sur 4. Gardien), et avancée des Rêves (JUMP_PUSH vs CLEAR_RANK_ONLY). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A. (23040 parties)",
       "file": "digest_calibration_pari_max2_v5_4.json",
