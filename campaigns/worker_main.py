@@ -1448,17 +1448,33 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         if radv not in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"):
             raise ValueError(f"reve_advance_mode invalide : {radv!r}")
 
+    raw_g4_modes = manifest.get("gardien_4_trigger_modes", manifest.get("gardien_4_trigger_mode"))
+    if raw_g4_modes is None:
+        g4_modes: list[str] = ["DISTINCT_OPEN_1"]
+        explicit_g4_mode_sweep = False
+    elif isinstance(raw_g4_modes, str):
+        g4_modes = [raw_g4_modes.strip().upper()]
+        explicit_g4_mode_sweep = "gardien_4_trigger_modes" in manifest
+    else:
+        g4_modes = [str(x).strip().upper() for x in raw_g4_modes]
+        explicit_g4_mode_sweep = True
+    for g4m in g4_modes:
+        if g4m not in ("DISTINCT_OPEN_1", "DISTINCT_WON_2"):
+            raise ValueError(f"gardien_4_trigger_mode invalide : {g4m!r}")
+
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True
     if len(cap_pols) > 1:
         explicit_cap_pol_sweep = True
     if len(adv_modes) > 1:
         explicit_adv_mode_sweep = True
+    if len(g4_modes) > 1:
+        explicit_g4_mode_sweep = True
 
     expanded_variants: list[dict[str, Any]] = []
     ev_idx = 0
     for var in profile_variants:
-        for ram, gcp, radv in itertools.product(r_act_modes, cap_pols, adv_modes):
+        for ram, gcp, radv, g4m in itertools.product(r_act_modes, cap_pols, adv_modes, g4_modes):
             tag_parts: list[str] = []
             if explicit_reve_act_sweep:
                 tag_parts.append(f"REVE={ram}")
@@ -1466,6 +1482,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 tag_parts.append(f"CAP={gcp}")
             if explicit_adv_mode_sweep:
                 tag_parts.append(f"ADV={radv}")
+            if explicit_g4_mode_sweep:
+                tag_parts.append(f"G4={g4m}")
             if tag_parts:
                 ext_tag = "|".join(tag_parts)
                 v_id = ext_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{ext_tag}"
@@ -1480,6 +1498,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "reve_activation_mode": ram,
                     "gardien_bet_cap_policy": gcp,
                     "reve_advance_mode": radv,
+                    "gardien_4_trigger_mode": g4m,
                 }
             )
             ev_idx += 1
@@ -1568,6 +1587,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "reve_activation_mode": var["reve_activation_mode"],
                                 "gardien_bet_cap_policy": var["gardien_bet_cap_policy"],
                                 "reve_advance_mode": var["reve_advance_mode"],
+                                "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
                                 "table_id": t_id,
                                 "peuples": peuples,
                                 "n_animaux_sauvages": sum(1 for p in peuples if p in ANIMAUX_SAUVAGES),
@@ -1619,6 +1639,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
     gardien_bet_cap_policy = str(unit.get("gardien_bet_cap_policy", "UNIFORM_MAX_2"))
     reve_advance_mode = str(unit.get("reve_advance_mode", "JUMP_PUSH"))
+    gardien_4_trigger_mode = str(unit.get("gardien_4_trigger_mode", "DISTINCT_OPEN_1"))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
     )
@@ -1640,6 +1661,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_reveil_failures = 0
     cnt_gardien_bets_won = 0
     cnt_gardien_bets_lost = 0
+    cnt_bouclier_lisiere_saves = 0
     cnt_reves_activated = 0
     cnt_machines_cancelled_by_reve = 0
     cnt_machines_bypassed_inactive_reve = 0
@@ -1670,6 +1692,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             reve_activation_mode=reve_activation_mode,
             gardien_bet_cap_policy=gardien_bet_cap_policy,
             reve_advance_mode=reve_advance_mode,
+            gardien_4_trigger_mode=gardien_4_trigger_mode,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1689,7 +1712,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             reve_activation_mode=reve_activation_mode,
             gardien_bet_cap_policy=gardien_bet_cap_policy,
             reve_advance_mode=reve_advance_mode,
-            tile_profiles=tile_profiles if mode >= 3 else (),
+            gardien_4_trigger_mode=gardien_4_trigger_mode,
+            tile_profiles=tile_profiles if mode >= 2 else (),
         )
         trk = TelemetryTracker()
         st = GameState(cfg)
@@ -1724,6 +1748,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         cnt_reveil_failures += int(ts.reveil_failures)
         cnt_gardien_bets_won += int(ts.gardien_bets_won)
         cnt_gardien_bets_lost += int(ts.gardien_bets_lost)
+        cnt_bouclier_lisiere_saves += int(ts.bouclier_lisiere_saves)
         cnt_reves_activated += int(ts.reves_activated)
         cnt_machines_cancelled_by_reve += int(ts.machines_cancelled_by_reve)
         cnt_machines_bypassed_inactive_reve += int(ts.machines_bypassed_inactive_reve)
@@ -1756,6 +1781,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "reve_activation_mode": reve_activation_mode,
         "gardien_bet_cap_policy": gardien_bet_cap_policy,
         "reve_advance_mode": reve_advance_mode,
+        "gardien_4_trigger_mode": gardien_4_trigger_mode,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
@@ -1784,6 +1810,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_reveil_failures": cnt_reveil_failures,
         "count_gardien_bets_won": cnt_gardien_bets_won,
         "count_gardien_bets_lost": cnt_gardien_bets_lost,
+        "count_bouclier_lisiere_saves": cnt_bouclier_lisiere_saves,
         "count_reves_activated": cnt_reves_activated,
         "count_machines_cancelled_by_reve": cnt_machines_cancelled_by_reve,
         "count_machines_bypassed_inactive_reve": cnt_machines_bypassed_inactive_reve,

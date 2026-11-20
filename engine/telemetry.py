@@ -62,8 +62,12 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rs_machines_attacked",
     "rs_reves_on_track",
     "rs_reves_opened",
-    "rs_trig5_lit",
+    "rs_trig1_lit",
+    "rs_trig2_lit",
+    "rs_trig3_lit",
     "rs_trig4_lit",
+    "rs_trig5_lit",
+    "rs_trig6_lit",
     "rs_sabotage_in_deck",
     "rs_strikes",
     "rs_pre_insects",
@@ -94,8 +98,12 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rf_pieges_triggered",
     "rf_reves_on_track",
     "rf_reves_opened",
-    "rf_trig5_lit",
+    "rf_trig1_lit",
+    "rf_trig2_lit",
+    "rf_trig3_lit",
     "rf_trig4_lit",
+    "rf_trig5_lit",
+    "rf_trig6_lit",
     "rf_sabotage_in_deck",
 )
 
@@ -164,6 +172,7 @@ class TelemetrySummary(NamedTuple):
     reveil_failures: int = 0
     gardien_bets_won: int = 0
     gardien_bets_lost: int = 0
+    bouclier_lisiere_saves: int = 0
     reves_activated: int = 0
     machines_cancelled_by_reve: int = 0
     machines_bypassed_inactive_reve: int = 0
@@ -198,8 +207,12 @@ class TelemetrySummary(NamedTuple):
     rs_machines_attacked: int = 0
     rs_reves_on_track: int = 0
     rs_reves_opened: int = 0
-    rs_trig5_lit: int = 0
+    rs_trig1_lit: int = 0
+    rs_trig2_lit: int = 0
+    rs_trig3_lit: int = 0
     rs_trig4_lit: int = 0
+    rs_trig5_lit: int = 0
+    rs_trig6_lit: int = 0
     rs_sabotage_in_deck: int = 0
     rs_strikes: int = 0
     rs_pre_insects: int = 0
@@ -231,8 +244,12 @@ class TelemetrySummary(NamedTuple):
     rf_pieges_triggered: int = 0
     rf_reves_on_track: int = 0
     rf_reves_opened: int = 0
-    rf_trig5_lit: int = 0
+    rf_trig1_lit: int = 0
+    rf_trig2_lit: int = 0
+    rf_trig3_lit: int = 0
     rf_trig4_lit: int = 0
+    rf_trig5_lit: int = 0
+    rf_trig6_lit: int = 0
     rf_sabotage_in_deck: int = 0
 
 
@@ -258,6 +275,7 @@ class TelemetryTracker:
     reveil_failures: int = 0
     gardien_bets_won: int = 0
     gardien_bets_lost: int = 0
+    bouclier_lisiere_saves: int = 0
     reves_activated: int = 0
     machines_cancelled_by_reve: int = 0
     machines_bypassed_inactive_reve: int = 0
@@ -265,8 +283,7 @@ class TelemetryTracker:
     # État transitoire du tour courant pour l'anatomie de l'Éveil
     _turn_strikes: int = 0
     _turn_reves_opened: int = 0
-    _turn_trig4_lit: bool = False
-    _turn_trig5_lit: bool = False
+    _turn_trig_lit_mask: int = 0
     _turn_reveil_active: bool = False
     _turn_def_snap: tuple[int, int, int, int, int, int, int, int, int, int, int] | None = None
     _turn_pre5_snap: tuple[int, ...] | None = None
@@ -301,8 +318,12 @@ class TelemetryTracker:
     rs_machines_attacked: int = 0
     rs_reves_on_track: int = 0
     rs_reves_opened: int = 0
-    rs_trig5_lit: int = 0
+    rs_trig1_lit: int = 0
+    rs_trig2_lit: int = 0
+    rs_trig3_lit: int = 0
     rs_trig4_lit: int = 0
+    rs_trig5_lit: int = 0
+    rs_trig6_lit: int = 0
     rs_sabotage_in_deck: int = 0
     rs_strikes: int = 0
     rs_pre_insects: int = 0
@@ -334,8 +355,12 @@ class TelemetryTracker:
     rf_pieges_triggered: int = 0
     rf_reves_on_track: int = 0
     rf_reves_opened: int = 0
-    rf_trig5_lit: int = 0
+    rf_trig1_lit: int = 0
+    rf_trig2_lit: int = 0
+    rf_trig3_lit: int = 0
     rf_trig4_lit: int = 0
+    rf_trig5_lit: int = 0
+    rf_trig6_lit: int = 0
     rf_sabotage_in_deck: int = 0
 
     def _snapshot_pre_step5(self, state: GameState) -> None:
@@ -461,8 +486,13 @@ class TelemetryTracker:
         pieges_triggered = max(0, pre_pieges - post_pieges)
         strikes = self._turn_strikes
         reves_opened = self._turn_reves_opened
-        trig5_lit = 1 if self._turn_trig5_lit else 0
-        trig4_lit = 1 if self._turn_trig4_lit else 0
+        t_mask = self._turn_trig_lit_mask
+        trig1_lit = 1 if (t_mask & (1 << 0)) else 0
+        trig2_lit = 1 if (t_mask & (1 << 1)) else 0
+        trig3_lit = 1 if (t_mask & (1 << 2)) else 0
+        trig4_lit = 1 if (t_mask & (1 << 3)) else 0
+        trig5_lit = 1 if (t_mask & (1 << 4)) else 0
+        trig6_lit = 1 if (t_mask & (1 << 5)) else 0
 
         if succeeded:
             if ratio_arbres is None:
@@ -505,8 +535,12 @@ class TelemetryTracker:
             self.rs_machines_attacked += machines_attacked
             self.rs_reves_on_track += reves_on_track
             self.rs_reves_opened += reves_opened
-            self.rs_trig5_lit += trig5_lit
+            self.rs_trig1_lit += trig1_lit
+            self.rs_trig2_lit += trig2_lit
+            self.rs_trig3_lit += trig3_lit
             self.rs_trig4_lit += trig4_lit
+            self.rs_trig5_lit += trig5_lit
+            self.rs_trig6_lit += trig6_lit
             self.rs_sabotage_in_deck += sab_in_deck
             self.rs_strikes += strikes
             self.rs_pre_insects += pre_insects
@@ -543,8 +577,12 @@ class TelemetryTracker:
             self.rf_pieges_triggered += pieges_triggered
             self.rf_reves_on_track += reves_on_track
             self.rf_reves_opened += reves_opened
-            self.rf_trig5_lit += trig5_lit
+            self.rf_trig1_lit += trig1_lit
+            self.rf_trig2_lit += trig2_lit
+            self.rf_trig3_lit += trig3_lit
             self.rf_trig4_lit += trig4_lit
+            self.rf_trig5_lit += trig5_lit
+            self.rf_trig6_lit += trig6_lit
             self.rf_sabotage_in_deck += sab_in_deck
 
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
@@ -553,8 +591,7 @@ class TelemetryTracker:
             self._turn_closed = False
             self._turn_strikes = 0
             self._turn_reves_opened = 0
-            self._turn_trig4_lit = False
-            self._turn_trig5_lit = False
+            self._turn_trig_lit_mask = 0
             self._turn_reveil_active = False
             self._turn_def_snap = None
             self._turn_pre5_snap = None
@@ -676,12 +713,15 @@ class TelemetryTracker:
         """Enregistre explicitement l'échec d'une tentative d'Éveil."""
         self.reveil_failures += 1
 
+    def on_bouclier_lisiere_save(self, count: int = 1) -> None:
+        """Enregistre le nombre de Gardiens sauvés du retour en lisière par Bouclier de lisière en 5.3."""
+        if count > 0:
+            self.bouclier_lisiere_saves += count
+
     def on_trigger_lit(self, case_num: int) -> None:
-        """Enregistre l'allumage des cases déclencheurs 4. Gardien et 5. Rêve durant le tour."""
-        if case_num == 4:
-            self._turn_trig4_lit = True
-        elif case_num == 5:
-            self._turn_trig5_lit = True
+        """Enregistre l'allumage de chacune des 6 cases déclencheurs 1..6 durant le tour."""
+        if 1 <= case_num <= TRACK_LEN:
+            self._turn_trig_lit_mask |= 1 << (case_num - 1)
 
     def on_reve_activated(self, count: int = 1) -> None:
         """Enregistre une ouverture de Rêve activée en Étape 3.2."""
@@ -744,6 +784,7 @@ class TelemetryTracker:
             reveil_failures=self.reveil_failures,
             gardien_bets_won=self.gardien_bets_won,
             gardien_bets_lost=self.gardien_bets_lost,
+            bouclier_lisiere_saves=self.bouclier_lisiere_saves,
             reves_activated=self.reves_activated,
             machines_cancelled_by_reve=self.machines_cancelled_by_reve,
             machines_bypassed_inactive_reve=self.machines_bypassed_inactive_reve,
@@ -777,8 +818,12 @@ class TelemetryTracker:
             rs_machines_attacked=self.rs_machines_attacked,
             rs_reves_on_track=self.rs_reves_on_track,
             rs_reves_opened=self.rs_reves_opened,
-            rs_trig5_lit=self.rs_trig5_lit,
+            rs_trig1_lit=self.rs_trig1_lit,
+            rs_trig2_lit=self.rs_trig2_lit,
+            rs_trig3_lit=self.rs_trig3_lit,
             rs_trig4_lit=self.rs_trig4_lit,
+            rs_trig5_lit=self.rs_trig5_lit,
+            rs_trig6_lit=self.rs_trig6_lit,
             rs_sabotage_in_deck=self.rs_sabotage_in_deck,
             rs_strikes=self.rs_strikes,
             rs_pre_insects=self.rs_pre_insects,
@@ -809,7 +854,11 @@ class TelemetryTracker:
             rf_pieges_triggered=self.rf_pieges_triggered,
             rf_reves_on_track=self.rf_reves_on_track,
             rf_reves_opened=self.rf_reves_opened,
-            rf_trig5_lit=self.rf_trig5_lit,
+            rf_trig1_lit=self.rf_trig1_lit,
+            rf_trig2_lit=self.rf_trig2_lit,
+            rf_trig3_lit=self.rf_trig3_lit,
             rf_trig4_lit=self.rf_trig4_lit,
+            rf_trig5_lit=self.rf_trig5_lit,
+            rf_trig6_lit=self.rf_trig6_lit,
             rf_sabotage_in_deck=self.rf_sabotage_in_deck,
         )

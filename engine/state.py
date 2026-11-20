@@ -468,7 +468,10 @@ class _Mem:
     TRANS_PARCEL_SEUIL_MOD: int = _Layout.alloc(NUM_PARCELS, "TRANS_PARCEL_SEUIL_MOD")  # 30 octets signés
     TRANS_PARCEL_FLAGS: int = _Layout.alloc(NUM_PARCELS, "TRANS_PARCEL_FLAGS")  # 30 octets bitmask
     TRANS_ONCE_PER_TURN: int = _Layout.alloc(8, "TRANS_ONCE_PER_TURN")  # 8 octets = 64 bits
-    TRANS_PENDING_APPRENTISSAGE: int = _Layout.alloc(TRACK_LEN, "TRANS_PENDING_APPRENTISSAGE")  # 6 octets
+    TRANS_GARDIEN_OPENED_MASK: int = _Layout.alloc(1, "TRANS_GARDIEN_OPENED_MASK")  # bits 0..5 = cases 1..6 ouvertes ce tour
+    TRANS_GARDIEN_WON_MASK: int = _Layout.alloc(1, "TRANS_GARDIEN_WON_MASK")  # bits 0..5 = cases 1..6 pari achevé ce tour
+    TRANS_BUG_DEVIATED_MASK: int = _Layout.alloc(1, "TRANS_BUG_DEVIATED_MASK")  # bits 0..5 = sièges déviés par Bug en 3.2
+    TRANS_RESERVED_3: int = _Layout.alloc(3, "TRANS_RESERVED_3")  # 3 octets de réserve transitoire
     TRANS_VOLUNTARY_APP_COUNTER: int = _Layout.alloc(1, "TRANS_VOLUNTARY_APP_COUNTER")  # 1 octet
     TRANSIENT_END: int = _Layout._cursor
 
@@ -512,12 +515,14 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Activation Rêves (v5.4.2) & Plafond Pari Gardiens / Avancée Rêves (v5.4.5)
+    # Paramètres hors-châssis Activation Rêves (v5.4.2), Plafond Pari Gardiens / Avancée Rêves (v5.4.5)
+    # & Déclencheur 4. Gardien (v5.4.6)
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
     reve_advance_mode: str = "JUMP_PUSH"
+    gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
 
-    # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
+    # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
 
     # Champs dérivés immuables calculés à l'initialisation
@@ -562,6 +567,9 @@ class GameConfig:
         )
         assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"), (
             f"reve_advance_mode invalide : {self.reve_advance_mode}"
+        )
+        assert self.gardien_4_trigger_mode in ("DISTINCT_OPEN_1", "DISTINCT_WON_2"), (
+            f"gardien_4_trigger_mode invalide : {self.gardien_4_trigger_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -619,8 +627,10 @@ class GameConfig:
         reve_activation_mode: str = "1_DEF_1_MACHINE",
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
         reve_advance_mode: str = "JUMP_PUSH",
+        gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
+        tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v5.4.5 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v5.4.6 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -633,6 +643,8 @@ class GameConfig:
             "reve_activation_mode": reve_activation_mode,
             "gardien_bet_cap_policy": gardien_bet_cap_policy,
             "reve_advance_mode": reve_advance_mode,
+            "gardien_4_trigger_mode": gardien_4_trigger_mode,
+            "tile_profiles": tile_profiles,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
@@ -655,10 +667,11 @@ class GameConfig:
         if self.mode == 1:
             return None
         if self.mode == 2:
-            if slot_id == "SLOT_BUG_CERVEAU":
-                return "B"
-            if slot_id == "SLOT_COLONISATION_GARDIENS":
-                return "A"
+            if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
+                for s_id, prof in self.tile_profiles:
+                    if s_id == slot_id:
+                        return prof
+                return "B" if slot_id == "SLOT_BUG_CERVEAU" else "A"
             return None
         for s_id, prof in self.tile_profiles:
             if s_id == slot_id:
@@ -800,6 +813,10 @@ class PlayerObservation:
     @property
     def reve_advance_mode(self) -> str:
         return self._cfg.reve_advance_mode
+
+    @property
+    def gardien_4_trigger_mode(self) -> str:
+        return self._cfg.gardien_4_trigger_mode
 
     @property
     def nb_peuples_oniriques(self) -> int:
@@ -2406,17 +2423,54 @@ class GameState:
         """Marque l'emplacement `slot_id` comme ayant utilisé son effet limité à 1 fois par tour."""
         self.mark_used_once_per_turn(slot_id_to_once_index(slot_id))
 
+    def has_gardien_opened_this_turn(self, case_1_6: int) -> bool:
+        """Vrai si le Gardien de la case `1..6` s'est déjà ouvert au moins une fois ce tour."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        return bool(self._buf[_Mem.TRANS_GARDIEN_OPENED_MASK] & (1 << (case_1_6 - 1)))
+
+    def mark_gardien_opened_this_turn(self, case_1_6: int) -> None:
+        """Marque la case Gardien `1..6` comme ayant déjà été ouverte ce tour."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        self._buf[_Mem.TRANS_GARDIEN_OPENED_MASK] |= 1 << (case_1_6 - 1)
+
+    def has_gardien_won_this_turn(self, case_1_6: int) -> bool:
+        """Vrai si le Gardien de la case `1..6` a déjà achevé son pari ce tour (0 Défenseur restant)."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        return bool(self._buf[_Mem.TRANS_GARDIEN_WON_MASK] & (1 << (case_1_6 - 1)))
+
+    def mark_gardien_won_this_turn(self, case_1_6: int) -> None:
+        """Marque la case Gardien `1..6` comme ayant achevé son pari ce tour."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        self._buf[_Mem.TRANS_GARDIEN_WON_MASK] |= 1 << (case_1_6 - 1)
+
+    def count_other_gardiens_won_this_turn(self) -> int:
+        """Nombre de Gardiens distincts hors case 4 ayant achevé leur pari ce tour."""
+        mask = self._buf[_Mem.TRANS_GARDIEN_WON_MASK] & ~(1 << 3)
+        cnt = 0
+        while mask:
+            mask &= mask - 1
+            cnt += 1
+        return cnt
+
+    def was_seat_deviated_by_bug_this_turn(self, seat: int) -> bool:
+        """Vrai si la carte Machine du siège `seat` a déjà été déviée par un Bug en 3.2 ce tour."""
+        assert 0 <= seat < MAX_N
+        return bool(self._buf[_Mem.TRANS_BUG_DEVIATED_MASK] & (1 << seat))
+
+    def mark_seat_deviated_by_bug_this_turn(self, seat: int) -> None:
+        """Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug)."""
+        assert 0 <= seat < MAX_N
+        self._buf[_Mem.TRANS_BUG_DEVIATED_MASK] |= 1 << seat
+
     def get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int:
-        """Delta d'Apprentissage mémorisé sur le rang `rank_0_5` pour application en 6.1."""
+        """Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — retourne toujours 0."""
         assert 0 <= rank_0_5 < TRACK_LEN
-        raw = self._buf[_Mem.TRANS_PENDING_APPRENTISSAGE + rank_0_5]
-        return raw - 256 if raw >= 128 else raw
+        return 0
 
     def add_pending_apprentissage_at_rank(self, rank_0_5: int, delta: int) -> None:
-        """Mémorise un ajustement d'Apprentissage sur `rank_0_5` appliqué en 6.1 avant Bug."""
+        """Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — sans effet."""
         assert 0 <= rank_0_5 < TRACK_LEN
-        cur = max(-64, min(63, self.get_pending_apprentissage_at_rank(rank_0_5) + delta))
-        self._buf[_Mem.TRANS_PENDING_APPRENTISSAGE + rank_0_5] = cur & 0xFF
+        _ = delta
 
     def get_pending_voluntary_app_reduction(self) -> tuple[int, int]:
         """Retourne (nb_retraits_volontaires_restants, seat_decideur) mémorisés pour 6.1."""

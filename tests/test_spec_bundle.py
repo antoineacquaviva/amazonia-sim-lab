@@ -37,12 +37,12 @@ def test_spec_bundle_structure_and_counts() -> None:
         by_family[fam] = by_family.get(fam, 0) + n
         total_profils += n
 
-    assert total_profils == 100
+    assert total_profils == 101
     assert by_family == {
         "GARDIEN": 45,
         "REVE": 31,
         "CROISSANCE": 19,
-        "MIGRATION": 5,
+        "MIGRATION": 6,
     }
 
 

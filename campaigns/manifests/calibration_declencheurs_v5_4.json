@@ -1,0 +1,44 @@
+{
+  "campaign_name": "calibration_declencheurs_v5_4",
+  "description": "Calibration Mode 2 v5.4.6 : partition stricte des 6 déclencheurs de la Piste des Gardiens (3.2 : Sabotage > Insecte > Rêve ; 5.1 : Piégeage > Insecte > Parade ; 4.1 sans déclencheur 2/3), Bouclier de lisière sur SLOT_COLONISATION_GARDIENS=B, et duel sur la case 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, reve_advance_mode=CLEAR_RANK_ONLY, gardien_bet_cap_policy=UNIFORM_MAX_2, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=B.",
+  "mode": 2,
+  "bot": "B2",
+  "k_max": 3,
+  "seed": 20261124,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 240,
+  "reve_activation_mode": "1_DEF_1_MACHINE",
+  "reve_advance_mode": "CLEAR_RANK_ONLY",
+  "gardien_bet_cap_policy": "UNIFORM_MAX_2",
+  "gardien_4_trigger_modes": [
+    "DISTINCT_OPEN_1",
+    "DISTINCT_WON_2"
+  ],
+  "base_instance": {
+    "config_index_192": 1,
+    "bundle_id": "STANDARD_A",
+    "slots_insectes": {
+      "SLOT_BUG_CERVEAU": "B",
+      "SLOT_COLONISATION_GARDIENS": "B"
+    }
+  },
+  "chassis_plan": {
+    "varying_axes": [
+      {
+        "key": "Profil_Piste",
+        "values": [
+          "P4_2233",
+          "P4_2223",
+          "P4_1223",
+          "P5_22233",
+          "P5_22223",
+          "P5_12223"
+        ]
+      }
+    ],
+    "fixed_axes": {}
+  },
+  "slot_profile_comparisons": {}
+}

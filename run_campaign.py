@@ -451,6 +451,10 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
     def _f_pct(key: str) -> float:
         return round(float(raw.get(key) or 0) * 100.0 / rf_n, 2) if rf_n > 0 else 0.0
 
+    def _a_pct(rs_key: str, rf_key: str) -> float:
+        tot_v = float(raw.get(rs_key) or 0) + float(raw.get(rf_key) or 0)
+        return round(tot_v * 100.0 / total_att, 2) if total_att > 0 else 0.0
+
     total_att = rs_n + rf_n
     mean_ratio_arbres_eveil = (
         round(float(raw.get("rs_ratio_arbres_bp") or 0) / (rs_n * 10000.0), 4)
@@ -461,6 +465,13 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
         "n_reveil_success": rs_n,
         "n_reveil_failures": rf_n,
         "success_rate_pct": round(rs_n * 100.0 / total_att, 2) if total_att > 0 else 0.0,
+        "count_bouclier_lisiere_saves": int(raw.get("count_bouclier_lisiere_saves") or 0),
+        "pct_trigger_1_parade_lit": _a_pct("rs_trig1_lit", "rf_trig1_lit"),
+        "pct_trigger_2_piegeage_lit": _a_pct("rs_trig2_lit", "rf_trig2_lit"),
+        "pct_trigger_3_sabotage_lit": _a_pct("rs_trig3_lit", "rf_trig3_lit"),
+        "pct_trigger_4_gardien_lit": _a_pct("rs_trig4_lit", "rf_trig4_lit"),
+        "pct_trigger_5_reve_lit": _a_pct("rs_trig5_lit", "rf_trig5_lit"),
+        "pct_trigger_6_insecte_lit": _a_pct("rs_trig6_lit", "rf_trig6_lit"),
         "success_turn": {
             "mean_tour": _s_mean("rs_tour"),
             "mean_ratio_arbres": mean_ratio_arbres_eveil,
@@ -503,8 +514,12 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
                 "mean_strikes": _s_mean("rs_strikes"),
                 "mean_reves_on_track": _s_mean("rs_reves_on_track"),
                 "mean_reves_opened": _s_mean("rs_reves_opened"),
-                "pct_trigger_5_reve_lit": _s_pct("rs_trig5_lit"),
+                "pct_trigger_1_parade_lit": _s_pct("rs_trig1_lit"),
+                "pct_trigger_2_piegeage_lit": _s_pct("rs_trig2_lit"),
+                "pct_trigger_3_sabotage_lit": _s_pct("rs_trig3_lit"),
                 "pct_trigger_4_gardien_lit": _s_pct("rs_trig4_lit"),
+                "pct_trigger_5_reve_lit": _s_pct("rs_trig5_lit"),
+                "pct_trigger_6_insecte_lit": _s_pct("rs_trig6_lit"),
                 "mean_sabotage_in_deck": _s_mean("rs_sabotage_in_deck"),
             },
             "zero_damage_mechanisms": {
@@ -538,8 +553,12 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
             "mean_pieges_triggered_step5": _f_mean("rf_pieges_triggered"),
             "mean_reves_on_track": _f_mean("rf_reves_on_track"),
             "mean_reves_opened": _f_mean("rf_reves_opened"),
-            "pct_trigger_5_reve_lit": _f_pct("rf_trig5_lit"),
+            "pct_trigger_1_parade_lit": _f_pct("rf_trig1_lit"),
+            "pct_trigger_2_piegeage_lit": _f_pct("rf_trig2_lit"),
+            "pct_trigger_3_sabotage_lit": _f_pct("rf_trig3_lit"),
             "pct_trigger_4_gardien_lit": _f_pct("rf_trig4_lit"),
+            "pct_trigger_5_reve_lit": _f_pct("rf_trig5_lit"),
+            "pct_trigger_6_insecte_lit": _f_pct("rf_trig6_lit"),
             "mean_sabotage_in_deck": _f_mean("rf_sabotage_in_deck"),
         },
     }
@@ -552,8 +571,13 @@ def _build_reveil_anatomy_block(
 ) -> dict[str, Any] | None:
     if not all(col in cell_cols for col in REVEIL_ANATOMY_FIELDS):
         return None
+    bouclier_sql = (
+        "CAST(SUM(count_bouclier_lisiere_saves) AS BIGINT) AS count_bouclier_lisiere_saves"
+        if "count_bouclier_lisiere_saves" in cell_cols
+        else "0 AS count_bouclier_lisiere_saves"
+    )
     sum_cols_sql = ",\n            ".join(
-        f"CAST(SUM({col}) AS BIGINT) AS {col}" for col in REVEIL_ANATOMY_FIELDS
+        [*(f"CAST(SUM({col}) AS BIGINT) AS {col}" for col in REVEIL_ANATOMY_FIELDS), bouclier_sql]
     )
     g_raw = _query_dicts(con, f"SELECT {sum_cols_sql} FROM cells")[0]
     if int(g_raw.get("rs_count") or 0) == 0 and int(g_raw.get("rf_count") or 0) == 0:
@@ -659,6 +683,7 @@ def aggregate_campaign_duckdb(
     has_gardien_bets_cols = (
         "count_gardien_bets_won" in cell_cols and "count_gardien_bets_lost" in cell_cols
     )
+    has_bouclier_col = "count_bouclier_lisiere_saves" in cell_cols
     reveil_diag_sql = (
         (
             """
@@ -680,6 +705,15 @@ def aggregate_campaign_duckdb(
             else """
             0 AS count_gardien_bets_won,
             0 AS count_gardien_bets_lost,
+        """
+        )
+        + (
+            """
+            CAST(SUM(count_bouclier_lisiere_saves) AS INTEGER) AS count_bouclier_lisiere_saves,
+        """
+            if has_bouclier_col
+            else """
+            0 AS count_bouclier_lisiere_saves,
         """
         )
     )
@@ -1155,6 +1189,7 @@ def aggregate_campaign_duckdb(
             "count_reveil_failures": int(g_stats["count_reveil_failures"]),
             "count_gardien_bets_won": int(g_stats["count_gardien_bets_won"]),
             "count_gardien_bets_lost": int(g_stats["count_gardien_bets_lost"]),
+            "count_bouclier_lisiere_saves": int(g_stats["count_bouclier_lisiere_saves"]),
             "count_reves_activated": int(g_stats["count_reves_activated"]),
             "count_machines_cancelled_by_reve": int(g_stats["count_machines_cancelled_by_reve"]),
             "count_machines_bypassed_inactive_reve": int(

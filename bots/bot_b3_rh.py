@@ -94,6 +94,7 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         reve_activation_mode=cfg.reve_activation_mode,
         gardien_bet_cap_policy=cfg.gardien_bet_cap_policy,
         reve_advance_mode=cfg.reve_advance_mode,
+        gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
         tile_profiles=cfg.tile_profiles,
     )
 

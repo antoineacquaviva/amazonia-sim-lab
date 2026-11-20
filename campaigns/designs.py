@@ -227,6 +227,7 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         reve_activation_mode=old.reve_activation_mode,
         gardien_bet_cap_policy=old.gardien_bet_cap_policy,
         reve_advance_mode=old.reve_advance_mode,
+        gardien_4_trigger_mode=old.gardien_4_trigger_mode,
         tile_profiles=old.tile_profiles,
     )
     cloned.cfg = new_cfg

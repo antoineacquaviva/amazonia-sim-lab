@@ -159,11 +159,21 @@ def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
     assert st.count_gardien_pari_consumed_at_case(4) == 1
     assert not st.is_trigger_lit(4)
 
-    # 2e déclenchement case 1 : consomme le 2e Défenseur sur case 1 -> allume 4 -> consomme le 2e Défenseur sur case 4 !
+    # 2e déclenchement case 1 : consomme le 2e Défenseur sur case 1, mais sous v5.4.6 DISTINCT_OPEN_1
+    # une 2e ouverture du même autre Gardien ne ré-allume PAS 4. Gardien !
     st.light_trigger(1)
-    assert sweep_gardiens(st) == 2
+    assert sweep_gardiens(st) == 1
     assert st.count_gardien_pari_defenders_at_case(1) == 0
     assert st.count_gardien_pari_consumed_at_case(1) == 2
+    assert st.count_gardien_pari_defenders_at_case(4) == 1
+    assert st.count_gardien_pari_consumed_at_case(4) == 1
+
+    # Un 2e autre Gardien distinct (case 2) qui s'ouvre pour la 1re fois du tour allume 4. Gardien !
+    st.set_gardien_at_case(2, 3, face=1)
+    st.set_player_def_loc_raw(0, 1, 0)
+    st.place_defender_gardien_pari(0, 2, FACE_DEFINITIF)
+    st.light_trigger(2)
+    assert sweep_gardiens(st) == 2
     assert st.count_gardien_pari_defenders_at_case(4) == 0
     assert st.count_gardien_pari_consumed_at_case(4) == 2
     assert not st.is_trigger_lit(4)
@@ -243,15 +253,16 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     res_rej = step_until_decision(st_rej)
     assert not isinstance(res_rej, GameOver)
 
-    # Cas B : les N=4 Défenseurs engagés sur la Piste des Gardiens (2 sur case 1, 2 sur case 4) -> Éveil RÉUSSI + télémétrie !
+    # Cas B : les N=4 Défenseurs engagés sur la Piste des Gardiens (1 sur case 1, 1 sur case 2, 2 sur case 4) -> Éveil RÉUSSI + télémétrie !
     st_ok = GameState(cfg)
     st_ok.tour = 3
     st_ok.set_gardien_at_case(1, 1, face=1)
+    st_ok.set_gardien_at_case(2, 3, face=1)
     st_ok.set_gardien_at_case(4, 2, face=1)
     for s in range(4):
         st_ok.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
     st_ok.place_defender_gardien_pari(0, 1, FACE_REFLEXION)
-    st_ok.place_defender_gardien_pari(1, 1, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(1, 2, FACE_REFLEXION)
     st_ok.place_defender_gardien_pari(2, 4, FACE_REFLEXION)
     st_ok.place_defender_gardien_pari(3, 4, FACE_REFLEXION)
 
@@ -260,10 +271,10 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     assert st_ok.is_eveil_attempt_eligible() is True
     trk.on_reveil_attempt(st_ok)
 
-    # 2 déclenchements sur case 1 -> consomment les 2 Déf sur case 1 et les 2 Déf sur case 4
+    # 2 Gardiens distincts (case 1 puis case 2) -> consomment 1 Déf sur 1, 1 Déf sur 2 et les 2 Déf sur 4
     st_ok.light_trigger(1)
     sweep_gardiens(st_ok, telemetry=trk)
-    st_ok.light_trigger(1)
+    st_ok.light_trigger(2)
     sweep_gardiens(st_ok, telemetry=trk)
     assert st_ok.total_gardien_pari_consumed() == 4
     assert st_ok.total_gardien_pari_remaining() == 0
@@ -278,9 +289,9 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     ts = trk.summary()
     assert ts.rs_count == 1
     assert ts.rs_def_gardien == 4
-    assert ts.rs_def_parade == 2
+    assert ts.rs_def_parade == 1
     assert ts.rs_def_resonance == 2
-    assert ts.rs_distinct_gardiens_bet == 2
+    assert ts.rs_distinct_gardiens_bet == 3
     assert ts.rs_def_reve == 0
     assert ts.rs_trig4_lit == 1
 

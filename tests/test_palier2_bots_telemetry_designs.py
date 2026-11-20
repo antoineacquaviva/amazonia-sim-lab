@@ -125,7 +125,7 @@ def test_ticks_sabotage_altruist_tick1_zero_seat0_bias_and_early_stop() -> None:
 # ---------------------------------------------------------------------------
 def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     econ = get_economie_catalog()
-    assert len(econ) == 100
+    assert len(econ) == 101
     seen_res = {tok for node in econ.values() for tok in node.outputs_produits if tok.startswith("RES_")}
     assert seen_res == set(ALL_12_RESOURCES)
 

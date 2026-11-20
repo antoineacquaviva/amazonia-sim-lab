@@ -96,6 +96,15 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             )[game_idx % 3],
             gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2],
             reve_advance_mode=("JUMP_PUSH", "CLEAR_RANK_ONLY")[(game_idx // 2) % 2],
+            gardien_4_trigger_mode=("DISTINCT_OPEN_1", "DISTINCT_WON_2")[(game_idx // 4) % 2],
+            tile_profiles=(
+                (
+                    ("SLOT_BUG_CERVEAU", "B"),
+                    ("SLOT_COLONISATION_GARDIENS", ("A", "B")[(game_idx // 8) % 2]),
+                )
+                if mode >= 2
+                else ()
+            ),
         )
 
         state = GameState(cfg)

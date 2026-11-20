@@ -648,9 +648,25 @@ def resolve_step2_2_from_state(
                 need_gard_retreat = True
             if pari_c == 4:
                 res_bets = obs_s.gardien_pari_defenders(4)
-                other_bets = g_tot - res_bets
-                col4 = 1 if obs_s.piste_colonie[3] >= 1 else 0
-                if (other_bets + col4) < res_bets:
+                distinct_other_cases = sum(
+                    1
+                    for ck in (1, 2, 3, 5, 6)
+                    if obs_s.gardien_present_at_case(ck)
+                    and obs_s.gardien_pari_defenders(ck) >= 1
+                )
+                col4 = (
+                    1
+                    if (
+                        cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "A"
+                        and obs_s.piste_colonie[3] >= 1
+                    )
+                    else 0
+                )
+                if cfg.gardien_4_trigger_mode == "DISTINCT_WON_2":
+                    max_case4_trigs = max(0, distinct_other_cases - 1) + col4
+                else:  # "DISTINCT_OPEN_1"
+                    max_case4_trigs = distinct_other_cases + col4
+                if max_case4_trigs < res_bets:
                     # Impossible d'allumer 4. Gardien assez de fois pour consommer tous les paris dessus !
                     need_gard_retreat = True
             if need_gard_retreat:
