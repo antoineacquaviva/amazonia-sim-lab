@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "validation_socle_v5_5",
+      "label": "Validation du socle Mode 2 v5.4.7 : partition stricte des 6 déclencheurs (4.2 Nids retiré de 6. Insecte ; 6. Insecte exclusivement en 3.2 Bug ou 5.1 Parade avec dépense >= 1 Insecte), case 4. Gardien verrouillée sur DISTINCT_OPEN_1, Bouclier de lisière SLOT_COLONISATION_GARDIENS=B, et politique B2 corrigée (valorisation réaliste Sabotage 4.1 + arbitrage Migration 4.3 forêt / Bug / Bouclier). Mode 2, bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 5 760 parties. (5760 parties)",
+      "file": "digest_validation_socle_v5_5.json",
+      "campaign": "validation_socle_v5_5",
+      "generated_at_utc": "2026-11-20T23:13:13Z",
+      "total_games": 5760
+    },
+    {
       "id": "calibration_declencheurs_v5_4",
       "label": "Calibration Mode 2 v5.4.6 : partition stricte des 6 déclencheurs de la Piste des Gardiens (3.2 : Sabotage > Insecte > Rêve ; 5.1 : Piégeage > Insecte > Parade ; 4.1 sans déclencheur 2/3), Bouclier de lisière sur SLOT_COLONISATION_GARDIENS=B, et duel sur la case 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, reve_advance_mode=CLEAR_RANK_ONLY, gardien_bet_cap_policy=UNIFORM_MAX_2, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=B. (11520 parties)",
       "file": "digest_calibration_declencheurs_v5_4.json",
