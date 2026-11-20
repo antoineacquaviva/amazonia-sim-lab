@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "calibration_reves_fixes_v5_4",
+      "label": "Calibration Mode 2 v5.4.2 : Piste des Tactiques fixe T1..T6, purge Apprentissage 6.1, SLOT_BUG_CERVEAU=B, activation des Rêves en 2.2 (Options A/B/C), bot B2, N=3..6, toutes combinaisons de Peuples (0, 1 et 2 Peuples Oniriques), 6 profils de piste canoniques. (17280 parties)",
+      "file": "digest_calibration_reves_fixes_v5_4.json",
+      "campaign": "calibration_reves_fixes_v5_4",
+      "generated_at_utc": "2026-11-20T06:04:19Z",
+      "total_games": 17280
+    },
+    {
       "id": "diagnostic_reveil_zero_degat_v5_4",
       "label": "Diagnostic anatomique des tours de Réveil de la Forêt sans dégât v5.4.1 (bot B2, Mode 2, N=3..6, 6 profils de piste, 6 variantes quota x sort Gardien : attribution Défenseurs, attrition Sabotage/Rêves, frappes, Pièges, Insectes, comparaison succès vs échecs). (16416 parties)",
       "file": "digest_diagnostic_reveil_zero_degat_v5_4.json",
