@@ -1,6 +1,6 @@
-"""Tests unitaires v5.4.6 : partition stricte des 6 déclencheurs (3.2 & 5.1),
-duel 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2), Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B),
-manifeste calibration_declencheurs_v5_4 (11 520 parties) et agrégateur digest JSON.
+"""Tests unitaires v5.4.6 / v5.4.7 : partition stricte des 6 déclencheurs (3.2 & 5.1, 4.2 Nids exclu),
+verrouillage 4. Gardien sur DISTINCT_OPEN_1, Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B),
+manifeste validation_socle_v5_5 (5 760 parties) et agrégateur digest JSON.
 """
 
 from __future__ import annotations
@@ -9,10 +9,13 @@ import gzip
 import json
 from pathlib import Path
 
+import pytest
+
 from bots.heuristic_engine import play_game_b2
 from campaigns.worker_main import _execute_manifest_unit, resolve_manifest_plan
 from engine.core_engine import (
     _advance_continuation,
+    _resolve_nid_block,
     _resolve_single_furtivite_cell_4_1,
     _run_step_3_2,
     apply_choice,
@@ -201,8 +204,42 @@ def test_strict_partition_5_1_piegeage_gt_insecte_gt_parade() -> None:
     assert st_c.count_gardien_pari_consumed_at_case(6) == 0
 
 
-def test_gardien_4_trigger_modes_distinct_open_1_and_distinct_won_2() -> None:
-    """Duel case 4. Gardien : DISTINCT_OPEN_1 vs DISTINCT_WON_2 avec anti-boucle conservé."""
+def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
+    """v5.4.7 : la production d'un Nid en 4.2 crée des Insectes mais n'allume JAMAIS 6. Insecte."""
+    load_all_effects()
+    cfg = GameConfig(
+        n_players=4,
+        mode=2,
+        peuples=("M", "R", "O", "I"),
+        gardien_4_trigger_mode="DISTINCT_OPEN_1",
+        tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
+    )
+    st = GameState(cfg)
+    st.tour = 2
+    st.set_gardien_at_case(6, 1, face=1)
+    st.place_defender_gardien_pari(0, 6, FACE_DEFINITIF)
+    st.set_parcel_nid(0, 1, 1, active_ce_tour=False)
+    st.set_parcel_insectes(0, 1, 0)
+
+    # Production 4.2 (0 Insecte -> +1 Insecte) : NE DOIT PAS allumer 6. Insecte ni ouvrir le Gardien !
+    _resolve_nid_block(st, 1)
+    assert st.get_parcel_insectes(0, 1) == 1
+    assert not st.is_trigger_lit(6)
+    assert st.count_gardien_pari_consumed_at_case(6) == 0
+    assert st.count_gardien_pari_defenders_at_case(6) == 1
+
+    # Production 4.2 à seuil +2 (2 Insectes -> +2 Insectes = 4) : toujours AUCUN déclenchement 6. Insecte !
+    st.set_parcel_insectes(0, 1, 2)
+    st.set_nid_activated(1, False)
+    _resolve_nid_block(st, 1)
+    assert st.get_parcel_insectes(0, 1) == 4
+    assert not st.is_trigger_lit(6)
+    assert st.count_gardien_pari_consumed_at_case(6) == 0
+    assert st.count_gardien_pari_defenders_at_case(6) == 1
+
+
+def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
+    """Case 4. Gardien verrouillée sur DISTINCT_OPEN_1 (anti-boucle conservé) ; DISTINCT_WON_2 rejeté."""
     load_all_effects()
 
     # 1. DISTINCT_OPEN_1 : 1re ouverture de chaque autre Gardien distinct allume 4 ; 2e ouverture du même NON
@@ -240,48 +277,28 @@ def test_gardien_4_trigger_modes_distinct_open_1_and_distinct_won_2() -> None:
     assert st1.count_gardien_pari_consumed_at_case(4) == 2
     assert st1.count_gardien_pari_defenders_at_case(4) == 0
 
-    # 2. DISTINCT_WON_2 : 4 s'allume au 2e puis au 3e autre Gardien distinct qui achève son pari
-    cfg2 = GameConfig(
-        n_players=6,
-        mode=2,
-        peuples=("M", "R", "O", "H", "E", "I"),
-        gardien_4_trigger_mode="DISTINCT_WON_2",
-    )
-    st2 = GameState(cfg2)
-    st2.set_gardien_at_case(1, 1, face=1)
-    st2.set_gardien_at_case(2, 2, face=1)
-    st2.set_gardien_at_case(5, 3, face=1)
-    st2.set_gardien_at_case(4, 4, face=1)
-    # 1 Déf sur case 1, 2 Déf sur case 2, 1 Déf sur case 5, 2 Déf sur case 4
-    st2.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st2.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st2.place_defender_gardien_pari(2, 2, FACE_DEFINITIF)
-    st2.place_defender_gardien_pari(3, 5, FACE_DEFINITIF)
-    st2.place_defender_gardien_pari(4, 4, FACE_DEFINITIF)
-    st2.place_defender_gardien_pari(5, 4, FACE_DEFINITIF)
-
-    # 1er autre Gardien (case 1) achève son pari -> 1 seul autre gagné -> 4 NE S'ALLUME PAS !
-    st2.light_trigger(1)
-    assert sweep_gardiens(st2) == 1
-    assert st2.count_gardien_pari_consumed_at_case(4) == 0
-
-    # Case 2 s'ouvre une 1re fois (1/2 : pari NON achevé) -> 4 NE S'ALLUME PAS !
-    st2.light_trigger(2)
-    assert sweep_gardiens(st2) == 1
-    assert st2.count_gardien_pari_consumed_at_case(4) == 0
-
-    # Case 2 s'ouvre une 2e fois (2/2 : 2e autre Gardien distinct qui achève son pari !) -> 4 S'ALLUME (1re fois) !
-    st2.light_trigger(2)
-    assert sweep_gardiens(st2) == 2
-    assert st2.count_gardien_pari_consumed_at_case(4) == 1
-    assert st2.count_gardien_pari_defenders_at_case(4) == 1
-
-    # Case 5 achève son pari (3e autre Gardien distinct !) -> 4 S'ALLUME (2e fois) !
-    st2.light_trigger(5)
-    assert sweep_gardiens(st2) == 2
-    assert st2.count_gardien_pari_consumed_at_case(4) == 2
-    assert st2.count_gardien_pari_defenders_at_case(4) == 0
-    assert not st2.is_trigger_lit(4)
+    # 2. DISTINCT_WON_2 est supprimé et rejeté dans GameConfig et resolve_manifest_plan
+    with pytest.raises(AssertionError):
+        GameConfig(
+            n_players=6,
+            mode=2,
+            peuples=("M", "R", "O", "H", "E", "I"),
+            gardien_4_trigger_mode="DISTINCT_WON_2",
+        )
+    with pytest.raises(ValueError, match="DISTINCT_OPEN_1"):
+        resolve_manifest_plan(
+            {
+                "campaign_name": "invalid_g4",
+                "mode": 2,
+                "bot": "B2",
+                "player_counts": [4],
+                "games_per_configuration": 4,
+                "gardien_4_trigger_mode": "DISTINCT_WON_2",
+                "base_instance": {"config_index_192": 1},
+                "chassis_plan": {"varying_axes": [], "fixed_axes": {}},
+                "slot_profile_comparisons": {},
+            }
+        )
 
 
 def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
@@ -351,9 +368,9 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     assert ts.bouclier_lisiere_saves == 1
 
 
-def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
-    """Manifeste calibration_declencheurs_v5_4 (11 520 parties) + 6 pct_trigger_*_lit & count_bouclier_lisiere_saves."""
-    manifest_path = ROOT / "campaigns" / "manifests" / "calibration_declencheurs_v5_4.json"
+def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
+    """Manifeste validation_socle_v5_5 (5 760 parties) + 6 pct_trigger_*_lit & count_bouclier_lisiere_saves."""
+    manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v5_5.json"
     assert manifest_path.is_file()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     plan = resolve_manifest_plan(manifest)
@@ -362,20 +379,17 @@ def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
     assert plan["bot"] == "B2"
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
-    assert plan["total_games"] == 11_520
+    assert plan["total_games"] == 5_760
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert len(plan["profile_variants"]) == 2
-    assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {
-        "DISTINCT_OPEN_1",
-        "DISTINCT_WON_2",
-    }
+    assert len(plan["profile_variants"]) == 1
+    assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {"DISTINCT_OPEN_1"}
     assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"CLEAR_RANK_ONLY"}
     assert {v["gardien_bet_cap_policy"] for v in plan["profile_variants"]} == {"UNIFORM_MAX_2"}
 
-    # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs v5.4.6
+    # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs v5.4.7
     mini_manifest = dict(manifest)
-    mini_manifest["campaign_name"] = "test_calibration_declencheurs_mini"
+    mini_manifest["campaign_name"] = "test_validation_socle_v5_5_mini"
     mini_manifest["player_counts"] = [4]
     mini_manifest["games_per_configuration"] = 4
     mini_manifest["chassis_plan"] = {
@@ -395,7 +409,7 @@ def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
         rows[0]["rs_trig3_lit"] = 1
         rows[0]["count_bouclier_lisiere_saves"] = 2
 
-    work_dir = ROOT / ".tmp_runs" / "test_calibration_declencheurs_mini"
+    work_dir = ROOT / ".tmp_runs" / "test_validation_socle_v5_5_mini"
     shards_dir = work_dir / "shards"
     shards_dir.mkdir(parents=True, exist_ok=True)
     shard_path = shards_dir / "shard_00.jsonl.gz"
@@ -408,9 +422,9 @@ def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
             fh.write(json.dumps(r) + "\n")
 
     parquet_path = work_dir / "cells.parquet"
-    digest_path = ROOT / "data" / "digests" / "digest_test_calibration_declencheurs_mini.json"
-    legacy_digest_path = ROOT / "data" / "digest_test_calibration_declencheurs_mini.json"
-    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_calibration_declencheurs_mini.md"
+    digest_path = ROOT / "data" / "digests" / "digest_test_validation_socle_v5_5_mini.json"
+    legacy_digest_path = ROOT / "data" / "digest_test_validation_socle_v5_5_mini.json"
+    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_validation_socle_v5_5_mini.md"
     try:
         _, _, digest = aggregate_campaign_duckdb(
             manifest=mini_manifest,
@@ -418,7 +432,7 @@ def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
             shards_dir=shards_dir,
             parquet_path=parquet_path,
             backend="local",
-            job_name="unit-test-v546",
+            job_name="unit-test-v547",
             tasks=1,
             job_wall_sec=0.1,
         )
@@ -442,16 +456,16 @@ def test_calibration_declencheurs_manifest_11520_and_digest_schema() -> None:
             if p_clean.exists():
                 p_clean.unlink()
 
-    # Smoke B2 sur 3J et 4J avec Bouclier de lisière
+    # Smoke B2 sur 3J et 4J avec Bouclier de lisière et DISTINCT_OPEN_1
     for n_pl, peup in ((3, ("M", "R", "I")), (4, ("M", "R", "H", "I"))):
         cfg_s = GameConfig(
             n_players=n_pl,
             mode=2,
             peuples=peup,
             reve_advance_mode="CLEAR_RANK_ONLY",
-            gardien_4_trigger_mode="DISTINCT_WON_2",
+            gardien_4_trigger_mode="DISTINCT_OPEN_1",
             tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
-            exp_seed=5460 + n_pl,
+            exp_seed=5470 + n_pl,
         )
         over = play_game_b2(GameState(cfg_s), k_max_passes=3)
         assert 1 <= over.tour_fin <= 8

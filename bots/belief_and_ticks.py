@@ -662,10 +662,7 @@ def resolve_step2_2_from_state(
                     )
                     else 0
                 )
-                if cfg.gardien_4_trigger_mode == "DISTINCT_WON_2":
-                    max_case4_trigs = max(0, distinct_other_cases - 1) + col4
-                else:  # "DISTINCT_OPEN_1"
-                    max_case4_trigs = distinct_other_cases + col4
+                max_case4_trigs = distinct_other_cases + col4
                 if max_case4_trigs < res_bets:
                     # Impossible d'allumer 4. Gardien assez de fois pour consommer tous les paris dessus !
                     need_gard_retreat = True

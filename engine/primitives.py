@@ -704,24 +704,13 @@ def prim_partage_info_etat_gardien(
         # le passage Face 1 -> Face 2 des Gardiens double-face a lieu en 5.3 si le pari est gagné.
         _record_phys_ops(state, 1)
 
-        # Déclenchement de 4. Gardien selon gardien_4_trigger_mode (anti-boucle strict sur case 4) :
-        # - DISTINCT_OPEN_1 : chaque autre Gardien distinct qui s'ouvre pour la 1re fois du tour allume 4. Gardien 1 fois.
-        # - DISTINCT_WON_2 : 4. Gardien s'allume lorsque le 2e (puis le 3e, ...) autre Gardien distinct achève son pari
-        #   dans le tour (son dernier Défenseur passe sous sa tuile).
+        # Déclenchement de 4. Gardien verrouillé sur DISTINCT_OPEN_1 (anti-boucle strict sur case 4) :
+        # chaque autre Gardien distinct qui s'ouvre pour la 1re fois du tour allume 4. Gardien 1 fois.
         should_light_4 = False
         if case_1_6 != 4:
             first_open = not state.has_gardien_opened_this_turn(case_1_6)
             state.mark_gardien_opened_this_turn(case_1_6)
-            just_won = (
-                state.count_gardien_pari_defenders_at_case(case_1_6) == 0
-                and not state.has_gardien_won_this_turn(case_1_6)
-            )
-            if just_won:
-                state.mark_gardien_won_this_turn(case_1_6)
-            if state.cfg.gardien_4_trigger_mode == "DISTINCT_OPEN_1":
-                should_light_4 = first_open
-            else:  # "DISTINCT_WON_2"
-                should_light_4 = just_won and state.count_other_gardiens_won_this_turn() >= 2
+            should_light_4 = first_open
 
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
         if should_light_4:

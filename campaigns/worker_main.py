@@ -1459,8 +1459,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         g4_modes = [str(x).strip().upper() for x in raw_g4_modes]
         explicit_g4_mode_sweep = True
     for g4m in g4_modes:
-        if g4m not in ("DISTINCT_OPEN_1", "DISTINCT_WON_2"):
-            raise ValueError(f"gardien_4_trigger_mode invalide : {g4m!r}")
+        if g4m != "DISTINCT_OPEN_1":
+            raise ValueError(
+                f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {g4m!r}"
+            )
 
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True

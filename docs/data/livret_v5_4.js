@@ -8,7 +8,7 @@ const REGLES_COEUR_SYNTHESE = {
     "gouvernance_unitaire": "Chaque Tuile de Synergie (G, R, M) et piste de Migration est gouvernée exclusivement par le joueur de son Peuple d'origine (champ origine). Zéro vote de groupe. Les cartes Sabotage sont toutes identiques et sans décision de jeu (dilution automatique du paquet Machine).",
     "communication_muette": "Silence tactique complet tant que les paravents sont fermés (seuls les placements/ajustements de Défenseurs communiquent). Sous l'ouverture anticipée de l'Ara : simple visibilité publique des cartes et dés, sans concertation orale.",
     "pont_routier": "Le long d'un rayon Forêt, toute Route Forestière est systématiquement sautée (viser devant, avancer, reculer, glisser un Piège, migrer = prochaine parcelle non rasée). Latéralement (Forêt <-> Furtivité), une Route est infranchissable et inoccupable.",
-    "cascades_gardiens": "Finir intégralement l'action ou le Nid en cours avant d'examiner la Piste des Gardiens. Partition stricte des 6 déclencheurs (1 événement = au plus 1 déclencheur) : 3.2 (3. Sabotage > 6. Insecte Bug > 5. Rêve) ; 4.1 sans déclencheur 2/3 ; 4.2 Nids (6. Insecte) ; 5.1/5.2 (2. Piégeage > 6. Insecte Parade >=1 Insecte > 1. Parade Défenseurs seuls) ; 4. Gardien (anti-boucle conservé : DISTINCT_OPEN_1 ou DISTINCT_WON_2). Plafond uniforme UNIFORM_MAX_2 (max 2 Défenseurs par Gardien en 2.2). Balayage à plat de 1 à 6."
+    "cascades_gardiens": "Finir intégralement l'action ou le Nid en cours avant d'examiner la Piste des Gardiens. Partition stricte des 6 déclencheurs (1 événement = au plus 1 déclencheur) : 3.2 (3. Sabotage > 6. Insecte Bug > 5. Rêve) ; 4.1 sans déclencheur 2/3 ; la production d'un Nid en 4.2 n'allume jamais 6. Insecte ; 5.1/5.2 (2. Piégeage > 6. Insecte Parade >=1 Insecte > 1. Parade Défenseurs seuls) ; 4. Gardien verrouillée sur DISTINCT_OPEN_1 (anti-boucle conservé). Plafond uniforme UNIFORM_MAX_2 (max 2 Défenseurs par Gardien en 2.2). Balayage à plat de 1 à 6."
   },
   "topologie_et_seuils_imprimes": {
     "roue": "N pistes Forêt (rayons p=1 bordure vers p=P_Max cœur) alternées avec N pistes Furtivité (lisières X<->Y portant 2 Tuiles de Synergie en bordure et 4 emplacements jumeaux par case Furtivité).",
@@ -80,7 +80,7 @@ function renderDidacticRulebook() {
           </p>
         </div>
         <div class="bg-forest-50 border border-forest-200 rounded-xl p-3 text-xs font-mono text-forest-900">
-          <div><strong>Version :</strong> v5.4.6 (Partition stricte 6 déclencheurs Gardiens &amp; Bouclier de lisière)</div>
+          <div><strong>Version :</strong> v5.4.7 (Socle finalisé : 6. Insecte strict sans 4.2 Nids &amp; 4. Gardien DISTINCT_OPEN_1)</div>
           <div><strong>Châssis :</strong> #${configNum} / ${totalConfigs}</div>
           <div><strong>Bundle :</strong> ${state.bundleId}</div>
           <div><strong>Pièges :</strong> Embuscade (Déf ≥ 1)</div>
@@ -334,7 +334,7 @@ function renderDidacticRulebook() {
             </ul>
           </li>
           <li>
-            <strong>4.2. Production des Nids (bloc indivisible) :</strong> Chaque Nid portant au moins 1 Défenseur est résolu <strong>d'un seul tenant</strong> avant d'examiner les Gardiens : (1) posez <strong>+1 Insecte</strong> (si 0 ou 1 Insecte est présent sur la parcelle <em>à cet instant précis</em>) ou <strong>+2 Insectes</strong> (s'il y en a déjà ≥ 2 <em>à cet instant</em>), puis (2) résolvez immédiatement le pouvoir propre du Nid, et seulement ensuite (3) balayez les Gardiens de 1 à 6 (<em>6. Insecte</em>). <em>(Une production hors phase comme Le Miel des Ancêtres ne crée que les jetons Insecte).</em>
+            <strong>4.2. Production des Nids (bloc indivisible) :</strong> Chaque Nid portant au moins 1 Défenseur est résolu <strong>d'un seul tenant</strong> avant d'examiner les Gardiens : (1) posez <strong>+1 Insecte</strong> (si 0 ou 1 Insecte est présent sur la parcelle <em>à cet instant précis</em>) ou <strong>+2 Insectes</strong> (s'il y en a déjà ≥ 2 <em>à cet instant</em> ; cette production n'allume jamais <em>6. Insecte</em>), puis (2) résolvez immédiatement le pouvoir propre du Nid, et seulement ensuite (3) balayez les Gardiens de 1 à 6. <em>(Une production hors phase comme Le Miel des Ancêtres ne crée que les jetons Insecte).</em>
           </li>
           <li>
             <strong>4.3. Migration facultative des Insectes :</strong> Chaque Insecte présent sur la roue <strong>peut se déplacer de 0 ou 1 cran</strong> (même s'il vient de bouger en 4.2 ; retournez chaque jeton déplacé sur son verso pour suivi, puis remettez-les tous à l'endroit en fin de 4.3). Depuis la <strong>dernière parcelle non rasée d'un rayon</strong>, 1 cran permet un <strong>aller simple définitif</strong> (sans limite de pions par case) vers une case <code>1..6</code> de :
@@ -403,7 +403,7 @@ function renderDidacticRulebook() {
             Déclencheurs : <strong>1. Parade, 2. Piégeage, 3. Sabotage, 4. Gardien, 5. Rêve, 6. Insecte</strong> (max 1 ouverture/tour).
           </p>
           <p class="text-slate-700">
-            <strong>Pari par Défenseur (UNIFORM_MAX_2) &amp; Partition stricte 1 → 6 :</strong> terminez toujours l'effet en cours, puis parcourez les cases allumées de <strong>1 à 6</strong>. Chaque Gardien construit (cases 1..6) peut recevoir au maximum <strong>2 Défenseurs</strong> en 2.2. Chaque déclenchement consomme <strong>1 Défenseur</strong> et ouvre le Gardien. Case <strong>4. Gardien</strong> (anti-boucle conservé) : <code>DISTINCT_OPEN_1</code> (1<sup>re</sup> ouverture du tour de chaque autre Gardien distinct) ou <code>DISTINCT_WON_2</code> (2<sup>e</sup> puis 3<sup>e</sup> autre Gardien distinct achevant son pari). En <strong>5.3</strong> : <code>0</code> Défenseur restant → pari gagné (reste en piste, Face 2 en Mode 4 si double-face) ; <code>≥ 1</code> Défenseur restant → pari perdu (<strong>Bouclier de lisière</strong> <code>SLOT_COLONISATION_GARDIENS=B</code> : défausser 1 Insecte de la case empêche le retour en lisière tout en gardant le pari PERDU ; sinon retour en lisière Face 1).
+            <strong>Pari par Défenseur (UNIFORM_MAX_2) &amp; Partition stricte 1 → 6 :</strong> terminez toujours l'effet en cours, puis parcourez les cases allumées de <strong>1 à 6</strong>. Chaque Gardien construit (cases 1..6) peut recevoir au maximum <strong>2 Défenseurs</strong> en 2.2. Chaque déclenchement consomme <strong>1 Défenseur</strong> et ouvre le Gardien. Case <strong>4. Gardien</strong> verrouillée sur <code>DISTINCT_OPEN_1</code> (anti-boucle conservé : 1<sup>re</sup> ouverture du tour de chaque autre Gardien distinct). En <strong>5.3</strong> : <code>0</code> Défenseur restant → pari gagné (reste en piste, Face 2 en Mode 4 si double-face) ; <code>≥ 1</code> Défenseur restant → pari perdu (<strong>Bouclier de lisière</strong> <code>SLOT_COLONISATION_GARDIENS=B</code> : défausser 1 Insecte de la case empêche le retour en lisière tout en gardant le pari PERDU ; sinon retour en lisière Face 1).
           </p>
         </div>
         <div class="p-4 rounded-xl bg-purple-50/70 border border-purple-200">

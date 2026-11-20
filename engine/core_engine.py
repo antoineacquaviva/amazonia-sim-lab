@@ -2800,7 +2800,8 @@ def _resolve_nid_block(state: GameState, m_num: int) -> None:
     state.set_nid_activated(m_num, True)
     cur_ins = state.get_parcel_insectes(r, p)
     created = 1 if cur_ins <= 1 else 2
-    prim_creation_entite(state, "INSECTE", ray=r, p=p, count=created, light_trigger=True)
+    # v5.4.7 : la production d'un Nid en 4.2 n'allume jamais 6. Insecte (partition stricte : 3.2 Bug ou 5.1 Parade Insecte uniquement)
+    prim_creation_entite(state, "INSECTE", ray=r, p=p, count=created, light_trigger=False)
     if state.cfg.mode >= 3:
         sweep_frame = ("SWEEP_GARDIENS_NOW",)
         state._continuation.insert(0, sweep_frame)

@@ -568,8 +568,8 @@ class GameConfig:
         assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"), (
             f"reve_advance_mode invalide : {self.reve_advance_mode}"
         )
-        assert self.gardien_4_trigger_mode in ("DISTINCT_OPEN_1", "DISTINCT_WON_2"), (
-            f"gardien_4_trigger_mode invalide : {self.gardien_4_trigger_mode}"
+        assert self.gardien_4_trigger_mode == "DISTINCT_OPEN_1", (
+            f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {self.gardien_4_trigger_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 

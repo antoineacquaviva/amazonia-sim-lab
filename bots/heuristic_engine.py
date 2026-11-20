@@ -53,6 +53,7 @@ from engine.state import (
     PlayerObservation,
     is_reve_code,
     is_tactique_code,
+    unpack_machine_card,
 )
 
 __all__ = (
@@ -86,17 +87,18 @@ ALL_12_RESOURCES: tuple[str, ...] = (
 )
 
 # Courbe temporelle de RES_DILUTION_SABOTAGE (Tours 1..8) :
-# forte aux Tours 1..5 (nombreux remélanges 6.3 restants), faible au Tour 7, nulle au Tour 8.
+# forte aux Tours 1..5 (nombreux remélanges 6.3 restants + activation du déclencheur 3. Sabotage),
+# modérée au Tour 6, faible au Tour 7, quasi nulle au Tour 8.
 _SABOTAGE_TOUR_WEIGHT: tuple[float, ...] = (
-    95.0,  # index 0 (inutilisé)
-    95.0,  # Tour 1
-    88.0,  # Tour 2
-    78.0,  # Tour 3
-    68.0,  # Tour 4
-    56.0,  # Tour 5
-    32.0,  # Tour 6
-    12.0,  # Tour 7
-    2.0,   # Tour 8 (uniquement déclencheur 3 résiduel, 0 remélange futur)
+    175.0,  # index 0 (inutilisé)
+    175.0,  # Tour 1
+    165.0,  # Tour 2
+    150.0,  # Tour 3
+    130.0,  # Tour 4
+    105.0,  # Tour 5
+    68.0,   # Tour 6
+    28.0,   # Tour 7
+    4.0,    # Tour 8 (0 remélange futur)
 )
 
 
@@ -433,12 +435,12 @@ def _estimate_expected_gardien_triggers(
 ) -> tuple[float, float, float, float, float, float]:
     """Estime le nombre attendu de déclencheurs sur les cases 1..6 (strictement sur PlayerObservation).
 
-    Partition stricte v5.4.6 (« 1 événement = au plus 1 déclencheur ») :
+    Partition stricte v5.4.7 (« 1 événement = au plus 1 déclencheur ») :
     - 3.2 : 3. Sabotage (carte Sabotage révélée) > 6. Insecte (déviation Bug) > 5. Rêve (dé M sur Rêve, avec ou sans Défenseur).
-    - 4.1 Furtivité : n'allume plus ni 2. Piégeage ni 3. Sabotage.
-    - 4.2 Nids : +1/+2 Insectes -> 6. Insecte.
+    - 4.1 Furtivité : n'allume ni 2. Piégeage ni 3. Sabotage.
+    - 4.2 Nids : la production d'un Nid n'allume jamais 6. Insecte.
     - 5.1/5.2 : 2. Piégeage (Piège armé) > 6. Insecte (Parade classique défaussant >=1 Insecte) > 1. Parade (Défenseurs seuls).
-    - 4. Gardien (indice 3) : calculé dynamiquement dans `_score_gardien_pari` selon `gardien_4_trigger_mode`.
+    - 4. Gardien (indice 3) : verrouillé sur DISTINCT_OPEN_1 dans `_score_gardien_pari`.
     """
     n = obs.n_players
     p_max = cfg.p_max
@@ -534,13 +536,7 @@ def _estimate_expected_gardien_triggers(
                 float(n_bug_ranks), float(n - 1) * p_other_mach * (n_bug_ranks / 6.0)
             )
 
-    # 3) Étape 4.2 : Nids portant >= 1 Défenseur produisent des Insectes -> 6. Insecte
-    for r in range(n):
-        for p in range(1, p_max + 1):
-            if obs.parcel_has_nid(r, p) and obs.parcel_defenseurs(r, p) >= 1:
-                exp_insecte += 1.0
-
-    # 4) Bonus Colonie 4.3 : uniquement actif sous SLOT_COLONISATION_GARDIENS == 'A'
+    # 3) Bonus Colonie 4.3 : uniquement actif sous SLOT_COLONISATION_GARDIENS == 'A'
     #    (sous profil 'B' Bouclier de lisière, l'Insecte protège en 5.3 mais n'ouvre pas le Gardien)
     if cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "A":
         piste_col = obs.piste_colonie
@@ -568,11 +564,11 @@ def _score_gardien_pari(
 ) -> float:
     """Évalue la cible `('GARDIEN_PARI', case_c)` en 2.2 (strictement sur PlayerObservation).
 
-    Règle v5.4.6 :
+    Règle v5.4.7 :
     - Plafond de pari `gardien_bet_cap_policy` (`UNIFORM_MAX_2` : max 2/Gardien cases 1..6) et Éveil
       de la Forêt 100 % Piste des Gardiens (les N Défenseurs sur la Piste des Gardiens).
-    - 5. Rêve est désormais utilisable durant un Éveil (allumé par tout dé M non dévié sur un Rêve).
-    - 4. Gardien suit `gardien_4_trigger_mode` (`DISTINCT_OPEN_1` ou `DISTINCT_WON_2`).
+    - 5. Rêve est utilisable durant un Éveil (allumé par tout dé M non dévié sur un Rêve).
+    - 4. Gardien est verrouillé sur `DISTINCT_OPEN_1`.
     - À 3J-4J, B2 ne force pas l'Éveil lorsque la survie normale offre une meilleure espérance d'Arbres.
     """
     if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(case_c):
@@ -598,7 +594,6 @@ def _score_gardien_pari(
     total_non_res_cap = 0.0
     distinct_other_cap = 0.0
     distinct_other_bet_exp = 0.0
-    distinct_other_won_exp = 0.0
     has_other_empty_supported = False
     for c_k in (1, 2, 3, 5, 6):
         if obs.gardien_present_at_case(c_k):
@@ -613,10 +608,6 @@ def _score_gardien_pari(
             )
             if bets_k >= 1:
                 distinct_other_bet_exp += min(1.0, t_k)
-                if t_k >= float(bets_k) - 0.25:
-                    distinct_other_won_exp += 1.0
-                elif t_k >= float(bets_k) - 0.55:
-                    distinct_other_won_exp += 0.5
             elif c_k != case_c and t_k >= 0.85:
                 has_other_empty_supported = True
 
@@ -625,23 +616,14 @@ def _score_gardien_pari(
     if has_res:
         total_slots_cap += cap_4
     col4_bonus = 0.85 if (colonie_is_a and obs.piste_colonie[3] >= 1) else 0.0
-    if cfg.gardien_4_trigger_mode == "DISTINCT_WON_2":
-        res_cap = min(float(cap_4), max(0.0, distinct_other_cap - 1.0) + col4_bonus) if has_res else 0.0
-    else:  # "DISTINCT_OPEN_1"
-        res_cap = min(float(cap_4), distinct_other_cap + col4_bonus) if has_res else 0.0
+    res_cap = min(float(cap_4), distinct_other_cap + col4_bonus) if has_res else 0.0
     total_gardien_cap = total_non_res_cap + res_cap
 
     if case_c == 4:
-        if cfg.gardien_4_trigger_mode == "DISTINCT_WON_2":
-            potential_won = min(
-                distinct_other_cap, distinct_other_won_exp + 0.70 * unplaced_allies
-            )
-            exp_for_case = max(0.0, potential_won - 1.0) + col4_bonus
-        else:  # "DISTINCT_OPEN_1"
-            potential_open = min(
-                distinct_other_cap, distinct_other_bet_exp + 0.80 * unplaced_allies
-            )
-            exp_for_case = potential_open + col4_bonus
+        potential_open = min(
+            distinct_other_cap, distinct_other_bet_exp + 0.80 * unplaced_allies
+        )
+        exp_for_case = potential_open + col4_bonus
     else:
         exp_for_case = exp_trigs[case_c - 1]
 
@@ -699,21 +681,12 @@ def _score_gardien_pari(
         # Privilégier d'abord les cases motrices (1,2,3,5,6) avant 4. Gardien s'il en reste à alimenter
         if (
             case_c == 4
-            and (
-                (
-                    cfg.gardien_4_trigger_mode == "DISTINCT_WON_2"
-                    and distinct_other_won_exp < (float(needed_triggers) + 0.85)
-                )
-                or (
-                    cfg.gardien_4_trigger_mode == "DISTINCT_OPEN_1"
-                    and distinct_other_bet_exp < (float(needed_triggers) - 0.15)
-                )
-            )
+            and distinct_other_bet_exp < (float(needed_triggers) - 0.15)
             and distinct_other_cap > distinct_other_bet_exp + 0.35
         ):
             eveil_penalty += 45.0
         # Préférence pour répartir sur des Gardiens distincts avant d'empiler un 2e pari
-        # (d'autant plus crucial sous DISTINCT_OPEN_1 et DISTINCT_WON_2 !)
+        # (d'autant plus crucial sous DISTINCT_OPEN_1 !)
         if allies_on_case >= 1 and has_other_empty_supported:
             eveil_penalty += 38.0
 
@@ -990,7 +963,7 @@ def score_target_b2(
         score = 90.0
         trig_1_v = trig_vals[0]  # 1. Parade (Défenseurs seuls)
         trig_2_v = trig_vals[1]  # 2. Piégeage (frappe bloquée par Piège)
-        trig_6_v = trig_vals[5]  # 6. Insecte (Nid / Parade avec dépense d'Insecte)
+        trig_6_v = trig_vals[5]  # 6. Insecte (Parade avec dépense d'Insecte uniquement en 5.1)
 
         # 1. Armement d'un Piège Embuscade : pare n'importe quel Seuil + épargne les Insectes + allume 2. Piégeage
         if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and cur_def == 0:
@@ -998,10 +971,10 @@ def score_target_b2(
             piege_bet_bonus = 95.0 if obs.gardien_pari_defenders(2) >= 1 else 0.0
             score += 410.0 + s_prob * (310.0 + trig_2_v + saved_ins_v + piege_bet_bonus)
 
-        # 2. Activation d'un Nid en 4.2 : produit +1/+2 Insectes + TRIG_6 + pouvoir du Nid
+        # 2. Activation d'un Nid en 4.2 : produit +1/+2 Insectes + pouvoir du Nid (n'allume jamais 6. Insecte)
         if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
             prod_cnt = 1 if ins <= 1 else 2
-            score += 360.0 + prod_cnt * res_val["RES_INSECTE"] + 0.85 * trig_6_v
+            score += 360.0 + prod_cnt * res_val["RES_INSECTE"]
 
         # 3. Lookahead 5.1 -> 6.2 sur les dégâts évités (Arbres, Route 0/0 et déclencheur 1. Parade ou 6. Insecte)
         if s_prob > 0.05:
@@ -1062,11 +1035,13 @@ def score_target_b2(
         t_ray = l_i if rv == 0 else (l_i + 1) % obs.n_players
         idx = t_ray * MAX_P + (p_i - 1)
 
-        has_m = any(
-            obs.machine_pos_status(t_ray, mt)[0] == p_i
-            and obs.machine_pos_status(t_ray, mt)[1] != MACHINE_STATUS_RETIRED
+        present_mts = [
+            mt
             for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
-        )
+            if obs.machine_pos_status(t_ray, mt)[0] == p_i
+            and obs.machine_pos_status(t_ray, mt)[1] != MACHINE_STATUS_RETIRED
+        ]
+        has_m = len(present_mts) > 0
         has_siege = any(
             obs.machine_pos_status(t_ray, mt) == (p_i, MACHINE_STATUS_RATISSAGE)
             for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
@@ -1084,11 +1059,51 @@ def score_target_b2(
             s_future = 1.0 + 0.8 * belief.parcel_strike_prob[idx] + (0.45 if m_approaching else 0.0)
             prep_trig2 = (0.45 * trig_vals[1]) if (obs.gardien_present_at_case(2) and obs.tour <= 6) else 0.0
             action_v = res_val["RES_PIEGE"] * s_future + prep_trig2
-        elif has_m and not has_siege:
-            # 4.1 Saboter le chantier (n'allume plus 3. Sabotage en 4.1, mais dilue le paquet pour futurs 3.2 !)
-            p_inactive = max(0.0, 1.0 - min(1.0, belief.parcel_strike_prob[idx]))
-            prep_trig3 = (0.35 * trig_vals[2]) if (obs.gardien_present_at_case(3) and obs.tour <= 6) else 0.0
-            action_v = p_inactive * (res_val["RES_DILUTION_SABOTAGE"] * 1.45 + prep_trig3)
+        elif has_m and not has_siege and obs.tour <= 7:
+            # 4.1 Saboter le chantier : dilution permanente du paquet Machine + préparation 3. Sabotage en 3.2
+            # Calcul strict sous paravent de p_inactive (aucune des machines sur (t_ray, p_i) tirée ce tour)
+            own_hand = obs.hand_of(obs.observer_seat)
+            own_hits_here = False
+            if own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players:
+                own_r, own_mt = unpack_machine_card(own_hand.card)
+                if own_r == t_ray and own_mt in present_mts:
+                    own_hits_here = True
+            if own_hits_here:
+                p_inactive = 0.0
+            else:
+                active_deck_m = 0
+                for r_d in range(obs.n_players):
+                    for mt_d in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                        mp_d, ms_d = obs.machine_pos_status(r_d, mt_d)
+                        if ms_d == 0 and mp_d > 0:
+                            active_deck_m += 1
+                sab_cnt = obs.sabotage_deck_count
+                deck_rem = max(obs.n_players, active_deck_m + sab_cnt) - (1 if own_hand.has_card else 0)
+                other_draws = max(0, obs.n_players - 1)
+                if len(present_mts) == 1:
+                    p_inactive = max(0.0, 1.0 - other_draws / max(1.0, float(deck_rem)))
+                else:
+                    p1 = max(0.0, 1.0 - other_draws / max(1.0, float(deck_rem)))
+                    p2 = max(0.0, 1.0 - other_draws / max(1.0, float(max(1, deck_rem - 1))))
+                    p_inactive = p1 * p2
+                # Rendement marginal décroissant selon le stock de Sabotages déjà dans le paquet
+                if sab_cnt == 0:
+                    sab_stock_mult = 1.60
+                elif sab_cnt == 1:
+                    sab_stock_mult = 1.25
+                elif sab_cnt == 2:
+                    sab_stock_mult = 0.90
+                else:
+                    sab_stock_mult = 0.60
+                prep_trig3 = 0.0
+                if obs.tour <= 6:
+                    if obs.gardien_present_at_case(3):
+                        prep_trig3 = 0.85 * trig_vals[2] + (65.0 if sab_cnt == 0 else 25.0)
+                    elif obs.gardien_pari_enabled and sab_cnt == 0 and obs.tour <= 5:
+                        prep_trig3 = 45.0
+                action_v = p_inactive * (
+                    res_val["RES_DILUTION_SABOTAGE"] * sab_stock_mult * 1.45 + prep_trig3
+                )
 
         if action_v <= 5.0:
             return 85.0
@@ -1762,41 +1777,70 @@ def _choose_policy(
     if dtype == DEC_MIGRATION_INSECTE_4_3:
         src = decision.context.get("source", ("FORET", 0, 1))
         src_kind, src_a, src_p = src
+        n_pl = obs.n_players
+        p_max = cfg.p_max
         if src_kind == "FORET":
             sr, sp = int(src_a), int(src_p)
             sr_idx = sr * MAX_P + (sp - 1)
+            sr_defs = obs.parcel_defenseurs(sr, sp)
+            sr_ins = obs.parcel_insectes(sr, sp)
             # Garder un Piège armé ou une parade vitale sur la parcelle source !
             if (
                 obs.parcel_piege(sr, sp) == PIEGE_ACTIF
-                and obs.parcel_defenseurs(sr, sp) == 0
-                and obs.parcel_insectes(sr, sp) == 1
+                and sr_defs == 0
+                and sr_ins == 1
             ):
                 return ("RESTER",)
+            sr_seuil = belief.parcel_expected_seuil[sr_idx]
             if (
                 is_b2
-                and belief.parcel_strike_prob[sr_idx] >= 0.85
-                and obs.parcel_defenseurs(sr, sp) + obs.parcel_insectes(sr, sp)
-                == int(belief.parcel_expected_seuil[sr_idx])
+                and belief.parcel_strike_prob[sr_idx] >= 0.50
+                and sr_defs < sr_seuil
+                and (sr_defs + sr_ins) >= sr_seuil
+                and (sr_defs + sr_ins - 1) < sr_seuil
             ):
                 return ("RESTER",)
+
+        total_forest_ins = sum(
+            obs.parcel_insectes(r_f, p_f)
+            for r_f in range(n_pl)
+            for p_f in range(1, p_max + 1)
+        )
+        total_bugs = sum(obs.tactique_code_bugs_app(c_b)[1] for c_b in range(TRACK_LEN))
+        total_colonies = sum(obs.piste_colonie)
+        g6_present = obs.gardien_present_at_case(6)
+        g6_bet = obs.gardien_pari_defenders(6) >= 1
+
+        def _has_frontline_machine(r_q: int, p_q: int) -> bool:
+            for mt_q in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                mp_q, ms_q = obs.machine_pos_status(r_q, mt_q)
+                if ms_q != MACHINE_STATUS_RETIRED and (mp_q == p_q or mp_q == p_q - 1):
+                    return True
+            return False
 
         def _mig_sc(mv: tuple[Any, ...]) -> float:
             mk = mv[0]
             if mk == "COLONIE":
                 c_num = int(mv[1])
                 if cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B":
-                    # Bouclier de lisière : en 4.3, protéger en priorité les Gardiens menacés de perte
-                    # de pari en 5.3 (surtout cases 3 et 5 dont la fenêtre 3.2 est déjà passée !).
+                    # Bouclier de lisière : priorité aux Gardiens menacés de perte de pari en 5.3,
+                    # rendement décroissant sur les boucliers purement préventifs (rem_bets == 0).
                     has_g = obs.gardien_present_at_case(c_num)
                     rem_bets = obs.gardien_pari_defenders(c_num)
                     cur_col = obs.piste_colonie[c_num - 1]
                     if has_g and rem_bets >= 1 and cur_col == 0:
                         if c_num in (3, 5):
-                            return 640.0 if is_b2 else 560.0
-                        return 510.0 if is_b2 else 460.0
+                            return 620.0 if is_b2 else 560.0
+                        return 485.0 if is_b2 else 450.0
                     if has_g and cur_col == 0:
-                        return 345.0 if is_b2 else 280.0
-                    return 135.0
+                        if not is_b2:
+                            return 280.0
+                        if total_colonies == 0:
+                            return 340.0
+                        if total_colonies == 1:
+                            return 250.0
+                        return 155.0
+                    return 115.0
                 if obs.gardien_available_at_case(c_num):
                     return 560.0 if is_b2 else 500.0
                 return 240.0
@@ -1804,33 +1848,78 @@ def _choose_policy(
                 c_num = int(mv[1])
                 t_code, t_bugs, _ = obs.tactique_code_bugs_app(c_num - 1)
                 if is_tactique_code(t_code) and t_bugs == 0:
-                    # B2 cible en priorité les Tactiques dangereuses (T6, T3) ou placées juste à droite d'un Rêve !
+                    # Rendement décroissant après 1-2 Bugs sur la piste des Tactiques
+                    if is_b2:
+                        if total_bugs == 0:
+                            base_bug = 440.0
+                        elif total_bugs == 1:
+                            base_bug = 380.0
+                        elif total_bugs == 2:
+                            base_bug = 280.0
+                        else:
+                            base_bug = 180.0
+                    else:
+                        base_bug = 410.0
                     right_of_reve = (
                         c_num >= 2 and is_reve_code(obs.tactique_code_bugs_app(c_num - 2)[0])
                     )
-                    danger_b = 110.0 if t_code in (3, 6) else 45.0
-                    return 410.0 + danger_b + (95.0 if (is_b2 and right_of_reve) else 0.0)
-                return 190.0
+                    danger_b = 65.0 if t_code in (3, 6) else 25.0
+                    g6_b = 45.0 if (is_b2 and g6_present and total_bugs <= 1) else 0.0
+                    return base_bug + danger_b + (55.0 if (is_b2 and right_of_reve) else 0.0) + g6_b
+                return 150.0
             if mk == "FORET":
                 dr, dp = int(mv[1]), int(mv[2])
                 d_idx = dr * MAX_P + (dp - 1)
+                d_defs = obs.parcel_defenseurs(dr, dp)
+                d_ins = obs.parcel_insectes(dr, dp)
+                d_seuil = belief.parcel_expected_seuil[d_idx]
                 if (
                     obs.parcel_piege(dr, dp) == PIEGE_ACTIF
-                    and obs.parcel_defenseurs(dr, dp) + obs.parcel_insectes(dr, dp) == 0
+                    and d_defs + d_ins == 0
                 ):
-                    return 520.0
-                if belief.parcel_strike_prob[d_idx] >= 0.75 and (
-                    obs.parcel_defenseurs(dr, dp) + obs.parcel_insectes(dr, dp)
-                    < belief.parcel_expected_seuil[d_idx]
+                    return 575.0
+                if belief.parcel_strike_prob[d_idx] >= 0.50 and (d_defs + d_ins) < d_seuil:
+                    if (d_defs + d_ins + 1) >= d_seuil:
+                        # Complète une Parade classique avec Insecte -> sauve des Arbres + allume 6. Insecte !
+                        return 610.0 + (65.0 if g6_bet else 0.0)
+                    return 440.0
+                if is_b2 and obs.parcel_has_nid(dr, dp) and d_ins == 1:
+                    # Passe un Nid au seuil de production +2 Insectes
+                    return 420.0
+                if (
+                    is_b2
+                    and obs.parcel_arbres(dr, dp) >= 1
+                    and d_ins < 2
+                    and _has_frontline_machine(dr, dp)
                 ):
-                    return 390.0
+                    return 445.0 if total_forest_ins <= n_pl + 1 else 365.0
                 if obs.mode >= 2 and src_kind == "FORET" and dp > int(src_p):
-                    return 310.0
+                    return 290.0
                 return 95.0
             if mk == "FURTIVITE":
                 fl, fp = int(mv[1]), int(mv[2])
                 nb_d, f_ins = obs.furtivite_defs_and_ins(fl, fp)
                 return 260.0 if (nb_d == 1 and f_ins == 0) else 90.0
+            # RESTER : valoriser la conservation d'une réserve forestière (soutien Parade, Nid +2, 6. Insecte)
+            if is_b2 and src_kind == "FORET":
+                sr_r, sp_r = int(src_a), int(src_p)
+                cur_ins_r = obs.parcel_insectes(sr_r, sp_r)
+                stay_sc = 180.0
+                if obs.parcel_has_nid(sr_r, sp_r) and cur_ins_r <= 2:
+                    stay_sc += 250.0
+                elif (
+                    obs.parcel_arbres(sr_r, sp_r) >= 1
+                    and cur_ins_r <= 2
+                    and _has_frontline_machine(sr_r, sp_r)
+                ):
+                    stay_sc += 255.0
+                    if total_forest_ins <= n_pl:
+                        stay_sc += 55.0
+                    if g6_present:
+                        stay_sc += 35.0
+                elif obs.parcel_arbres(sr_r, sp_r) >= 1 and cur_ins_r == 1 and total_forest_ins <= n_pl:
+                    stay_sc += 210.0
+                return stay_sc
             return 160.0  # RESTER
 
         best_mv = opts[0]
