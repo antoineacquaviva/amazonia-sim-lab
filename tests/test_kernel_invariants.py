@@ -517,19 +517,21 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     assert s_reve.get_parcel_arbres(1, 1) == 2  # Plafonné à la dotation initiale !
     assert s_reve.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Piège déclenché retiré avant fin
 
-    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> N 2es Défs sur Piste Gardiens et tous paris gagnés)
+    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts, max 1 Déf/Gardien)
     cfg_gard = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=1415)
     s_gard = GameState(cfg_gard)
     s_gard.tour = 4
     s_gard.set_gardien_at_case(1, 1, face=1)
-    s_gard.set_gardien_at_case(4, 2, face=1)
+    s_gard.set_gardien_at_case(2, 2, face=1)
+    s_gard.set_gardien_at_case(3, 3, face=1)
+    s_gard.set_gardien_at_case(4, 4, face=1)
     s_gard.place_defender_gardien_pari(0, 1, 2)
-    s_gard.place_defender_gardien_pari(1, 1, 2)
-    s_gard.place_defender_gardien_pari(2, 4, 2)
+    s_gard.place_defender_gardien_pari(1, 2, 2)
+    s_gard.place_defender_gardien_pari(2, 3, 2)
     s_gard.place_defender_gardien_pari(3, 4, 2)
     s_gard.light_trigger(1)
-    sweep_gardiens(s_gard)
-    s_gard.light_trigger(1)
+    s_gard.light_trigger(2)
+    s_gard.light_trigger(3)
     sweep_gardiens(s_gard)
     s_gard.step = STEP_5_3_END_CHECK
 

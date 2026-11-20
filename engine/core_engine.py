@@ -477,20 +477,18 @@ def list_legal_targets(
             if st == LISIERE_UNCONSTRUCTED and nb < 2:
                 targets.append(cand_l)
 
-    # 4. Pari d'activation des Gardiens (2e Défenseur uniquement, Mode >= 2, >= 1 Animal Sauvage)
+    # 4. Pari d'activation des Gardiens (Défenseur en 2.2, Mode >= 2, >= 1 Animal Sauvage, max 1/Gardien)
     if not is_first_defender and state.cfg.mode >= 2 and state.cfg.nb_animaux_sauvages >= 1:
-        cap_res = state.cfg.gardien_resonance_cap == "MAX_1_DEF"
         for c_num in range(1, TRACK_LEN + 1):
             g_num, _ = state.get_gardien_at_case(c_num)
             if g_num == 0:
                 continue
             cand_pari = _GARDIEN_PARI_TARGETS[c_num]
-            if c_num == 4 and cap_res:
-                cnt_res = state.count_gardien_pari_defenders_at_case(4)
-                if own_spot == cand_pari:
-                    cnt_res = max(0, cnt_res - 1)
-                if cnt_res >= 1:
-                    continue
+            cnt_case = state.count_gardien_pari_defenders_at_case(c_num)
+            if own_spot == cand_pari:
+                cnt_case = max(0, cnt_case - 1)
+            if cnt_case >= 1:
+                continue
             targets.append(cand_pari)
 
     # 5. Activation de Rêve sur la piste fixe (2e Défenseur uniquement, Mode >= 2)
@@ -674,13 +672,7 @@ def lock_all_def2_in_place(state: GameState) -> None:
     if flipped > 0:
         _record_phys_ops(state, flipped)
 
-    if (
-        not state.step2_locked
-        and state.cfg.mode >= 2
-        and state.cfg.nb_animaux_sauvages >= 1
-        and state.tour < 8
-        and state.total_gardien_pari_engaged() == state.cfg.n_players
-    ):
+    if not state.step2_locked and state.is_eveil_attempt_eligible():
         trk = _get_active_telemetry()
         if trk is not None:
             trk.on_reveil_attempt(state)
@@ -1541,6 +1533,16 @@ def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int]
 
         n_cancel = len(cancelled_seats)
         n_bypass = len(entries) - n_cancel
+        if n_cancel > 0:
+            if act_mode == "1_DEF_1_MACHINE":
+                consumed_reves = state.consume_reve_activation_defenders(case_1_6, n_cancel)
+            elif act_mode == "1_DEF_ALL_RANK":
+                consumed_reves = state.consume_reve_activation_defenders(case_1_6, 1)
+            else:
+                consumed_reves = state.consume_reve_activation_defenders(case_1_6, 2)
+            if consumed_reves > 0:
+                _record_phys_ops(state, consumed_reves)
+
         if trk is not None:
             if n_cancel > 0:
                 trk.on_machines_cancelled_by_reve(n_cancel)
@@ -1579,6 +1581,8 @@ def _run_step_3_2(state: GameState) -> None:
             if trk is not None:
                 trk.on_reve_activated(1)
             state.light_trigger(5)
+            if trk is not None:
+                trk.on_trigger_lit(5)
             cur_pos_r = state.find_tactique_rank(reve_code)
             if cur_pos_r is not None and cur_pos_r > 0:
                 prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
@@ -1760,6 +1764,9 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
     if tag == "LIGHT_TRIGGER_SYNC":
         _, case_num = state._continuation.pop(0)
         state.light_trigger(int(case_num))
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.on_trigger_lit(int(case_num))
         return None
 
     if tag == "RESUME_HOOK_QUEUE":
@@ -1845,6 +1852,8 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             if trk is not None:
                 trk.on_reve_activated(1)
             state.light_trigger(5)
+            if trk is not None:
+                trk.on_trigger_lit(5)
             state._continuation.insert(0, ("STEP_3_2_FINISH_REVE", int(reve_code)))
             dispatch_hook(
                 state, HOOK_3_2_OUVERTURE_REVE, {"slot_id": f"R{r_num}", "r_num": int(r_num)}

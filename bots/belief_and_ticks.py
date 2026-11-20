@@ -641,15 +641,25 @@ def resolve_step2_2_from_state(
             if pari_c <= 0:
                 continue
             need_gard_retreat = False
-            if cfg.mode == 2:
-                # En Mode 2 neutre, parier n'a de sens que pour l'Éveil (N 2es Défenseurs, Tours 1..7)
-                if obs_s.tour >= 8 or obs_s.total_gardien_pari_defenders() < n:
-                    need_gard_retreat = True
-            elif pari_c == 4:
-                # Si personne n'a parié sur un autre Gardien, 4. Résonance ne s'allumera jamais !
-                other_bets = obs_s.total_gardien_pari_defenders() - obs_s.gardien_pari_defenders(4)
-                if other_bets < obs_s.gardien_pari_defenders(4):
-                    need_gard_retreat = True
+            g_tot = obs_s.total_gardien_pari_defenders()
+            r_tot = obs_s.total_reve_activation_defenders()
+            max_r = (
+                (n // 2)
+                if cfg.reveil_reves_policy == "PARITY"
+                else min(n // 2, cfg.nb_peuples_oniriques)
+            )
+            eveil_valid = (
+                obs_s.tour < 8
+                and (g_tot + r_tot == n)
+                and (g_tot >= r_tot)
+                and (r_tot <= max_r)
+            )
+            if cfg.mode == 2 and not eveil_valid:
+                # En Mode 2 neutre, parier n'a de sens que pour l'Éveil par mobilisation croisée (Tours 1..7)
+                need_gard_retreat = True
+            if pari_c == 4 and (g_tot - obs_s.gardien_pari_defenders(4)) < 1:
+                # Si personne n'a parié sur un autre Gardien (1,2,3,5,6), 4. Gardien ne s'allumera jamais !
+                need_gard_retreat = True
             if need_gard_retreat:
                 legal_non_pari = tuple(
                     t

@@ -92,7 +92,8 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
         synergie_binome_machines=cfg.synergie_binome_machines,
         reve_activation_mode=cfg.reve_activation_mode,
-        gardien_resonance_cap=cfg.gardien_resonance_cap,
+        reveil_reves_policy=cfg.reveil_reves_policy,
+        reve_advance_mode=cfg.reve_advance_mode,
         tile_profiles=cfg.tile_profiles,
     )
 

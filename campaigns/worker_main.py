@@ -509,7 +509,8 @@ def _make_cfg_with_mode(
         role_abatteuse_fin_de_piste=base.role_abatteuse_fin_de_piste,
         synergie_binome_machines=base.synergie_binome_machines,
         reve_activation_mode=base.reve_activation_mode,
-        gardien_resonance_cap=base.gardien_resonance_cap,
+        reveil_reves_policy=base.reveil_reves_policy,
+        reve_advance_mode=base.reve_advance_mode,
         tile_profiles=LOT_01_PROFILES,
     )
 
@@ -1419,34 +1420,52 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         if ram not in ("1_DEF_1_MACHINE", "1_DEF_ALL_RANK", "BINOME_ALL_RANK"):
             raise ValueError(f"reve_activation_mode invalide : {ram!r}")
 
-    raw_res_caps = manifest.get("gardien_resonance_caps", manifest.get("gardien_resonance_cap"))
-    if raw_res_caps is None:
-        res_caps: list[str] = ["UNLIMITED"]
-        explicit_res_cap_sweep = False
-    elif isinstance(raw_res_caps, str):
-        res_caps = [raw_res_caps.strip().upper()]
-        explicit_res_cap_sweep = "gardien_resonance_caps" in manifest
+    raw_rev_pols = manifest.get("reveil_reves_policies", manifest.get("reveil_reves_policy"))
+    if raw_rev_pols is None:
+        rev_pols: list[str] = ["PARITY"]
+        explicit_rev_pol_sweep = False
+    elif isinstance(raw_rev_pols, str):
+        rev_pols = [raw_rev_pols.strip().upper()]
+        explicit_rev_pol_sweep = "reveil_reves_policies" in manifest
     else:
-        res_caps = [str(x).strip().upper() for x in raw_res_caps]
-        explicit_res_cap_sweep = True
-    for grc in res_caps:
-        if grc not in ("UNLIMITED", "MAX_1_DEF"):
-            raise ValueError(f"gardien_resonance_cap invalide : {grc!r}")
+        rev_pols = [str(x).strip().upper() for x in raw_rev_pols]
+        explicit_rev_pol_sweep = True
+    for rrp in rev_pols:
+        if rrp not in ("PARITY", "PARITY_CAP_ONIRIQUE"):
+            raise ValueError(f"reveil_reves_policy invalide : {rrp!r}")
+
+    raw_adv_modes = manifest.get("reve_advance_modes", manifest.get("reve_advance_mode"))
+    if raw_adv_modes is None:
+        adv_modes: list[str] = ["JUMP_PUSH"]
+        explicit_adv_mode_sweep = False
+    elif isinstance(raw_adv_modes, str):
+        adv_modes = [raw_adv_modes.strip().upper()]
+        explicit_adv_mode_sweep = "reve_advance_modes" in manifest
+    else:
+        adv_modes = [str(x).strip().upper() for x in raw_adv_modes]
+        explicit_adv_mode_sweep = True
+    for radv in adv_modes:
+        if radv not in ("JUMP_PUSH", "FREE_SLOT_ONLY"):
+            raise ValueError(f"reve_advance_mode invalide : {radv!r}")
 
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True
-    if len(res_caps) > 1:
-        explicit_res_cap_sweep = True
+    if len(rev_pols) > 1:
+        explicit_rev_pol_sweep = True
+    if len(adv_modes) > 1:
+        explicit_adv_mode_sweep = True
 
     expanded_variants: list[dict[str, Any]] = []
     ev_idx = 0
     for var in profile_variants:
-        for ram, grc in itertools.product(r_act_modes, res_caps):
+        for ram, rrp, radv in itertools.product(r_act_modes, rev_pols, adv_modes):
             tag_parts: list[str] = []
             if explicit_reve_act_sweep:
                 tag_parts.append(f"REVE={ram}")
-            if explicit_res_cap_sweep:
-                tag_parts.append(f"RES={grc}")
+            if explicit_rev_pol_sweep:
+                tag_parts.append(f"POL={rrp}")
+            if explicit_adv_mode_sweep:
+                tag_parts.append(f"ADV={radv}")
             if tag_parts:
                 ext_tag = "|".join(tag_parts)
                 v_id = ext_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{ext_tag}"
@@ -1459,7 +1478,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "compared_slots": dict(var["compared_slots"]),
                     "tile_profiles": var["tile_profiles"],
                     "reve_activation_mode": ram,
-                    "gardien_resonance_cap": grc,
+                    "reveil_reves_policy": rrp,
+                    "reve_advance_mode": radv,
                 }
             )
             ev_idx += 1
@@ -1546,7 +1566,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "compared_slots": var["compared_slots"],
                                 "tile_profiles": var["tile_profiles"],
                                 "reve_activation_mode": var["reve_activation_mode"],
-                                "gardien_resonance_cap": var["gardien_resonance_cap"],
+                                "reveil_reves_policy": var["reveil_reves_policy"],
+                                "reve_advance_mode": var["reve_advance_mode"],
                                 "table_id": t_id,
                                 "peuples": peuples,
                                 "n_animaux_sauvages": sum(1 for p in peuples if p in ANIMAUX_SAUVAGES),
@@ -1596,7 +1617,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     peuples = tuple(unit["peuples"])
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
-    gardien_resonance_cap = str(unit.get("gardien_resonance_cap", "UNLIMITED"))
+    reveil_reves_policy = str(unit.get("reveil_reves_policy", "PARITY"))
+    reve_advance_mode = str(unit.get("reve_advance_mode", "JUMP_PUSH"))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
     )
@@ -1646,7 +1668,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             coordonnateur_initial=rep_id % n_pl,
             max_revision_passes=k_max,
             reve_activation_mode=reve_activation_mode,
-            gardien_resonance_cap=gardien_resonance_cap,
+            reveil_reves_policy=reveil_reves_policy,
+            reve_advance_mode=reve_advance_mode,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1664,7 +1687,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             role_abatteuse_fin_de_piste=base_cfg.role_abatteuse_fin_de_piste,
             synergie_binome_machines=base_cfg.synergie_binome_machines,
             reve_activation_mode=reve_activation_mode,
-            gardien_resonance_cap=gardien_resonance_cap,
+            reveil_reves_policy=reveil_reves_policy,
+            reve_advance_mode=reve_advance_mode,
             tile_profiles=tile_profiles if mode >= 3 else (),
         )
         trk = TelemetryTracker()
@@ -1730,7 +1754,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "variant_idx": int(unit["variant_idx"]),
         "variant_id": str(unit["variant_id"]),
         "reve_activation_mode": reve_activation_mode,
-        "gardien_resonance_cap": gardien_resonance_cap,
+        "reveil_reves_policy": reveil_reves_policy,
+        "reve_advance_mode": reve_advance_mode,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),

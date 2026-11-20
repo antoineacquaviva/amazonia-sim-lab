@@ -178,15 +178,14 @@ def _score_defender_target(
         c_i = int(case_c)
         if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(c_i):
             return 0
-        if c_i == 4 and cfg.gardien_resonance_cap == "MAX_1_DEF":
-            own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
-            allies_4 = obs.gardien_pari_defenders(4) - (1 if own_c == 4 else 0)
-            if allies_4 >= 1:
-                return 0
-        total_on_track = obs.total_gardien_pari_defenders()
-        if obs.tour <= 7 and total_on_track >= obs.n_players - 1 and drew_sabotage_or_none:
+        own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
+        allies_c = obs.gardien_pari_defenders(c_i) - (1 if own_c == c_i else 0)
+        if allies_c >= 1:
+            return 0
+        total_mob = obs.total_gardien_pari_defenders() + obs.total_reve_activation_defenders()
+        if obs.tour <= 7 and total_mob >= obs.n_players - 1 and drew_sabotage_or_none:
             return 450
-        if obs.tour <= 7 and total_on_track >= 1 and drew_sabotage_or_none:
+        if obs.tour <= 7 and total_mob >= 1 and drew_sabotage_or_none:
             return 280
         return 100
 

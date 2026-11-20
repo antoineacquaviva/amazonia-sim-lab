@@ -490,7 +490,7 @@ def _estimate_expected_gardien_triggers(
     exp_reve = 0.0
     for c_r in range(1, TRACK_LEN + 1):
         if obs.reve_at_case(c_r) > 0 and obs.reve_activation_defenders(c_r) >= 1:
-            exp_reve += 0.70
+            exp_reve += 0.85
 
     # Case 6 : 6. Nid (Nids sur le plateau portant >= 1 Défenseur en 4.2)
     exp_nid = 0.0
@@ -515,6 +515,14 @@ def _estimate_expected_gardien_triggers(
     return (exp_parade, exp_piege, exp_sabotage, 0.0, exp_reve, exp_nid)
 
 
+def _max_reves_for_eveil(cfg: GameConfig) -> int:
+    """Nombre maximal de Défenseurs sur les Rêves compatibles avec l'Éveil par mobilisation croisée."""
+    max_parity = cfg.n_players // 2
+    if cfg.reveil_reves_policy == "PARITY_CAP_ONIRIQUE":
+        return min(max_parity, cfg.nb_peuples_oniriques)
+    return max_parity
+
+
 def _score_gardien_pari(
     obs: PlayerObservation,
     cfg: GameConfig,
@@ -525,8 +533,8 @@ def _score_gardien_pari(
 ) -> float:
     """Évalue la cible `('GARDIEN_PARI', case_c)` en 2.2 (strictement sur PlayerObservation).
 
-    Tient compte de `gardien_resonance_cap` (`UNLIMITED` vs `MAX_1_DEF`), des activations attendues
-    sur chaque case occupée et des opportunités d'Éveil de la Forêt (Tours 1..7).
+    Règle v5.4.4 : pari unique (max 1 Défenseur par Gardien construit, cases 1..6) et Éveil
+    de la Forêt par mobilisation croisée (Gardiens + Rêves, `PARITY` ou `PARITY_CAP_ONIRIQUE`).
     """
     if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(case_c):
         return 0.0
@@ -534,102 +542,116 @@ def _score_gardien_pari(
     own_pari_case = obs.player_def2_gardien_pari_case(obs.observer_seat)
     allies_on_case = max(0, obs.gardien_pari_defenders(case_c) - (1 if own_pari_case == case_c else 0))
 
-    # Respect du plafond MAX_1_DEF sur 4. Résonance
-    if case_c == 4 and cfg.gardien_resonance_cap == "MAX_1_DEF" and allies_on_case >= 1:
+    # Pari unique uniforme : max 1 Défenseur par Gardien (cases 1..6)
+    if allies_on_case >= 1:
         return 0.0
 
     exp_trigs = _estimate_expected_gardien_triggers(obs, cfg, belief)
     n = obs.n_players
+    max_r = _max_reves_for_eveil(cfg)
+    own_reve_case = obs.player_def2_reve_case(obs.observer_seat)
+    allies_g = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
+    allies_r = max(0, obs.total_reve_activation_defenders() - (1 if own_reve_case > 0 else 0))
+    reves_on_track = sum(1 for c2 in range(1, TRACK_LEN + 1) if obs.reve_at_case(c2) > 0)
+    unplaced_allies = max(0, (n - 1) - allies_g - allies_r)
 
-    # Capacité totale attendue hors Résonance (cases 1, 2, 3, 5, 6 occupées)
+    # Estimation du potentiel d'activation de 5. Rêve (alliés déjà sur Rêve ou potentiels si Rêves présents)
+    exp_reve_eff = exp_trigs[4]
+    if allies_r == 0 and reves_on_track > 0 and max_r >= 1 and unplaced_allies >= 1:
+        exp_reve_eff = max(exp_reve_eff, 0.72)
+
+    # Capacité totale attendue hors case 4 (max 1 Défenseur par case occupée 1, 2, 3, 5, 6)
     total_non_res_cap = 0.0
     other_openings_expected = 0.0
     for c_k in (1, 2, 3, 5, 6):
         if obs.gardien_present_at_case(c_k):
-            t_k = exp_trigs[c_k - 1]
-            total_non_res_cap += t_k
+            t_k = exp_reve_eff if c_k == 5 else exp_trigs[c_k - 1]
+            cap_k = min(1.0, t_k)
+            total_non_res_cap += cap_k
             bets_k = max(0, obs.gardien_pari_defenders(c_k) - (1 if own_pari_case == c_k else 0))
-            other_openings_expected += min(float(bets_k), t_k)
+            if bets_k >= 1:
+                other_openings_expected += cap_k
 
     has_res = obs.gardien_present_at_case(4)
-    if has_res:
-        res_cap = (
-            min(1.0, total_non_res_cap)
-            if cfg.gardien_resonance_cap == "MAX_1_DEF"
-            else total_non_res_cap
-        )
-    else:
-        res_cap = 0.0
+    res_cap = min(1.0, total_non_res_cap) if has_res else 0.0
+    total_gardien_cap = total_non_res_cap + res_cap
 
-    total_eveil_cap = total_non_res_cap + res_cap
+    # Capacité Rêves éligible à la mobilisation croisée
+    reve_eveil_cap = min(
+        float(max_r),
+        float(allies_r) + (0.65 * unplaced_allies if (reves_on_track > 0 and max_r > allies_r) else 0.0),
+    )
 
-    # Nombre d'activations attendues spécifiquement sur `case_c` pour soutenir le `(allies_on_case + 1)`-ième pari
-    new_bets_c = allies_on_case + 1
     if case_c == 4:
-        # 4. Résonance s'allume une fois par ouverture d'un *autre* Gardien (jamais par elle-même).
-        # On ajoute +0.85 si d'autres joueurs n'ont pas encore posé leur 2e Défenseur et qu'il existe
-        # une capacité non-Résonance disponible pour les accueillir.
-        allies_total = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
-        unplaced_allies = max(0, (n - 1) - allies_total)
+        # 4. Gardien s'allume dès qu'un *autre* Gardien (1,2,3,5,6) s'ouvre (jamais par elle-même).
         potential_other = min(total_non_res_cap, other_openings_expected + 0.85 * unplaced_allies)
-        # Ajoute aussi un éventuel Insecte Colonie en case 4
         col4_bonus = 0.85 if obs.piste_colonie[3] >= 1 else 0.0
         exp_for_case = potential_other + col4_bonus
+    elif case_c == 5:
+        exp_for_case = exp_reve_eff
     else:
         exp_for_case = exp_trigs[case_c - 1]
 
-    # Ratio d'Arbres actuel : plus la forêt est intacte, plus l'Éveil précoce est rentable !
+    # Ratio d'Arbres actuel : plus la forêt est intacte, plus l'Éveil précoce est rentable
     total_init = max(1, n * sum(cfg.dotation_arbres))
     cur_arbres = sum(
         obs.parcel_arbres(r, p) for r in range(n) for p in range(1, cfg.p_max + 1)
     )
     tree_ratio = cur_arbres / total_init
 
-    allies_total = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
-    supported = exp_for_case >= (new_bets_c - 0.15)
-    marginally_supported = exp_for_case >= (new_bets_c - 0.45)
+    supported = exp_for_case >= 0.80
+    marginally_supported = exp_for_case >= 0.50
+    need_g_min = (n + 1) // 2
+    allies_mob = allies_g + min(allies_r, max_r)
+    eveil_feasible = (
+        obs.tour <= 7
+        and allies_r <= max_r
+        and total_gardien_cap >= (need_g_min - 0.35)
+        and (total_gardien_cap + reve_eveil_cap) >= (n - 0.40)
+    )
 
-    # 1. Opportunité d'Éveil de la Forêt (Tours 1..7) : converger les N 2es Défenseurs
-    if obs.tour <= 7 and total_eveil_cap >= (n - 0.40):
-        # Si la case 4. Résonance est disponible et non-sursouscrite mais que les autres cases manquent
-        # encore de Défenseurs pour alimenter Résonance, privilégier d'abord les cases motrices !
-        if case_c == 4 and other_openings_expected < float(new_bets_c) and total_non_res_cap > other_openings_expected + 0.35:
-            # Légère préférence pour alimenter d'abord les cases 1,2,3,5,6 avant de remplir 4. Résonance
+    # 1. Opportunité d'Éveil de la Forêt par mobilisation croisée (Tours 1..7)
+    if eveil_feasible:
+        # Privilégier d'abord les cases motrices (1,2,3,5,6) avant 4. Gardien s'il en reste à alimenter
+        if (
+            case_c == 4
+            and other_openings_expected < 0.85
+            and total_non_res_cap > other_openings_expected + 0.35
+        ):
             eveil_penalty = 35.0
         else:
             eveil_penalty = 0.0
 
+        # Bonus synergie 5. Rêve lorsqu'un allié active déjà un Rêve (cascade Rêve -> 5. Rêve -> 4. Gardien)
+        reve_cascade_bonus = 45.0 if (case_c == 5 and allies_r >= 1) else 0.0
+
         if supported:
-            if allies_total >= n - 1:
-                # Complétion des N 2es Défenseurs sur la Piste des Gardiens -> Éveil imminent !
-                base = (615.0 + 245.0 * tree_ratio) if is_b2 else (560.0 + 195.0 * tree_ratio)
-                return max(40.0, base - eveil_penalty)
-            if allies_total >= 1:
-                prog = allies_total / max(1, n - 1)
+            if allies_mob >= n - 1 and (allies_g + 1) >= allies_r:
+                base = (630.0 + 250.0 * tree_ratio) if is_b2 else (565.0 + 195.0 * tree_ratio)
+                return max(40.0, base + reve_cascade_bonus - eveil_penalty)
+            if allies_mob >= 1:
+                prog = allies_mob / max(1, n - 1)
                 base = (
-                    (445.0 + 155.0 * prog + 165.0 * tree_ratio)
+                    (455.0 + 160.0 * prog + 170.0 * tree_ratio)
                     if is_b2
                     else (405.0 + 125.0 * prog + 135.0 * tree_ratio)
                 )
-                return max(40.0, base - eveil_penalty)
-            # Initiation du signal d'Éveil (0 allié dessus pour l'instant)
-            if belief.drew_sabotage_or_none or total_eveil_cap >= (n + 0.15) or obs.tour >= 3:
-                base = (375.0 + 175.0 * tree_ratio) if is_b2 else (340.0 + 145.0 * tree_ratio)
-                return max(40.0, base - eveil_penalty)
-        elif marginally_supported and allies_total >= n - 1:
-            base = (485.0 + 180.0 * tree_ratio) if is_b2 else (445.0 + 145.0 * tree_ratio)
-            return max(40.0, base - eveil_penalty)
+                return max(40.0, base + reve_cascade_bonus - eveil_penalty)
+            if belief.drew_sabotage_or_none or (total_gardien_cap + reve_eveil_cap) >= (n + 0.10) or obs.tour >= 3:
+                base = (385.0 + 175.0 * tree_ratio) if is_b2 else (340.0 + 145.0 * tree_ratio)
+                return max(40.0, base + reve_cascade_bonus - eveil_penalty)
+        elif marginally_supported and allies_mob >= n - 1 and (allies_g + 1) >= allies_r:
+            base = (495.0 + 180.0 * tree_ratio) if is_b2 else (445.0 + 145.0 * tree_ratio)
+            return max(40.0, base + reve_cascade_bonus - eveil_penalty)
 
     # 2. Jeu courant : pari prudent en Mode 3/4 uniquement si l'activation est probable
     if obs.mode >= 3:
-        if exp_for_case >= (new_bets_c + 0.15):
-            # Activation très probable : valeur du Gardien + passage Face 2 en 5.3 si double-face
+        if exp_for_case >= 1.10:
             g_face = obs.gardien_face_at_case(case_c)
             face_bonus = 45.0 if g_face == 1 else 15.0
             return (275.0 if is_b2 else 240.0) + face_bonus
         if supported:
             return 165.0 if is_b2 else 145.0
-        # Pari risqué (risque de perdre le Gardien en lisière)
         return 25.0
 
     # En Mode 2 (Gardiens neutres), hors opportunité d'Éveil, éviter tout pari inutile/risqué
@@ -667,7 +689,10 @@ def _score_reve_activation(
         else:
             cancel_val = 30.0
 
-    can_advance = any(obs.reve_at_case(c2) == 0 for c2 in range(1, case_c))
+    if cfg.reve_advance_mode == "FREE_SLOT_ONLY":
+        can_advance = case_c > 1 and obs.reve_at_case(case_c - 1) == 0
+    else:
+        can_advance = any(obs.reve_at_case(c2) == 0 for c2 in range(1, case_c))
     advance_val = (185.0 if is_b2 else 155.0) if can_advance else 25.0
 
     # Bonus de victoire imminente par Sommeil si tous les Rêves sont sur la piste et à 1 cran du bloc
@@ -685,17 +710,42 @@ def _score_reve_activation(
     own_reve_case = obs.player_def2_reve_case(obs.observer_seat)
     allies = max(0, total_on_case - (1 if own_reve_case == case_c else 0))
 
+    # Bonus mobilisation croisée (v5.4.4) : un Rêve frappé par notre propre main est un pari 100 % gagné
+    # qui alimente l'Éveil ET allume le déclencheur 5. Rêve (cascade -> 4. Gardien).
+    mob_bonus = 0.0
+    if obs.gardien_pari_enabled and obs.tour <= 7 and own_hits_reve:
+        n = obs.n_players
+        max_r = _max_reves_for_eveil(cfg)
+        own_pari_case = obs.player_def2_gardien_pari_case(obs.observer_seat)
+        allies_g = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
+        allies_r = max(0, obs.total_reve_activation_defenders() - (1 if own_reve_case > 0 else 0))
+        if allies_r + 1 <= max_r:
+            total_init = max(1, n * sum(cfg.dotation_arbres))
+            cur_arbres = sum(
+                obs.parcel_arbres(r, p) for r in range(n) for p in range(1, cfg.p_max + 1)
+            )
+            tree_ratio = cur_arbres / total_init
+            has_g5 = obs.gardien_present_at_case(5)
+            cascade_bonus = 85.0 if (has_g5 and allies_r == 0) else 0.0
+            if allies_g + allies_r >= n - 1 and allies_g >= (allies_r + 1):
+                mob_bonus = (340.0 + 185.0 * tree_ratio) + cascade_bonus
+            elif allies_g >= 1:
+                prog = (allies_g + allies_r) / max(1, n - 1)
+                mob_bonus = (180.0 + 130.0 * prog + 110.0 * tree_ratio) + cascade_bonus
+            elif has_g5 and obs.gardien_present_at_case(4):
+                mob_bonus = 90.0 + cascade_bonus
+
     act_mode = cfg.reve_activation_mode
     if act_mode == "1_DEF_1_MACHINE":
         if own_hits_reve:
             # Chaque allié déjà dessus couvre sa propre machine ; ajouter le nôtre annule la nôtre
             adv_contrib = advance_val if allies == 0 else (0.25 * advance_val)
-            return 260.0 + cancel_val + adv_contrib
+            return 260.0 + cancel_val + adv_contrib + mob_bonus
         return 45.0
 
     if act_mode == "1_DEF_ALL_RANK":
         if allies >= 1:
-            # Un allié couvre déjà tout ce rang M : rediriger notre 2e Défenseur ailleurs !
+            # Un allié couvre déjà tout ce rang M : rediriger notre Défenseur ailleurs !
             return 25.0
         if own_hits_reve:
             return 300.0 + cancel_val + advance_val

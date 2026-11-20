@@ -34,6 +34,7 @@ __all__ = (
     "MAX_P",
     "MIN_FREE_RESERVE_BYTES",
     "NUM_CHASSIS",
+    "PEUPLES_ONIRIQUES",
     "PEUPLES_ORDER",
     "PEUPLE_TO_ID",
     "PFLAG_AUTO_PARADE_ONCE",
@@ -184,9 +185,10 @@ DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = frozenset(
     )
 )
 
-# Peuples canoniques (0..5) et Peuples Animaux Sauvages (condition d'activation des paris Gardiens)
+# Peuples canoniques (0..5), Animaux Sauvages (M/R/O) et Peuples Oniriques (H/E)
 PEUPLES_ORDER: tuple[str, ...] = ("M", "R", "O", "H", "E", "I")
 ANIMAUX_SAUVAGES: frozenset[str] = frozenset(("M", "R", "O"))
+PEUPLES_ONIRIQUES: frozenset[str] = frozenset(("H", "E"))
 PEUPLE_TO_ID: dict[str, int] = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}
 
 # Matrice canonique des paires adjacentes (v5.3.1)
@@ -510,9 +512,10 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Activation des Rêves (v5.4.2) & Pari d'activation des Gardiens (v5.4.3)
+    # Paramètres hors-châssis Activation Rêves (v5.4.2) & Mobilisation croisée / Avancée Rêves (v5.4.4)
     reve_activation_mode: str = "1_DEF_1_MACHINE"
-    gardien_resonance_cap: str = "UNLIMITED"
+    reveil_reves_policy: str = "PARITY"
+    reve_advance_mode: str = "JUMP_PUSH"
 
     # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
@@ -524,6 +527,7 @@ class GameConfig:
     total_gardiens_partie: int = 0
     total_reves_partie: int = 0
     nb_animaux_sauvages: int = 0
+    nb_peuples_oniriques: int = 0
 
     def __post_init__(self) -> None:
         assert 3 <= self.n_players <= MAX_N, f"n_players invalide : {self.n_players}"
@@ -553,8 +557,11 @@ class GameConfig:
             "1_DEF_ALL_RANK",
             "BINOME_ALL_RANK",
         ), f"reve_activation_mode invalide : {self.reve_activation_mode}"
-        assert self.gardien_resonance_cap in ("UNLIMITED", "MAX_1_DEF"), (
-            f"gardien_resonance_cap invalide : {self.gardien_resonance_cap}"
+        assert self.reveil_reves_policy in ("PARITY", "PARITY_CAP_ONIRIQUE"), (
+            f"reveil_reves_policy invalide : {self.reveil_reves_policy}"
+        )
+        assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY"), (
+            f"reve_advance_mode invalide : {self.reve_advance_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -567,6 +574,8 @@ class GameConfig:
 
         nb_animaux = sum(1 for p in peuples if p in ANIMAUX_SAUVAGES)
         object.__setattr__(self, "nb_animaux_sauvages", nb_animaux)
+        nb_oniriques = sum(1 for p in peuples if p in PEUPLES_ONIRIQUES)
+        object.__setattr__(self, "nb_peuples_oniriques", nb_oniriques)
 
         dotation = TOPOLOGIES_DOTATION[profil]
         object.__setattr__(self, "p_max", len(dotation))
@@ -608,9 +617,10 @@ class GameConfig:
         coordonnateur_initial: int = 0,
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
-        gardien_resonance_cap: str = "UNLIMITED",
+        reveil_reves_policy: str = "PARITY",
+        reve_advance_mode: str = "JUMP_PUSH",
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v5.4.2 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v5.4.4 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -621,7 +631,8 @@ class GameConfig:
             "coordonnateur_initial": coordonnateur_initial,
             "max_revision_passes": max_revision_passes,
             "reve_activation_mode": reve_activation_mode,
-            "gardien_resonance_cap": gardien_resonance_cap,
+            "reveil_reves_policy": reveil_reves_policy,
+            "reve_advance_mode": reve_advance_mode,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
@@ -774,8 +785,16 @@ class PlayerObservation:
         return bool(self._snap[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
 
     @property
-    def gardien_resonance_cap(self) -> str:
-        return self._cfg.gardien_resonance_cap
+    def reveil_reves_policy(self) -> str:
+        return self._cfg.reveil_reves_policy
+
+    @property
+    def reve_advance_mode(self) -> str:
+        return self._cfg.reve_advance_mode
+
+    @property
+    def nb_peuples_oniriques(self) -> int:
+        return self._cfg.nb_peuples_oniriques
 
     @property
     def gardien_pari_enabled(self) -> bool:
@@ -1127,7 +1146,7 @@ class PlayerObservation:
         return (code - TILE_R_BASE) if is_reve_code(code) else 0
 
     def reve_activation_defenders(self, case_1_6: int) -> int:
-        """Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`."""
+        """Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`."""
         target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         buf = self._snap
         cnt = 0
@@ -1136,8 +1155,44 @@ class PlayerObservation:
                 cnt += 1
         return cnt
 
+    def reve_activation_consumed(self, case_1_6: int) -> int:
+        """Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour."""
+        target_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                cnt += 1
+        return cnt
+
+    def total_reve_activation_defenders(self) -> int:
+        """Nombre total de Défenseurs actifs (non consommés) posés sur des Rêves."""
+        buf = self._snap
+        cnt = 0
+        lo = _LOC_REVE_ACTIVATION_BASE
+        hi = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
+        for s in range(self._cfg.n_players):
+            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
+    def total_reve_activation_engaged(self) -> int:
+        """Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés)."""
+        buf = self._snap
+        cnt = 0
+        lo1 = _LOC_REVE_ACTIVATION_BASE
+        hi1 = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
+        lo2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE
+        hi2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
+        for s in range(self._cfg.n_players):
+            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
+            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                cnt += 1
+        return cnt
+
     def reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]:
-        """Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur le Rêve en case `1..6`."""
+        """Retourne `(nb_reflexion, nb_definitif)` des Défenseurs actifs sur le Rêve en case `1..6`."""
         target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         buf = self._snap
         def_mask = buf[_Mem.PLAYER_DEF2_DEF_MASK]
@@ -1152,7 +1207,7 @@ class PlayerObservation:
         return n_ref, n_def
 
     def player_def2_reve_case(self, seat: int) -> int:
-        """Retourne la case `1..6` ciblée en activation Rêve par le 2e Défenseur de `seat`, ou 0."""
+        """Retourne la case `1..6` ciblée en activation Rêve par le Défenseur de `seat`, ou 0."""
         raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
         if _LOC_REVE_ACTIVATION_BASE <= raw < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
             return (raw - _LOC_REVE_ACTIVATION_BASE) + 1
@@ -1168,14 +1223,15 @@ class PlayerObservation:
         )
 
 
-# --- Encodage compact des localisations de pions Défenseurs (0..180, 255) ---
+# --- Encodage compact des localisations de pions Défenseurs (0..186, 255) ---
 # 0 : en main
 # 1..30 : parcelle Forêt (1 + r * MAX_P + (p - 1))
 # 31..150 : slot jumeau Furtivité (31 + (l * MAX_P + (p - 1)) * 4 + slot_0_3)
 # 151..162 : tuile Synergie en lisière (151 + lisiere_slot_idx)
 # 163..168 : Gardien ciblé en pari d'activation 2.2 (actif, non consommé : 163 + (case_1_6 - 1))
-# 169..174 : Rêve sur piste ciblé en activation 2.2 (169 + (case_1_6 - 1))
-# 175..180 : 2e Défenseur consommé par ouverture d'un Gardien (mis de côté jusqu'en 6.2/6.3 : 175 + (case_1_6 - 1))
+# 169..174 : Rêve sur piste ciblé en activation 2.2 (actif, non consommé : 169 + (case_1_6 - 1))
+# 175..180 : Défenseur consommé par ouverture d'un Gardien (mis de côté jusqu'en 6.2 : 175 + (case_1_6 - 1))
+# 181..186 : Défenseur consommé par annulation d'une machine sur un Rêve en 3.2 (181 + (case_1_6 - 1))
 # 255 : impasse (aucune case légale disponible ce tour, pion consommé hors plateau jusqu'en 6.2)
 _LOC_HAND: int = 0
 _LOC_FORET_BASE: int = 1
@@ -1184,6 +1240,7 @@ _LOC_LISIERE_BASE: int = _LOC_FURT_BASE + NUM_PARCELS * 4  # 151
 _LOC_GARDIEN_PARI_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
 _LOC_REVE_ACTIVATION_BASE: int = _LOC_GARDIEN_PARI_BASE + TRACK_LEN  # 169
 _LOC_GARDIEN_PARI_CONSUMED_BASE: int = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN  # 175
+_LOC_REVE_ACTIVATION_CONSUMED_BASE: int = _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN  # 181
 _LOC_IMPASSE: int = 255
 
 
@@ -1622,6 +1679,13 @@ class GameState:
         ):
             case_1_6 = (raw_loc - _LOC_GARDIEN_PARI_CONSUMED_BASE) + 1
             return ("GARDIEN_PARI_CONSUMED", case_1_6, 0, 0)
+        if (
+            _LOC_REVE_ACTIVATION_CONSUMED_BASE
+            <= raw_loc
+            < _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
+        ):
+            case_1_6 = (raw_loc - _LOC_REVE_ACTIVATION_CONSUMED_BASE) + 1
+            return ("REVE_ACTIVATION_CONSUMED", case_1_6, 0, 0)
         return ("IMPASSE", 0, 0, 0)
 
     def remove_player_defender(self, seat: int, def_idx: int) -> None:
@@ -1763,8 +1827,19 @@ class GameState:
                 cnt += 1
         return cnt
 
+    def total_gardien_pari_consumed(self) -> int:
+        """Nombre total de Défenseurs déjà consommés par ouverture de Gardiens ce tour."""
+        cnt = 0
+        lo = _LOC_GARDIEN_PARI_CONSUMED_BASE
+        hi = _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
     def total_gardien_pari_engaged(self) -> int:
-        """Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés)."""
+        """Nombre total de Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés)."""
         cnt = 0
         lo1 = _LOC_GARDIEN_PARI_BASE
         hi1 = _LOC_GARDIEN_PARI_BASE + TRACK_LEN
@@ -1777,7 +1852,7 @@ class GameState:
         return cnt
 
     def place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None:
-        """Engage le 2e Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6`."""
+        """Engage le Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6` (max 1/Gardien)."""
         assert self.cfg.mode >= 2 and self.cfg.nb_animaux_sauvages >= 1, (
             "Pari d'activation des Gardiens inactif sans Animal Sauvage"
         )
@@ -1786,15 +1861,14 @@ class GameState:
         self.remove_player_defender(seat, 1)
         g_num, _ = self.get_gardien_at_case(case_1_6)
         assert g_num > 0, "Aucun Gardien présent sur cette case"
-        if case_1_6 == 4 and self.cfg.gardien_resonance_cap == "MAX_1_DEF":
-            assert self.count_gardien_pari_defenders_at_case(4) < 1, (
-                "Plafond MAX_1_DEF atteint sur la case 4. Résonance"
-            )
+        assert self.count_gardien_pari_defenders_at_case(case_1_6) < 1, (
+            f"Un Gardien ne peut recevoir qu'1 seul Défenseur en 2.2 (case {case_1_6})"
+        )
         self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1))
         self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
     def consume_one_gardien_pari_defender(self, case_1_6: int) -> bool:
-        """Retire 1 2e Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2/6.3)."""
+        """Retire 1 Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2)."""
         assert 1 <= case_1_6 <= TRACK_LEN
         src_raw = _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1)
         dst_raw = _LOC_GARDIEN_PARI_CONSUMED_BASE + (case_1_6 - 1)
@@ -1804,19 +1878,8 @@ class GameState:
                 return True
         return False
 
-    def is_eveil_gardiens_victory(self) -> bool:
-        """Éveil de la Forêt (Tours 1..7) : tous les N 2es Défenseurs engagés sur la Piste des Gardiens
-        en 2.2 ET tous les paris gagnés (0 Défenseur restant en 5.3).
-        """
-        if self.cfg.mode < 2 or self.cfg.nb_animaux_sauvages < 1 or self.tour >= 8:
-            return False
-        return (
-            self.total_gardien_pari_engaged() == self.cfg.n_players
-            and self.total_gardien_pari_remaining() == 0
-        )
-
     def count_reve_activation_defenders_at_case(self, case_1_6: int) -> int:
-        """Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`."""
+        """Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`."""
         assert 1 <= case_1_6 <= TRACK_LEN
         target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         cnt = 0
@@ -1825,8 +1888,98 @@ class GameState:
                 cnt += 1
         return cnt
 
+    def count_reve_activation_consumed_at_case(self, case_1_6: int) -> int:
+        """Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        target_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        cnt = 0
+        for s in range(self.cfg.n_players):
+            if self.get_player_def_loc_raw(s, 1) == target_raw:
+                cnt += 1
+        return cnt
+
+    def total_reve_activation_remaining(self) -> int:
+        """Nombre total de Défenseurs encore actifs (non consommés) sur des Rêves."""
+        cnt = 0
+        lo = _LOC_REVE_ACTIVATION_BASE
+        hi = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
+    def total_reve_activation_consumed(self) -> int:
+        """Nombre total de Défenseurs consommés par annulation de machines sur des Rêves ce tour."""
+        cnt = 0
+        lo = _LOC_REVE_ACTIVATION_CONSUMED_BASE
+        hi = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if lo <= raw < hi:
+                cnt += 1
+        return cnt
+
+    def total_reve_activation_engaged(self) -> int:
+        """Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés)."""
+        cnt = 0
+        lo1 = _LOC_REVE_ACTIVATION_BASE
+        hi1 = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
+        lo2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE
+        hi2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
+        for s in range(self.cfg.n_players):
+            raw = self.get_player_def_loc_raw(s, 1)
+            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                cnt += 1
+        return cnt
+
+    def consume_reve_activation_defenders(self, case_1_6: int, count: int) -> int:
+        """Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (pari gagné)."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        if count <= 0:
+            return 0
+        src_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        dst_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        consumed = 0
+        for s in range(self.cfg.n_players):
+            if consumed >= count:
+                break
+            if self.get_player_def_loc_raw(s, 1) == src_raw:
+                self.set_player_def_loc_raw(s, 1, dst_raw)
+                consumed += 1
+        return consumed
+
+    def is_eveil_attempt_eligible(self) -> bool:
+        """Vrai si la répartition des N Défenseurs en 2.2 sur Gardiens + Rêves satisfait
+        les conditions d'une tentative d'Éveil de la Forêt par mobilisation croisée (Tours 1..7, A >= 1).
+        """
+        if self.cfg.mode < 2 or self.cfg.nb_animaux_sauvages < 1 or self.tour >= 8:
+            return False
+        g_eng = self.total_gardien_pari_engaged()
+        r_eng = self.total_reve_activation_engaged()
+        if g_eng + r_eng != self.cfg.n_players:
+            return False
+        if g_eng < r_eng:
+            return False
+        return not (
+            self.cfg.reveil_reves_policy == "PARITY_CAP_ONIRIQUE"
+            and r_eng > self.cfg.nb_peuples_oniriques
+        )
+
+    def is_eveil_gardiens_victory(self) -> bool:
+        """Éveil de la Forêt par mobilisation croisée (Tours 1..7, A >= 1) :
+        les N Défenseurs engagés en 2.2 sur Gardiens + Rêves, 0 pari perdu (0 Défenseur restant),
+        et contrainte `reveil_reves_policy` respectée (`PARITY` ou `PARITY_CAP_ONIRIQUE`).
+        """
+        if not self.is_eveil_attempt_eligible():
+            return False
+        return (
+            self.total_gardien_pari_remaining() == 0
+            and self.total_reve_activation_remaining() == 0
+        )
+
     def place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None:
-        """Engage le 2e Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2."""
+        """Engage le Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2."""
         assert self.cfg.mode >= 2, "Activation des Rêves interdite en Mode 1"
         assert 1 <= case_1_6 <= TRACK_LEN
         assert face in (FACE_REFLEXION, FACE_DEFINITIF)

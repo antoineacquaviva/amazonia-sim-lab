@@ -45,6 +45,7 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rs_def_gardien",
     "rs_def_resonance",
     "rs_def_other_cases",
+    "rs_def_reve",
     "rs_def1_foret",
     "rs_def2_foret",
     "rs_def_furtivite",
@@ -58,6 +59,9 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rs_machines_retired",
     "rs_machines_attacked",
     "rs_reves_on_track",
+    "rs_reves_opened",
+    "rs_trig5_lit",
+    "rs_trig4_lit",
     "rs_sabotage_in_deck",
     "rs_strikes",
     "rs_pre_insects",
@@ -73,6 +77,7 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rf_def_gardien",
     "rf_def_resonance",
     "rf_def_other_cases",
+    "rf_def_reve",
     "rf_def1_foret",
     "rf_def2_foret",
     "rf_cards_sabotage",
@@ -84,6 +89,9 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rf_insects_spent",
     "rf_pieges_triggered",
     "rf_reves_on_track",
+    "rf_reves_opened",
+    "rf_trig5_lit",
+    "rf_trig4_lit",
     "rf_sabotage_in_deck",
 )
 
@@ -169,6 +177,7 @@ class TelemetrySummary(NamedTuple):
     rs_def_gardien: int = 0
     rs_def_resonance: int = 0
     rs_def_other_cases: int = 0
+    rs_def_reve: int = 0
     rs_def1_foret: int = 0
     rs_def2_foret: int = 0
     rs_def_furtivite: int = 0
@@ -182,6 +191,9 @@ class TelemetrySummary(NamedTuple):
     rs_machines_retired: int = 0
     rs_machines_attacked: int = 0
     rs_reves_on_track: int = 0
+    rs_reves_opened: int = 0
+    rs_trig5_lit: int = 0
+    rs_trig4_lit: int = 0
     rs_sabotage_in_deck: int = 0
     rs_strikes: int = 0
     rs_pre_insects: int = 0
@@ -198,6 +210,7 @@ class TelemetrySummary(NamedTuple):
     rf_def_gardien: int = 0
     rf_def_resonance: int = 0
     rf_def_other_cases: int = 0
+    rf_def_reve: int = 0
     rf_def1_foret: int = 0
     rf_def2_foret: int = 0
     rf_cards_sabotage: int = 0
@@ -209,6 +222,9 @@ class TelemetrySummary(NamedTuple):
     rf_insects_spent: int = 0
     rf_pieges_triggered: int = 0
     rf_reves_on_track: int = 0
+    rf_reves_opened: int = 0
+    rf_trig5_lit: int = 0
+    rf_trig4_lit: int = 0
     rf_sabotage_in_deck: int = 0
 
 
@@ -240,8 +256,11 @@ class TelemetryTracker:
     _turn_closed: bool = False
     # État transitoire du tour courant pour l'anatomie de l'Éveil
     _turn_strikes: int = 0
+    _turn_reves_opened: int = 0
+    _turn_trig4_lit: bool = False
+    _turn_trig5_lit: bool = False
     _turn_reveil_active: bool = False
-    _turn_def_snap: tuple[int, int, int, int, int, int, int, int] | None = None
+    _turn_def_snap: tuple[int, int, int, int, int, int, int, int, int] | None = None
     _turn_pre5_snap: tuple[int, ...] | None = None
     # Accumulateurs Éveils réussis (rs_*)
     rs_count: int = 0
@@ -257,6 +276,7 @@ class TelemetryTracker:
     rs_def_gardien: int = 0
     rs_def_resonance: int = 0
     rs_def_other_cases: int = 0
+    rs_def_reve: int = 0
     rs_def1_foret: int = 0
     rs_def2_foret: int = 0
     rs_def_furtivite: int = 0
@@ -270,6 +290,9 @@ class TelemetryTracker:
     rs_machines_retired: int = 0
     rs_machines_attacked: int = 0
     rs_reves_on_track: int = 0
+    rs_reves_opened: int = 0
+    rs_trig5_lit: int = 0
+    rs_trig4_lit: int = 0
     rs_sabotage_in_deck: int = 0
     rs_strikes: int = 0
     rs_pre_insects: int = 0
@@ -286,6 +309,7 @@ class TelemetryTracker:
     rf_def_gardien: int = 0
     rf_def_resonance: int = 0
     rf_def_other_cases: int = 0
+    rf_def_reve: int = 0
     rf_def1_foret: int = 0
     rf_def2_foret: int = 0
     rf_cards_sabotage: int = 0
@@ -297,6 +321,9 @@ class TelemetryTracker:
     rf_insects_spent: int = 0
     rf_pieges_triggered: int = 0
     rf_reves_on_track: int = 0
+    rf_reves_opened: int = 0
+    rf_trig5_lit: int = 0
+    rf_trig4_lit: int = 0
     rf_sabotage_in_deck: int = 0
 
     def _snapshot_pre_step5(self, state: GameState) -> None:
@@ -371,7 +398,7 @@ class TelemetryTracker:
         self._turn_reveil_active = False
         pre5 = self._turn_pre5_snap
         self._turn_pre5_snap = None
-        def_snap = self._turn_def_snap or (state.tour, 0, 0, 0, 0, 0, 0, 0)
+        def_snap = self._turn_def_snap or (state.tour, 0, 0, 0, 0, 0, 0, 0, 0)
         self._turn_def_snap = None
 
         (
@@ -379,6 +406,7 @@ class TelemetryTracker:
             def_gard,
             def_res,
             def_other,
+            def_reve,
             def1_for,
             def2_for,
             def_furt,
@@ -418,6 +446,9 @@ class TelemetryTracker:
         insects_spent = max(0, pre_insects - post_insects)
         pieges_triggered = max(0, pre_pieges - post_pieges)
         strikes = self._turn_strikes
+        reves_opened = self._turn_reves_opened
+        trig5_lit = 1 if self._turn_trig5_lit else 0
+        trig4_lit = 1 if self._turn_trig4_lit else 0
 
         if succeeded:
             if ratio_arbres is None:
@@ -443,6 +474,7 @@ class TelemetryTracker:
             self.rs_def_gardien += def_gard
             self.rs_def_resonance += def_res
             self.rs_def_other_cases += def_other
+            self.rs_def_reve += def_reve
             self.rs_def1_foret += def1_for
             self.rs_def2_foret += def2_for
             self.rs_def_furtivite += def_furt
@@ -456,6 +488,9 @@ class TelemetryTracker:
             self.rs_machines_retired += machines_retired
             self.rs_machines_attacked += machines_attacked
             self.rs_reves_on_track += reves_on_track
+            self.rs_reves_opened += reves_opened
+            self.rs_trig5_lit += trig5_lit
+            self.rs_trig4_lit += trig4_lit
             self.rs_sabotage_in_deck += sab_in_deck
             self.rs_strikes += strikes
             self.rs_pre_insects += pre_insects
@@ -477,6 +512,7 @@ class TelemetryTracker:
             self.rf_def_gardien += def_gard
             self.rf_def_resonance += def_res
             self.rf_def_other_cases += def_other
+            self.rf_def_reve += def_reve
             self.rf_def1_foret += def1_for
             self.rf_def2_foret += def2_for
             self.rf_cards_sabotage += cards_sab
@@ -488,6 +524,9 @@ class TelemetryTracker:
             self.rf_insects_spent += insects_spent
             self.rf_pieges_triggered += pieges_triggered
             self.rf_reves_on_track += reves_on_track
+            self.rf_reves_opened += reves_opened
+            self.rf_trig5_lit += trig5_lit
+            self.rf_trig4_lit += trig4_lit
             self.rf_sabotage_in_deck += sab_in_deck
 
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
@@ -495,6 +534,9 @@ class TelemetryTracker:
         if next_step == STEP_1_1_RATISSAGE and prev_step == STEP_6_3_END_TURN:
             self._turn_closed = False
             self._turn_strikes = 0
+            self._turn_reves_opened = 0
+            self._turn_trig4_lit = False
+            self._turn_trig5_lit = False
             self._turn_reveil_active = False
             self._turn_def_snap = None
             self._turn_pre5_snap = None
@@ -562,12 +604,13 @@ class TelemetryTracker:
         self.gardien_bets_lost += bets_lost
 
     def on_reveil_attempt(self, state: GameState) -> None:
-        """Enregistre un tour où les N 2es Défenseurs sont engagés sur la Piste des Gardiens en 2.2."""
+        """Enregistre un tour de mobilisation croisée (N Défenseurs engagés sur Gardiens + Rêves en 2.2)."""
         self.reveil_attempts += 1
         self._turn_reveil_active = True
         def_gard = 0
         def_res = 0
         def_other = 0
+        def_reve = 0
         def1_for = 0
         def2_for = 0
         def_furt = 0
@@ -581,6 +624,8 @@ class TelemetryTracker:
                         def_res += 1
                     else:
                         def_other += 1
+                elif kind in ("REVE_ACTIVATION", "REVE_ACTIVATION_CONSUMED"):
+                    def_reve += 1
                 elif kind == "FORET":
                     if def_idx == 0:
                         def1_for += 1
@@ -595,6 +640,7 @@ class TelemetryTracker:
             def_gard,
             def_res,
             def_other,
+            def_reve,
             def1_for,
             def2_for,
             def_furt,
@@ -605,10 +651,18 @@ class TelemetryTracker:
         """Enregistre explicitement l'échec d'une tentative d'Éveil."""
         self.reveil_failures += 1
 
+    def on_trigger_lit(self, case_num: int) -> None:
+        """Enregistre l'allumage des cases déclencheurs 4. Gardien et 5. Rêve durant le tour."""
+        if case_num == 4:
+            self._turn_trig4_lit = True
+        elif case_num == 5:
+            self._turn_trig5_lit = True
+
     def on_reve_activated(self, count: int = 1) -> None:
         """Enregistre une ouverture de Rêve activée en Étape 3.2."""
         if count > 0:
             self.reves_activated += count
+            self._turn_reves_opened += count
 
     def on_machines_cancelled_by_reve(self, count: int) -> None:
         """Enregistre les cartes Machine annulées par un Rêve activé en Étape 3.2."""
@@ -681,6 +735,7 @@ class TelemetryTracker:
             rs_def_gardien=self.rs_def_gardien,
             rs_def_resonance=self.rs_def_resonance,
             rs_def_other_cases=self.rs_def_other_cases,
+            rs_def_reve=self.rs_def_reve,
             rs_def1_foret=self.rs_def1_foret,
             rs_def2_foret=self.rs_def2_foret,
             rs_def_furtivite=self.rs_def_furtivite,
@@ -694,6 +749,9 @@ class TelemetryTracker:
             rs_machines_retired=self.rs_machines_retired,
             rs_machines_attacked=self.rs_machines_attacked,
             rs_reves_on_track=self.rs_reves_on_track,
+            rs_reves_opened=self.rs_reves_opened,
+            rs_trig5_lit=self.rs_trig5_lit,
+            rs_trig4_lit=self.rs_trig4_lit,
             rs_sabotage_in_deck=self.rs_sabotage_in_deck,
             rs_strikes=self.rs_strikes,
             rs_pre_insects=self.rs_pre_insects,
@@ -709,6 +767,7 @@ class TelemetryTracker:
             rf_def_gardien=self.rf_def_gardien,
             rf_def_resonance=self.rf_def_resonance,
             rf_def_other_cases=self.rf_def_other_cases,
+            rf_def_reve=self.rf_def_reve,
             rf_def1_foret=self.rf_def1_foret,
             rf_def2_foret=self.rf_def2_foret,
             rf_cards_sabotage=self.rf_cards_sabotage,
@@ -720,5 +779,8 @@ class TelemetryTracker:
             rf_insects_spent=self.rf_insects_spent,
             rf_pieges_triggered=self.rf_pieges_triggered,
             rf_reves_on_track=self.rf_reves_on_track,
+            rf_reves_opened=self.rf_reves_opened,
+            rf_trig5_lit=self.rf_trig5_lit,
+            rf_trig4_lit=self.rf_trig4_lit,
             rf_sabotage_in_deck=self.rf_sabotage_in_deck,
         )

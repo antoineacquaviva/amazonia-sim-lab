@@ -630,6 +630,13 @@ def prim_permutation_piste(
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
         if rank_a == 0:
             return False
+        if state.cfg.reve_advance_mode == "FREE_SLOT_ONLY":
+            if is_reve_code(state.get_tactique_at_rank(rank_a - 1)):
+                return False
+            state.set_tactique_at_rank(rank_a - 1, code)
+            state.set_tactique_at_rank(rank_a, rank_a + 1)
+            _record_phys_ops(state, 1)
+            return True
         dest: int | None = None
         for j in range(rank_a - 1, -1, -1):
             if not is_reve_code(state.get_tactique_at_rank(j)):
@@ -686,7 +693,7 @@ def prim_partage_info_etat_gardien(
         # Retrait d'1 Défenseur (mis de côté jusqu'au ménage 6.2/6.3) ;
         # le passage Face 1 -> Face 2 des Gardiens double-face a lieu en 5.3 si le pari est gagné.
         _record_phys_ops(state, 1)
-        # Anti-boucle 4. Résonance : l'ouverture du Gardien sur 4. Résonance ne ré-allume jamais 4.
+        # Anti-boucle 4. Gardien : l'ouverture du Gardien sur 4. Gardien ne ré-allume jamais 4.
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
         if case_1_6 != 4:
             state._continuation.insert(0, sync_frame)
@@ -698,6 +705,9 @@ def prim_partage_info_etat_gardien(
         if case_1_6 != 4 and state._continuation and state._continuation[0] == sync_frame:
             state._continuation.pop(0)
             state.light_trigger(4)
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_trigger_lit(4)
         return True
 
     if action == "FLIP_GARDIEN_FACE":
