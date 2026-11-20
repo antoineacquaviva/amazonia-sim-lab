@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "calibration_mobilisation_croisee_v5_4",
+      "label": "Calibration Mode 2 v5.4.4 : Pari unique sur les Gardiens (max 1 Défenseur/Gardien cases 1..6), consommation symétrique sur les Rêves, et Éveil de la Forêt par mobilisation croisée (Gardiens + Rêves). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A, croisement 2x2 reveil_reves_policy in {PARITY, PARITY_CAP_ONIRIQUE} x reve_advance_mode in {JUMP_PUSH, FREE_SLOT_ONLY}. (23040 parties)",
+      "file": "digest_calibration_mobilisation_croisee_v5_4.json",
+      "campaign": "calibration_mobilisation_croisee_v5_4",
+      "generated_at_utc": "2026-11-20T13:43:51Z",
+      "total_games": 23040
+    },
+    {
       "id": "calibration_reves_fixes_v5_4",
       "label": "Calibration Mode 2 v5.4.2 : Piste des Tactiques fixe T1..T6, purge Apprentissage 6.1, SLOT_BUG_CERVEAU=B, activation des Rêves en 2.2 (Options A/B/C), bot B2, N=3..6, toutes combinaisons de Peuples (0, 1 et 2 Peuples Oniriques), 6 profils de piste canoniques. (17280 parties)",
       "file": "digest_calibration_reves_fixes_v5_4.json",
