@@ -1,5 +1,5 @@
 // =========================================================================
-// data/amazonia_data_v5_4.js — Données canoniques Amazonia v5.4.4 (6 profils · 192 châssis · Piste T1..T6 fixe · Pari unique Gardiens · Mobilisation croisée)
+// data/amazonia_data_v5_4.js — Données canoniques Amazonia v5.4.5 (6 profils · 192 châssis · Piste T1..T6 fixe · Pari Gardiens max 2 · Éveil 100 % Gardiens · Rêves CLEAR_RANK_ONLY)
 // =========================================================================
 const PEUPLES = {
   "M": {
@@ -2516,6 +2516,29 @@ const CATALOGUE_TUILES = {
 
 const VERSION_CHANGELOG = [
   {
+    "version": "v5.4.5",
+    "date": "Version en vigueur (2026-11-20)",
+    "titre": "Éveil 100 % Gardiens, Plafond Pari Gardiens max 2 & Avancée Rêves CLEAR_RANK_ONLY",
+    "resume": "Sortie complète des Rêves de l’Éveil de la Forêt (100 % Piste des Gardiens, Tours 1..7, A >= 1), plafond de pari sur les Gardiens à 2 Défenseurs max (gardien_bet_cap_policy : UNIFORM_MAX_2 vs MAX_2_RES_MAX_1 sur 4. Gardien), et avancée des Rêves paramétrable (JUMP_PUSH vs CLEAR_RANK_ONLY : un Rêve qui annule >= 1 machine s’ouvre toujours mais n’avance que si toutes les machines du rang M sont annulées).",
+    "deltas": [
+      {
+        "domaine": "Éveil de la Forêt 100 % Piste des Gardiens (Étape 5.3)",
+        "avant": "v5.4.4 : Mobilisation croisée Gardiens + Rêves avec politiques PARITY / PARITY_CAP_ONIRIQUE.",
+        "apres": "v5.4.5 : Sortie complète des Rêves de l’Éveil. Aux Tours 1..7 (si A >= 1, priorité Tour 8), la Forêt s’éveille uniquement si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu’aucun pari n’est perdu (0 Défenseur restant)."
+      },
+      {
+        "domaine": "Plafond de pari sur les Gardiens (Étape 2.2)",
+        "avant": "v5.4.4 : Plafond uniforme d’1 seul Défenseur par Gardien sur les cases 1..6.",
+        "apres": "v5.4.5 : Plafond à 2 Défenseurs max par Gardien construit (0 = inactif, 1 = 1 déclenchement attendu, 2 = 2 déclenchements attendus), avec duel UNIFORM_MAX_2 (max 2 sur 1..6) vs MAX_2_RES_MAX_1 (max 1 sur 4. Gardien). Anti-boucle 4. Gardien maintenue."
+      },
+      {
+        "domaine": "Activation & Avancée des Rêves (Étape 3.2)",
+        "avant": "v5.4.4 : Avancée JUMP_PUSH vs FREE_SLOT_ONLY.",
+        "apres": "v5.4.5 : Rêves en coût d’activation indépendant de l’Éveil. Ajout de CLEAR_RANK_ONLY (face au témoin JUMP_PUSH) : un Rêve qui annule >= 1 machine s’ouvre toujours (allume 5. Rêve), mais n’avance vers la gauche (saut/poussée vers la 1re case libre à gauche) que si toutes les machines de ce rang M sont annulées ce tour-ci."
+      }
+    ]
+  },
+  {
     "version": "v5.4.4",
     "date": "Version en vigueur (2026-11-20)",
     "titre": "Pari unique sur les Gardiens, Consommation symétrique des Rêves & Éveil par mobilisation croisée",
@@ -2738,7 +2761,7 @@ const VERSION_CHANGELOG = [
 ];
 
 const SPEC_FORMELLE_V5_4 = {
-  "schema_version": "5.4.4",
+  "schema_version": "5.4.5",
   "date_consolidation": "2026-11-20",
   "architecture_reference": {
     "total_emplacements_synergie": 30,
@@ -2793,7 +2816,7 @@ const SPEC_FORMELLE_V5_4 = {
     "communication_muette": "Silence tactique complet tant que les paravents sont fermés (aucun échange verbal ou gestuel sur les coups, cartes ou dés). Sous Le Cri d'Alarme de l'Ara (ouverture anticipée), visibilité publique des cartes et dés mais pose individuelle sans concertation orale.",
     "pont_routier_routes_forestieres": "Le long d'un rayon de Forêt, toute Route Forestière est systématiquement sautée : viser devant, avancer, reculer, glisser un Piège ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Latéralement (Forêt <-> Furtivité), une Route Forestière est infranchissable et inoccupable.",
     "suppression_dette_et_verrouillage": "Zéro Insecte engagé et zéro verrouillage des parcelles ciblées. Les Insectes requis lors d’une parade classique sont défaussés immédiatement à la frappe. Tant qu'un Insecte est sur le plateau, il est libre. Seul un Piège ayant déjà paré au moins une frappe ce tour-ci ne peut plus payer un coût volontaire avant son retrait de fin d'attaques.",
-    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Zéro marqueur 'utilisé' : un Gardien construit ne peut recevoir qu'1 seul Défenseur en 2.2 (un Gardien sans Défenseur est inactif). Chaque déclencheur allumé sur une case portant un Défenseur consomme ce Défenseur et ouvre le Gardien ; l'ouverture sur 4. Gardien ne ré-allume jamais 4. Gardien. Balayage à plat dans l'ordre croissant des cases 1 à 6."
+    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Zéro marqueur 'utilisé' : chaque Gardien construit (cases 1..6) peut recevoir au maximum 2 Défenseurs en 2.2 (0 = inactif, 1 = 1 déclenchement attendu, 2 = 2 déclenchements attendus ; variante MAX_2_RES_MAX_1 plafonnant 4. Gardien à 1 Défenseur max). Chaque déclencheur allumé sur une case portant un Défenseur consomme 1 Défenseur et ouvre le Gardien immédiatement ; l'ouverture sur 4. Gardien ne ré-allume jamais 4. Gardien. Balayage à plat dans l'ordre croissant des cases 1 à 6."
   },
   "etapes_tour": [
     {
@@ -2811,9 +2834,9 @@ const SPEC_FORMELLE_V5_4 = {
       "code": "POSE_DES_DEFENSEURS",
       "nom": "Pose des Défenseurs et Piste de Furtivité (2.1–2.2)",
       "regles": [
-        "2.1 / 2.2 Pose sous paravent fermé : 1er Défenseur irrévocable sur sa Forêt ou ses 2 lisières ; puis 2e Défenseur global (réflexion -> choix définitif). Anti-blocage : pose interdite sur Route Forestière, tuile construite/pleine/inconstructible ou rive Furtivité bordant une Route (si parcelle requise).",
+        "2.1 / 2.2 Pose sous paravent fermé : 1er Défenseur irrévocable sur sa Forêt ou ses 2 lisières ; puis Défenseur de portée globale (réflexion -> choix définitif). Anti-blocage : pose interdite sur Route Forestière, tuile construite/pleine/inconstructible ou rive Furtivité bordant une Route (si parcelle requise).",
         "Piste de Furtivité à 4 emplacements par case (2 jumeaux rive J1, 2 jumeaux rive J2 ; max 2 Défenseurs par case). Lorsqu'un Défenseur ENTRE sur une case de Furtivité (1er Défenseur, 2e en réflexion ou 2e posé directement en choix définitif), on le pose sur l'un des 4 emplacements valides et l'éventuel autre Défenseur présent glisse aussitôt sur l'emplacement jumeau du même bord (orientant l'unique action du binôme). Retourner sur place un jeton de sa face réflexion à sa face choix définitif se fait strictement sur son emplacement actuel, sans déplacement ni tirage.",
-        "2.2 Portée globale, Activation des Rêves & Pari unique sur les Gardiens : pose en réflexion puis définitive partout sur le plateau, y compris sur un Rêve de la Piste des Tactiques fixe (activation 3.2) ou en pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; max 1 seul Défenseur par Gardien sur l'ensemble des 6 cases). Un Gardien sans Défenseur reste inactif ce tour-ci."
+        "2.2 Portée globale, Activation des Rêves & Pari sur les Gardiens : pose en réflexion puis définitive partout sur le plateau, y compris sur un Rêve de la Piste des Tactiques fixe (coût d'activation en 3.2) ou en pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; max 2 Défenseurs par Gardien selon gardien_bet_cap_policy : UNIFORM_MAX_2 ou MAX_2_RES_MAX_1 sur 4. Gardien). Un Gardien sans Défenseur reste inactif ce tour-ci."
       ]
     },
     {
@@ -2825,7 +2848,7 @@ const SPEC_FORMELLE_V5_4 = {
         "3.1 Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
         "3.1 Rêve : un Rêve construit se pose par-dessus la case libre la plus à droite de la piste fixe T1..T6 (case 6, puis case 5 si 6 est déjà occupée par un Rêve, etc.). Aucune Tactique n'est éjectée (les Insectes Bug restent sur leur numéro d'emplacement imprimé). Ce Rêve est immédiatement présent sur la piste pour l’étape 3.2.",
         "3.1 Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents.",
-        "3.2 Révélation simultanée (paravents ouverts) : résolution des déviations Bug (SLOT_BUG_CERVEAU profil B par défaut : défausser 1 Insecte posé sur la case M pour décaler le dé M de ±1 rang), puis résolution des rangs portant un Rêve selon les Défenseurs posés dessus en 2.2 (Option A par défaut : chaque Défenseur qui annule effectivement 1 machine en priorisant la plus menaçante est consommé ; sinon il reste non consommé sur le Rêve jusqu'au ménage ; toute machine non annulée exécute la Tactique imprimée T1..T6 sous la case). Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre (allume 5. Rêve) et avance vers la gauche selon reve_advance_mode (JUMP_PUSH ou FREE_SLOT_ONLY)."
+        "3.2 Révélation simultanée (paravents ouverts) : résolution des déviations Bug (SLOT_BUG_CERVEAU profil B par défaut : défausser 1 Insecte posé sur la case M pour décaler le dé M de ±1 rang), puis résolution des rangs portant un Rêve selon les Défenseurs posés dessus en 2.2 (Option A par défaut : 1_DEF_1_MACHINE, chaque Défenseur annule 1 machine en priorisant la plus menaçante ; toute machine non annulée exécute la Tactique imprimée T1..T6 sous la case). Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre toujours (allume 5. Rêve) et avance vers la gauche (saut/poussée vers la 1re case libre à gauche) selon reve_advance_mode (JUMP_PUSH : avance dès >= 1 machine annulée ; CLEAR_RANK_ONLY : avance uniquement si toutes les machines du rang M ont été annulées ce tour-ci)."
       ]
     },
     {
@@ -2850,7 +2873,7 @@ const SPEC_FORMELLE_V5_4 = {
         "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
         "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
         "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
-        "Issue des paris Gardiens & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (pari gagné : Défenseur consommé -> le Gardien reste en piste et passe Face 2 s'il est double-face en Mode 4 ; pari perdu : Défenseur non consommé -> retour immédiat en lisière d'origine Face 1). Test de fin de partie : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Éveil de la Forêt par mobilisation croisée (les N Défenseurs de la table engagés en 2.2 sur Gardiens et Rêves, 0 Défenseur restant en 5.3, et contrainte reveil_reves_policy respectée : PARITY ou PARITY_CAP_ONIRIQUE). Si atteint : passage direct à la Repousse Finale."
+        "Issue des paris Gardiens & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné, le Gardien reste en piste et passe Face 2 s'il est double-face en Mode 4 ; >= 1 Défenseur restant -> pari perdu, retour immédiat en lisière d'origine Face 1). Test de fin de partie : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Éveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 Défenseur restant en 5.3). Si atteint : passage direct à la Repousse Finale."
       ]
     },
     {
@@ -2877,15 +2900,15 @@ const SPEC_FORMELLE_V5_4 = {
     "A11": "Piste des Tactiques fixe (T1..T6 imprimées en dur) et placement des Rêves (v5.4.2) : aucune tuile Tactique mobile ni éjection de Tactique. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.). Les Insectes Bug restent sur leur numéro d'emplacement imprimé.",
     "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
     "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
-    "A14": "Mobilisation croisée & Éveil de la Forêt (v5.4.4) : actif uniquement si au moins 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue à Tour 8). En 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et la Piste des Tactiques (Rêves), qu'aucun pari n'est perdu (0 Défenseur restant sur Gardiens et Rêves), et que la politique reveil_reves_policy est respectée (PARITY : gardiens_won >= reves_won ; PARITY_CAP_ONIRIQUE : gardiens_won >= reves_won et reves_won <= nb_peuples_oniriques H/E).",
-    "A15": "Test de fin de partie (5.3) : priorité absolue à Tour 8 (au Tour 8, la fin est toujours TOUR_8) ; sur les Tours 1..7, vérification directe après issue des paris Gardiens de Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu à gauche cases 1..k de la Piste des Tactiques) ou d'Éveil de la Forêt par mobilisation croisée (les N Défenseurs de la table engagés en 2.2 sur Gardiens et Rêves, 0 Défenseur restant en 5.3 et contrainte reveil_reves_policy respectée). Passage direct à la Repousse Finale.",
+    "A14": "Éveil de la Forêt 100 % Piste des Gardiens (v5.4.5) : actif uniquement si au moins 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue à Tour 8). Sortie complète des Rêves de l'Éveil : en 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu'aucun pari n'est perdu (0 Défenseur restant sur la Piste des Gardiens).",
+    "A15": "Test de fin de partie (5.3) : priorité absolue à Tour 8 (au Tour 8, la fin est toujours TOUR_8) ; sur les Tours 1..7, vérification directe après issue des paris Gardiens de Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu à gauche cases 1..k de la Piste des Tactiques) ou d'Éveil de la Forêt 100 % Gardiens (les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 Défenseur restant en 5.3). Passage direct à la Repousse Finale.",
     "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
     "A17": "Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
     "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
     "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
     "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
-    "A21": "Activation, consommation symétrique et avancée des Rêves (v5.4.4) : en 2.2, un joueur peut poser son Défenseur sur un Rêve déjà présent sur la piste fixe T1..T6. En 3.2 (Option A par défaut : 1_DEF_1_MACHINE), chaque Défenseur posé sur un Rêve qui annule effectivement 1 machine (en priorisant la plus menaçante) est consommé (pari gagné) ; sinon il reste non consommé sur le Rêve jusqu'au ménage 6.2. Toute machine non annulée exécute la Tactique T1..T6 imprimée sous la case. Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre (allume 5. Rêve) et avance selon reve_advance_mode (JUMP_PUSH : saut/poussée vers la 1re case libre à gauche ; FREE_SLOT_ONLY : avance d'1 cran à gauche uniquement si la case immédiatement à gauche est libre, sinon reste sur place).",
-    "A22": "Pari unique sur les Gardiens (v5.4.4) : actif si >= 1 Peuple Animal Sauvage (M/R/O) est à la table. Zéro marqueur 'utilisé' sur les cases 1..6 : un Gardien sans Défenseur est inactif ce tour-ci. En 2.2, chaque Gardien construit (cases 1..6) ne peut recevoir au maximum qu'1 seul Défenseur (limite uniforme sur les 6 cases). Dès que son déclencheur s'allume, son Défenseur est consommé (mis de côté jusqu'au ménage 6.2) et le Gardien s'ouvre immédiatement. Anti-boucle 4. Gardien : l'ouverture du Gardien sur 4. Gardien ne ré-allume jamais 4. Gardien. En 5.3 : pari gagné (Défenseur consommé) -> le Gardien reste sur la piste (et passe Face 2 s'il est double-face en Mode 4) ; pari perdu (Défenseur non consommé) -> retour immédiat en lisière d'origine (Face 1).",
+    "A21": "Activation et avancée des Rêves (v5.4.5) : en 2.2, un joueur peut poser son Défenseur sur un Rêve déjà présent sur la piste fixe T1..T6 (coût d'activation indépendant de l'Éveil). En 3.2 (Option A par défaut : 1_DEF_1_MACHINE), chaque Défenseur posé sur un Rêve annule 1 machine pointant sur ce rang M (en priorisant la plus menaçante) ; toute machine non annulée exécute la Tactique T1..T6 imprimée sous la case. Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre toujours (allume 5. Rêve) et avance vers la gauche (par saut/poussée vers la 1re case libre à gauche) selon reve_advance_mode (JUMP_PUSH : avance dès >= 1 machine annulée ; CLEAR_RANK_ONLY : avance uniquement si TOUTES les machines de ce rang M ont été annulées ce tour-ci, sinon reste sur sa case).",
+    "A22": "Pari d'activation sur les Gardiens — plafond 2 Défenseurs max (v5.4.5) : actif si >= 1 Peuple Animal Sauvage (M/R/O) est à la table. Zéro marqueur 'utilisé' sur les cases 1..6 : un Gardien sans Défenseur est inactif ce tour-ci. En 2.2, chaque Gardien construit (cases 1..6) peut recevoir au maximum 2 Défenseurs selon gardien_bet_cap_policy (UNIFORM_MAX_2 : max 2 Défenseurs sur les 6 cases ; MAX_2_RES_MAX_1 : max 2 Défenseurs sur cases 1, 2, 3, 5, 6 et max 1 Défenseur sur 4. Gardien). Chaque déclenchement de la case consomme 1 Défenseur (mis de côté jusqu'au ménage 6.2) et ouvre le Gardien immédiatement. Anti-boucle 4. Gardien : l'ouverture du Gardien sur 4. Gardien ne ré-allume jamais 4. Gardien. En 5.3 : 0 Défenseur restant -> pari gagné (reste en piste, passe Face 2 en Mode 4 si double-face) ; >= 1 Défenseur restant -> pari perdu (retour immédiat en lisière Face 1).",
     "A23": "Apprentissage supprimé (v5.4.2) : plus aucun jeton Apprentissage ni déplacement des Tactiques en Étape 6 (piste T1..T6 imprimée en dur). SLOT_BUG_CERVEAU bascule par défaut sur le profil B (Déviation Synaptique ±1 rang en 3.2).",
     "A24": "Cartes Sabotage (dilution permanente) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis ajoute définitivement 1 carte Sabotage au paquet Machine (allume 3. Sabotage) ; 1 carte Sabotage tirée à l’Étape 1 fait perdre 1 activation au Contremaître puis est remélangée en fin de tour.",
     "A25": "Séquence des attaques : Tactiques 1..6 puis Ratissages ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."

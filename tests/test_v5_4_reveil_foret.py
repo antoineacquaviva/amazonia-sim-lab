@@ -1,10 +1,13 @@
-"""Tests unitaires v5.4.4 : Pari unique Gardiens, Consommation symétrique Rêves,
-Éveil par mobilisation croisée (PARITY / PARITY_CAP_ONIRIQUE), FREE_SLOT_ONLY et cascade 5->4.
+"""Tests unitaires v5.4.5 : Plafond pari Gardiens max 2 (UNIFORM_MAX_2 vs MAX_2_RES_MAX_1),
+échec partiel pari à 2 Défenseurs, Éveil 100 % Gardiens (rejet si Défenseur sur Rêve),
+avancée des Rêves CLEAR_RANK_ONLY vs JUMP_PUSH, télémétrie & manifeste calibration_pari_max2_v5_4.
 """
 
 from __future__ import annotations
 
+import gzip
 import json
+import shutil
 from pathlib import Path
 
 import pytest
@@ -15,6 +18,7 @@ from bots.heuristic_engine import score_target_b2
 from campaigns.digest_builder import build_active_core_rules
 from campaigns.worker_main import _execute_manifest_unit, resolve_manifest_plan
 from engine.core_engine import (
+    _run_step_3_2,
     apply_step2_def2,
     list_legal_targets,
     lock_all_def2_in_place,
@@ -28,7 +32,6 @@ from engine.primitives import (
     CAUSE_TOUR_8,
     GameOver,
     prim_partage_info_etat_gardien,
-    prim_permutation_piste,
 )
 from engine.state import (
     CARD_SABOTAGE,
@@ -50,14 +53,13 @@ from engine.telemetry import TelemetryTracker
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_pari_unique_par_gardien_toutes_cases() -> None:
-    """Chaque Gardien construit (cases 1..6) ne peut recevoir au maximum qu'1 seul Défenseur en 2.2."""
+def test_gardien_bet_cap_uniform_max_2_vs_max_2_res_max_1() -> None:
+    """UNIFORM_MAX_2 autorise max 2 Défenseurs sur 1..6 (dont case 4) ; MAX_2_RES_MAX_1 plafonne case 4 à 1."""
     assert NUM_CHASSIS == 192
 
     # Sans Animal Sauvage (H, E, I) : cible GARDIEN_PARI interdite
     cfg_no_animal = GameConfig(n_players=3, mode=2, peuples=("H", "E", "I"))
     assert cfg_no_animal.nb_animaux_sauvages == 0
-    assert cfg_no_animal.nb_peuples_oniriques == 2
     st_no = GameState(cfg_no_animal)
     st_no.set_gardien_at_case(1, 1, face=1)
     assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_no, 0, is_first_defender=False)
@@ -68,215 +70,231 @@ def test_pari_unique_par_gardien_toutes_cases() -> None:
     st_m1.set_gardien_at_case(1, 1, face=1)
     assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_m1, 0, is_first_defender=False)
 
-    # Mode 2 avec Animaux Sauvages : max 1 Défenseur uniformément sur les 6 cases (y compris 1 et 4)
-    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))
-    assert cfg.nb_animaux_sauvages == 3
-    assert cfg.nb_peuples_oniriques == 1
-    st = GameState(cfg)
+    # 1. UNIFORM_MAX_2 : max 2 sur cases 1..6 y compris case 4, 3e interdit
+    cfg_u2 = GameConfig(
+        n_players=5,
+        mode=2,
+        peuples=("M", "R", "O", "H", "I"),
+        gardien_bet_cap_policy="UNIFORM_MAX_2",
+    )
+    st_u2 = GameState(cfg_u2)
     for c in range(1, 7):
-        st.set_gardien_at_case(c, c, face=1)
+        st_u2.set_gardien_at_case(c, c, face=1)
 
     # 1er Défenseur ne peut jamais cibler GARDIEN_PARI
-    assert ("GARDIEN_PARI", 1) not in list_legal_targets(st, 0, is_first_defender=True)
-    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st, 0, is_first_defender=True)
+    assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_u2, 0, is_first_defender=True)
+    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st_u2, 0, is_first_defender=True)
 
-    # Pose sur case 1 puis case 4 : un 2e joueur ne peut plus cibler ni 1 ni 4
-    apply_step2_def2(st, 0, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
-    apply_step2_def2(st, 1, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
-    legal_s2 = list_legal_targets(st, 2, is_first_defender=False)
-    assert ("GARDIEN_PARI", 1) not in legal_s2
-    assert ("GARDIEN_PARI", 4) not in legal_s2
-    assert ("GARDIEN_PARI", 2) in legal_s2
-    assert ("GARDIEN_PARI", 5) in legal_s2
+    # Pose de 2 Défenseurs sur case 1 et 2 Défenseurs sur case 4 -> légal en UNIFORM_MAX_2
+    apply_step2_def2(st_u2, 0, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
+    assert ("GARDIEN_PARI", 1) in list_legal_targets(st_u2, 1, is_first_defender=False)
+    apply_step2_def2(st_u2, 1, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
+    assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_u2, 2, is_first_defender=False)
 
-    # Tentative directe de cumul sur case 1 ou case 4 doit échouer
+    apply_step2_def2(st_u2, 2, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
+    assert ("GARDIEN_PARI", 4) in list_legal_targets(st_u2, 3, is_first_defender=False)
+    apply_step2_def2(st_u2, 3, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
+    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st_u2, 4, is_first_defender=False)
+
     with pytest.raises(AssertionError):
-        st.place_defender_gardien_pari(2, 1, FACE_DEFINITIF)
+        st_u2.place_defender_gardien_pari(4, 1, FACE_DEFINITIF)
     with pytest.raises(AssertionError):
-        st.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
+        st_u2.place_defender_gardien_pari(4, 4, FACE_DEFINITIF)
+
+    # 2. MAX_2_RES_MAX_1 : max 2 sur 1,2,3,5,6 mais max 1 sur case 4 (4. Gardien)
+    cfg_r1 = GameConfig(
+        n_players=5,
+        mode=2,
+        peuples=("M", "R", "O", "H", "I"),
+        gardien_bet_cap_policy="MAX_2_RES_MAX_1",
+    )
+    st_r1 = GameState(cfg_r1)
+    for c in range(1, 7):
+        st_r1.set_gardien_at_case(c, c, face=1)
+
+    # Case 1 accepte bien 2 Défenseurs
+    apply_step2_def2(st_r1, 0, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
+    assert ("GARDIEN_PARI", 1) in list_legal_targets(st_r1, 1, is_first_defender=False)
+    apply_step2_def2(st_r1, 1, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
+    assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_r1, 2, is_first_defender=False)
+
+    # Case 4 plafonnée à 1 seul Défenseur
+    apply_step2_def2(st_r1, 2, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
+    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st_r1, 3, is_first_defender=False)
+    with pytest.raises(AssertionError):
+        st_r1.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
 
 
-def test_gardien_zero_def_inactive_and_case4_antiloop() -> None:
-    """0 Déf = inactif ; 1 Déf = 1 ouverture ; l'ouverture sur 4. Gardien ne ré-allume jamais 4."""
-    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))
+def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
+    """2 Déf sur case 1 + 2 Déf sur case 4 (anti-boucle 4) ; échec partiel (1/2 déclenchements) -> retour lisière Face 1."""
+    load_all_effects()
+
+    # 1. Double déclenchement + anti-boucle 4. Gardien en UNIFORM_MAX_2
+    cfg = GameConfig(
+        n_players=4,
+        mode=2,
+        peuples=("M", "R", "O", "H"),
+        gardien_bet_cap_policy="UNIFORM_MAX_2",
+    )
     st = GameState(cfg)
     st.set_gardien_at_case(1, 1, face=1)
     st.set_gardien_at_case(4, 2, face=1)
 
-    # Sans Défenseur : inactif
+    # 0 Défenseur -> inactif
     st.light_trigger(1)
     assert sweep_gardiens(st) == 0
 
-    # 1 Défenseur sur case 1 et 1 Défenseur sur case 4
+    # 2 Défenseurs sur case 1 et 2 Défenseurs sur case 4
     st.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
 
-    # Déclenchement case 1 : ouvre case 1 -> allume 4 -> ouvre case 4 -> 4 reste éteinte !
+    # 1er déclenchement case 1 : ouvre case 1 (1 consommé, 1 restant) -> allume 4 -> ouvre case 4 (1 consommé, 1 restant) -> anti-boucle : 4 éteinte !
     st.light_trigger(1)
-    opened = sweep_gardiens(st)
-    assert opened == 2
-    assert st.count_gardien_pari_defenders_at_case(1) == 0
+    assert sweep_gardiens(st) == 2
+    assert st.count_gardien_pari_defenders_at_case(1) == 1
     assert st.count_gardien_pari_consumed_at_case(1) == 1
-    assert st.count_gardien_pari_defenders_at_case(4) == 0
+    assert st.count_gardien_pari_defenders_at_case(4) == 1
     assert st.count_gardien_pari_consumed_at_case(4) == 1
     assert not st.is_trigger_lit(4)
 
-    # Nouveau déclenchement case 1 : 0 Défenseur restant -> plus aucune ouverture
+    # 2e déclenchement case 1 : consomme le 2e Défenseur sur case 1 -> allume 4 -> consomme le 2e Défenseur sur case 4 !
     st.light_trigger(1)
-    assert sweep_gardiens(st) == 0
+    assert sweep_gardiens(st) == 2
+    assert st.count_gardien_pari_defenders_at_case(1) == 0
+    assert st.count_gardien_pari_consumed_at_case(1) == 2
+    assert st.count_gardien_pari_defenders_at_case(4) == 0
+    assert st.count_gardien_pari_consumed_at_case(4) == 2
+    assert not st.is_trigger_lit(4)
 
-
-def test_step5_3_bet_won_upgrade_vs_bet_lost_return_lisiere() -> None:
-    """En 5.3 : pari gagné reste (Face 2 en Mode 3/4 si double-face) ; pari perdu retourne en lisière Face 1."""
-    load_all_effects()
-
-    cfg_m2 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))
-    st_m2 = GameState(cfg_m2)
-    st_m2.tour = 2
-    g1_slot = st_m2.find_lisiere_slot_by_tile_id("G1")
-    g2_slot = st_m2.find_lisiere_slot_by_tile_id("G2")
+    # 2. Échec partiel d'un pari à 2 Défenseurs : 1 seul déclenchement -> 1 Défenseur restant -> retour immédiat en lisière Face 1
+    st_part = GameState(cfg)
+    st_part.tour = 2
+    g1_slot = st_part.find_lisiere_slot_by_tile_id("G1")
+    g2_slot = st_part.find_lisiere_slot_by_tile_id("G2")
     assert g1_slot is not None and g2_slot is not None
-    st_m2.set_lisiere_tile_state(g1_slot, LISIERE_CONSTRUCTED, 0)
-    st_m2.set_lisiere_tile_state(g2_slot, LISIERE_CONSTRUCTED, 0)
-    st_m2.set_gardien_at_case(1, 1, face=1)
-    st_m2.set_gardien_at_case(2, 2, face=1)
-    st_m2.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_m2.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    assert prim_partage_info_etat_gardien(st_m2, "MARK_GARDIEN_OPENED", case_1_6=1) is True
+    st_part.set_lisiere_tile_state(g1_slot, LISIERE_CONSTRUCTED, 0)
+    st_part.set_lisiere_tile_state(g2_slot, LISIERE_CONSTRUCTED, 0)
+    st_part.set_gardien_at_case(1, 1, face=1)
+    st_part.set_gardien_at_case(2, 2, face=1)
+    # 2 Défenseurs sur case 1 (G1), 1 Défenseur sur case 2 (G2)
+    st_part.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
+    st_part.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
+    st_part.place_defender_gardien_pari(2, 2, FACE_DEFINITIF)
+
+    # 1 seul déclenchement sur case 1 (échec partiel : 1 consommé, 1 restant) et 1 sur case 2 (gagné : 1 consommé, 0 restant)
+    assert prim_partage_info_etat_gardien(st_part, "MARK_GARDIEN_OPENED", case_1_6=1) is True
+    assert prim_partage_info_etat_gardien(st_part, "MARK_GARDIEN_OPENED", case_1_6=2) is True
+    assert st_part.count_gardien_pari_defenders_at_case(1) == 1
+    assert st_part.count_gardien_pari_consumed_at_case(1) == 1
 
     trk = TelemetryTracker()
-    st_m2.step = STEP_5_3_END_CHECK
-    step_until_decision(st_m2, telemetry=trk)
-    assert st_m2.get_gardien_at_case(1) == (1, 1)
-    assert st_m2.get_gardien_at_case(2) == (0, 1)
-    assert st_m2.get_lisiere_tile_state(g2_slot)[0] == LISIERE_UNCONSTRUCTED
+    st_part.step = STEP_5_3_END_CHECK
+    step_until_decision(st_part, telemetry=trk)
+    # G1 (échec partiel 1/2) retourne immédiatement en lisière Face 1 ; G2 (1/1) reste en piste
+    assert st_part.get_gardien_at_case(1) == (0, 1)
+    assert st_part.get_lisiere_tile_state(g1_slot)[0] == LISIERE_UNCONSTRUCTED
+    assert st_part.get_gardien_at_case(2) == (2, 1)
     ts = trk.summary()
     assert ts.gardien_bets_won == 1
     assert ts.gardien_bets_lost == 1
 
 
-def test_mobilisation_croisee_parity_vs_parity_cap_onirique_and_tour8() -> None:
-    """Mobilisation croisée : PARITY (g >= r), PARITY_CAP_ONIRIQUE (g >= r et r <= nb_oniriques), priorité Tour 8."""
-    from engine.core_engine import _run_step_3_2
-
-    # Table N=4 : M, R, O, H -> A=3, nb_peuples_oniriques=1 (H seul)
-    # Répartition 2 Gardiens + 2 Rêves :
-    # - sous PARITY : 2 >= 2 -> Éveil RÉUSSI !
-    # - sous PARITY_CAP_ONIRIQUE : r=2 > nb_oniriques=1 -> Éveil REFUSÉ !
-    for policy, expected_eveil in (("PARITY", True), ("PARITY_CAP_ONIRIQUE", False)):
-        cfg = GameConfig(
-            n_players=4,
-            mode=2,
-            peuples=("M", "R", "O", "H"),
-            reve_activation_mode="1_DEF_1_MACHINE",
-            reveil_reves_policy=policy,
-        )
-        st = GameState(cfg)
-        st.tour = 3
-        st.set_gardien_at_case(1, 1, face=1)
-        st.set_gardien_at_case(4, 2, face=1)
-        st.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
-        # Mains : 2 machines pointant sur case 6 (R3)
-        st.set_player_hand(0, 1, 6, 6, 6, 0)
-        st.set_player_hand(1, 3, 6, 6, 6, 0)
-        st.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-        st.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-
-        # 2 Défenseurs sur Gardiens (cases 1 & 4) + 2 Défenseurs sur Rêve (case 6)
-        st.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-        st.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
-        st.place_defender_reve_activation(2, 6, FACE_DEFINITIF)
-        st.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
-
-        # Étape 3.2 : les 2 Défenseurs sur le Rêve annulent 2 machines -> 2 consommés, 0 restant !
-        st.step = STEP_3_2_REVEAL
-        _run_step_3_2(st)
-        assert st.total_reve_activation_consumed() == 2
-        assert st.total_reve_activation_remaining() == 0
-
-        # Ouverture case 1 -> allume 4 -> ouvre case 4 -> 2 Gardiens consommés, 0 restant !
-        st.light_trigger(1)
-        sweep_gardiens(st)
-        assert st.total_gardien_pari_consumed() == 2
-        assert st.total_gardien_pari_remaining() == 0
-
-        assert st.is_eveil_gardiens_victory() is expected_eveil
-        st.step = STEP_5_3_END_CHECK
-        res = step_until_decision(st)
-        if expected_eveil:
-            assert isinstance(res, GameOver)
-            assert res.cause_fin == CAUSE_REVEIL_GARDIENS
-        else:
-            assert not isinstance(res, GameOver)
-
-    # Sous PARITY_CAP_ONIRIQUE avec 3 Gardiens + 1 Rêve (r=1 <= nb_oniriques=1) : Éveil RÉUSSI !
-    cfg_cap_ok = GameConfig(
+def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
+    """Éveil 100 % Gardiens : réussit si les N Défenseurs sont sur Gardiens et 0 restant ; rejeté si >= 1 sur Rêve."""
+    cfg = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "H"),
-        reveil_reves_policy="PARITY_CAP_ONIRIQUE",
+        gardien_bet_cap_policy="UNIFORM_MAX_2",
     )
-    st_ok = GameState(cfg_cap_ok)
-    st_ok.tour = 4
+
+    # Cas A : 3 Défenseurs sur Gardiens + 1 Défenseur sur un Rêve (même si le Rêve annule 1 machine !) -> Éveil REJETÉ !
+    st_rej = GameState(cfg)
+    st_rej.tour = 3
+    st_rej.set_gardien_at_case(1, 1, face=1)
+    st_rej.set_gardien_at_case(4, 2, face=1)
+    st_rej.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
+    st_rej.set_player_hand(0, 1, 6, 6, 6, 0)  # Machine sur case 6
+    st_rej.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_rej.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_rej.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
+
+    st_rej.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
+    st_rej.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
+    st_rej.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
+    st_rej.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
+
+    assert st_rej.is_eveil_attempt_eligible() is False
+    st_rej.step = STEP_3_2_REVEAL
+    _run_step_3_2(st_rej)
+    assert st_rej.total_reve_activation_consumed() == 1
+    assert st_rej.total_reve_activation_remaining() == 0
+    st_rej.light_trigger(1)
+    sweep_gardiens(st_rej)
+    st_rej.light_trigger(1)
+    sweep_gardiens(st_rej)
+    assert st_rej.total_gardien_pari_consumed() == 3
+    assert st_rej.total_gardien_pari_remaining() == 0
+    # Rejeté car seulement 3/4 Défenseurs sur la Piste des Gardiens (1 était sur un Rêve)
+    assert st_rej.is_eveil_gardiens_victory() is False
+    st_rej.step = STEP_5_3_END_CHECK
+    res_rej = step_until_decision(st_rej)
+    assert not isinstance(res_rej, GameOver)
+
+    # Cas B : les N=4 Défenseurs engagés sur la Piste des Gardiens (2 sur case 1, 2 sur case 4) -> Éveil RÉUSSI + télémétrie !
+    st_ok = GameState(cfg)
+    st_ok.tour = 3
     st_ok.set_gardien_at_case(1, 1, face=1)
-    st_ok.set_gardien_at_case(5, 2, face=1)
-    st_ok.set_gardien_at_case(4, 3, face=1)
-    st_ok.set_tactique_at_rank(5, TILE_R_BASE + 3)
-    st_ok.set_player_hand(0, 1, 6, 6, 6, 0)
-    st_ok.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_ok.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_ok.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_ok.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_ok.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
-    st_ok.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
-    st_ok.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
-    st_ok.step = STEP_3_2_REVEAL
-    _run_step_3_2(st_ok)
+    st_ok.set_gardien_at_case(4, 2, face=1)
+    for s in range(4):
+        st_ok.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_ok.place_defender_gardien_pari(0, 1, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(1, 1, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(2, 4, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(3, 4, FACE_REFLEXION)
+
+    trk = TelemetryTracker()
+    lock_all_def2_in_place(st_ok)
+    assert st_ok.is_eveil_attempt_eligible() is True
+    trk.on_reveil_attempt(st_ok)
+
+    # 2 déclenchements sur case 1 -> consomment les 2 Déf sur case 1 et les 2 Déf sur case 4
     st_ok.light_trigger(1)
-    sweep_gardiens(st_ok)
+    sweep_gardiens(st_ok, telemetry=trk)
+    st_ok.light_trigger(1)
+    sweep_gardiens(st_ok, telemetry=trk)
+    assert st_ok.total_gardien_pari_consumed() == 4
+    assert st_ok.total_gardien_pari_remaining() == 0
     assert st_ok.is_eveil_gardiens_victory() is True
 
-    # Défenseur surnuméraire sur Rêve (non consommé) = pari perdu -> Éveil REFUSÉ !
-    st_lost = GameState(cfg_cap_ok)
-    st_lost.tour = 4
-    st_lost.set_gardien_at_case(1, 1, face=1)
-    st_lost.set_gardien_at_case(4, 2, face=1)
-    st_lost.set_gardien_at_case(5, 3, face=1)
-    st_lost.set_tactique_at_rank(5, TILE_R_BASE + 3)
-    # Aucune machine ne pointe sur case 6 -> Défenseur sur Rêve NON consommé !
-    st_lost.set_player_hand(0, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_lost.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_lost.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_lost.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_lost.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_lost.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
-    st_lost.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
-    st_lost.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
-    st_lost.step = STEP_3_2_REVEAL
-    _run_step_3_2(st_lost)
-    assert st_lost.total_reve_activation_consumed() == 0
-    assert st_lost.total_reve_activation_remaining() == 1
-    st_lost.light_trigger(1)
-    sweep_gardiens(st_lost)
-    assert st_lost.is_eveil_gardiens_victory() is False
+    trk.on_step_transition(st_ok, STEP_2_2_DEF2, STEP_5_1_TACTIQUES)
+    st_ok.step = STEP_5_3_END_CHECK
+    res_ok = step_until_decision(st_ok, telemetry=trk)
+    assert isinstance(res_ok, GameOver)
+    assert res_ok.cause_fin == CAUSE_REVEIL_GARDIENS
 
-    # Priorité absolue à CAUSE_TOUR_8 au Tour 8 même si tous les paris sont gagnés
-    st_t8 = GameState(cfg_cap_ok)
+    ts = trk.summary()
+    assert ts.rs_count == 1
+    assert ts.rs_def_gardien == 4
+    assert ts.rs_def_parade == 2
+    assert ts.rs_def_resonance == 2
+    assert ts.rs_distinct_gardiens_bet == 2
+    assert ts.rs_def_reve == 0
+    assert ts.rs_trig4_lit == 1
+
+    # Cas C : Priorité absolue à CAUSE_TOUR_8 au Tour 8
+    st_t8 = GameState(cfg)
     st_t8.tour = 8
     st_t8.set_gardien_at_case(1, 1, face=1)
-    st_t8.set_gardien_at_case(5, 2, face=1)
-    st_t8.set_gardien_at_case(4, 3, face=1)
-    st_t8.set_tactique_at_rank(5, TILE_R_BASE + 3)
-    st_t8.set_player_hand(0, 1, 6, 6, 6, 0)
-    st_t8.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_t8.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_t8.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_t8.set_gardien_at_case(4, 2, face=1)
     st_t8.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
+    st_t8.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
     st_t8.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
-    st_t8.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
-    st_t8.step = STEP_3_2_REVEAL
-    _run_step_3_2(st_t8)
+    st_t8.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
+    st_t8.light_trigger(1)
+    sweep_gardiens(st_t8)
     st_t8.light_trigger(1)
     sweep_gardiens(st_t8)
     st_t8.step = STEP_5_3_END_CHECK
@@ -285,93 +303,81 @@ def test_mobilisation_croisee_parity_vs_parity_cap_onirique_and_tour8() -> None:
     assert res_t8.cause_fin == CAUSE_TOUR_8
 
 
-def test_reve_advance_mode_free_slot_only_vs_jump_push() -> None:
-    """FREE_SLOT_ONLY n'avance un Rêve que si la case immédiatement à gauche est libre (sinon sur place)."""
-    # Configuration de piste : [T1, T2, T3, T4, R1 (case 5), R2 (case 6)]
-    # Activation de R2 (rank_a=5) alors que case 5 (rank 4) est occupée par R1 :
-    # - JUMP_PUSH : pousse [R1, R2] en cases 4..5, case 6 redevient T6
-    cfg_jp = GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"), reve_advance_mode="JUMP_PUSH")
-    st_jp = GameState(cfg_jp)
-    st_jp.set_tactique_at_rank(4, TILE_R_BASE + 1)
-    st_jp.set_tactique_at_rank(5, TILE_R_BASE + 2)
-    moved_jp = prim_permutation_piste(st_jp, "ADVANCE_REVE_LEFT", rank_a=5)
-    assert moved_jp is True
-    assert st_jp.get_tactique_at_rank(3) == TILE_R_BASE + 1
-    assert st_jp.get_tactique_at_rank(4) == TILE_R_BASE + 2
-    assert st_jp.get_tactique_at_rank(5) == 6  # T6 restaurée
-
-    # - FREE_SLOT_ONLY : case 5 (rank 4) occupée par R1 -> R2 reste sur place !
-    cfg_fs = GameConfig(
-        n_players=3, mode=2, peuples=("M", "H", "I"), reve_advance_mode="FREE_SLOT_ONLY"
-    )
-    st_fs = GameState(cfg_fs)
-    st_fs.set_tactique_at_rank(4, TILE_R_BASE + 1)
-    st_fs.set_tactique_at_rank(5, TILE_R_BASE + 2)
-    moved_blocked = prim_permutation_piste(st_fs, "ADVANCE_REVE_LEFT", rank_a=5)
-    assert moved_blocked is False
-    assert st_fs.get_tactique_at_rank(4) == TILE_R_BASE + 1
-    assert st_fs.get_tactique_at_rank(5) == TILE_R_BASE + 2
-
-    # En revanche, R1 (rank 4) a la case 4 (rank 3) immédiatement libre -> R1 avance d'1 cran !
-    moved_free = prim_permutation_piste(st_fs, "ADVANCE_REVE_LEFT", rank_a=4)
-    assert moved_free is True
-    assert st_fs.get_tactique_at_rank(3) == TILE_R_BASE + 1
-    assert st_fs.get_tactique_at_rank(4) == 5  # T5 restaurée
-    assert st_fs.get_tactique_at_rank(5) == TILE_R_BASE + 2
-
-
-def test_cascade_reve_to_case5_to_case4_and_telemetry() -> None:
-    """Cascade complète Rêve (3.2) -> 5. Rêve -> 4. Gardien -> Éveil en 5.3 + télémétrie complète."""
-    # Table N=3 : M, R, H (A=2, nb_oniriques=1)
-    # 1 Défenseur sur Rêve (case 6) + 1 sur 5. Rêve + 1 sur 4. Gardien -> g=2 >= r=1 -> Éveil !
-    cfg = GameConfig(
+def test_reve_advance_mode_clear_rank_only_vs_jump_push() -> None:
+    """CLEAR_RANK_ONLY : 1/2 machine annulée -> Rêve s'ouvre (5. Rêve) mais n'avance pas ; 2/2 -> avance (saut/poussée)."""
+    # 1. CLEAR_RANK_ONLY : 2 machines au rang 6 (R3), 1 seul Défenseur sur R3 -> 1/2 annulée
+    cfg_cr = GameConfig(
         n_players=3,
         mode=2,
-        peuples=("M", "R", "H"),
-        reveil_reves_policy="PARITY_CAP_ONIRIQUE",
-        reve_advance_mode="FREE_SLOT_ONLY",
+        peuples=("M", "H", "I"),
+        reve_activation_mode="1_DEF_1_MACHINE",
+        reve_advance_mode="CLEAR_RANK_ONLY",
     )
-    st = GameState(cfg)
-    st.tour = 3
-    st.set_gardien_at_case(5, 1, face=1)
-    st.set_gardien_at_case(4, 2, face=1)
-    st.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
-    st.set_player_hand(0, 1, 6, 6, 6, 0)  # Machine pointant sur case 6 (R3)
-    st.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_partial = GameState(cfg_cr)
+    st_partial.set_gardien_at_case(5, 1, face=1)
+    st_partial.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
+    st_partial.set_player_hand(0, 1, 6, 6, 6, 0)  # Machine 1 sur case 6
+    st_partial.set_player_hand(1, 3, 6, 6, 6, 0)  # Machine 2 sur case 6
+    st_partial.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_partial.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st_partial.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
 
-    st.place_defender_reve_activation(0, 6, FACE_REFLEXION)
-    st.place_defender_gardien_pari(1, 5, FACE_REFLEXION)
-    st.place_defender_gardien_pari(2, 4, FACE_REFLEXION)
+    st_partial.step = STEP_3_2_REVEAL
+    _run_step_3_2(st_partial)
+    # R3 s'est ouvert (5. Rêve allumé -> Gardien case 5 ouvert, 1 machine annulée, 1 machine passée sous le Rêve)
+    assert st_partial.has_reve_opened_this_turn(3) is True
+    assert st_partial.count_gardien_pari_consumed_at_case(5) == 1
+    assert st_partial.total_reve_activation_consumed() == 1
+    assert st_partial.total_reve_activation_remaining() == 0
+    # 1 machine annulée (bound_tact == 0), 1 machine passée sous le Rêve (bound_tact == 6)
+    bound_vals = sorted([st_partial.get_player_hand(0)[4], st_partial.get_player_hand(1)[4]])
+    assert bound_vals == [0, 6]
+    # Mais R3 N'A PAS AVANCÉ car 1 machine est passée sous le Rêve !
+    assert st_partial.get_tactique_at_rank(5) == TILE_R_BASE + 3
+    assert st_partial.get_tactique_at_rank(4) == 5  # T5 intacte
 
-    trk = TelemetryTracker()
-    lock_all_def2_in_place(st)
-    assert st.is_eveil_attempt_eligible() is True
-    trk.on_reveil_attempt(st)
+    # 2. CLEAR_RANK_ONLY : 2/2 machines annulées au rang 6 (avec R1 en case 5 pour tester saut/poussée) -> R3 s'ouvre ET avance !
+    st_full = GameState(cfg_cr)
+    st_full.set_gardien_at_case(5, 1, face=1)
+    st_full.set_tactique_at_rank(4, TILE_R_BASE + 1)  # R1 sur case 5
+    st_full.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
+    st_full.set_player_hand(0, 1, 6, 6, 6, 0)
+    st_full.set_player_hand(1, 3, 6, 6, 6, 0)
+    st_full.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_full.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st_full.place_defender_reve_activation(1, 6, FACE_DEFINITIF)
+    st_full.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
 
-    # Étape 3.2 : R3 annule la machine -> Déf consommé -> allume 5. Rêve -> ouvre G5 -> allume 4. Gardien -> ouvre G4 !
-    st.step = STEP_3_2_REVEAL
-    step_until_decision(st, telemetry=trk)
-    assert st.total_reve_activation_consumed() == 1
-    assert st.total_reve_activation_remaining() == 0
-    assert st.count_gardien_pari_consumed_at_case(5) == 1
-    assert st.count_gardien_pari_consumed_at_case(4) == 1
-    assert st.total_gardien_pari_remaining() == 0
-    # R3 a avancé d'1 cran en case 5 (rank 4) car libre
-    assert st.get_tactique_at_rank(4) == TILE_R_BASE + 3
+    st_full.step = STEP_3_2_REVEAL
+    _run_step_3_2(st_full)
+    assert st_full.has_reve_opened_this_turn(3) is True
+    assert st_full.count_gardien_pari_consumed_at_case(5) == 1
+    assert st_full.total_reve_activation_consumed() == 2
+    assert st_full.get_player_hand(0)[4] == 0
+    assert st_full.get_player_hand(1)[4] == 0
+    # Toutes les machines du rang 6 annulées -> saut/poussée vers la 1re case libre à gauche (cases 4..5) !
+    assert st_full.get_tactique_at_rank(3) == TILE_R_BASE + 1
+    assert st_full.get_tactique_at_rank(4) == TILE_R_BASE + 3
+    assert st_full.get_tactique_at_rank(5) == 6  # T6 restaurée
 
-    trk.on_step_transition(st, STEP_2_2_DEF2, STEP_5_1_TACTIQUES)
-    st.step = STEP_5_3_END_CHECK
-    res = step_until_decision(st, telemetry=trk)
-    assert isinstance(res, GameOver)
-    assert res.cause_fin == CAUSE_REVEIL_GARDIENS
-    ts = trk.summary()
-    assert ts.rs_count == 1
-    assert ts.rs_def_gardien == 2
-    assert ts.rs_def_reve == 1
-    assert ts.rs_reves_opened == 1
-    assert ts.rs_trig5_lit == 1
-    assert ts.rs_trig4_lit == 1
+    # 3. Témoin JUMP_PUSH : 1/2 machine annulée -> R3 s'ouvre ET avance immédiatement
+    cfg_jp = GameConfig(
+        n_players=3,
+        mode=2,
+        peuples=("M", "H", "I"),
+        reve_activation_mode="1_DEF_1_MACHINE",
+        reve_advance_mode="JUMP_PUSH",
+    )
+    st_jp = GameState(cfg_jp)
+    st_jp.set_tactique_at_rank(5, TILE_R_BASE + 3)
+    st_jp.set_player_hand(0, 1, 6, 6, 6, 0)
+    st_jp.set_player_hand(1, 3, 6, 6, 6, 0)
+    st_jp.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_jp.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st_jp.step = STEP_3_2_REVEAL
+    _run_step_3_2(st_jp)
+    assert st_jp.get_tactique_at_rank(4) == TILE_R_BASE + 3
+    assert st_jp.get_tactique_at_rank(5) == 6
 
 
 def test_bot_b2_retreat_and_b3_utility() -> None:
@@ -398,11 +404,9 @@ def test_bot_b2_retreat_and_b3_utility() -> None:
     assert _gameover_utility(go_rev) == _gameover_utility(go_som)
 
 
-def test_calibration_mobilisation_croisee_manifest_and_digest_schema() -> None:
-    """Vérifie le manifeste 2x2 calibration_mobilisation_croisee_v5_4.json et la purge v5.4.1 dans fins_5_3."""
-    manifest_path = (
-        ROOT / "campaigns" / "manifests" / "calibration_mobilisation_croisee_v5_4.json"
-    )
+def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
+    """Vérifie le manifeste 2x2 calibration_pari_max2_v5_4.json et active_core_rules v5.4.5."""
+    manifest_path = ROOT / "campaigns" / "manifests" / "calibration_pari_max2_v5_4.json"
     assert manifest_path.exists()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     plan = resolve_manifest_plan(manifest)
@@ -412,42 +416,39 @@ def test_calibration_mobilisation_croisee_manifest_and_digest_schema() -> None:
     assert len(plan["profile_variants"]) == 4
     v_ids = {v["variant_id"] for v in plan["profile_variants"]}
     assert v_ids == {
-        "POL=PARITY|ADV=JUMP_PUSH",
-        "POL=PARITY|ADV=FREE_SLOT_ONLY",
-        "POL=PARITY_CAP_ONIRIQUE|ADV=JUMP_PUSH",
-        "POL=PARITY_CAP_ONIRIQUE|ADV=FREE_SLOT_ONLY",
+        "CAP=UNIFORM_MAX_2|ADV=JUMP_PUSH",
+        "CAP=UNIFORM_MAX_2|ADV=CLEAR_RANK_ONLY",
+        "CAP=MAX_2_RES_MAX_1|ADV=JUMP_PUSH",
+        "CAP=MAX_2_RES_MAX_1|ADV=CLEAR_RANK_ONLY",
     }
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 1 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 2 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 3 for u in plan["units"])
 
-    # Vérification de la purge du reliquat v5.4.1 dans active_core_rules.spec_formelle.fins_5_3
+    # Vérification active_core_rules.spec_formelle.fins_5_3 v5.4.5
     core_rules = build_active_core_rules(chassis_ids=(0,))
     fins_5_3 = str(core_rules["spec_formelle"]["fins_5_3"])
     assert "v5.4.1" not in fins_5_3
     assert "Gardien Face 2" not in fins_5_3
-    assert "0 dommage réel" not in fins_5_3
-    assert "mobilisation croisée" in fins_5_3.lower()
+    assert "mobilisation croisée" not in fins_5_3.lower()
+    assert "100 % piste des gardiens" in fins_5_3.lower()
 
     # Exécution d'une micro-unité de 2 parties
     micro_unit = dict(plan["units"][0])
     micro_unit["n_games"] = 2
     row = _execute_manifest_unit(micro_unit)
     assert row["n_games"] == 2
-    assert row["reveil_reves_policy"] in ("PARITY", "PARITY_CAP_ONIRIQUE")
-    assert row["reve_advance_mode"] in ("JUMP_PUSH", "FREE_SLOT_ONLY")
-    assert "rs_def_reve" in row
-    assert "rs_reves_opened" in row
-    assert "rs_trig5_lit" in row
+    assert row["gardien_bet_cap_policy"] in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")
+    assert row["reve_advance_mode"] in ("JUMP_PUSH", "CLEAR_RANK_ONLY")
+    assert "rs_def_parade" in row
+    assert "rs_distinct_gardiens_bet" in row
+    assert "rs_def_resonance" in row
     assert "rs_trig4_lit" in row
 
 
 def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
-    """Vérifie by_variant_x_n_players, by_variant_x_n_animaux_sauvages et les nouveaux champs reveil_anatomy."""
-    import gzip
-    import shutil
-
+    """Vérifie by_variant_x_n_players, by_variant_x_n_animaux_sauvages et les champs reveil_anatomy v5.4.5."""
     from run_campaign import _format_reveil_anatomy_row, aggregate_campaign_duckdb
 
     formatted = _format_reveil_anatomy_row(
@@ -456,31 +457,37 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
             "rf_count": 1,
             "rs_tour": 8,
             "rs_ratio_arbres_bp": 15000,
-            "rs_def_gardien": 5,
-            "rs_def_reve": 3,
-            "rs_reves_opened": 2,
-            "rs_trig5_lit": 2,
-            "rs_trig4_lit": 1,
+            "rs_def_gardien": 8,
+            "rs_def_parade": 3,
+            "rs_def_resonance": 2,
+            "rs_distinct_gardiens_bet": 5,
+            "rs_def_reve": 0,
+            "rs_reves_opened": 0,
+            "rs_trig5_lit": 0,
+            "rs_trig4_lit": 2,
             "rf_tour": 5,
-            "rf_def_gardien": 2,
-            "rf_def_reve": 1,
-            "rf_reves_opened": 1,
-            "rf_trig5_lit": 1,
-            "rf_trig4_lit": 0,
+            "rf_def_gardien": 4,
+            "rf_def_parade": 2,
+            "rf_def_resonance": 1,
+            "rf_distinct_gardiens_bet": 3,
+            "rf_def_reve": 0,
+            "rf_reves_opened": 0,
+            "rf_trig5_lit": 0,
+            "rf_trig4_lit": 1,
         }
     )
-    assert formatted["success_turn"]["defenders"]["mean_def_on_reve"] == 1.5
-    assert formatted["success_turn"]["machine_attrition"]["mean_reves_opened"] == 1.0
-    assert formatted["success_turn"]["machine_attrition"]["pct_trigger_5_reve_lit"] == 100.0
-    assert formatted["success_turn"]["machine_attrition"]["pct_trigger_4_gardien_lit"] == 50.0
-    assert formatted["failed_attempts_comparison"]["mean_def_on_reve"] == 1.0
-    assert formatted["failed_attempts_comparison"]["mean_reves_opened"] == 1.0
-    assert formatted["failed_attempts_comparison"]["pct_trigger_5_reve_lit"] == 100.0
-    assert formatted["failed_attempts_comparison"]["pct_trigger_4_gardien_lit"] == 0.0
+    assert formatted["success_turn"]["defenders"]["mean_def_on_parade"] == 1.5
+    assert formatted["success_turn"]["defenders"]["mean_def_on_resonance"] == 1.0
+    assert formatted["success_turn"]["defenders"]["mean_distinct_gardiens_bet"] == 2.5
+    assert formatted["success_turn"]["machine_attrition"]["pct_trigger_4_gardien_lit"] == 100.0
+    assert formatted["failed_attempts_comparison"]["mean_def_on_parade"] == 2.0
+    assert formatted["failed_attempts_comparison"]["mean_def_on_resonance"] == 1.0
+    assert formatted["failed_attempts_comparison"]["mean_distinct_gardiens_bet"] == 3.0
+    assert formatted["failed_attempts_comparison"]["pct_trigger_4_gardien_lit"] == 100.0
 
     # Micro-agrégation DuckDB bout-en-bout sur 2 variantes × N=3..4
     manifest = {
-        "campaign_name": "test_mob_croisee_unit",
+        "campaign_name": "test_pari_max2_unit",
         "mode": 2,
         "bot": "B2",
         "k_max": 1,
@@ -490,14 +497,14 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
         "min_animaux_sauvages": 1,
         "games_per_configuration": 2,
         "reve_activation_mode": "1_DEF_1_MACHINE",
-        "reveil_reves_policies": ["PARITY", "PARITY_CAP_ONIRIQUE"],
-        "reve_advance_modes": ["FREE_SLOT_ONLY"],
+        "gardien_bet_cap_policies": ["UNIFORM_MAX_2", "MAX_2_RES_MAX_1"],
+        "reve_advance_modes": ["CLEAR_RANK_ONLY"],
         "base_instance": {"config_index_192": 1},
         "chassis_plan": {"varying_axes": [], "fixed_axes": {}},
         "slot_profile_comparisons": {},
     }
     plan = resolve_manifest_plan(manifest)
-    work_dir = ROOT / ".tmp_runs" / "test_mob_croisee_unit"
+    work_dir = ROOT / ".tmp_runs" / "test_pari_max2_unit"
     shards_dir = work_dir / "shards"
     shards_dir.mkdir(parents=True, exist_ok=True)
     shard_path = shards_dir / "shard_00.jsonl.gz"
@@ -510,9 +517,9 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
             r["task_games_per_sec"] = 100.0
             fh.write(json.dumps(r) + "\n")
 
-    digest_path = ROOT / "data" / "digests" / "digest_test_mob_croisee_unit.json"
-    legacy_digest_path = ROOT / "data" / "digest_test_mob_croisee_unit.json"
-    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_mob_croisee_unit.md"
+    digest_path = ROOT / "data" / "digests" / "digest_test_pari_max2_unit.json"
+    legacy_digest_path = ROOT / "data" / "digest_test_pari_max2_unit.json"
+    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_pari_max2_unit.md"
     try:
         _, _, digest = aggregate_campaign_duckdb(
             manifest=manifest,
@@ -525,12 +532,11 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
             job_wall_sec=0.1,
         )
         assert "by_variant_x_n_players" in digest
-        assert len(digest["by_variant_x_n_players"]) == 4  # 2 variantes × 2 N
         assert "by_variant_x_n_animaux_sauvages" in digest
+        assert len(digest["by_variant_x_n_players"]) == 4  # 2 variantes × N in {3, 4}
         assert len(digest["by_variant_x_n_animaux_sauvages"]) >= 2
     finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
         for p in (digest_path, legacy_digest_path, prompt_path):
             if p.exists():
                 p.unlink()
-        if work_dir.exists():
-            shutil.rmtree(work_dir)

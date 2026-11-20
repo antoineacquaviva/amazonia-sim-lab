@@ -512,9 +512,9 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Activation Rêves (v5.4.2) & Mobilisation croisée / Avancée Rêves (v5.4.4)
+    # Paramètres hors-châssis Activation Rêves (v5.4.2) & Plafond Pari Gardiens / Avancée Rêves (v5.4.5)
     reve_activation_mode: str = "1_DEF_1_MACHINE"
-    reveil_reves_policy: str = "PARITY"
+    gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
     reve_advance_mode: str = "JUMP_PUSH"
 
     # Sélections de profils optionnelles (Mode 3/4) : ((slot_id, profile_key), ...)
@@ -557,10 +557,10 @@ class GameConfig:
             "1_DEF_ALL_RANK",
             "BINOME_ALL_RANK",
         ), f"reve_activation_mode invalide : {self.reve_activation_mode}"
-        assert self.reveil_reves_policy in ("PARITY", "PARITY_CAP_ONIRIQUE"), (
-            f"reveil_reves_policy invalide : {self.reveil_reves_policy}"
+        assert self.gardien_bet_cap_policy in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1"), (
+            f"gardien_bet_cap_policy invalide : {self.gardien_bet_cap_policy}"
         )
-        assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY"), (
+        assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"), (
             f"reve_advance_mode invalide : {self.reve_advance_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
@@ -617,10 +617,10 @@ class GameConfig:
         coordonnateur_initial: int = 0,
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
-        reveil_reves_policy: str = "PARITY",
+        gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
         reve_advance_mode: str = "JUMP_PUSH",
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v5.4.4 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v5.4.5 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -631,11 +631,17 @@ class GameConfig:
             "coordonnateur_initial": coordonnateur_initial,
             "max_revision_passes": max_revision_passes,
             "reve_activation_mode": reve_activation_mode,
-            "reveil_reves_policy": reveil_reves_policy,
+            "gardien_bet_cap_policy": gardien_bet_cap_policy,
             "reve_advance_mode": reve_advance_mode,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
+
+    def gardien_bet_cap_for_case(self, case_1_6: int) -> int:
+        """Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.4.5)."""
+        if self.gardien_bet_cap_policy == "MAX_2_RES_MAX_1" and case_1_6 == 4:
+            return 1
+        return 2
 
     def seat_of_peuple(self, peuple_code: str) -> int | None:
         """Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table."""
@@ -785,8 +791,11 @@ class PlayerObservation:
         return bool(self._snap[_Mem.FLAGS] & _FLAG_REPOUSSE_APPLIED)
 
     @property
-    def reveil_reves_policy(self) -> str:
-        return self._cfg.reveil_reves_policy
+    def gardien_bet_cap_policy(self) -> str:
+        return self._cfg.gardien_bet_cap_policy
+
+    def gardien_bet_cap_for_case(self, case_1_6: int) -> int:
+        return self._cfg.gardien_bet_cap_for_case(case_1_6)
 
     @property
     def reve_advance_mode(self) -> str:
@@ -1852,7 +1861,7 @@ class GameState:
         return cnt
 
     def place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None:
-        """Engage le Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6` (max 1/Gardien)."""
+        """Engage le Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6` (plafond v5.4.5)."""
         assert self.cfg.mode >= 2 and self.cfg.nb_animaux_sauvages >= 1, (
             "Pari d'activation des Gardiens inactif sans Animal Sauvage"
         )
@@ -1861,8 +1870,9 @@ class GameState:
         self.remove_player_defender(seat, 1)
         g_num, _ = self.get_gardien_at_case(case_1_6)
         assert g_num > 0, "Aucun Gardien présent sur cette case"
-        assert self.count_gardien_pari_defenders_at_case(case_1_6) < 1, (
-            f"Un Gardien ne peut recevoir qu'1 seul Défenseur en 2.2 (case {case_1_6})"
+        cap = self.cfg.gardien_bet_cap_for_case(case_1_6)
+        assert self.count_gardien_pari_defenders_at_case(case_1_6) < cap, (
+            f"Plafond de pari atteint sur case {case_1_6} (max {cap} Défenseur(s) en 2.2)"
         )
         self.set_player_def_loc_raw(seat, 1, _LOC_GARDIEN_PARI_BASE + (case_1_6 - 1))
         self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
@@ -1950,33 +1960,20 @@ class GameState:
         return consumed
 
     def is_eveil_attempt_eligible(self) -> bool:
-        """Vrai si la répartition des N Défenseurs en 2.2 sur Gardiens + Rêves satisfait
-        les conditions d'une tentative d'Éveil de la Forêt par mobilisation croisée (Tours 1..7, A >= 1).
+        """Vrai si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens
+        (Éveil de la Forêt 100 % Gardiens, Tours 1..7, A >= 1).
         """
         if self.cfg.mode < 2 or self.cfg.nb_animaux_sauvages < 1 or self.tour >= 8:
             return False
-        g_eng = self.total_gardien_pari_engaged()
-        r_eng = self.total_reve_activation_engaged()
-        if g_eng + r_eng != self.cfg.n_players:
-            return False
-        if g_eng < r_eng:
-            return False
-        return not (
-            self.cfg.reveil_reves_policy == "PARITY_CAP_ONIRIQUE"
-            and r_eng > self.cfg.nb_peuples_oniriques
-        )
+        return self.total_gardien_pari_engaged() == self.cfg.n_players
 
     def is_eveil_gardiens_victory(self) -> bool:
-        """Éveil de la Forêt par mobilisation croisée (Tours 1..7, A >= 1) :
-        les N Défenseurs engagés en 2.2 sur Gardiens + Rêves, 0 pari perdu (0 Défenseur restant),
-        et contrainte `reveil_reves_policy` respectée (`PARITY` ou `PARITY_CAP_ONIRIQUE`).
+        """Éveil de la Forêt 100 % Piste des Gardiens (Tours 1..7, A >= 1) :
+        les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 pari perdu (0 restant en 5.3).
         """
         if not self.is_eveil_attempt_eligible():
             return False
-        return (
-            self.total_gardien_pari_remaining() == 0
-            and self.total_reve_activation_remaining() == 0
-        )
+        return self.total_gardien_pari_remaining() == 0
 
     def place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None:
         """Engage le Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2."""

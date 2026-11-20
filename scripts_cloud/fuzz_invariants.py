@@ -94,8 +94,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 "1_DEF_ALL_RANK",
                 "BINOME_ALL_RANK",
             )[game_idx % 3],
-            reveil_reves_policy=("PARITY", "PARITY_CAP_ONIRIQUE")[game_idx % 2],
-            reve_advance_mode=("JUMP_PUSH", "FREE_SLOT_ONLY")[(game_idx // 2) % 2],
+            gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2],
+            reve_advance_mode=("JUMP_PUSH", "CLEAR_RANK_ONLY")[(game_idx // 2) % 2],
         )
 
         state = GameState(cfg)

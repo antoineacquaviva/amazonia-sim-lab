@@ -474,8 +474,10 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
             },
             "defenders": {
                 "mean_def_on_gardien": _s_mean("rs_def_gardien"),
+                "mean_def_on_parade": _s_mean("rs_def_parade"),
                 "mean_def_on_resonance": _s_mean("rs_def_resonance"),
                 "mean_def_on_other_cases": _s_mean("rs_def_other_cases"),
+                "mean_distinct_gardiens_bet": _s_mean("rs_distinct_gardiens_bet"),
                 "mean_def_on_reve": _s_mean("rs_def_reve"),
                 "mean_def1_on_foret": _s_mean("rs_def1_foret"),
                 "mean_def2_on_foret": _s_mean("rs_def2_foret"),
@@ -519,8 +521,10 @@ def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
         "failed_attempts_comparison": {
             "mean_tour": _f_mean("rf_tour"),
             "mean_def_on_gardien": _f_mean("rf_def_gardien"),
+            "mean_def_on_parade": _f_mean("rf_def_parade"),
             "mean_def_on_resonance": _f_mean("rf_def_resonance"),
             "mean_def_on_other_cases": _f_mean("rf_def_other_cases"),
+            "mean_distinct_gardiens_bet": _f_mean("rf_distinct_gardiens_bet"),
             "mean_def_on_reve": _f_mean("rf_def_reve"),
             "mean_def1_on_foret": _f_mean("rf_def1_foret"),
             "mean_def2_on_foret": _f_mean("rf_def2_foret"),

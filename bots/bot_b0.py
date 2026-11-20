@@ -180,12 +180,12 @@ def _score_defender_target(
             return 0
         own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
         allies_c = obs.gardien_pari_defenders(c_i) - (1 if own_c == c_i else 0)
-        if allies_c >= 1:
+        if allies_c >= cfg.gardien_bet_cap_for_case(c_i):
             return 0
-        total_mob = obs.total_gardien_pari_defenders() + obs.total_reve_activation_defenders()
-        if obs.tour <= 7 and total_mob >= obs.n_players - 1 and drew_sabotage_or_none:
+        total_g = obs.total_gardien_pari_defenders()
+        if obs.tour <= 7 and total_g >= obs.n_players - 1 and drew_sabotage_or_none:
             return 450
-        if obs.tour <= 7 and total_mob >= 1 and drew_sabotage_or_none:
+        if obs.tour <= 7 and total_g >= 1 and drew_sabotage_or_none:
             return 280
         return 100
 

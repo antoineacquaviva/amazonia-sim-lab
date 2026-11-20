@@ -43,8 +43,10 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rs_t7",
     "rs_t8",
     "rs_def_gardien",
+    "rs_def_parade",
     "rs_def_resonance",
     "rs_def_other_cases",
+    "rs_distinct_gardiens_bet",
     "rs_def_reve",
     "rs_def1_foret",
     "rs_def2_foret",
@@ -75,8 +77,10 @@ REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rf_count",
     "rf_tour",
     "rf_def_gardien",
+    "rf_def_parade",
     "rf_def_resonance",
     "rf_def_other_cases",
+    "rf_distinct_gardiens_bet",
     "rf_def_reve",
     "rf_def1_foret",
     "rf_def2_foret",
@@ -175,8 +179,10 @@ class TelemetrySummary(NamedTuple):
     rs_t7: int = 0
     rs_t8: int = 0
     rs_def_gardien: int = 0
+    rs_def_parade: int = 0
     rs_def_resonance: int = 0
     rs_def_other_cases: int = 0
+    rs_distinct_gardiens_bet: int = 0
     rs_def_reve: int = 0
     rs_def1_foret: int = 0
     rs_def2_foret: int = 0
@@ -208,8 +214,10 @@ class TelemetrySummary(NamedTuple):
     rf_count: int = 0
     rf_tour: int = 0
     rf_def_gardien: int = 0
+    rf_def_parade: int = 0
     rf_def_resonance: int = 0
     rf_def_other_cases: int = 0
+    rf_distinct_gardiens_bet: int = 0
     rf_def_reve: int = 0
     rf_def1_foret: int = 0
     rf_def2_foret: int = 0
@@ -260,7 +268,7 @@ class TelemetryTracker:
     _turn_trig4_lit: bool = False
     _turn_trig5_lit: bool = False
     _turn_reveil_active: bool = False
-    _turn_def_snap: tuple[int, int, int, int, int, int, int, int, int] | None = None
+    _turn_def_snap: tuple[int, int, int, int, int, int, int, int, int, int, int] | None = None
     _turn_pre5_snap: tuple[int, ...] | None = None
     # Accumulateurs Éveils réussis (rs_*)
     rs_count: int = 0
@@ -274,8 +282,10 @@ class TelemetryTracker:
     rs_t7: int = 0
     rs_t8: int = 0
     rs_def_gardien: int = 0
+    rs_def_parade: int = 0
     rs_def_resonance: int = 0
     rs_def_other_cases: int = 0
+    rs_distinct_gardiens_bet: int = 0
     rs_def_reve: int = 0
     rs_def1_foret: int = 0
     rs_def2_foret: int = 0
@@ -307,8 +317,10 @@ class TelemetryTracker:
     rf_count: int = 0
     rf_tour: int = 0
     rf_def_gardien: int = 0
+    rf_def_parade: int = 0
     rf_def_resonance: int = 0
     rf_def_other_cases: int = 0
+    rf_distinct_gardiens_bet: int = 0
     rf_def_reve: int = 0
     rf_def1_foret: int = 0
     rf_def2_foret: int = 0
@@ -398,14 +410,16 @@ class TelemetryTracker:
         self._turn_reveil_active = False
         pre5 = self._turn_pre5_snap
         self._turn_pre5_snap = None
-        def_snap = self._turn_def_snap or (state.tour, 0, 0, 0, 0, 0, 0, 0, 0)
+        def_snap = self._turn_def_snap or (state.tour, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         self._turn_def_snap = None
 
         (
             tour,
             def_gard,
+            def_parade,
             def_res,
             def_other,
+            distinct_g_bet,
             def_reve,
             def1_for,
             def2_for,
@@ -472,8 +486,10 @@ class TelemetryTracker:
             elif tour >= 8:
                 self.rs_t8 += 1
             self.rs_def_gardien += def_gard
+            self.rs_def_parade += def_parade
             self.rs_def_resonance += def_res
             self.rs_def_other_cases += def_other
+            self.rs_distinct_gardiens_bet += distinct_g_bet
             self.rs_def_reve += def_reve
             self.rs_def1_foret += def1_for
             self.rs_def2_foret += def2_for
@@ -510,8 +526,10 @@ class TelemetryTracker:
             self.rf_count += 1
             self.rf_tour += tour
             self.rf_def_gardien += def_gard
+            self.rf_def_parade += def_parade
             self.rf_def_resonance += def_res
             self.rf_def_other_cases += def_other
+            self.rf_distinct_gardiens_bet += distinct_g_bet
             self.rf_def_reve += def_reve
             self.rf_def1_foret += def1_for
             self.rf_def2_foret += def2_for
@@ -604,12 +622,14 @@ class TelemetryTracker:
         self.gardien_bets_lost += bets_lost
 
     def on_reveil_attempt(self, state: GameState) -> None:
-        """Enregistre un tour de mobilisation croisée (N Défenseurs engagés sur Gardiens + Rêves en 2.2)."""
+        """Enregistre un tour de tentative d'Éveil (N Défenseurs engagés sur la Piste des Gardiens en 2.2)."""
         self.reveil_attempts += 1
         self._turn_reveil_active = True
         def_gard = 0
+        def_parade = 0
         def_res = 0
         def_other = 0
+        distinct_gardien_cases: set[int] = set()
         def_reve = 0
         def1_for = 0
         def2_for = 0
@@ -620,6 +640,9 @@ class TelemetryTracker:
                 kind, a, _b, _c = state.decode_def_loc(state.get_player_def_loc_raw(s, def_idx))
                 if kind in ("GARDIEN_PARI", "GARDIEN_PARI_CONSUMED"):
                     def_gard += 1
+                    distinct_gardien_cases.add(a)
+                    if a == 1:
+                        def_parade += 1
                     if a == 4:
                         def_res += 1
                     else:
@@ -638,8 +661,10 @@ class TelemetryTracker:
         self._turn_def_snap = (
             state.tour,
             def_gard,
+            def_parade,
             def_res,
             def_other,
+            len(distinct_gardien_cases),
             def_reve,
             def1_for,
             def2_for,
@@ -733,8 +758,10 @@ class TelemetryTracker:
             rs_t7=self.rs_t7,
             rs_t8=self.rs_t8,
             rs_def_gardien=self.rs_def_gardien,
+            rs_def_parade=self.rs_def_parade,
             rs_def_resonance=self.rs_def_resonance,
             rs_def_other_cases=self.rs_def_other_cases,
+            rs_distinct_gardiens_bet=self.rs_distinct_gardiens_bet,
             rs_def_reve=self.rs_def_reve,
             rs_def1_foret=self.rs_def1_foret,
             rs_def2_foret=self.rs_def2_foret,
@@ -765,8 +792,10 @@ class TelemetryTracker:
             rf_count=self.rf_count,
             rf_tour=self.rf_tour,
             rf_def_gardien=self.rf_def_gardien,
+            rf_def_parade=self.rf_def_parade,
             rf_def_resonance=self.rf_def_resonance,
             rf_def_other_cases=self.rf_def_other_cases,
+            rf_distinct_gardiens_bet=self.rf_distinct_gardiens_bet,
             rf_def_reve=self.rf_def_reve,
             rf_def1_foret=self.rf_def1_foret,
             rf_def2_foret=self.rf_def2_foret,

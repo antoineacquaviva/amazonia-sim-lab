@@ -225,7 +225,7 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         role_abatteuse_fin_de_piste=old.role_abatteuse_fin_de_piste,
         synergie_binome_machines=old.synergie_binome_machines,
         reve_activation_mode=old.reve_activation_mode,
-        reveil_reves_policy=old.reveil_reves_policy,
+        gardien_bet_cap_policy=old.gardien_bet_cap_policy,
         reve_advance_mode=old.reve_advance_mode,
         tile_profiles=old.tile_profiles,
     )

@@ -23,7 +23,13 @@
     "marquez le Gardien <em>« utilisé »</em>",
     "second Défenseur",
     "seconds Défenseurs",
-    "gardien_resonance_cap"
+    "2e Défenseur",
+    "2es Défenseurs",
+    "2<sup>e</sup> Défenseur",
+    "2<sup>es</sup> Défenseurs",
+    "gardien_resonance_cap",
+    "reveil_reves_policy",
+    "mobilisation croisée"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",
@@ -45,9 +51,10 @@
       "must_contain": [
         "Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table)",
         "pari d'activation",
-        "max 1 Défenseur par Gardien",
+        "max 2 Défenseurs par Gardien",
         "tous les paris sont gagnés",
-        "parité Gardiens ≥ Rêves",
+        "Rêves hors Éveil",
+        "CLEAR_RANK_ONLY",
         "Ratissage",
         "<code>T1</code>",
         "/ 192"
@@ -58,6 +65,7 @@
       "must_contain": [
         "Condition inactive dans cette partie (aucun Peuple Animal Sauvage M/R/O autour de la table)",
         "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
+        "CLEAR_RANK_ONLY",
         "Ratissage",
         "<code>T1</code>"
       ]
@@ -68,7 +76,7 @@
         "Toutes les <strong>2 tuiles Rêve</strong> en jeu",
         "Rangs 1 à 2",
         "pari d'activation",
-        "max 1 Défenseur par Gardien",
+        "max 2 Défenseurs par Gardien",
         "tous les paris sont gagnés",
         "Ratissage",
         "<code>T1</code>"
@@ -80,7 +88,7 @@
         "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
         "Rangs 1 à 4",
         "pari d'activation",
-        "max 1 Défenseur par Gardien",
+        "max 2 Défenseurs par Gardien",
         "tous les paris sont gagnés",
         "Ratissage",
         "<code>T1</code>"

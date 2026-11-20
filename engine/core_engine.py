@@ -477,7 +477,7 @@ def list_legal_targets(
             if st == LISIERE_UNCONSTRUCTED and nb < 2:
                 targets.append(cand_l)
 
-    # 4. Pari d'activation des Gardiens (Défenseur en 2.2, Mode >= 2, >= 1 Animal Sauvage, max 1/Gardien)
+    # 4. Pari d'activation des Gardiens (Défenseur en 2.2, Mode >= 2, >= 1 Animal Sauvage, plafond v5.4.5)
     if not is_first_defender and state.cfg.mode >= 2 and state.cfg.nb_animaux_sauvages >= 1:
         for c_num in range(1, TRACK_LEN + 1):
             g_num, _ = state.get_gardien_at_case(c_num)
@@ -487,7 +487,7 @@ def list_legal_targets(
             cnt_case = state.count_gardien_pari_defenders_at_case(c_num)
             if own_spot == cand_pari:
                 cnt_case = max(0, cnt_case - 1)
-            if cnt_case >= 1:
+            if cnt_case >= state.cfg.gardien_bet_cap_for_case(c_num):
                 continue
             targets.append(cand_pari)
 
@@ -1479,7 +1479,7 @@ def _machine_threat_key_3_2(state: GameState, seat: int, card: int) -> tuple[int
     return (active, is_rat, eff_red, pos, -seat)
 
 
-def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int], ...]:
+def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int, bool], ...]:
     n = state.cfg.n_players
     initial_track = [state.get_tactique_at_rank(i) for i in range(TRACK_LEN)]
     seats_by_rank: list[list[tuple[int, int, int, int, int]]] = [[] for _ in range(TRACK_LEN)]
@@ -1489,8 +1489,9 @@ def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int]
             seats_by_rank[lec_m - 1].append((s, card, d1, d2, lec_m))
 
     act_mode = state.cfg.reve_activation_mode
+    adv_mode = state.cfg.reve_advance_mode
     trk = _get_active_telemetry()
-    reve_queue: list[tuple[int, int]] = []
+    reve_queue: list[tuple[int, int, bool]] = []
 
     for r_idx in range(TRACK_LEN):
         entries = seats_by_rank[r_idx]
@@ -1551,12 +1552,13 @@ def _bind_hands_and_collect_reves_3_2(state: GameState) -> tuple[tuple[int, int]
 
         if n_cancel >= 1:
             r_num = code_m - TILE_R_BASE
+            should_advance = (adv_mode != "CLEAR_RANK_ONLY") or (n_bypass == 0)
             if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
                 open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
             else:
                 open_count = n_cancel
             for _ in range(open_count):
-                reve_queue.append((code_m, r_num))
+                reve_queue.append((code_m, r_num, should_advance))
 
     return tuple(reve_queue)
 
@@ -1571,7 +1573,7 @@ def _run_step_3_2(state: GameState) -> None:
     if state.cfg.mode <= 2 and not has_bug_b_work:
         reve_q = _bind_hands_and_collect_reves_3_2(state)
         trk = _get_active_telemetry()
-        for reve_code, r_num in reve_q:
+        for reve_code, r_num, should_advance in reve_q:
             if (
                 state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR"
                 and state.has_reve_opened_this_turn(r_num)
@@ -1583,9 +1585,10 @@ def _run_step_3_2(state: GameState) -> None:
             state.light_trigger(5)
             if trk is not None:
                 trk.on_trigger_lit(5)
-            cur_pos_r = state.find_tactique_rank(reve_code)
-            if cur_pos_r is not None and cur_pos_r > 0:
-                prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
+            if should_advance:
+                cur_pos_r = state.find_tactique_rank(reve_code)
+                if cur_pos_r is not None and cur_pos_r > 0:
+                    prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
             sweep_gardiens(state)
         _transition_step(state, STEP_4_1_FURTIVITE)
         return
@@ -1839,7 +1842,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
     if tag == "STEP_3_2_REVE_QUEUE":
         _, reve_q, cur_idx = state._continuation.pop(0)
         if cur_idx < len(reve_q):
-            reve_code, r_num = reve_q[cur_idx]
+            reve_code, r_num, should_advance = reve_q[cur_idx]
             if cur_idx + 1 < len(reve_q):
                 state._continuation.insert(0, ("STEP_3_2_REVE_QUEUE", reve_q, cur_idx + 1))
             if (
@@ -1854,17 +1857,20 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             state.light_trigger(5)
             if trk is not None:
                 trk.on_trigger_lit(5)
-            state._continuation.insert(0, ("STEP_3_2_FINISH_REVE", int(reve_code)))
+            state._continuation.insert(
+                0, ("STEP_3_2_FINISH_REVE", int(reve_code), 1 if should_advance else 0)
+            )
             dispatch_hook(
                 state, HOOK_3_2_OUVERTURE_REVE, {"slot_id": f"R{r_num}", "r_num": int(r_num)}
             )
         return None
 
     if tag == "STEP_3_2_FINISH_REVE":
-        _, reve_code = state._continuation.pop(0)
-        cur_pos_r = state.find_tactique_rank(int(reve_code))
-        if cur_pos_r is not None and cur_pos_r > 0:
-            prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
+        _, reve_code, should_advance = state._continuation.pop(0)
+        if should_advance:
+            cur_pos_r = state.find_tactique_rank(int(reve_code))
+            if cur_pos_r is not None and cur_pos_r > 0:
+                prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
         sweep_gardiens(state)
         return None
 
