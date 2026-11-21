@@ -433,24 +433,24 @@ def _current_def_canonical_spot(state: GameState, seat: int, def_idx: int) -> tu
     return None
 
 
-def list_legal_targets(
+def _list_legal_targets_impl(
     state: GameState,
     seat: int,
     *,
     is_first_defender: bool,
     exclude_own_def2: bool = False,
+    force_global: bool = False,
 ) -> tuple[tuple[Any, ...], ...]:
-    """Énumère toutes les poses légales (anti-blocage v5.3) pour un Défenseur de `seat`."""
     n = state.cfg.n_players
     p_max = state.cfg.p_max
     own_spot = _current_def_canonical_spot(state, seat, 1) if exclude_own_def2 else None
 
-    use_global = not is_first_defender
+    use_global = force_global or (not is_first_defender)
     extra_targets: tuple[tuple[Any, ...], ...] = ()
     if is_first_defender and state.cfg.mode >= 3:
         portee_ctx: dict[str, Any] = {"seat": seat, "global_range": False, "extra_targets": []}
         dispatch_hook(state, HOOK_2_1_PORTEE_DEF1, portee_ctx)
-        use_global = bool(portee_ctx.get("global_range"))
+        use_global = use_global or bool(portee_ctx.get("global_range"))
         extra_targets = tuple(portee_ctx.get("extra_targets", ()))
 
     if not use_global:
@@ -520,11 +520,35 @@ def list_legal_targets(
             if ext_t not in targets:
                 targets.append(ext_t)
 
-    # Repli exceptionnel si 100 % du territoire local d'un siège est intégralement rasé/plein
+    # Repli exceptionnel si 100 % du territoire local d'un siège est intégralement rasé/plein :
+    # étend uniquement la portée géographique (Forêt / Furtivité / Lisière globales) sans jamais
+    # exposer GARDIEN_PARI ni REVE_ACTIVATION au 1er Défenseur.
     if not targets and not use_global:
-        return list_legal_targets(state, seat, is_first_defender=False, exclude_own_def2=False)
+        return _list_legal_targets_impl(
+            state,
+            seat,
+            is_first_defender=is_first_defender,
+            exclude_own_def2=False,
+            force_global=True,
+        )
 
     return tuple(targets)
+
+
+def list_legal_targets(
+    state: GameState,
+    seat: int,
+    *,
+    is_first_defender: bool,
+    exclude_own_def2: bool = False,
+) -> tuple[tuple[Any, ...], ...]:
+    """Énumère toutes les poses légales (anti-blocage v5.3) pour un Défenseur de `seat`."""
+    return _list_legal_targets_impl(
+        state,
+        seat,
+        is_first_defender=is_first_defender,
+        exclude_own_def2=exclude_own_def2,
+    )
 
 
 def _apply_defender_target(

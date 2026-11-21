@@ -12,11 +12,17 @@ import run_campaign as rc_mod
 from bots.bot_b0 import play_game_b0
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from campaigns.worker_main import resolve_manifest_plan, run_campaign_manifest
-from engine.core_engine import DEC_CHOIX_REVE_3_2, apply_choice, step_until_decision
+from engine.core_engine import (
+    DEC_CHOIX_REVE_3_2,
+    apply_choice,
+    list_legal_targets,
+    step_until_decision,
+)
 from engine.primitives import DecisionRequest, prim_permutation_piste
 from engine.state import (
     CARD_SABOTAGE,
     FACE_DEFINITIF,
+    LISIERE_CONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
@@ -350,3 +356,49 @@ def test_v6_0_b2_beats_b1_beats_b0_smoke() -> None:
 
     assert sums["B0"] < sums["B1"] < sums["B2"], f"Hiérarchie violée : {sums}"
     assert f2_b2 <= 2
+
+
+def test_v6_0_def1_local_razed_fallback_never_exposes_gardien_pari_or_reve_activation() -> None:
+    """Non-régression 2.1 Mode 2 : si le territoire local d'un siège est 100 % rasé/construit,
+    le repli global du 1er Défenseur n'expose jamais GARDIEN_PARI ni REVE_ACTIVATION.
+    """
+    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=6201)
+    st = GameState(cfg)
+    st.tour = 6
+    st.set_gardien_at_case(1, 1, 1)
+    st.set_gardien_at_case(4, 2, 1)
+    st.set_tactique_at_rank(5, TILE_R_BASE + 1)
+
+    # Raser les rayons 0, 1, 3 et marquer les tuiles lisière locales du siège 0 (0, 1, 6, 7) construites :
+    # le territoire local du siège 0 est 100 % saturé/rasé alors que le rayon 2 reste ouvert.
+    for r in (0, 1, 3):
+        for p in range(1, cfg.p_max + 1):
+            st.set_parcel_arbres_souches(r, p, 0, 0)
+    for slot_idx in (0, 1, 6, 7):
+        st.set_lisiere_tile_state(slot_idx, LISIERE_CONSTRUCTED, 2)
+
+    legal_def1_partial = list_legal_targets(st, 0, is_first_defender=True)
+    assert len(legal_def1_partial) > 0
+    assert all(t[0] not in ("GARDIEN_PARI", "REVE_ACTIVATION") for t in legal_def1_partial)
+    assert ("FORET", 2, 1) in legal_def1_partial
+
+    # B0, B1 et B2 terminent proprement depuis cet état sans lever d'AssertionError en 2.1
+    assert play_game_b0(st.clone()).tour_fin <= 8
+    assert play_game_b1(st.clone()).tour_fin <= 8
+    assert play_game_b2(st.clone()).tour_fin <= 8
+
+    # Raser aussi le rayon 2 et construire toutes les tuiles restantes (impasse totale 2.1 sur le plateau)
+    for p in range(1, cfg.p_max + 1):
+        st.set_parcel_arbres_souches(2, p, 0, 0)
+    for slot_idx in range(2 * cfg.n_players):
+        st.set_lisiere_tile_state(slot_idx, LISIERE_CONSTRUCTED, 2)
+
+    assert list_legal_targets(st, 0, is_first_defender=True) == ()
+    legal_def2_full = list_legal_targets(st, 0, is_first_defender=False)
+    assert ("GARDIEN_PARI", 1) in legal_def2_full
+    assert ("REVE_ACTIVATION", 6) in legal_def2_full
+
+    assert play_game_b0(st.clone()).tour_fin <= 8
+    assert play_game_b1(st.clone()).tour_fin <= 8
+    assert play_game_b2(st.clone()).tour_fin <= 8
+
