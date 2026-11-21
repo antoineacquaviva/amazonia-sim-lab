@@ -640,13 +640,6 @@ def prim_permutation_piste(
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
         if rank_a == 0:
             return False
-        if state.cfg.reve_advance_mode == "FREE_SLOT_ONLY":
-            if is_reve_code(state.get_tactique_at_rank(rank_a - 1)):
-                return False
-            state.set_tactique_at_rank(rank_a - 1, code)
-            state.set_tactique_at_rank(rank_a, rank_a + 1)
-            _record_phys_ops(state, 1)
-            return True
         dest: int | None = None
         for j in range(rank_a - 1, -1, -1):
             if not is_reve_code(state.get_tactique_at_rank(j)):
@@ -654,12 +647,11 @@ def prim_permutation_piste(
                 break
         if dest is None:
             return False
-        # Poussée du bloc contigu de Rêves vers la première case libre à gauche ;
+        # v6.0 : le Rêve saute directement vers la 1re case libre à sa gauche ;
         # la case libérée retrouve sa Tactique imprimée T1..T6 (rank_a + 1).
-        for idx in range(dest, rank_a):
-            state.set_tactique_at_rank(idx, state.get_tactique_at_rank(idx + 1))
+        state.set_tactique_at_rank(dest, code)
         state.set_tactique_at_rank(rank_a, rank_a + 1)
-        _record_phys_ops(state, rank_a - dest)
+        _record_phys_ops(state, 1)
         return True
 
     if action == "SHIFT_LECTURE_M":

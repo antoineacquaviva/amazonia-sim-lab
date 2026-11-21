@@ -44,14 +44,14 @@ REGION: str = "europe-west9"
 BUCKET_NAME: str = "amazonia-sim-runs"
 IMAGE_URI: str = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
 WORKER_IMAGE_HASH_GCS_URI: str = f"gs://{BUCKET_NAME}/meta/worker_image_hash.txt"
-# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_5.json)
+# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v6_0.json)
 # ainsi que `Dockerfile.worker` lui-même (image de base PyPy et ENTRYPOINT).
 WORKER_IMAGE_SOURCE_PATHS: tuple[str, ...] = (
     "Dockerfile.worker",
     "engine",
     "bots",
     "campaigns",
-    "data/spec_bundle_v5_5.json",
+    "data/spec_bundle_v6_0.json",
 )
 _IGNORED_DIR_NAMES: frozenset[str] = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache"})
 _IGNORED_FILE_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo", ".pyd"})
@@ -76,7 +76,7 @@ def compute_worker_image_hash(root: Path = ROOT) -> str:
     """Calcule une empreinte SHA-256 déterministe des sources embarquées dans `Dockerfile.worker`.
 
     Couvre `Dockerfile.worker`, `engine/`, `bots/`, `campaigns/` (hors manifestes `*.json`
-    téléversés à la volée sur GCS) et `data/spec_bundle_v5_5.json`, en ignorant les caches
+    téléversés à la volée sur GCS) et `data/spec_bundle_v6_0.json`, en ignorant les caches
     Python (`__pycache__`, `*.pyc`, etc.) conformément à `.dockerignore`.
     """
     collected: list[tuple[str, Path]] = []
@@ -901,6 +901,37 @@ def aggregate_campaign_duckdb(
             0 AS count_machines_bypassed_inactive_reve,
         """
     )
+    has_v6_metrics_cols = (
+        "count_reves_choice_block" in cell_cols
+        and "count_reves_choice_advance" in cell_cols
+        and "sum_power_tokens_end_act1" in cell_cols
+        and "count_act1_reached" in cell_cols
+        and "sum_power_tokens_end_game" in cell_cols
+        and "count_charge_gains" in cell_cols
+        and "count_furtivite_1_rive_turns" in cell_cols
+        and "count_furtivite_2_rives_turns" in cell_cols
+    )
+    v6_metrics_sql = (
+        """
+            CAST(SUM(count_reves_choice_block) AS INTEGER) AS count_reves_choice_block,
+            CAST(SUM(count_reves_choice_advance) AS INTEGER) AS count_reves_choice_advance,
+            CAST(ROUND(COALESCE(SUM(sum_power_tokens_end_act1) * 1.0 / NULLIF(SUM(count_act1_reached), 0), 0.0), 3) AS DOUBLE) AS mean_power_tokens_end_act1,
+            CAST(ROUND(SUM(sum_power_tokens_end_game) * 1.0 / SUM(n_games), 3) AS DOUBLE) AS mean_power_tokens_end_game,
+            CAST(SUM(count_charge_gains) AS INTEGER) AS count_charge_gains,
+            CAST(SUM(count_furtivite_1_rive_turns) AS INTEGER) AS count_furtivite_1_rive_turns,
+            CAST(SUM(count_furtivite_2_rives_turns) AS INTEGER) AS count_furtivite_2_rives_turns,
+        """
+        if has_v6_metrics_cols
+        else """
+            0 AS count_reves_choice_block,
+            0 AS count_reves_choice_advance,
+            CAST(0.0 AS DOUBLE) AS mean_power_tokens_end_act1,
+            CAST(0.0 AS DOUBLE) AS mean_power_tokens_end_game,
+            0 AS count_charge_gains,
+            0 AS count_furtivite_1_rive_turns,
+            0 AS count_furtivite_2_rives_turns,
+        """
+    )
     has_n_animaux_col = "n_animaux_sauvages" in cell_cols
 
     g_stats = _query_dicts(
@@ -921,6 +952,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens,
             {reveil_diag_sql}
             {reve_act_sql}
+            {v6_metrics_sql}
             ROUND(SUM(sum_mem_debt) * 1.0 / SUM(n_games), 3) AS mean_mem_debt,
             ROUND(SUM(sum_law_mean) / SUM(n_games), 3) AS mean_active_laws,
             CAST(MAX(max_law_max) AS INTEGER) AS max_active_laws,
@@ -1008,6 +1040,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
             {reveil_diag_sql}
+            {v6_metrics_sql}
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
         FROM cells
         GROUP BY mode, bot
@@ -1032,6 +1065,7 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
             {reveil_diag_sql}
+            {v6_metrics_sql}
             ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
         FROM cells
         GROUP BY n_players
@@ -1371,6 +1405,13 @@ def aggregate_campaign_duckdb(
             "count_machines_bypassed_inactive_reve": int(
                 g_stats["count_machines_bypassed_inactive_reve"]
             ),
+            "count_reves_choice_block": int(g_stats["count_reves_choice_block"]),
+            "count_reves_choice_advance": int(g_stats["count_reves_choice_advance"]),
+            "mean_power_tokens_end_act1": float(g_stats["mean_power_tokens_end_act1"] or 0.0),
+            "mean_power_tokens_end_game": float(g_stats["mean_power_tokens_end_game"] or 0.0),
+            "count_charge_gains": int(g_stats["count_charge_gains"]),
+            "count_furtivite_1_rive_turns": int(g_stats["count_furtivite_1_rive_turns"]),
+            "count_furtivite_2_rives_turns": int(g_stats["count_furtivite_2_rives_turns"]),
             "tested_tiles": [f"{s}:{p}" for s, p in tested_tiles],
             "parquet_archive": parquet_path.relative_to(ROOT).as_posix(),
         },

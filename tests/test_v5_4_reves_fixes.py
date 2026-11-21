@@ -10,12 +10,14 @@ from pathlib import Path
 from bots.heuristic_engine import play_game_b2
 from campaigns.worker_main import resolve_manifest_plan
 from engine.core_engine import (
+    DEC_CHOIX_REVE_3_2,
+    apply_choice,
     apply_step2_def2,
     insert_reve_on_track,
     list_legal_targets,
     step_until_decision,
 )
-from engine.primitives import prim_permutation_piste
+from engine.primitives import DecisionRequest, prim_permutation_piste
 from engine.state import (
     FACE_DEFINITIF,
     MACHINE_ABATTEUSE,
@@ -42,7 +44,7 @@ def test_fixed_track_192_chassis_and_bug_b_default() -> None:
     assert cfg.reve_activation_mode == "1_DEF_1_MACHINE"
     assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
-    assert cfg.reve_advance_mode == "CLEAR_RANK_ONLY"
+    assert cfg.reve_advance_mode == "EXCLUSIVE_CHOICE"
 
     st = GameState(cfg)
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(TRACK_LEN)] == [
@@ -81,15 +83,15 @@ def test_reve_construction_rightmost_free_and_jump_push_advance() -> None:
         "R1",
     ]
 
-    # Avancée de R1 (index 5) alors que index 4 porte R2 -> pousse le bloc [R2, R1] vers [3, 4],
-    # et la case 6 retrouve la Tactique imprimée T6 !
+    # v6.0 : Avancée de R1 (index 5) alors que index 4 porte R2 -> SAUTE directement vers la 1re case libre
+    # à sa gauche (index 3), laissant R2 en index 4 et restaurant T6 en case 6 !
     assert prim_permutation_piste(st, "ADVANCE_REVE_LEFT", rank_a=5) is True
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(6)] == [
         "T1",
         "T2",
         "T3",
-        "R2",
         "R1",
+        "R2",
         "T6",
     ]
 
@@ -122,7 +124,9 @@ def test_step_2_2_reve_activation_legal_targets_def2_only() -> None:
 
 
 def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
-    def _run_case(mode_name: str, n_defs: int) -> tuple[int, int, int | None, int, int, int]:
+    def _run_case(
+        mode_name: str, n_defs: int, reve_choice: str = "BLOQUER"
+    ) -> tuple[int, int, int | None, int, int, int]:
         cfg = GameConfig(
             n_players=4,
             mode=2,
@@ -148,7 +152,10 @@ def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
         st.set_parcel_insectes(2, 1, 1)
         st.step = STEP_3_2_REVEAL
         trk = TelemetryTracker()
-        _ = step_until_decision(st, telemetry=trk)
+        req = step_until_decision(st, telemetry=trk)
+        if isinstance(req, DecisionRequest) and req.decision_type == DEC_CHOIX_REVE_3_2:
+            apply_choice(st, reve_choice, telemetry=trk)
+            _ = step_until_decision(st, telemetry=trk)
         ts = trk.summary()
         return (
             st.get_player_hand(0)[4],
@@ -159,21 +166,25 @@ def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
             ts.machines_bypassed_inactive_reve,
         )
 
-    # Option A (1_DEF_1_MACHINE) avec règle v5.5 CLEAR_RANK_ONLY par défaut :
+    # Option A (1_DEF_1_MACHINE) avec règle v6.0 EXCLUSIVE_CHOICE :
     # - 0 Déf -> les 2 machines exécutent T5 imprimée, R1 n'avance pas
     assert _run_case("1_DEF_1_MACHINE", 0) == (5, 5, 4, 0, 0, 2)
-    # - 1 Déf -> la plus menaçante (siège 1) est annulée, siège 0 exécute T5 ; 1 machine n'est pas annulée -> R1 reste en idx 4
-    assert _run_case("1_DEF_1_MACHINE", 1) == (5, 0, 4, 1, 1, 1)
-    # - 2 Déf -> les 2 machines sont annulées (rang entièrement vidé), R1 s'ouvre et avance en idx 3
-    assert _run_case("1_DEF_1_MACHINE", 2) == (0, 0, 3, 1, 2, 0)
+    # - 1 Déf + BLOQUER -> la plus menaçante (siège 1) est annulée, siège 0 exécute T5 ; R1 ne bouge pas
+    assert _run_case("1_DEF_1_MACHINE", 1, "BLOQUER") == (5, 0, 4, 1, 1, 1)
+    # - 2 Déf + BLOQUER -> les 2 machines sont annulées, R1 ne bouge pas (choix exclusif BLOQUER)
+    assert _run_case("1_DEF_1_MACHINE", 2, "BLOQUER") == (0, 0, 4, 1, 2, 0)
+    # - 1 Déf + AVANCER -> 0 machine annulée (les 2 exécutent T5), R1 saute en idx 3 !
+    assert _run_case("1_DEF_1_MACHINE", 1, "AVANCER") == (5, 5, 3, 1, 0, 2)
 
     # Option B (1_DEF_ALL_RANK) :
     assert _run_case("1_DEF_ALL_RANK", 0) == (5, 5, 4, 0, 0, 2)
-    assert _run_case("1_DEF_ALL_RANK", 1) == (0, 0, 3, 1, 2, 0)
+    assert _run_case("1_DEF_ALL_RANK", 1, "BLOQUER") == (0, 0, 4, 1, 2, 0)
+    assert _run_case("1_DEF_ALL_RANK", 1, "AVANCER") == (5, 5, 3, 1, 0, 2)
 
     # Option C (BINOME_ALL_RANK) :
     assert _run_case("BINOME_ALL_RANK", 1) == (5, 5, 4, 0, 0, 2)
-    assert _run_case("BINOME_ALL_RANK", 2) == (0, 0, 3, 1, 2, 0)
+    assert _run_case("BINOME_ALL_RANK", 2, "BLOQUER") == (0, 0, 4, 1, 2, 0)
+    assert _run_case("BINOME_ALL_RANK", 2, "AVANCER") == (5, 5, 3, 1, 0, 2)
 
 
 def test_calibration_reves_fixes_manifest_and_b2_smoke() -> None:

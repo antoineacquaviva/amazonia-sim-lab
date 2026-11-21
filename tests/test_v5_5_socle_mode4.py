@@ -102,7 +102,7 @@ def test_v5_5_all_30_active_tiles_and_4_migrations_registered() -> None:
     assert expected_migrations <= registered
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["schema_version"] == "5.5.0"
+    assert bundle["meta"]["schema_version"] == "6.0.0-alpha"
     assert len(bundle["catalogue_tuiles"]) == 32
     for slot_id, prof in expected_30:
         assert slot_id in bundle["catalogue_tuiles"]
@@ -344,12 +344,17 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     st_32.step = STEP_3_2_REVEAL
 
     trk_32 = TelemetryTracker()
+    st_32.step = STEP_3_2_REVEAL
     res = step_until_decision(st_32, telemetry=trk_32)
     # Bug B propose de dévier le dé M=2 du siège 2 (option 1 = non-PASSER)
     assert isinstance(res, DecisionRequest) and res.decision_type == DEC_EFFET_TUILE
     non_pass = [opt for opt in res.options if opt != "PASSER"]
     assert non_pass
     apply_choice(st_32, non_pass[0], telemetry=trk_32)
+    res_reve = step_until_decision(st_32, telemetry=trk_32)
+    # v6.0 : choix exclusif BLOQUER sur R1 (case 5) pour annuler la machine du siège 1
+    assert isinstance(res_reve, DecisionRequest) and res_reve.decision_type == "CHOIX_REVE_3_2"
+    apply_choice(st_32, "BLOQUER", telemetry=trk_32)
     _ = step_until_decision(st_32, telemetry=trk_32)
 
     ts_32 = trk_32.summary()
@@ -357,7 +362,7 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     assert ts_32.da_insecte_bug_deviation == 1
     assert ts_32.da_reve_annulation == 1
 
-    # B) 5.1 : Piège + Parade classique + Parade avec Insectes + Repousse Finale
+    # B) 5.1 : Piège + Parade classique + Parade avec Insectes + 0 Repousse Finale de base (v6.0)
     cfg_51 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"), exp_seed=5508)
     st_51 = GameState(cfg_51)
     # T1 attaque SUR_PLACE (mod_seuil=0) ; dotation P4 p=1 est 2 arbres -> seuil 2
@@ -376,7 +381,7 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     st_51.set_parcel_insectes(2, 1, 1)
     st_51.set_player_hand(2, machine_card_code(2, MACHINE_ABATTEUSE), 1, 6, 1, 1)
     st_51.set_player_hand(3, 0, 0, 0, 0, 0)
-    # 1 Souche sur (3,1) avec 1 Défenseur pour tester Repousse Finale (+1 arbre)
+    # 1 Souche sur (3,1) -> 0 repousse automatique en v6.0
     st_51.set_parcel_arbres_souches(3, 1, 1, 1)
     st_51.set_parcel_defenseurs(3, 1, 1)
 
@@ -392,18 +397,18 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     assert ts_51.da_piege == 1
     assert ts_51.da_parade_classique == 1
     assert ts_51.da_parade_avec_insectes == 1
-    assert ts_51.da_arbres_repousse_finale >= 1
+    assert ts_51.da_arbres_repousse_finale == 0
 
-    # Vérification isolée de la Repousse Finale (+1 Arbre max par parcelle non rasée avec >= 1 Souche)
+    # Vérification isolée : 0 Repousse Finale automatique en v6.0
     st_rep = GameState(cfg_51)
-    st_rep.set_parcel_arbres_souches(0, 1, 0, 2)  # 2 souches -> +1 arbre (cap 1/parcelle)
-    st_rep.set_parcel_arbres_souches(1, 1, 1, 1)  # 1 souche -> +1 arbre
+    st_rep.set_parcel_arbres_souches(0, 1, 0, 2)
+    st_rep.set_parcel_arbres_souches(1, 1, 1, 1)
     st_rep.step = STEP_5_3_END_CHECK
     st_rep.tour = 8
     trk_rep = TelemetryTracker()
     res_rep = step_until_decision(st_rep, telemetry=trk_rep)
     assert isinstance(res_rep, GameOver)
-    assert trk_rep.summary().da_arbres_repousse_finale == 2
+    assert trk_rep.summary().da_arbres_repousse_finale == 0
 
 
 # ---------------------------------------------------------------------------
@@ -414,7 +419,12 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
 def test_baseline_mode4_v5_5_manifest_plan() -> None:
     manifest_path = ROOT / "campaigns" / "manifests" / "baseline_mode4_v5_5.json"
     assert manifest_path.is_file(), "campaigns/manifests/baseline_mode4_v5_5.json manquant"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    with pytest.raises(ValueError, match="EXCLUSIVE_CHOICE"):
+        resolve_manifest_plan(raw_manifest)
+
+    manifest = dict(raw_manifest)
+    manifest["reve_advance_mode"] = "EXCLUSIVE_CHOICE"
     plan = resolve_manifest_plan(manifest)
 
     assert plan["campaign_name"] == "baseline_mode4_v5_5"
@@ -424,7 +434,7 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert plan["profile_variants"][0]["reve_advance_mode"] == "CLEAR_RANK_ONLY"
+    assert plan["profile_variants"][0]["reve_advance_mode"] == "EXCLUSIVE_CHOICE"
     assert plan["include_full_tile_metrics"] is True
     # 3 bots * 4 N * 6 chassis * 1 profil = 72 configurations ; 72 * 120 = 8 640 parties
     assert plan["total_configurations"] == 72
@@ -440,9 +450,9 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
     import campaigns.digest_builder as db_mod
 
     manifest: dict[str, Any] = {
-        "schema_version": "5.5.0",
+        "schema_version": "6.0.0-alpha",
         "manifest_type": "campaign_plan",
-        "campaign_name": "micro_mode4_v5_5_test",
+        "campaign_name": "micro_mode4_v6_0_test",
         "description": "Validation locale Mode 4 multi-bots B0/B1/B2 avec 32 slots et defense_attribution",
         "mode": 4,
         "bots": ["B0", "B1", "B2"],
@@ -465,7 +475,7 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
             },
         },
     }
-    manifest_file = tmp_path / "micro_mode4_v5_5_test.json"
+    manifest_file = tmp_path / "micro_mode4_v6_0_test.json"
     manifest_file.write_text(json.dumps(manifest), encoding="utf-8")
     plan = resolve_manifest_plan(manifest)
 
@@ -493,12 +503,12 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
         shards_dir=shards_dir,
         parquet_path=parquet_path,
         backend="local",
-        job_name="local-micro-mode4-v5-5",
+        job_name="local-micro-mode4-v6-0",
         tasks=1,
         job_wall_sec=1.0,
     )
     assert digest_path.exists() and prompt_path.exists() and parquet_path.exists()
-    assert digest["active_core_rules"]["version"] == "5.5.0"
+    assert digest["active_core_rules"]["version"] == "6.0.0-alpha"
     assert digest["totals"]["total_games"] == 3 * 2 * 20  # 120 parties
 
     # 1. Section defense_attribution complète + ventilation par bot (B0, B1, B2)

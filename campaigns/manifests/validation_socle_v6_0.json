@@ -1,0 +1,41 @@
+{
+  "campaign_name": "validation_socle_v6_0",
+  "description": "Validation du nouveau socle cœur expérimental v6.0 (schema_version 6.0.0-alpha) en Mode 2 à tuiles neutres : Furtivité libre A1 (2 rives indépendantes), suppression de la Repousse Finale de base (score = Arbres debout, Abatteuse Ratissage conservée), Rêves en choix exclusif Bloquer OU Avancer avec saut, Réglette des Tactiques réversible Face A/B (Acte 1 Tours 1-4 Charge 1-3 / Assaut 4-6 ; Acte 2 Tours 5-8 Assaut 1-3 / Charge 4-6 ; Ratissage détaché en Assaut permanent). Courbe de progression multi-bots B0 < B1 < B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 8 640 parties.",
+  "mode": 2,
+  "bots": ["B0", "B1", "B2"],
+  "k_max": 3,
+  "seed": 20261127,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 120,
+  "reve_activation_mode": "1_DEF_1_MACHINE",
+  "reve_advance_mode": "EXCLUSIVE_CHOICE",
+  "gardien_bet_cap_policy": "UNIFORM_MAX_2",
+  "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
+  "base_instance": {
+    "config_index_192": 1,
+    "bundle_id": "STANDARD_A",
+    "slots_insectes": {
+      "SLOT_BUG_CERVEAU": "B",
+      "SLOT_COLONISATION_GARDIENS": "B"
+    }
+  },
+  "chassis_plan": {
+    "varying_axes": [
+      {
+        "key": "Profil_Piste",
+        "values": [
+          "P4_2233",
+          "P4_2223",
+          "P4_1223",
+          "P5_22233",
+          "P5_22223",
+          "P5_12223"
+        ]
+      }
+    ],
+    "fixed_axes": {}
+  },
+  "slot_profile_comparisons": {}
+}

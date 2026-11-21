@@ -57,9 +57,9 @@ def _check_board_invariants(state: GameState) -> None:
             d0 = (1 if s0 else 0) + (1 if s1 else 0)
             d1 = (1 if s2 else 0) + (1 if s3 else 0)
             tot = d0 + d1
-            assert 0 <= tot <= 2, f"Plus de 2 Défenseurs en Furtivité ({l_idx},{p}) : {tot}"
-            if tot == 2:
-                assert d0 == 2 or d1 == 2, "Binôme Furtivité scindé sur les 2 rives"
+            assert 0 <= d0 <= 2, f"Plus de 2 Défenseurs rive 0 en Furtivité ({l_idx},{p}) : {d0}"
+            assert 0 <= d1 <= 2, f"Plus de 2 Défenseurs rive 1 en Furtivité ({l_idx},{p}) : {d1}"
+            assert 0 <= tot <= 4, f"Plus de 4 Défenseurs en Furtivité ({l_idx},{p}) : {tot}"
             assert state.get_furtivite_insectes(l_idx, p) >= 0
 
     for c in range(1, TRACK_LEN + 1):
@@ -71,7 +71,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     start_idx, end_idx, total = bounds
     rotations = tuple(PEUPLES_ORDER[rot:] + PEUPLES_ORDER[:rot] for rot in range(6))
 
-    # Socle gelé v5.5 : 20 % Mode 1, 40 % Mode 2, 40 % Mode 4 (catalogue actif 32 slots)
+    # Socle expérimental v6.0 : 20 % Mode 1, 40 % Mode 2, 40 % Mode 4 (catalogue actif 32 slots)
     t1 = (total * 20) // 100
     t2 = (total * 60) // 100
 
@@ -90,19 +90,11 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             exp_seed=900_000 + mode * 10_000,
             rep_id=game_idx,
             max_revision_passes=0 if bot_sel < 3 else 3,
-            reve_activation_mode=(
-                "1_DEF_1_MACHINE",
-                "1_DEF_ALL_RANK",
-                "BINOME_ALL_RANK",
-            )[game_idx % 3]
-            if mode == 2
-            else "1_DEF_1_MACHINE",
+            reve_activation_mode="1_DEF_1_MACHINE",
             gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2]
             if mode == 2
             else "UNIFORM_MAX_2",
-            reve_advance_mode=("CLEAR_RANK_ONLY", "JUMP_PUSH")[(game_idx // 2) % 2]
-            if mode == 2
-            else "CLEAR_RANK_ONLY",
+            reve_advance_mode="EXCLUSIVE_CHOICE",
             gardien_4_trigger_mode="DISTINCT_OPEN_1",
             tile_profiles=(
                 (

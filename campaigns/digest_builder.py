@@ -43,7 +43,7 @@ __all__ = (
 )
 
 ROOT: Path = Path(__file__).resolve().parent.parent
-DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_5.json"
+DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v6_0.json"
 DEFAULT_DIGESTS_DIR: Path = ROOT / "data" / "digests"
 MAX_DIGEST_BYTES: int = 35_000
 
@@ -149,10 +149,10 @@ def build_active_core_rules(
     - `version`, `source_studio_version` et `spec_bundle_sha256`,
     - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
     - `chassis_6_axes` (valeurs exactes des 6 axes + `chassis_id` 0..191 + `studio_config_index_192` 1..192),
-    - `tactiques` (`T1..T6` imprimées en dur),
+    - `tactiques` (`T1..T6` Réglette réversible Face A / Face B + Ratissage ASSAUT permanent),
     - `machine_damage_rules` et `machine_deck_rules`,
-    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité,
-      chaîne des Parades / Pièges, Sabotage par dilution, Activation des Rêves, Fins `5.3`).
+    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité libre A1,
+      chaîne des Parades / Pièges, Sabotage par dilution, Rêves Bloquer/Avancer, Fins `5.3`).
     """
     target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
     if bundle is not None:
@@ -177,7 +177,12 @@ def build_active_core_rules(
     unique_chassis = tuple(dict.fromkeys(int(c) for c in (chassis_ids or (0,))))
     chassis_list = [decode_chassis_axes(cid) for cid in unique_chassis]
 
-    sf = spec_bundle.get("spec_formelle_v5_5") or spec_bundle.get("spec_formelle_v5_4") or {}
+    sf = (
+        spec_bundle.get("spec_formelle_v6_0")
+        or spec_bundle.get("spec_formelle_v5_5")
+        or spec_bundle.get("spec_formelle_v5_4")
+        or {}
+    )
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
     etapes_raw: list[dict[str, Any]] = sorted(
         sf.get("etapes_tour", []),
@@ -194,7 +199,7 @@ def build_active_core_rules(
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.5.0"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "6.0.0-alpha"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
@@ -207,8 +212,8 @@ def build_active_core_rules(
     }
 
     return {
-        "version": str(meta.get("schema_version", "5.5.0")),
-        "source_studio_version": str(meta.get("source_studio_version", "v5.5")),
+        "version": str(meta.get("schema_version", "6.0.0-alpha")),
+        "source_studio_version": str(meta.get("source_studio_version", "v6.0")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
         "chassis_6_axes": chassis_list,

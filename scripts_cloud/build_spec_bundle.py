@@ -1,4 +1,4 @@
-"""Génère data/spec_bundle_v5_5.json (contrat exécutable v5.5.0) depuis le Studio."""
+"""Génère data/spec_bundle_v6_0.json (contrat exécutable v6.0.0-alpha) depuis le Studio."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from scripts_cloud.studio_paths import resolve_studio_dir
 DATA_DIR = ROOT / "data"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
 LOCK_FILE = DATA_DIR / "studio_lock.json"
-SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_5.json"
-CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_5.json"
-OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_5.json"
+SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
+CATALOG_FILE = DOCS_DATA_DIR / "catalog_v6_0.json"
+OUT_BUNDLE = DATA_DIR / "spec_bundle_v6_0.json"
 OUT_MODE3 = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 RES_VOCAB = frozenset(
@@ -43,7 +43,7 @@ TRIG_VOCAB = frozenset({f"TRIG_{i}" for i in range(1, 7)})
 
 
 def _load_studio_js_objects() -> dict[str, Any]:
-    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_5.js"
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v6_0.js"
     if not studio_js_path.exists():
         raise FileNotFoundError(
             f"Fichier Studio introuvable : {studio_js_path} "
@@ -222,57 +222,69 @@ def _build_tactiques() -> list[dict[str, Any]]:
     return [
         {
             "id": "T1",
-            "nom": "Sur place",
+            "nom": "Sur place (Case 1)",
             "cibles": ["SUR_PLACE"],
             "avancee": 0,
             "gain_rouge": 0,
             "mod_seuil": 0,
-            "est_ratissage_profil": True,
+            "est_ratissage_profil": False,
+            "mode_acte_1": "CHARGE",
+            "mode_acte_2": "ASSAUT",
         },
         {
             "id": "T2",
-            "nom": "Devant",
+            "nom": "Devant (Case 2)",
             "cibles": ["DEVANT"],
             "avancee": 0,
             "gain_rouge": 0,
             "mod_seuil": 0,
             "est_ratissage_profil": False,
+            "mode_acte_1": "CHARGE",
+            "mode_acte_2": "ASSAUT",
         },
         {
             "id": "T3",
-            "nom": "En avançant",
+            "nom": "En avançant (Case 3)",
             "cibles": ["SUR_PLACE", "DEVANT"],
             "avancee": 1,
             "gain_rouge": 0,
             "mod_seuil": -1,
             "est_ratissage_profil": False,
+            "mode_acte_1": "CHARGE",
+            "mode_acte_2": "ASSAUT",
         },
         {
             "id": "T4",
-            "nom": "Sur place +",
+            "nom": "Sur place (Case 4)",
             "cibles": ["SUR_PLACE"],
             "avancee": 0,
-            "gain_rouge": 1,
-            "mod_seuil": -1,
+            "gain_rouge": 0,
+            "mod_seuil": 0,
             "est_ratissage_profil": False,
+            "mode_acte_1": "ASSAUT",
+            "mode_acte_2": "CHARGE",
         },
         {
             "id": "T5",
-            "nom": "Devant +",
+            "nom": "Devant (Case 5)",
             "cibles": ["DEVANT"],
             "avancee": 0,
-            "gain_rouge": 1,
-            "mod_seuil": -1,
+            "gain_rouge": 0,
+            "mod_seuil": 0,
             "est_ratissage_profil": False,
+            "mode_acte_1": "ASSAUT",
+            "mode_acte_2": "CHARGE",
         },
         {
             "id": "T6",
-            "nom": "En avançant +",
+            "nom": "En avançant (Case 6)",
             "cibles": ["SUR_PLACE", "DEVANT"],
             "avancee": 1,
-            "gain_rouge": 1,
-            "mod_seuil": -2,
+            "gain_rouge": 0,
+            "mod_seuil": -1,
             "est_ratissage_profil": False,
+            "mode_acte_1": "ASSAUT",
+            "mode_acte_2": "CHARGE",
         },
     ]
 
@@ -325,13 +337,13 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
             if slot_id == "SLOT_BUG_CERVEAU":
                 chosen_key = "B"
                 rationale = (
-                    "Profil B actif par défaut en v5.5 "
-                    "(Déviation Synaptique en 3.2 sur la Piste des Tactiques fixe)."
+                    "Profil B actif par défaut en v6.0 "
+                    "(Déviation Synaptique en 3.2 sur la Réglette des Tactiques)."
                 )
                 replaced_a.append({"slot": slot_id, "chosen": chosen_key, "reason": rationale})
             else:
                 chosen_key = "B"
-                rationale = "Profil B actif par défaut en v5.5 (Bouclier de lisière en 5.3)."
+                rationale = "Profil B actif par défaut en v6.0 (Bouclier de lisière en 5.3)."
                 replaced_a.append({"slot": slot_id, "chosen": chosen_key, "reason": rationale})
         else:
             scored = []
@@ -359,8 +371,8 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
         }
 
     return {
-        "schema_version": "5.5.0",
-        "description": "Sélection de référence Mode 3/4 (socle gelé v5.5, Migrations B/B).",
+        "schema_version": "6.0.0-alpha",
+        "description": "Sélection de référence Mode 3/4 (socle expérimental v6.0, Migrations B/B).",
         "criteres_priorite": [
             "1. Zéro modification de l'ordre d'attaque ou du secret des paravents",
             "2. Minimum de dette mémorielle (zéro TransientModifier multi-sous-étapes si évitable)",
@@ -392,16 +404,16 @@ def _file_lock_entry(path: Path) -> dict[str, object]:
 
 def build_bundle() -> None:
     studio_data_dir = resolve_studio_dir(ROOT) / "data"
-    studio_js_path = studio_data_dir / "amazonia_data_v5_5.js"
-    studio_livret_path = studio_data_dir / "livret_v5_5.js"
+    studio_js_path = studio_data_dir / "amazonia_data_v6_0.js"
+    studio_livret_path = studio_data_dir / "livret_v6_0.js"
     studio_js = _load_studio_js_objects()
     spec_data = json.loads(SPEC_FILE.read_text(encoding="utf-8"))
     catalog_meta = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
     studio_sha256 = {
-        "catalog_v5_5.json": _file_lock_entry(CATALOG_FILE),
-        "spec_formelle_v5_5.json": _file_lock_entry(SPEC_FILE),
-        "amazonia_data_v5_5.js": _file_lock_entry(studio_js_path),
-        "livret_v5_5.js": _file_lock_entry(studio_livret_path),
+        "catalog_v6_0.json": _file_lock_entry(CATALOG_FILE),
+        "spec_formelle_v6_0.json": _file_lock_entry(SPEC_FILE),
+        "amazonia_data_v6_0.js": _file_lock_entry(studio_js_path),
+        "livret_v6_0.js": _file_lock_entry(studio_livret_path),
     }
 
     catalogue = studio_js["CATALOGUE_TUILES"]
@@ -411,8 +423,8 @@ def build_bundle() -> None:
 
     bundle = {
         "meta": {
-            "schema_version": "5.5.0",
-            "source_studio_version": "v5.5",
+            "schema_version": "6.0.0-alpha",
+            "source_studio_version": "v6.0",
             "studio_sha256": studio_sha256,
             "total_emplacements": len(catalogue),
             "total_profils": sum(len(s["profils"]) for s in catalogue.values()),
@@ -425,8 +437,22 @@ def build_bundle() -> None:
             "details_seuil_et_dotation": catalog_meta["topologies"],
             "reserves_materiel": spec_data["architecture_reference"]["reserves_materiel"],
             "plafond_repousse_parcelle": spec_data["architecture_reference"]["plafond_repousse_parcelle"],
+            "repousse_finale_base": 0,
         },
         "tactiques": _build_tactiques(),
+        "reglette_tactiques_reversible": {
+            "lecture_des_tours_1_8": "MIN",
+            "acte_1_tours": [1, 2, 3, 4],
+            "acte_1_face": "FACE_A",
+            "acte_1_charge_cases": [1, 2, 3],
+            "acte_1_assaut_cases": [4, 5, 6],
+            "acte_2_tours": [5, 6, 7, 8],
+            "acte_2_face": "FACE_B",
+            "acte_2_assaut_cases": [1, 2, 3],
+            "acte_2_charge_cases": [4, 5, 6],
+            "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance si >= 1 dégât effectif (plafonné à +1/activation)",
+            "mode_assaut": "tous les jetons Puissance comptent au seuil ; 0 jeton Puissance gagné",
+        },
         "machine_damage_rules": {
             "ABATTEUSE": {
                 "arbres_coupes_max": 2,
@@ -438,12 +464,17 @@ def build_bundle() -> None:
                 "retire_toutes_souches_non_protegees": True,
                 "test_parade_unique": True,
             },
+            "repousse_finale_base": 0,
             "ratissage": {
                 "pion_double_face": True,
+                "detache_de_case_1": True,
+                "mode_permanent": "ASSAUT",
+                "tactique_imprimee": "RATISSAGE_SUR_PLACE",
+                "mod_seuil": 0,
+                "gain_rouge": 0,
                 "bonus_puissance_imprime": 1,
                 "traite_comme_jeton_rouge_a_tous_egards": True,
                 "conserve_jetons_puissance_anterieurs": True,
-                "tactique_imprimee": "T1",
                 "piste_tactiques_fixe": True,
                 "entree_definitive_derniere_parcelle": True,
             },
@@ -458,7 +489,7 @@ def build_bundle() -> None:
             "remelange_etape": "6.3",
             "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout",
         },
-        "spec_formelle_v5_5": spec_data,
+        "spec_formelle_v6_0": spec_data,
         "catalogue_tuiles": catalogue,
     }
 

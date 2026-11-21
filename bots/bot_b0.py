@@ -6,6 +6,7 @@ from typing import Any
 
 from engine.core_engine import (
     DEC_CHOIX_CASE_GARDIEN,
+    DEC_CHOIX_REVE_3_2,
     DEC_COLONIE_A_OPEN,
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MIGRATION_INSECTE_4_3,
@@ -159,11 +160,11 @@ def _score_defender_target(
 
     if kind == "FURTIVITE":
         _, l_idx, p, rive = target
-        nb_d, f_ins = obs.furtivite_defs_and_ins(l_idx, p)
+        d_rv = obs.furtivite_rive_defs(int(l_idx), int(p), int(rive))
         t_ray = l_idx if rive == 0 else (l_idx + 1) % obs.n_players
         has_m = bool(machine_mask & (1 << (t_ray * MAX_P + (p - 1))))
 
-        partner_ready = (nb_d == 1) or (f_ins >= 1)
+        partner_ready = d_rv == 1
         useful_trap = (not has_m) and obs.parcel_piege(t_ray, p) == PIEGE_AUCUN
         useful_sabotage = has_m and obs.tour <= 6
 
@@ -227,6 +228,21 @@ class BotB0:
             return opts[0]
 
         dtype = decision.decision_type
+
+        if dtype == DEC_CHOIX_REVE_3_2:
+            # Politique réflexe B0 : avance si Sommeil réalisable ou case >= 5 en début de partie, sinon bloque
+            can_adv = bool(decision.context.get("can_advance", False))
+            case_c = int(decision.context.get("case", 1))
+            if can_adv and "AVANCER" in opts and obs.tour <= 7:
+                total_r = cfg.total_reves_partie
+                if total_r > 0:
+                    reves_on = sum(1 for c2 in range(1, 7) if obs.reve_at_case(c2) > 0)
+                    gaps = sum(1 for c2 in range(1, total_r + 1) if obs.reve_at_case(c2) == 0)
+                    if reves_on == total_r and gaps == 1 and case_c > total_r:
+                        return "AVANCER"
+                if case_c >= 5 and obs.tour <= 4:
+                    return "AVANCER"
+            return "BLOQUER" if "BLOQUER" in opts else opts[0]
 
         if dtype in (DEC_POSE_DEFENSEUR_1, DEC_POSE_DEFENSEUR_2):
             own_hand = obs.hand_of(obs.observer_seat)

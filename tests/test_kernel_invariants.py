@@ -222,7 +222,7 @@ def test_04_sabotage_drawn_in_step1_rolls_zero_dice_and_loses_activation() -> No
 
 
 # ---------------------------------------------------------------------------
-# Test 5 : Furtivité à 4 emplacements jumeaux (tirage à l'entrée vs flip sur place)
+# Test 5 : Furtivité libre A1 à 4 emplacements (2 rives indépendantes, zéro glissement)
 # ---------------------------------------------------------------------------
 def test_05_furtivite_4_twin_slots_pull_vs_in_place_flip() -> None:
     cfg = GameConfig(n_players=4, mode=1, exp_seed=55)
@@ -234,22 +234,26 @@ def test_05_furtivite_4_twin_slots_pull_vs_in_place_flip() -> None:
     assert state.get_furtivite_nb_def_rive(0, 2, 0) == 1
     assert state.get_furtivite_nb_def_rive(0, 2, 1) == 0
 
-    # Siège 1 ENTRE avec son 2e Défenseur sur la rive 1 en face réflexion :
-    # le pion du siège 0 doit être tiré automatiquement sur le jumeau de la rive 1 (slot 3) !
+    # v6.0 Furtivité libre A1 : siège 1 pose sur rive 1 sans déplacer ni tirer siège 0 !
     state.enter_furtivite(seat=1, def_idx=1, lisiere=0, p=2, rive=1, face=FACE_REFLEXION)
-    assert state.get_furtivite_slots(0, 2) == (0, 0, FACE_REFLEXION, FACE_DEFINITIF)
-    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 0
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 2
+    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, FACE_REFLEXION, 0)
+    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 1
+    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 1
 
-    # Retourner réflexion -> définitif sur place ne déplace ni ne tire aucun pion
+    # Retourner réflexion -> définitif sur place ne déplace aucun pion
     state.flip_defender2_to_definitif_in_place(seat=1)
-    assert state.get_furtivite_slots(0, 2) == (0, 0, FACE_DEFINITIF, FACE_DEFINITIF)
+    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, FACE_DEFINITIF, 0)
     assert state.is_player_def2_definitif(1) is True
 
-    # Case pleine (2 Défenseurs) : interdite à un 3e Défenseur d'un autre joueur
+    # Les deux rives ont encore 1 place libre chacune ; un 3e Défenseur peut compléter la rive 1
     legal_s2 = list_legal_targets(state, seat=2, is_first_defender=False)
-    assert ("FURTIVITE", 0, 2, 0) not in legal_s2
-    assert ("FURTIVITE", 0, 2, 1) not in legal_s2
+    assert ("FURTIVITE", 0, 2, 0) in legal_s2
+    assert ("FURTIVITE", 0, 2, 1) in legal_s2
+    state.enter_furtivite(seat=2, def_idx=1, lisiere=0, p=2, rive=1, face=FACE_DEFINITIF)
+    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 2
+    legal_s3 = list_legal_targets(state, seat=3, is_first_defender=False)
+    assert ("FURTIVITE", 0, 2, 0) in legal_s3
+    assert ("FURTIVITE", 0, 2, 1) not in legal_s3
 
 
 # ---------------------------------------------------------------------------
@@ -301,23 +305,23 @@ def test_07_trap_ambush_vs_inert_and_classic_parade_immediate_discard() -> None:
     assert state.get_parcel_piege(0, 1) == PIEGE_ACTIF  # Non déclenché !
 
     # Cas B : Piège ARMÉ sur (1, 3) avec 0 Défenseur mais 1 Insecte (Défense totale = 1 >= 1)
-    # Machine avec 3 jetons rouges (Seuil = 3 + 3 = 6), mais Embuscade pare sans défausser l'Insecte !
+    # Machine avec 3 jetons rouges en ASSAUT T4 (Seuil = 3 + 3 = 6), mais Embuscade pare sans défausser l'Insecte !
     state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(1, MACHINE_ABATTEUSE, 3, 0)
     state.set_parcel_piege(1, 3, PIEGE_ACTIF)
     state.set_parcel_insectes(1, 3, 1)
-    resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
+    resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4])
     assert state.get_parcel_arbres(1, 3) == 3  # Intact !
     assert state.get_parcel_insectes(1, 3) == 1  # Épargné par l'Embuscade !
     assert state.get_parcel_piege(1, 3) == PIEGE_DECLENCHE
 
-    # Cas C : Parade classique sans Piège sur (2, 3) [Seuil imprimé = 3, +1 Rouge -> Seuil = 4]
+    # Cas C : Parade classique sans Piège sur (2, 3) en ASSAUT T4 [Seuil imprimé = 3, +1 Rouge -> Seuil = 4]
     # 1 Défenseur + 5 Insectes -> pare en défaussant immédiatement (4 - 1) = 3 Insectes !
     state.set_machine_pos_status(2, MACHINE_BULLDOZER, 3, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(2, MACHINE_BULLDOZER, 1, 0)
     state.set_parcel_defenseurs(2, 3, 1)
     state.set_parcel_insectes(2, 3, 5)
-    resolve_single_machine_attack(state, 2, MACHINE_BULLDOZER, TACTIQUES_SPEC[1])
+    resolve_single_machine_attack(state, 2, MACHINE_BULLDOZER, TACTIQUES_SPEC[4])
     assert state.get_parcel_arbres(2, 3) == 3
     assert state.get_parcel_insectes(2, 3) == 2  # 5 - 3 = 2 Insectes restants et libres
 
@@ -501,8 +505,7 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     s_reve.tour = 3
     for idx, r_num in enumerate((1, 2, 3, 4)):
         s_reve.set_tactique_at_rank(idx, TILE_R_BASE + r_num)  # Bloc [R1..R4] en rangs 0..3
-    # Parcelle (0, 1) avec 0 Arbre mais 2 Souches (non rasée) -> doit repousser de +1 Arbre !
-    # Parcelle (1, 1) avec 2 Arbres et 1 Souche (plafond dotation=2) -> plafonnée à 2 Arbres !
+    # v6.0 : 0 Repousse Finale de base -> aucune Souche ne repousse automatiquement !
     s_reve.set_parcel_arbres_souches(0, 1, 0, 2)
     s_reve.set_parcel_arbres_souches(1, 1, 2, 1)
     s_reve.set_parcel_piege(0, 1, PIEGE_DECLENCHE)
@@ -512,9 +515,9 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     assert isinstance(res_a, GameOver)
     assert res_a.tour_fin == 3  # Pas de passage à tour + 1 (Étape 6 sautée) !
     assert res_a.cause_fin == CAUSE_REVE_RANG_1
-    assert s_reve.get_parcel_arbres(0, 1) == 1
-    assert s_reve.get_parcel_souches(0, 1) == 1
-    assert s_reve.get_parcel_arbres(1, 1) == 2  # Plafonné à la dotation initiale !
+    assert s_reve.get_parcel_arbres(0, 1) == 0
+    assert s_reve.get_parcel_souches(0, 1) == 2
+    assert s_reve.get_parcel_arbres(1, 1) == 2
     assert s_reve.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Piège déclenché retiré avant fin
 
     # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts, max 1 Déf/Gardien)

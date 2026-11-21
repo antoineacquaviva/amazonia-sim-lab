@@ -14,6 +14,8 @@ from engine.state import (
     MACHINE_STATUS_RETIRED,
     PIEGE_ACTIF,
     STEP_1_1_RATISSAGE,
+    STEP_4_1_FURTIVITE,
+    STEP_4_2_NIDS,
     STEP_5_1_TACTIQUES,
     STEP_6_1_APPRENTISSAGE,
     STEP_6_2_EVOLUTION,
@@ -27,9 +29,21 @@ from engine.state import (
 __all__ = (
     "DEFENSE_ATTRIBUTION_FIELDS",
     "REVEIL_ANATOMY_FIELDS",
+    "V6_METRICS_FIELDS",
     "TelemetrySummary",
     "TelemetryTracker",
     "count_active_transient_modifiers",
+)
+
+V6_METRICS_FIELDS: tuple[str, ...] = (
+    "reves_choice_block",
+    "reves_choice_advance",
+    "power_tokens_end_act1",
+    "act1_reached",
+    "power_tokens_end_game",
+    "charge_gains",
+    "furtivite_1_rive_turns",
+    "furtivite_2_rives_turns",
 )
 
 DEFENSE_ATTRIBUTION_FIELDS: tuple[str, ...] = (
@@ -195,6 +209,15 @@ class TelemetrySummary(NamedTuple):
     da_sabotage_revele: int = 0
     da_insecte_bug_deviation: int = 0
     da_arbres_repousse_finale: int = 0
+    # Compteurs spécifiques cœur v6.0
+    reves_choice_block: int = 0
+    reves_choice_advance: int = 0
+    power_tokens_end_act1: int = 0
+    act1_reached: int = 0
+    power_tokens_end_game: int = 0
+    charge_gains: int = 0
+    furtivite_1_rive_turns: int = 0
+    furtivite_2_rives_turns: int = 0
     # Anatomie diagnostique des tours d'Éveil réussi (rs_*)
     rs_count: int = 0
     rs_tour: int = 0
@@ -305,6 +328,19 @@ class TelemetryTracker:
     da_sabotage_revele: int = 0
     da_insecte_bug_deviation: int = 0
     da_arbres_repousse_finale: int = 0
+    # Compteurs spécifiques v6.0
+    reves_choice_block: int = 0
+    reves_choice_advance: int = 0
+    power_tokens_end_act1: int = 0
+    act1_reached: int = 0
+    power_tokens_end_game: int = 0
+    charge_gains: int = 0
+    furtivite_1_rive_turns: int = 0
+    furtivite_2_rives_turns: int = 0
+    _turn_furt_cur_cell: int = -1
+    _turn_furt_cur_count: int = 0
+    _turn_furt_has_1: bool = False
+    _turn_furt_has_2: bool = False
     _turn_closed: bool = False
     # État transitoire du tour courant pour l'anatomie de l'Éveil
     _turn_strikes: int = 0
@@ -611,8 +647,49 @@ class TelemetryTracker:
             self.rf_trig6_lit += trig6_lit
             self.rf_sabotage_in_deck += sab_in_deck
 
+    def _flush_furtivite_cur_cell(self) -> None:
+        if self._turn_furt_cur_count >= 2:
+            self._turn_furt_has_2 = True
+        elif self._turn_furt_cur_count == 1:
+            self._turn_furt_has_1 = True
+        self._turn_furt_cur_cell = -1
+        self._turn_furt_cur_count = 0
+
+    def on_furtivite_rive_executed(self, cell_key: int) -> None:
+        """Enregistre l'exécution d'une rive Furtivité complète en 4.1 sur `cell_key`."""
+        if cell_key == self._turn_furt_cur_cell:
+            self._turn_furt_cur_count += 1
+        else:
+            self._flush_furtivite_cur_cell()
+            self._turn_furt_cur_cell = cell_key
+            self._turn_furt_cur_count = 1
+
+    def on_furtivite_step_end(self) -> None:
+        """Clôture le suivi 1-rive / 2-rives de l'Étape 4.1 pour le tour courant."""
+        self._flush_furtivite_cur_cell()
+        if self._turn_furt_has_2:
+            self.furtivite_2_rives_turns += 1
+        elif self._turn_furt_has_1:
+            self.furtivite_1_rive_turns += 1
+        self._turn_furt_has_1 = False
+        self._turn_furt_has_2 = False
+
+    def on_reve_choice(self, choice: str) -> None:
+        """Enregistre le choix exclusif d'un Rêve activé en 3.2 ('BLOQUER' ou 'AVANCER')."""
+        if choice == "BLOQUER":
+            self.reves_choice_block += 1
+        elif choice == "AVANCER":
+            self.reves_choice_advance += 1
+
+    def on_charge_gain(self, count: int = 1) -> None:
+        """Enregistre un gain de jeton Puissance issu du mode CHARGE sur dégât effectif."""
+        if count > 0:
+            self.charge_gains += count
+
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
+        if prev_step == STEP_4_1_FURTIVITE and next_step == STEP_4_2_NIDS:
+            self.on_furtivite_step_end()
         if next_step == STEP_1_1_RATISSAGE and prev_step == STEP_6_3_END_TURN:
             self._turn_closed = False
             self._turn_strikes = 0
@@ -621,6 +698,10 @@ class TelemetryTracker:
             self._turn_reveil_active = False
             self._turn_def_snap = None
             self._turn_pre5_snap = None
+            self._turn_furt_cur_cell = -1
+            self._turn_furt_cur_count = 0
+            self._turn_furt_has_1 = False
+            self._turn_furt_has_2 = False
             return
         if next_step == STEP_5_1_TACTIQUES:
             self._turn_strikes = 0
@@ -636,7 +717,12 @@ class TelemetryTracker:
             self.mem_debt_score += count_active_transient_modifiers(state)
 
     def on_game_over_ratio(self, state: GameState, *, cause: str, ratio_arbres: float) -> None:
-        """Finalise l'anatomie d'Éveil avec le ratio d'Arbres final après Repousse Finale."""
+        """Finalise l'anatomie d'Éveil et les compteurs de jetons Puissance de fin de partie."""
+        tot_pow = state.total_power_tokens_plateau()
+        if state.tour >= 4 and self.act1_reached == 0:
+            self.power_tokens_end_act1 = tot_pow
+            self.act1_reached = 1
+        self.power_tokens_end_game = tot_pow
         if self._turn_reveil_active and self._turn_pre5_snap is not None:
             self._finalize_reveil_turn(
                 state,
@@ -796,8 +882,11 @@ class TelemetryTracker:
         if trees_regrown > 0:
             self.da_arbres_repousse_finale += trees_regrown
 
-    def on_end_turn(self, _state: GameState, *, game_over: bool) -> None:
+    def on_end_turn(self, state: GameState, *, game_over: bool) -> None:
         """Clôture le ratio `physical_ops / max(1, decisions_joueurs)` du tour écoulé."""
+        if not game_over and state.tour == 4 and self.act1_reached == 0:
+            self.power_tokens_end_act1 = state.total_power_tokens_plateau()
+            self.act1_reached = 1
         if self._turn_closed and game_over:
             return
         if self.turn_physical_ops > 0 or self.turn_player_decisions > 0:
@@ -852,6 +941,14 @@ class TelemetryTracker:
             da_sabotage_revele=self.da_sabotage_revele,
             da_insecte_bug_deviation=self.da_insecte_bug_deviation,
             da_arbres_repousse_finale=self.da_arbres_repousse_finale,
+            reves_choice_block=self.reves_choice_block,
+            reves_choice_advance=self.reves_choice_advance,
+            power_tokens_end_act1=self.power_tokens_end_act1,
+            act1_reached=self.act1_reached,
+            power_tokens_end_game=self.power_tokens_end_game,
+            charge_gains=self.charge_gains,
+            furtivite_1_rive_turns=self.furtivite_1_rive_turns,
+            furtivite_2_rives_turns=self.furtivite_2_rives_turns,
             rs_count=self.rs_count,
             rs_tour=self.rs_tour,
             rs_ratio_arbres_bp=self.rs_ratio_arbres_bp,

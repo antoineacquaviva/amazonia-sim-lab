@@ -75,12 +75,16 @@ zéro `import random`, zéro état global mutable).
 - `MATRICE_PAIRES: dict[str, tuple[str, str]] = ...`
 - `SYNERGY_META: dict[str, tuple[str, str, int]] = ...`
 - `TACTIQUES_SPEC: dict[int, TactiqueSpec] = ...`
+- `RATISSAGE_TACTIQUE_SPEC: TactiqueSpec = TactiqueSpec(0, 'RATISSAGE', ('SUR_PLACE',), 0, 0, 0, True)`
 - `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = ...`
 - `NUM_CHASSIS: int = 1`
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
 
 ### Fonctions publiques
 
+- `is_act2_tour(tour: int) -> bool` — Retourne True à partir du Tour 5 (Acte 2, Face B de la Réglette des Tactiques).
+- `is_tactique_charge(rank_1_6: int, tour: int) -> bool` — Retourne True si la case `1..6` est en mode CHARGE au tour donné. - Acte 1 (Tours 1–4, Face A) : cases 1, 2, 3 = CHARGE ; cases 4, 5, 6 = ASSAUT. - Acte 2 (Tours 5–8, Face B) : cases 1, 2, 3 = ASSAUT ; cases 4, 5, 6 = CHARGE.
+- `tactique_mode_for_rank(rank_1_6: int, tour: int) -> str` — Retourne 'CHARGE' ou 'ASSAUT' pour la case `1..6` au tour donné (Réglette Face A / Face B).
 - `decode_chassis_index(chassis_idx: int) -> dict[str, Any]` — Décode un index de châssis 0..191 (base mixte LSB-first) en dictionnaire d'axes.
 - `encode_chassis_axes(axes: dict[str, Any]) -> int` — Encode un dictionnaire d'axes en index de châssis 0..191 (base mixte LSB-first).
 - `is_tactique_code(code: int) -> bool`
@@ -137,7 +141,7 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='CLEAR_RANK_ONLY', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v5.5 à partir d'un index 0..191.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='EXCLUSIVE_CHOICE', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).
@@ -249,6 +253,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `parcel_defenseurs(self, r: int, p: int) -> int` — Nombre de Défenseurs en forêt sur (r, p) en O(1).
 - `parcel_has_nid(self, r: int, p: int) -> bool` — Retourne True si un Nid est présent sur (r, p) en Mode >= 2.
 - `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1).
+- `furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int` — Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1).
 - `lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]` — Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`.
 - `machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]` — Retourne (position, status) de la machine `(r, m_type)` en O(1).
 - `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
@@ -317,6 +322,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `last_non_razed_parcel(self, r: int) -> int | None`
 - `total_arbres_rayon(self, r: int) -> int`
 - `total_arbres_plateau(self) -> int`
+- `total_power_tokens_plateau(self) -> int` — Somme totale des jetons Puissance (rouges physiques) portés par les machines actives.
 - `lisiere_ray_for_rive(self, lisiere: int, rive: int) -> int`
 - `get_furtivite_slot_face(self, lisiere: int, p: int, slot_0_3: int) -> int`
 - `set_furtivite_slot_face(self, lisiere: int, p: int, slot_0_3: int, face: int) -> None`
@@ -332,7 +338,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `decode_def_loc(self, raw_loc: int) -> tuple[str, int, int, int]` — Décode une localisation brute en (kind, a, b, c).
 - `remove_player_defender(self, seat: int, def_idx: int) -> None` — Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main.
 - `place_defender_foret(self, seat: int, def_idx: int, r: int, p: int, face: int) -> None`
-- `enter_furtivite(self, seat: int, def_idx: int, lisiere: int, p: int, rive: int, face: int, preferred_twin: int=0) -> None` — Fait ENTRER un Défenseur en Furtivité (tire l'éventuel autre pion sur le jumeau).
+- `enter_furtivite(self, seat: int, def_idx: int, lisiere: int, p: int, rive: int, face: int, preferred_twin: int=0) -> None` — Pose librement un Défenseur sur l'un des 2 emplacements de `rive` (Furtivité libre A1, sans tirage).
 - `flip_defender2_to_definitif_in_place(self, seat: int) -> None` — Retourne sur place le 2e Défenseur réflexion -> définitif (sans aucun tirage).
 - `place_defender_lisiere_tile(self, seat: int, def_idx: int, lisiere_slot_idx: int, face: int) -> None`
 - `count_gardien_pari_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actifs (non consommés) posés en pari sur la case `1..6`.

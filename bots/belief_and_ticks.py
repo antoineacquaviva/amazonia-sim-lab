@@ -34,6 +34,7 @@ from engine.state import (
     GameState,
     PlayerObservation,
     is_reve_code,
+    is_tactique_charge,
     is_tactique_code,
     machine_card_code,
     unpack_machine_card,
@@ -75,6 +76,7 @@ class BeliefSummary:
     reve_open_prob_by_rank: tuple[float, ...]
     coop_lisiere_signals: int
     coop_furtivite_signals: int
+    parcel_charge_prob: tuple[float, ...] = ()
 
 
 def _next_non_razed_obs(obs: PlayerObservation, p_max: int, r: int, from_p: int) -> int | None:
@@ -118,9 +120,10 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
     seuil_sum = [0.0] * NUM_PARCELS
     seuil_w = [0.0] * NUM_PARCELS
     bulldo_prob = [0.0] * NUM_PARCELS
+    charge_prob = [0.0] * NUM_PARCELS
     reve_prob = [0.0] * TRACK_LEN
 
-    # Signaux coopératifs déjà visibles publiquement sur le plateau (Lisières à 1 bâtisseur, Furtivité à 1 pion)
+    # Signaux coopératifs déjà visibles publiquement sur le plateau (Lisières à 1 bâtisseur, rives Furtivité à 1 pion)
     lis_signals = 0
     if obs.mode >= 2:
         for slot_idx in range(2 * n):
@@ -131,17 +134,26 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
     furt_signals = 0
     for l_idx in range(n):
         for p in range(1, p_max + 1):
-            nb_d, f_ins = obs.furtivite_defs_and_ins(l_idx, p)
-            if nb_d == 1 and f_ins == 0:
+            if obs.furtivite_rive_defs(l_idx, p, 0) == 1:
+                furt_signals += 1
+            if obs.furtivite_rive_defs(l_idx, p, 1) == 1:
                 furt_signals += 1
 
     def _add_strike(
-        r: int, m_type: int, target_p: int, mod_seuil: int, prob: float
+        r: int,
+        m_type: int,
+        target_p: int,
+        mod_seuil: int,
+        prob: float,
+        *,
+        is_charge: bool = False,
     ) -> None:
         if prob <= 0.0 or obs.is_route(r, target_p):
             return
         idx = r * MAX_P + (target_p - 1)
         rouges, bleus = _machine_effective_tokens_obs(machines, cfg, r, m_type)
+        if is_charge:
+            rouges = 0
         base_s = cfg.dotation_arbres[target_p - 1] + cfg.offset_seuil_parade
         s_eff = float(max(1, base_s + rouges - bleus + mod_seuil))
         strike_prob[idx] = min(2.5, strike_prob[idx] + prob)
@@ -149,8 +161,10 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         seuil_w[idx] += prob
         if m_type == MACHINE_BULLDOZER:
             bulldo_prob[idx] = min(1.0, bulldo_prob[idx] + prob)
+        if is_charge:
+            charge_prob[idx] = min(2.0, charge_prob[idx] + prob)
 
-    # 1. Machines en Ratissage : certitude publique (prob = 1.0, profil T1 : SUR_PLACE, +1 rouge imprimé, mod_seuil = 0)
+    # 1. Machines en Ratissage : certitude publique (prob = 1.0, ASSAUT permanent : SUR_PLACE, +1 rouge imprimé, mod_seuil = 0)
     normal_deck_machines: list[tuple[int, int, int]] = []
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -158,7 +172,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             if st == MACHINE_STATUS_RETIRED or pos == 0:
                 continue
             if st == MACHINE_STATUS_RATISSAGE:
-                _add_strike(r, mt, pos, 0, 1.0)
+                _add_strike(r, mt, pos, 0, 1.0, is_charge=False)
             elif st == MACHINE_STATUS_NORMAL:
                 normal_deck_machines.append((machine_card_code(r, mt), r, mt))
 
@@ -207,13 +221,14 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                     t_code = lec
                 if is_tactique_code(t_code):
                     spec = TACTIQUES_SPEC[t_code]
+                    chg = is_tactique_charge(t_code, obs.tour)
                     for c_kind in spec.cibles:
                         if c_kind == "SUR_PLACE":
-                            _add_strike(r_m, mt_m, pos_m, spec.mod_seuil, 1.0)
+                            _add_strike(r_m, mt_m, pos_m, spec.mod_seuil, 1.0, is_charge=chg)
                         elif c_kind == "DEVANT":
                             p_dev = _next_non_razed_obs(obs, p_max, r_m, pos_m)
                             if p_dev is not None:
-                                _add_strike(r_m, mt_m, p_dev, spec.mod_seuil, 1.0)
+                                _add_strike(r_m, mt_m, p_dev, spec.mod_seuil, 1.0, is_charge=chg)
 
     # 3. Inférence bayésienne sur les mains adverses masquées sous paravent
     if unknown_holders == 0:
@@ -260,17 +275,23 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                     p_m_val = _MIN_2D6_PROBS[rank_idx]
                     p_joint = p_card_drawn * p_m_val
                     t_code, _, _ = obs.tactique_code_bugs_app(rank_idx)
+                    eff_t_code = rank_idx + 1
+                    p_exec = p_joint
                     if is_reve_code(t_code):
                         reve_prob[rank_idx] = 1.0 - (1.0 - reve_prob[rank_idx]) * (1.0 - p_joint)
-                    elif is_tactique_code(t_code):
-                        spec = TACTIQUES_SPEC[t_code]
-                        for c_kind in spec.cibles:
-                            if c_kind == "SUR_PLACE":
-                                _add_strike(r_u, mt_u, pos_u, spec.mod_seuil, p_joint)
-                            elif c_kind == "DEVANT":
-                                p_dev = _next_non_razed_obs(obs, p_max, r_u, pos_u)
-                                if p_dev is not None:
-                                    _add_strike(r_u, mt_u, p_dev, spec.mod_seuil, p_joint)
+                        # Rêve sans Défenseur : la Tactique imprimée dessous s'exécute à 100 % ;
+                        # avec Défenseur, elle peut encore s'exécuter si choix AVANCER (~35 %).
+                        if obs.reve_activation_defenders(eff_t_code) >= 1:
+                            p_exec = p_joint * 0.35
+                    spec = TACTIQUES_SPEC[eff_t_code]
+                    chg = is_tactique_charge(eff_t_code, obs.tour)
+                    for c_kind in spec.cibles:
+                        if c_kind == "SUR_PLACE":
+                            _add_strike(r_u, mt_u, pos_u, spec.mod_seuil, p_exec, is_charge=chg)
+                        elif c_kind == "DEVANT":
+                            p_dev = _next_non_razed_obs(obs, p_max, r_u, pos_u)
+                            if p_dev is not None:
+                                _add_strike(r_u, mt_u, p_dev, spec.mod_seuil, p_exec, is_charge=chg)
 
     expected_seuil: list[float] = []
     for r in range(n):
@@ -293,6 +314,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         reve_open_prob_by_rank=tuple(reve_prob),
         coop_lisiere_signals=lis_signals,
         coop_furtivite_signals=furt_signals,
+        parcel_charge_prob=tuple(charge_prob),
     )
 
 
@@ -801,9 +823,9 @@ def _score_held_spot(
             # Nous sommes seuls dessus (personne ne nous a rejoint) -> faible valeur de maintien !
             return base - 260.0
     elif kind == "FURTIVITE":
-        _, l_idx, p, _ = cur_spot
-        nb_d, f_ins = obs.furtivite_defs_and_ins(int(l_idx), int(p))
-        if nb_d == 2 or (nb_d == 1 and f_ins >= 1):
+        _, l_idx, p, rv = cur_spot
+        d_rv = obs.furtivite_rive_defs(int(l_idx), int(p), int(rv))
+        if d_rv == 2:
             return base + 310.0
         return base - 210.0
     elif kind == "FORET":

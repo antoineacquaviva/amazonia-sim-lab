@@ -64,7 +64,7 @@ def _create_fake_worker_tree(root: Path) -> None:
     (root / "campaigns").mkdir(parents=True, exist_ok=True)
     (root / "campaigns" / "worker_main.py").write_text("WORKER_VERSION = 1\n", encoding="utf-8")
     (root / "data").mkdir(parents=True, exist_ok=True)
-    (root / "data" / "spec_bundle_v5_5.json").write_text('{"version": "5.5"}\n', encoding="utf-8")
+    (root / "data" / "spec_bundle_v6_0.json").write_text('{"version": "6.0"}\n', encoding="utf-8")
 
 
 def test_resolve_manifest_plan_cartesian_and_totals() -> None:
@@ -181,7 +181,7 @@ def test_compute_worker_image_hash_deterministic_and_sensitive(tmp_path: Path) -
     h3 = compute_worker_image_hash(root=tmp_path)
     assert h3 != h1
 
-    (tmp_path / "data" / "spec_bundle_v5_5.json").write_text('{"version": "5.5.1"}\n', encoding="utf-8")
+    (tmp_path / "data" / "spec_bundle_v6_0.json").write_text('{"version": "6.0.1"}\n', encoding="utf-8")
     h4 = compute_worker_image_hash(root=tmp_path)
     assert h4 != h3
 
@@ -360,7 +360,7 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
 
     # 1. Règles cœur actives complètes
     core = digest["active_core_rules"]
-    assert core["version"] == "5.5.0"
+    assert core["version"] == "6.0.0-alpha"
     assert "defense_attribution" in digest
     assert {
         "parade_classique",

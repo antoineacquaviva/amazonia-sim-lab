@@ -21,8 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GUARDS_PATH = ROOT / "contracts" / "studio_rules_guards.json"
 STUDIO_INDEX = ROOT / "docs" / "index.html"
-STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v5_5.js"
-STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v5_5.js"
+STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v6_0.js"
+STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v6_0.js"
 
 
 _NODE_HARNESS = r"""
@@ -44,7 +44,7 @@ if (inlineScripts.length === 0) {
   throw new Error('Aucun script inline trouvé dans docs/index.html');
 }
 
-// Lightweight mock DOM supporting all IDs referenced by docs/index.html & livret_v5_5.js
+// Lightweight mock DOM supporting all IDs referenced by docs/index.html & livret_v6_0.js
 function makeElement(id) {
   const classes = new Set();
   const el = {
@@ -52,7 +52,7 @@ function makeElement(id) {
     _innerHTML: '',
     _textContent: '',
     value: id === 'changelog-filter-select' ? 'ALL'
-         : id === 'diff-version-select' ? 'v5.4.7'
+         : id === 'diff-version-select' ? 'v5.5'
          : id === 'filter-famille' || id === 'filter-peuple' || id === 'filter-tag' || id === 'filter-scope' ? 'ALL'
          : '',
     className: '',

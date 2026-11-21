@@ -18,10 +18,10 @@ LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
-STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_5.json"
-STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_5.json"
-STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_5.js"
-SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_5.json"
+STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v6_0.json"
+STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
+STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
+SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v6_0.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -273,10 +273,11 @@ def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
 def verify_studio_coherence() -> None:
     """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python.
 
-    Contrôles actifs (Socle figé v5.5) :
-    - docs/data/spec_formelle_v5_5.json == data/spec_bundle_v5_5.json['spec_formelle_v5_5'] ;
+    Contrôles actifs (Socle expérimental v6.0) :
+    - docs/data/spec_formelle_v6_0.json == data/spec_bundle_v6_0.json['spec_formelle_v6_0'] ;
     - Topologies (P4_*, P5_*) == engine.state.TOPOLOGIES_DOTATION ;
-    - 6 axes du châssis (clés + valeurs) == engine.state.CHASSIS_AXES_OPTIONS.
+    - 6 axes du châssis (clés + valeurs) == engine.state.CHASSIS_AXES_OPTIONS ;
+    - Réglette des Tactiques T1..T6 == engine.state.TACTIQUES_SPEC.
     """
     for req_file in (STUDIO_CATALOG_FILE, STUDIO_SPEC_FILE, STUDIO_JS_FILE, SPEC_BUNDLE_FILE):
         if not req_file.is_file():
@@ -289,23 +290,23 @@ def verify_studio_coherence() -> None:
 
     errors: list[str] = []
 
-    # 1. Cohérence spec_formelle_v5_5.json <-> bundle
-    if bundle.get("spec_formelle_v5_5") != spec_doc:
+    # 1. Cohérence spec_formelle_v6_0.json <-> bundle
+    if bundle.get("spec_formelle_v6_0") != spec_doc:
         errors.append(
-            "Désynchronisation entre docs/data/spec_formelle_v5_5.json et "
-            "data/spec_bundle_v5_5.json['spec_formelle_v5_5']"
+            "Désynchronisation entre docs/data/spec_formelle_v6_0.json et "
+            "data/spec_bundle_v6_0.json['spec_formelle_v6_0']"
         )
 
-    from engine.state import CHASSIS_AXES_OPTIONS, TOPOLOGIES_DOTATION
+    from engine.state import CHASSIS_AXES_OPTIONS, TACTIQUES_SPEC, TOPOLOGIES_DOTATION
 
-    # 2. Topologies déclarées dans docs/data/catalog_v5_5.json <-> engine.state.TOPOLOGIES_DOTATION
+    # 2. Topologies déclarées dans docs/data/catalog_v6_0.json <-> engine.state.TOPOLOGIES_DOTATION
     cat_topos: dict[str, tuple[int, ...]] = {
         str(code): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
         for code, meta in catalog.get("topologies", {}).items()
     }
     if cat_topos != TOPOLOGIES_DOTATION:
         errors.append(
-            f"Topologies docs/data/catalog_v5_5.json ({cat_topos}) != "
+            f"Topologies docs/data/catalog_v6_0.json ({cat_topos}) != "
             f"engine.state.TOPOLOGIES_DOTATION ({TOPOLOGIES_DOTATION})"
         )
 
@@ -331,12 +332,27 @@ def verify_studio_coherence() -> None:
             f"  Engine : {engine_axes}"
         )
 
+    # 4. Réglette des Tactiques T1..T6 : spec_bundle <-> engine.state.TACTIQUES_SPEC
+    bundle_tactiques = bundle.get("tactiques", [])
+    if len(bundle_tactiques) != 6:
+        errors.append(f"tactiques bundle invalides (attendu 6, obtenu {len(bundle_tactiques)})")
+    else:
+        for idx, b_tac in enumerate(bundle_tactiques, start=1):
+            e_tac = TACTIQUES_SPEC[idx]
+            if (
+                tuple(b_tac.get("cibles", ())) != e_tac.cibles
+                or int(b_tac.get("avancee", -99)) != e_tac.avancee
+                or int(b_tac.get("mod_seuil", -99)) != e_tac.mod_seuil
+                or int(b_tac.get("gain_rouge", -99)) != e_tac.gain_rouge
+            ):
+                errors.append(f"Écart Tactique T{idx} entre spec_bundle ({b_tac}) et TACTIQUES_SPEC ({e_tac})")
+
     if errors:
         raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Socle v5.5 Studio (docs/data/ <-> simulateur : "
+        f"[4/8] Cohérence Socle v6.0 Studio (docs/data/ <-> simulateur : "
         f"spec_formelle, {len(TOPOLOGIES_DOTATION)} topologies, "
-        f"{len(engine_axes)} axes châssis) : OK"
+        f"{len(engine_axes)} axes châssis, 6 tactiques) : OK"
     )
 
 

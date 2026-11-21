@@ -534,9 +534,9 @@ def _score_held_spot_b3(
         if st_l == 1 and nb_c == 1:
             return base - 260.0
     elif kind == "FURTIVITE":
-        _, l_idx, p, _ = cur_spot
-        nb_d, f_ins = obs.furtivite_defs_and_ins(int(l_idx), int(p))
-        if nb_d == 2 or (nb_d == 1 and f_ins >= 1):
+        _, l_idx, p, rv = cur_spot
+        d_rv = obs.furtivite_rive_defs(int(l_idx), int(p), int(rv))
+        if d_rv == 2:
             return base + 310.0
         return base - 210.0
     elif kind == "FORET":

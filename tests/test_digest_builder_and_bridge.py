@@ -40,10 +40,10 @@ def test_decode_chassis_axes_and_active_core_rules() -> None:
     assert c191["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
 
     core = build_active_core_rules((0, 1, 191))
-    assert core["version"] == "5.5.0"
-    assert "catalog_v5_5.json" in core["studio_sha256"]
-    assert "spec_formelle_v5_5.json" in core["studio_sha256"]
-    assert "livret_v5_5.js" in core["studio_sha256"]
+    assert core["version"] == "6.0.0-alpha"
+    assert "catalog_v6_0.json" in core["studio_sha256"]
+    assert "spec_formelle_v6_0.json" in core["studio_sha256"]
+    assert "livret_v6_0.js" in core["studio_sha256"]
     assert len(core["chassis_6_axes"]) == 3
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
@@ -218,5 +218,5 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
             max_bytes=1_000,
         )
     assert d_big.exists()
-    assert big_digest["active_core_rules"]["version"] == "5.5.0"
+    assert big_digest["active_core_rules"]["version"] == "6.0.0-alpha"
     assert len(d_big.read_bytes()) >= 1_000

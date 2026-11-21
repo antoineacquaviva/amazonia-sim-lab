@@ -1453,7 +1453,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_adv_modes = manifest.get("reve_advance_modes", manifest.get("reve_advance_mode"))
     if raw_adv_modes is None:
-        adv_modes: list[str] = ["CLEAR_RANK_ONLY"]
+        adv_modes: list[str] = ["EXCLUSIVE_CHOICE"]
         explicit_adv_mode_sweep = False
     elif isinstance(raw_adv_modes, str):
         adv_modes = [raw_adv_modes.strip().upper()]
@@ -1462,8 +1462,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         adv_modes = [str(x).strip().upper() for x in raw_adv_modes]
         explicit_adv_mode_sweep = True
     for radv in adv_modes:
-        if radv not in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"):
-            raise ValueError(f"reve_advance_mode invalide : {radv!r}")
+        if radv != "EXCLUSIVE_CHOICE":
+            raise ValueError(
+                f"reve_advance_mode invalide (v6.0 : EXCLUSIVE_CHOICE uniquement, CLEAR_RANK_ONLY supprimé) : {radv!r}"
+            )
 
     raw_g4_modes = manifest.get("gardien_4_trigger_modes", manifest.get("gardien_4_trigger_mode"))
     if raw_g4_modes is None:
@@ -1663,7 +1665,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
     gardien_bet_cap_policy = str(unit.get("gardien_bet_cap_policy", "UNIFORM_MAX_2"))
-    reve_advance_mode = str(unit.get("reve_advance_mode", "JUMP_PUSH"))
+    reve_advance_mode = str(unit.get("reve_advance_mode", "EXCLUSIVE_CHOICE"))
     gardien_4_trigger_mode = str(unit.get("gardien_4_trigger_mode", "DISTINCT_OPEN_1"))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
@@ -1690,6 +1692,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_reves_activated = 0
     cnt_machines_cancelled_by_reve = 0
     cnt_machines_bypassed_inactive_reve = 0
+    cnt_reves_choice_block = 0
+    cnt_reves_choice_advance = 0
+    sum_power_tokens_end_act1 = 0
+    cnt_act1_reached = 0
+    sum_power_tokens_end_game = 0
+    cnt_charge_gains = 0
+    cnt_furtivite_1_rive_turns = 0
+    cnt_furtivite_2_rives_turns = 0
     cnt_arbres_pos = 0
     p_max_val = 4
 
@@ -1778,6 +1788,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         cnt_reves_activated += int(ts.reves_activated)
         cnt_machines_cancelled_by_reve += int(ts.machines_cancelled_by_reve)
         cnt_machines_bypassed_inactive_reve += int(ts.machines_bypassed_inactive_reve)
+        cnt_reves_choice_block += int(ts.reves_choice_block)
+        cnt_reves_choice_advance += int(ts.reves_choice_advance)
+        sum_power_tokens_end_act1 += int(ts.power_tokens_end_act1)
+        cnt_act1_reached += int(ts.act1_reached)
+        sum_power_tokens_end_game += int(ts.power_tokens_end_game)
+        cnt_charge_gains += int(ts.charge_gains)
+        cnt_furtivite_1_rive_turns += int(ts.furtivite_1_rive_turns)
+        cnt_furtivite_2_rives_turns += int(ts.furtivite_2_rives_turns)
         sum_mem_debt += int(ts.mem_debt_score)
         sum_law_mean += float(ts.law_stack_mean)
         max_law_max = max(max_law_max, int(ts.law_stack_max))
@@ -1842,6 +1860,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_reves_activated": cnt_reves_activated,
         "count_machines_cancelled_by_reve": cnt_machines_cancelled_by_reve,
         "count_machines_bypassed_inactive_reve": cnt_machines_bypassed_inactive_reve,
+        "count_reves_choice_block": cnt_reves_choice_block,
+        "count_reves_choice_advance": cnt_reves_choice_advance,
+        "sum_power_tokens_end_act1": sum_power_tokens_end_act1,
+        "count_act1_reached": cnt_act1_reached,
+        "sum_power_tokens_end_game": sum_power_tokens_end_game,
+        "count_charge_gains": cnt_charge_gains,
+        "count_furtivite_1_rive_turns": cnt_furtivite_1_rive_turns,
+        "count_furtivite_2_rives_turns": cnt_furtivite_2_rives_turns,
         "sum_mem_debt": sum_mem_debt,
         "sum_law_mean": round(sum_law_mean, 4),
         "max_law_max": max_law_max,

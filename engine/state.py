@@ -43,6 +43,7 @@ __all__ = (
     "PIEGE_ACTIF",
     "PIEGE_AUCUN",
     "PIEGE_DECLENCHE",
+    "RATISSAGE_TACTIQUE_SPEC",
     "STATE_BUF_SIZE",
     "STEP_1_1_RATISSAGE",
     "STEP_1_2_DEAL",
@@ -80,10 +81,13 @@ __all__ = (
     "decode_chassis_index",
     "encode_chassis_axes",
     "get_layout_report",
+    "is_act2_tour",
     "is_reve_code",
+    "is_tactique_charge",
     "is_tactique_code",
     "machine_card_code",
     "slot_id_to_once_index",
+    "tactique_mode_for_rank",
     "tile_id_to_code",
     "unpack_machine_card",
 )
@@ -274,13 +278,41 @@ class TactiqueSpec:
 
 
 TACTIQUES_SPEC: dict[int, TactiqueSpec] = {
-    1: TactiqueSpec(1, "T1", ("SUR_PLACE",), 0, 0, 0, True),
+    1: TactiqueSpec(1, "T1", ("SUR_PLACE",), 0, 0, 0, False),
     2: TactiqueSpec(2, "T2", ("DEVANT",), 0, 0, 0, False),
     3: TactiqueSpec(3, "T3", ("SUR_PLACE", "DEVANT"), 1, 0, -1, False),
-    4: TactiqueSpec(4, "T4", ("SUR_PLACE",), 0, 1, -1, False),
-    5: TactiqueSpec(5, "T5", ("DEVANT",), 0, 1, -1, False),
-    6: TactiqueSpec(6, "T6", ("SUR_PLACE", "DEVANT"), 1, 1, -2, False),
+    4: TactiqueSpec(4, "T4", ("SUR_PLACE",), 0, 0, 0, False),
+    5: TactiqueSpec(5, "T5", ("DEVANT",), 0, 0, 0, False),
+    6: TactiqueSpec(6, "T6", ("SUR_PLACE", "DEVANT"), 1, 0, -1, False),
 }
+
+# Profil Ratissage v6.0 : détaché de la case 1, en mode ASSAUT permanent (Sur place, mod_seuil=0)
+RATISSAGE_TACTIQUE_SPEC: TactiqueSpec = TactiqueSpec(
+    0, "RATISSAGE", ("SUR_PLACE",), 0, 0, 0, True
+)
+
+
+def is_act2_tour(tour: int) -> bool:
+    """Retourne True à partir du Tour 5 (Acte 2, Face B de la Réglette des Tactiques)."""
+    return tour >= 5
+
+
+def is_tactique_charge(rank_1_6: int, tour: int) -> bool:
+    """Retourne True si la case `1..6` est en mode CHARGE au tour donné.
+
+    - Acte 1 (Tours 1–4, Face A) : cases 1, 2, 3 = CHARGE ; cases 4, 5, 6 = ASSAUT.
+    - Acte 2 (Tours 5–8, Face B) : cases 1, 2, 3 = ASSAUT ; cases 4, 5, 6 = CHARGE.
+    """
+    if not (1 <= rank_1_6 <= TRACK_LEN):
+        return False
+    if tour >= 5:
+        return rank_1_6 >= 4
+    return rank_1_6 <= 3
+
+
+def tactique_mode_for_rank(rank_1_6: int, tour: int) -> str:
+    """Retourne 'CHARGE' ou 'ASSAUT' pour la case `1..6` au tour donné (Réglette Face A / Face B)."""
+    return "CHARGE" if is_tactique_charge(rank_1_6, tour) else "ASSAUT"
 
 # Les 6 axes du châssis v5.4.2 (produit cartésien mixte : 6 * 2^5 = 192 châssis)
 CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = (
@@ -515,10 +547,10 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres consolidés v5.5 : Activation Rêves, Plafond Pari Gardiens, Avancée Rêves & 4. Gardien
+    # Paramètres consolidés v6.0 : Activation Rêves, Plafond Pari Gardiens, Avancée Rêves & 4. Gardien
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
-    reve_advance_mode: str = "CLEAR_RANK_ONLY"
+    reve_advance_mode: str = "EXCLUSIVE_CHOICE"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
@@ -564,8 +596,9 @@ class GameConfig:
         assert self.gardien_bet_cap_policy in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1"), (
             f"gardien_bet_cap_policy invalide : {self.gardien_bet_cap_policy}"
         )
-        assert self.reve_advance_mode in ("JUMP_PUSH", "FREE_SLOT_ONLY", "CLEAR_RANK_ONLY"), (
-            f"reve_advance_mode invalide : {self.reve_advance_mode}"
+        assert self.reve_advance_mode == "EXCLUSIVE_CHOICE", (
+            f"reve_advance_mode invalide (v6.0 : EXCLUSIVE_CHOICE uniquement, CLEAR_RANK_ONLY supprimé) : "
+            f"{self.reve_advance_mode}"
         )
         assert self.gardien_4_trigger_mode == "DISTINCT_OPEN_1", (
             f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {self.gardien_4_trigger_mode}"
@@ -625,11 +658,11 @@ class GameConfig:
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
-        reve_advance_mode: str = "CLEAR_RANK_ONLY",
+        reve_advance_mode: str = "EXCLUSIVE_CHOICE",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v5.5 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -1046,6 +1079,14 @@ class PlayerObservation:
         fb = self._snap[_Mem.FURTIVITE_INSECTES + (idx >> 1)]
         ins = ((fb >> 4) & 0x0F) if (idx & 1) else (fb & 0x0F)
         return nb_d, ins
+
+    def furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int:
+        """Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1)."""
+        idx = lisiere * MAX_P + (p - 1)
+        sb = self._snap[_Mem.FURTIVITE_SLOTS + idx]
+        if rive == 0:
+            return (1 if (sb & 3) else 0) + (1 if ((sb >> 2) & 3) else 0)
+        return (1 if ((sb >> 4) & 3) else 0) + (1 if ((sb >> 6) & 3) else 0)
 
     def lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]:
         """Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`."""
@@ -1591,6 +1632,17 @@ class GameState:
     def total_arbres_plateau(self) -> int:
         return sum(self.total_arbres_rayon(r) for r in range(self.cfg.n_players))
 
+    def total_power_tokens_plateau(self) -> int:
+        """Somme totale des jetons Puissance (rouges physiques) portés par les machines actives."""
+        total = 0
+        for r in range(self.cfg.n_players):
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                pos, st, _ = self.get_machine_pos_status(r, mt)
+                if st != MACHINE_STATUS_RETIRED and pos > 0:
+                    r_tok, _ = self.get_machine_tokens(r, mt)
+                    total += r_tok
+        return total
+
     # ------------------------------------------------------------------
     # Accesseurs Furtivité à 4 emplacements jumeaux (slots 0,1 = rive 0 ; 2,3 = rive 1)
     # ------------------------------------------------------------------
@@ -1751,7 +1803,7 @@ class GameState:
         face: int,
         preferred_twin: int = 0,
     ) -> None:
-        """Fait ENTRER un Défenseur en Furtivité (tire l'éventuel autre pion sur le jumeau)."""
+        """Pose librement un Défenseur sur l'un des 2 emplacements de `rive` (Furtivité libre A1, sans tirage)."""
         assert rive in (0, 1)
         assert preferred_twin in (0, 1)
         assert face in (FACE_REFLEXION, FACE_DEFINITIF)
@@ -1763,32 +1815,20 @@ class GameState:
         # Retrait préalable si ce même pion était déjà sur le plateau (révision 2.2)
         self.remove_player_defender(seat, def_idx)
 
-        assert self.get_furtivite_total_defs(lisiere, p) < 2, "Case Furtivité déjà pleine (2 Déf)"
+        assert self.get_furtivite_nb_def_rive(lisiere, p, rive) < 2, (
+            "Rive Furtivité déjà pleine (2 Défenseurs)"
+        )
 
-        # Recherche d'un éventuel autre Défenseur déjà présent sur la case (l, p)
-        other_found: tuple[int, int, int, int] | None = None  # (o_seat, o_def_idx, old_slot, o_face)
         cell_idx = self._parcel_idx(lisiere, p)
         base_raw = _LOC_FURT_BASE + cell_idx * 4
-        for o_seat in range(self.cfg.n_players):
-            for o_d in (0, 1):
-                o_raw = self.get_player_def_loc_raw(o_seat, o_d)
-                if base_raw <= o_raw < base_raw + 4:
-                    old_slot = o_raw - base_raw
-                    o_face = self.get_furtivite_slot_face(lisiere, p, old_slot)
-                    other_found = (o_seat, o_d, old_slot, o_face)
-                    break
-            if other_found is not None:
-                break
-
-        target_slot = rive * 2 + preferred_twin
-        twin_slot = rive * 2 + (1 - preferred_twin)
-
-        if other_found is not None:
-            o_seat, o_d, old_slot, o_face = other_found
-            # Vider l'ancien slot puis tirer ce partenaire sur l'emplacement jumeau du bord choisi
-            self.set_furtivite_slot_face(lisiere, p, old_slot, FACE_VIDE)
-            self.set_furtivite_slot_face(lisiere, p, twin_slot, o_face)
-            self.set_player_def_loc_raw(o_seat, o_d, base_raw + twin_slot)
+        slot_a = rive * 2 + preferred_twin
+        slot_b = rive * 2 + (1 - preferred_twin)
+        target_slot = (
+            slot_a
+            if self.get_furtivite_slot_face(lisiere, p, slot_a) == FACE_VIDE
+            else slot_b
+        )
+        assert self.get_furtivite_slot_face(lisiere, p, target_slot) == FACE_VIDE
 
         self.set_furtivite_slot_face(lisiere, p, target_slot, face)
         self.set_player_def_loc_raw(seat, def_idx, base_raw + target_slot)

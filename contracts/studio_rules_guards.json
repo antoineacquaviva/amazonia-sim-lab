@@ -1,6 +1,6 @@
 {
-  "schema_version": "5.5.0",
-  "description": "Garde-fous sémantiques, lexicaux et éditoriaux vérifiés automatiquement sur Amazonia Doc Studio v5.5 (Livret Joueur, Catalogue et rendu DOM headless) lors de chaque verify_lot.py.",
+  "schema_version": "6.0.0-alpha",
+  "description": "Garde-fous sémantiques, lexicaux et éditoriaux vérifiés automatiquement sur Amazonia Doc Studio v6.0 (Livret Joueur, Catalogue et rendu DOM headless) lors de chaque verify_lot.py.",
   "banned_in_livret": [
     "Une tuile Rêve occupe",
     "en Siège",
@@ -32,16 +32,26 @@
     "mobilisation croisée",
     "DISTINCT_WON_2",
     "CLEAR_RANK_ONLY",
+    "EXCLUSIVE_CHOICE",
     "UNIFORM_MAX_2",
     "DISTINCT_OPEN_1",
     "SLOT_BUG_CERVEAU",
     "SLOT_COLONISATION_GARDIENS",
+    "Furtivité A1",
     "Mode 1",
     "Mode 2",
     "Mode 3",
     "Mode 4",
+    "v5.5",
     "v5.4",
     "v5.3",
+    "6.0.0-alpha",
+    "Repousse Finale",
+    "glisse aussitôt",
+    "Tactique <code>T1</code>",
+    "aussi en Ratissage",
+    "T4 · Pression",
+    "T6 · Assaut total",
     "n'allume plus",
     "n’allume plus",
     "est supprimée",
@@ -74,7 +84,7 @@
         "3. Vue d’ensemble d’un tour",
         "4. Déroulé d’un tour étape par étape",
         "5. Les Peuples et leurs mécaniques propres",
-        "6. Fin de partie &amp; Repousse Finale",
+        "6. Fin de partie &amp; Score final",
         "7. Mémento de table (Aide de jeu)",
         "Condition inactive dans cette partie (aucun Peuple Onirique autour de la table).",
         "maximum 2 Défenseurs par Gardien",
@@ -82,7 +92,11 @@
         "1 événement = au plus 1 déclencheur",
         "Bouclier de lisière",
         "Ratissage",
-        "<code>T1</code>",
+        "Assaut permanent",
+        "Face A",
+        "Face B",
+        "2 rives indépendantes",
+        "Arbres encore debout",
         "/ 192"
       ]
     },
@@ -92,9 +106,13 @@
         "Condition inactive dans cette partie (aucun Peuple Animal Sauvage autour de la table).",
         "Les <strong>4 tuiles Rêve</strong> de la partie",
         "cases 1 à 4",
-        "si toutes les machines pointant sur ce rang ont été annulées ce tour-ci",
+        "Bloquer",
+        "Avancer",
+        "saute directement vers la 1<sup>re</sup> case libre à sa gauche",
         "Ratissage",
-        "<code>T1</code>"
+        "Assaut permanent",
+        "Face A",
+        "Face B"
       ]
     },
     {
@@ -105,8 +123,10 @@
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
         "glissez 1 Défenseur sous la tuile",
+        "Bloquer",
+        "Avancer",
         "Ratissage",
-        "<code>T1</code>"
+        "Assaut permanent"
       ]
     },
     {
@@ -118,7 +138,9 @@
         "tous les paris du tour sont gagnés",
         "Pont routier",
         "Ratissage",
-        "<code>T1</code>"
+        "Assaut permanent",
+        "Mode Charge",
+        "Mode Assaut"
       ]
     }
   ]

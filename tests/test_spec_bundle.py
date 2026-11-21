@@ -1,4 +1,4 @@
-"""Tests de validation du contrat exécutable spec_bundle_v5_5.json et mode3_reference.json."""
+"""Tests de validation du contrat exécutable spec_bundle_v6_0.json et mode3_reference.json."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from scripts_cloud.build_spec_bundle import RES_VOCAB, TRIG_VOCAB
 
 ROOT = Path(__file__).resolve().parent.parent
-BUNDLE_PATH = ROOT / "data" / "spec_bundle_v5_5.json"
+BUNDLE_PATH = ROOT / "data" / "spec_bundle_v6_0.json"
 
 VALID_ROLES = {"PRODUCTEUR", "CONSOMMATEUR", "MODULATEUR", "CONTROLE", "CATALYSEUR"}
 VALID_PORTEES = {"LOCAL_RAYON", "LISIERES_ADJACENTES", "GLOBAL_PLATEAU", "PISTE_TACTIQUES"}
@@ -16,15 +16,20 @@ ALLOWED_TOKENS = RES_VOCAB | TRIG_VOCAB
 
 
 def test_spec_bundle_structure_and_counts() -> None:
-    assert BUNDLE_PATH.exists(), "data/spec_bundle_v5_5.json manquant"
+    assert BUNDLE_PATH.exists(), "data/spec_bundle_v6_0.json manquant"
     bundle = json.loads(BUNDLE_PATH.read_text(encoding="utf-8"))
 
-    assert bundle["meta"]["schema_version"] == "5.5.0"
+    assert bundle["meta"]["schema_version"] == "6.0.0-alpha"
     assert len(bundle["chassis_axes"]) == 6
     assert [t["id"] for t in bundle["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert bundle["machine_deck_rules"]["sabotage_dilution_permanente"] is True
+    assert bundle["machine_damage_rules"]["repousse_finale_base"] == 0
     assert bundle["machine_damage_rules"]["ratissage"]["piste_tactiques_fixe"] is True
+    assert bundle["machine_damage_rules"]["ratissage"]["mode_permanent"] == "ASSAUT"
+    assert bundle["machine_damage_rules"]["ratissage"]["detache_de_case_1"] is True
     assert bundle["machine_damage_rules"]["ratissage"]["bonus_puissance_imprime"] == 1
+    assert bundle["reglette_tactiques_reversible"]["acte_1_charge_cases"] == [1, 2, 3]
+    assert bundle["reglette_tactiques_reversible"]["acte_2_charge_cases"] == [4, 5, 6]
 
     cat = bundle["catalogue_tuiles"]
     assert len(cat) == 32

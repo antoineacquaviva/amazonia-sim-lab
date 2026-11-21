@@ -54,7 +54,7 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "H"),
-        reve_advance_mode="CLEAR_RANK_ONLY",
+        reve_advance_mode="EXCLUSIVE_CHOICE",
         tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
     )
     st = GameState(cfg)
@@ -136,9 +136,9 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
     assert st3.get_parcel_piege(0, 2) == PIEGE_ACTIF
     assert st3.count_gardien_pari_consumed_at_case(2) == 0
 
-    # Lisière 1, p=1 (machine présente et inactive) : 1 Défenseur + 1 Insecte -> acquiert 1 Sabotage en 4.1
-    st3.set_furtivite_insectes(1, 1, 1)
+    # Lisière 1, p=1 (machine présente et inactive) : binôme 2 Défenseurs rive 0 (Furtivité libre A1) -> acquiert 1 Sabotage en 4.1
     st3.set_furtivite_slot_face(1, 1, 0, FACE_DEFINITIF)
+    st3.set_furtivite_slot_face(1, 1, 1, FACE_DEFINITIF)
     sab_before = st3.sabotage_pending_count
     _resolve_single_furtivite_cell_4_1(st3, 1, 1)
     assert st3.sabotage_pending_count == sab_before + 1
@@ -369,27 +369,35 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
 
 
 def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
-    """Manifeste validation_socle_v5_5 (5 760 parties) + 6 pct_trigger_*_lit & count_bouclier_lisiere_saves."""
-    manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v5_5.json"
+    """Manifeste validation_socle_v6_0 (8 640 parties, B0/B1/B2) + 6 pct_trigger_*_lit & count_bouclier_lisiere_saves."""
+    # Le manifeste historique v5.5 (CLEAR_RANK_ONLY) est proprement rejeté sous v6.0
+    legacy_path = ROOT / "campaigns" / "manifests" / "validation_socle_v5_5.json"
+    assert legacy_path.is_file()
+    with pytest.raises(ValueError, match="EXCLUSIVE_CHOICE"):
+        resolve_manifest_plan(json.loads(legacy_path.read_text(encoding="utf-8")))
+
+    manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_0.json"
     assert manifest_path.is_file()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     plan = resolve_manifest_plan(manifest)
 
     assert plan["mode"] == 2
-    assert plan["bot"] == "B2"
+    assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
-    assert plan["total_games"] == 5_760
+    assert plan["total_games"] == 8_640
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
     assert len(plan["profile_variants"]) == 1
     assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {"DISTINCT_OPEN_1"}
-    assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"CLEAR_RANK_ONLY"}
+    assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"EXCLUSIVE_CHOICE"}
     assert {v["gardien_bet_cap_policy"] for v in plan["profile_variants"]} == {"UNIFORM_MAX_2"}
 
-    # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs v5.4.7
+    # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs reveil_anatomy & v6.0
     mini_manifest = dict(manifest)
-    mini_manifest["campaign_name"] = "test_validation_socle_v5_5_mini"
+    mini_manifest.pop("bots", None)
+    mini_manifest["bot"] = "B2"
+    mini_manifest["campaign_name"] = "test_validation_socle_v6_0_mini"
     mini_manifest["player_counts"] = [4]
     mini_manifest["games_per_configuration"] = 4
     mini_manifest["chassis_plan"] = {
@@ -409,7 +417,7 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
         rows[0]["rs_trig3_lit"] = 1
         rows[0]["count_bouclier_lisiere_saves"] = 2
 
-    work_dir = ROOT / ".tmp_runs" / "test_validation_socle_v5_5_mini"
+    work_dir = ROOT / ".tmp_runs" / "test_validation_socle_v6_0_mini"
     shards_dir = work_dir / "shards"
     shards_dir.mkdir(parents=True, exist_ok=True)
     shard_path = shards_dir / "shard_00.jsonl.gz"
@@ -422,9 +430,9 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
             fh.write(json.dumps(r) + "\n")
 
     parquet_path = work_dir / "cells.parquet"
-    digest_path = ROOT / "data" / "digests" / "digest_test_validation_socle_v5_5_mini.json"
-    legacy_digest_path = ROOT / "data" / "digest_test_validation_socle_v5_5_mini.json"
-    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_validation_socle_v5_5_mini.md"
+    digest_path = ROOT / "data" / "digests" / "digest_test_validation_socle_v6_0_mini.json"
+    legacy_digest_path = ROOT / "data" / "digest_test_validation_socle_v6_0_mini.json"
+    prompt_path = ROOT / "data" / "digests" / "PROMPT_GEMINI_test_validation_socle_v6_0_mini.md"
     try:
         _, _, digest = aggregate_campaign_duckdb(
             manifest=mini_manifest,
@@ -432,7 +440,7 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
             shards_dir=shards_dir,
             parquet_path=parquet_path,
             backend="local",
-            job_name="unit-test-v547",
+            job_name="unit-test-v60",
             tasks=1,
             job_wall_sec=0.1,
         )
@@ -462,7 +470,7 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
             n_players=n_pl,
             mode=2,
             peuples=peup,
-            reve_advance_mode="CLEAR_RANK_ONLY",
+            reve_advance_mode="EXCLUSIVE_CHOICE",
             gardien_4_trigger_mode="DISTINCT_OPEN_1",
             tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
             exp_seed=5470 + n_pl,
