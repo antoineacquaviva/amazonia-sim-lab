@@ -10,13 +10,13 @@ Référentiel complet : `docs/AMAZONIA_STUDIO_CONTEXT.md` (Section 5).
 
 ## 1. Synchronisation obligatoire des 4 couches
 - Toute évolution de règle ou de profil de tuile dans `docs/` doit mettre à jour **simultanément** les 4 couches :
-  1. `docs/data/livret_v5_4.js` (`renderDidacticRulebook` **ET** `REGLES_COEUR_SYNTHESE`) ;
-  2. `docs/data/amazonia_data_v5_4.js` (`CATALOGUE_TUILES`, `VERSION_CHANGELOG`, `TOPOLOGIES_PISTE_SPEC`, `CHASSIS_AXES_SPEC`) ;
-  3. `docs/data/catalog_v5_4.json` ;
-  4. `docs/data/spec_formelle_v5_4.json`.
+  1. `docs/data/livret_v5_5.js` (`renderDidacticRulebook` **ET** `REGLES_COEUR_SYNTHESE`, zéro jargon interne / codes techniques dans le livret joueur) ;
+  2. `docs/data/amazonia_data_v5_5.js` (`CATALOGUE_TUILES`, `VERSION_CHANGELOG`, `TOPOLOGIES_PISTE_SPEC`, `CHASSIS_AXES_SPEC`, `SPEC_FORMELLE_V5_5`) ;
+  3. `docs/data/catalog_v5_5.json` ;
+  4. `docs/data/spec_formelle_v5_5.json`.
 - Après toute modification dans `docs/data/`, resynchroniser immédiatement le simulateur via :
   `uv run python scripts_cloud/sync_studio.py && uv run python scripts_cloud/build_spec_bundle.py`
-  puis valider les **8/8 portes** de `uv run python verify_lot.py` (incluant la porte de cohérence 32 emplacements / 100 profils / 7 axes du châssis et le rendu headless DOM).
+  puis valider les **8/8 portes** de `uv run python verify_lot.py` (incluant la cohérence Studio ↔ simulateur sur les 6 axes du châssis / 6 topologies et le rendu headless DOM).
 
 ## 2. Patchs différentiels via Node `vm` + `JSON.stringify`
 - Ne **jamais** réécrire tout le catalogue à la main dans une réponse LLM ni injecter des chaînes JS par regex brutes (risque de casse sur les apostrophes `'` vs `’`).

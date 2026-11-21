@@ -70,6 +70,7 @@ zéro `import random`, zéro état global mutable).
 - `DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = ...`
 - `PEUPLES_ORDER: tuple[str, ...] = ('M', 'R', 'O', 'H', 'E', 'I')`
 - `ANIMAUX_SAUVAGES: frozenset[str] = frozenset(('M', 'R', 'O'))`
+- `PEUPLES_ONIRIQUES: frozenset[str] = frozenset(('H', 'E'))`
 - `PEUPLE_TO_ID: dict[str, int] = {code: idx for idx, code in enumerate(PEUPLES_ORDER)}`
 - `MATRICE_PAIRES: dict[str, tuple[str, str]] = ...`
 - `SYNERGY_META: dict[str, tuple[str, str, int]] = ...`
@@ -123,7 +124,9 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `role_abatteuse_fin_de_piste: str`
 - `synergie_binome_machines: str`
 - `reve_activation_mode: str`
-- `gardien_resonance_cap: str`
+- `gardien_bet_cap_policy: str`
+- `reve_advance_mode: str`
+- `gardien_4_trigger_mode: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
@@ -131,11 +134,13 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `total_gardiens_partie: int`
 - `total_reves_partie: int`
 - `nb_animaux_sauvages: int`
+- `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_resonance_cap: str='UNLIMITED') -> GameConfig` — Construit l'une des 192 configurations de châssis v5.4.2 à partir d'un index 0..191.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='CLEAR_RANK_ONLY', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v5.5 à partir d'un index 0..191.
+- `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
-- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=A par défaut en Mode 2+).
+- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).
 
 ### Classe `ParcelObs`
 
@@ -214,7 +219,10 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `coordonnateur: int`
 - `paravents_ouverts: bool`
 - `repousse_finale_applied: bool`
-- `gardien_resonance_cap: str`
+- `gardien_bet_cap_policy: str`
+- `reve_advance_mode: str`
+- `gardien_4_trigger_mode: str`
+- `nb_peuples_oniriques: int`
 - `gardien_pari_enabled: bool`
 - `triggers_lit: int`
 - `deck_remaining_count: int`
@@ -231,6 +239,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `machines: tuple[MachineObs, ...]`
 
 **Méthodes :**
+- `gardien_bet_cap_for_case(self, case_1_6: int) -> int`
 - `hand_of(self, seat: int) -> HandObs` — Accès direct O(1) à la main observée d'un siège (masquée si paravent fermé).
 - `is_route(self, r: int, p: int) -> bool` — Retourne True si la parcelle (r, p) est une Route Forestière (0 Arbre, 0 Souche).
 - `parcel_arbres(self, r: int, p: int) -> int` — Nombre d'Arbres debout sur (r, p) en O(1).
@@ -254,9 +263,12 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `total_gardien_pari_engaged(self) -> int` — Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés).
 - `player_def2_gardien_pari_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en pari Gardien par le 2e Défenseur actif de `seat`, ou 0.
 - `reve_at_case(self, case_1_6: int) -> int` — Retourne r_num (1..10) si un Rêve occupe la case `1..6`, sinon 0.
-- `reve_activation_defenders(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`.
-- `reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des 2es Défenseurs sur le Rêve en case `1..6`.
-- `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en activation Rêve par le 2e Défenseur de `seat`, ou 0.
+- `reve_activation_defenders(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`.
+- `reve_activation_consumed(self, case_1_6: int) -> int` — Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour.
+- `total_reve_activation_defenders(self) -> int` — Nombre total de Défenseurs actifs (non consommés) posés sur des Rêves.
+- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés).
+- `reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des Défenseurs actifs sur le Rêve en case `1..6`.
+- `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en activation Rêve par le Défenseur de `seat`, ou 0.
 - `tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]` — Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques.
 
 ### Classe `GameState`
@@ -326,12 +338,19 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `count_gardien_pari_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actifs (non consommés) posés en pari sur la case `1..6`.
 - `count_gardien_pari_consumed_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs déjà consommés par ouverture sur la case `1..6` ce tour.
 - `total_gardien_pari_remaining(self) -> int` — Nombre total de 2es Défenseurs encore actifs (non consommés) sur la Piste des Gardiens.
-- `total_gardien_pari_engaged(self) -> int` — Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés).
-- `place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None` — Engage le 2e Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6`.
-- `consume_one_gardien_pari_defender(self, case_1_6: int) -> bool` — Retire 1 2e Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2/6.3).
-- `is_eveil_gardiens_victory(self) -> bool` — Éveil de la Forêt (Tours 1..7) : tous les N 2es Défenseurs engagés sur la Piste des Gardiens en 2.2 ET tous les paris gagnés (0 Défenseur restant en 5.3).
-- `count_reve_activation_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actuellement posés en activation Rêve sur la case `1..6`.
-- `place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None` — Engage le 2e Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2.
+- `total_gardien_pari_consumed(self) -> int` — Nombre total de Défenseurs déjà consommés par ouverture de Gardiens ce tour.
+- `total_gardien_pari_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés).
+- `place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None` — Engage le Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6` (plafond v5.4.5).
+- `consume_one_gardien_pari_defender(self, case_1_6: int) -> bool` — Retire 1 Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2).
+- `count_reve_activation_defenders_at_case(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`.
+- `count_reve_activation_consumed_at_case(self, case_1_6: int) -> int` — Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour.
+- `total_reve_activation_remaining(self) -> int` — Nombre total de Défenseurs encore actifs (non consommés) sur des Rêves.
+- `total_reve_activation_consumed(self) -> int` — Nombre total de Défenseurs consommés par annulation de machines sur des Rêves ce tour.
+- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés).
+- `consume_reve_activation_defenders(self, case_1_6: int, count: int) -> int` — Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (pari gagné).
+- `is_eveil_attempt_eligible(self) -> bool` — Vrai si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens (Éveil de la Forêt 100 % Gardiens, Tours 1..7, A >= 1).
+- `is_eveil_gardiens_victory(self) -> bool` — Éveil de la Forêt 100 % Piste des Gardiens (Tours 1..7, A >= 1) : les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 pari perdu (0 restant en 5.3).
+- `place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None` — Engage le Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2.
 - `mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None` — Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées.
 - `get_lisiere_tile_state(self, slot_idx: int) -> tuple[int, int]` — Retourne (status, nb_constructors).
 - `set_lisiere_tile_state(self, slot_idx: int, status: int, constructors: int) -> None`
@@ -379,8 +398,15 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `mark_used_once_per_turn(self, lock_idx: int) -> None` — Verrouille l'index `lock_idx` (0..63) pour le reste du tour.
 - `has_slot_used_once_per_turn(self, slot_id: str) -> bool` — Vérifie si l'emplacement `slot_id` (ex: 'G3', 'R4', 'M1') a utilisé son quota 1/tour.
 - `mark_slot_used_once_per_turn(self, slot_id: str) -> None` — Marque l'emplacement `slot_id` comme ayant utilisé son effet limité à 1 fois par tour.
-- `get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int` — Delta d'Apprentissage mémorisé sur le rang `rank_0_5` pour application en 6.1.
-- `add_pending_apprentissage_at_rank(self, rank_0_5: int, delta: int) -> None` — Mémorise un ajustement d'Apprentissage sur `rank_0_5` appliqué en 6.1 avant Bug.
+- `has_gardien_opened_this_turn(self, case_1_6: int) -> bool` — Vrai si le Gardien de la case `1..6` s'est déjà ouvert au moins une fois ce tour.
+- `mark_gardien_opened_this_turn(self, case_1_6: int) -> None` — Marque la case Gardien `1..6` comme ayant déjà été ouverte ce tour.
+- `has_gardien_won_this_turn(self, case_1_6: int) -> bool` — Vrai si le Gardien de la case `1..6` a déjà achevé son pari ce tour (0 Défenseur restant).
+- `mark_gardien_won_this_turn(self, case_1_6: int) -> None` — Marque la case Gardien `1..6` comme ayant achevé son pari ce tour.
+- `count_other_gardiens_won_this_turn(self) -> int` — Nombre de Gardiens distincts hors case 4 ayant achevé leur pari ce tour.
+- `was_seat_deviated_by_bug_this_turn(self, seat: int) -> bool` — Vrai si la carte Machine du siège `seat` a déjà été déviée par un Bug en 3.2 ce tour.
+- `mark_seat_deviated_by_bug_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug).
+- `get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — retourne toujours 0.
+- `add_pending_apprentissage_at_rank(self, rank_0_5: int, delta: int) -> None` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — sans effet.
 - `get_pending_voluntary_app_reduction(self) -> tuple[int, int]` — Retourne (nb_retraits_volontaires_restants, seat_decideur) mémorisés pour 6.1.
 - `add_pending_voluntary_app_reduction(self, count: int, decideur_seat: int) -> None` — Mémorise +count retraits volontaires d'Apprentissage en 6.1 avant Bug (ex: G10 A, R2 A).
 - `clear_pending_voluntary_app_reduction(self, remaining: int=0, seat: int=0) -> None` — Met à jour le compteur résiduel de retraits volontaires d'Apprentissage en 6.1.

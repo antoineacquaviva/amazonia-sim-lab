@@ -668,9 +668,9 @@ def prim_permutation_piste(
             return False
         new_m = max(1, min(6, lec_m + delta_m))
         new_bound = bound_t
-        if rebind_tactique and 1 <= card <= 12:
-            code_m = state.get_tactique_at_rank(new_m - 1)
-            new_bound = code_m if (1 <= code_m <= 6) else 0
+        if rebind_tactique and 1 <= card <= 12 and bound_t > 0:
+            # Piste fixe T1..T6 : la Tactique imprimée au rang new_m s'applique toujours
+            new_bound = new_m
         state.set_player_hand(seat, card, d1, d2, new_m, new_bound)
         if new_m != lec_m:
             _record_phys_ops(state, 1)

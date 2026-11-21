@@ -43,7 +43,7 @@ __all__ = (
 )
 
 ROOT: Path = Path(__file__).resolve().parent.parent
-DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_4.json"
+DEFAULT_BUNDLE_PATH: Path = ROOT / "data" / "spec_bundle_v5_5.json"
 DEFAULT_DIGESTS_DIR: Path = ROOT / "data" / "digests"
 MAX_DIGEST_BYTES: int = 35_000
 
@@ -177,7 +177,7 @@ def build_active_core_rules(
     unique_chassis = tuple(dict.fromkeys(int(c) for c in (chassis_ids or (0,))))
     chassis_list = [decode_chassis_axes(cid) for cid in unique_chassis]
 
-    sf = spec_bundle.get("spec_formelle_v5_4", {})
+    sf = spec_bundle.get("spec_formelle_v5_5") or spec_bundle.get("spec_formelle_v5_4") or {}
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
     etapes_raw: list[dict[str, Any]] = sorted(
         sf.get("etapes_tour", []),
@@ -194,7 +194,7 @@ def build_active_core_rules(
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.4.2"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "5.5.0"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
@@ -207,8 +207,8 @@ def build_active_core_rules(
     }
 
     return {
-        "version": str(meta.get("schema_version", "5.4.2")),
-        "source_studio_version": str(meta.get("source_studio_version", "v5.4")),
+        "version": str(meta.get("schema_version", "5.5.0")),
+        "source_studio_version": str(meta.get("source_studio_version", "v5.5")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
         "chassis_6_axes": chassis_list,

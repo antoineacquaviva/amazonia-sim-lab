@@ -442,7 +442,12 @@ def test_inter_effect_composition_witness_g1_a_then_g2_a_updates_parade() -> Non
         seuil_apres = compute_parade_seuil(st, 0, MACHINE_ABATTEUSE, pos_after, TACTIQUES_SPEC[1])
         assert seuil_apres == 2
     finally:
+        from engine.core_engine import ensure_builtin_migration_registered
+        from engine.effects import load_all_effects
+
         clear_tile_registry()
+        ensure_builtin_migration_registered()
+        load_all_effects()
 
 
 def test_digest_active_core_rules_chronology_matches_v5_3() -> None:
@@ -465,7 +470,7 @@ def test_studio_config_index_192_exhaustive_192_bijection() -> None:
     js_script = r"""
     const fs = require('fs');
     const vm = require('vm');
-    const code = fs.readFileSync('docs/data/amazonia_data_v5_4.js', 'utf8');
+    const code = fs.readFileSync('docs/data/amazonia_data_v5_5.js', 'utf8');
     const ctx = {};
     vm.createContext(ctx);
     vm.runInContext(code + '\nthis.__SPEC = CHASSIS_AXES_SPEC;', ctx);
@@ -553,21 +558,25 @@ def test_studio_config_index_192_exhaustive_192_bijection() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 6. Traçabilité complète (amazonia_data_v5_4.js + spec_bundle_sha256) & economie_bot
+# 6. Traçabilité complète (amazonia_data_v5_5.js + livret_v5_5.js + spec_bundle_sha256) & economie_bot
 # ---------------------------------------------------------------------------
 def test_traceability_hashes_and_economie_bot_fixes() -> None:
     """Vérifie le verrouillage SHA-256 complet et les correctifs du graphe economie_bot."""
     lock = json.loads((ROOT / "data" / "studio_lock.json").read_text(encoding="utf-8"))
-    js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v5_4.js").read_bytes()).hexdigest()
+    js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v5_5.js").read_bytes()).hexdigest()
+    livret_sha = hashlib.sha256((ROOT / "docs" / "data" / "livret_v5_5.js").read_bytes()).hexdigest()
     bundle_sha = hashlib.sha256(DEFAULT_BUNDLE_PATH.read_bytes()).hexdigest()
 
-    assert lock["files"]["amazonia_data_v5_4.js"]["sha256"] == js_sha
+    assert lock["files"]["amazonia_data_v5_5.js"]["sha256"] == js_sha
+    assert lock["files"]["livret_v5_5.js"]["sha256"] == livret_sha
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["studio_sha256"]["amazonia_data_v5_4.js"]["sha256"] == js_sha
+    assert bundle["meta"]["studio_sha256"]["amazonia_data_v5_5.js"]["sha256"] == js_sha
+    assert bundle["meta"]["studio_sha256"]["livret_v5_5.js"]["sha256"] == livret_sha
 
     rules = build_active_core_rules()
-    assert rules["studio_sha256"]["amazonia_data_v5_4.js"] == js_sha
+    assert rules["studio_sha256"]["amazonia_data_v5_5.js"] == js_sha
+    assert rules["studio_sha256"]["livret_v5_5.js"] == livret_sha
     assert rules["spec_bundle_sha256"] == bundle_sha
 
     # Correctifs economie_bot vérifiés dans le bundle généré

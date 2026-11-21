@@ -41,7 +41,8 @@ def test_fixed_track_192_chassis_and_bug_b_default() -> None:
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=5420)
     assert cfg.reve_activation_mode == "1_DEF_1_MACHINE"
     assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
-    assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "A"
+    assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
+    assert cfg.reve_advance_mode == "CLEAR_RANK_ONLY"
 
     st = GameState(cfg)
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(TRACK_LEN)] == [
@@ -158,12 +159,12 @@ def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
             ts.machines_bypassed_inactive_reve,
         )
 
-    # Option A (1_DEF_1_MACHINE) :
+    # Option A (1_DEF_1_MACHINE) avec règle v5.5 CLEAR_RANK_ONLY par défaut :
     # - 0 Déf -> les 2 machines exécutent T5 imprimée, R1 n'avance pas
     assert _run_case("1_DEF_1_MACHINE", 0) == (5, 5, 4, 0, 0, 2)
-    # - 1 Déf -> la plus menaçante (siège 1) est annulée, siège 0 exécute T5, R1 s'ouvre et avance en idx 3
-    assert _run_case("1_DEF_1_MACHINE", 1) == (5, 0, 3, 1, 1, 1)
-    # - 2 Déf -> les 2 machines sont annulées, R1 s'ouvre (max 1/tour) et avance en idx 3
+    # - 1 Déf -> la plus menaçante (siège 1) est annulée, siège 0 exécute T5 ; 1 machine n'est pas annulée -> R1 reste en idx 4
+    assert _run_case("1_DEF_1_MACHINE", 1) == (5, 0, 4, 1, 1, 1)
+    # - 2 Déf -> les 2 machines sont annulées (rang entièrement vidé), R1 s'ouvre et avance en idx 3
     assert _run_case("1_DEF_1_MACHINE", 2) == (0, 0, 3, 1, 2, 0)
 
     # Option B (1_DEF_ALL_RANK) :

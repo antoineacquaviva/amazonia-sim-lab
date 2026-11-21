@@ -231,6 +231,7 @@ def _bug_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
                 trk = _get_active_telemetry()
                 if trk is not None:
                     trk.on_trigger_lit(6)
+                    trk.on_defense_bug_deviation(1)
                 sweep_gardiens(state)
         _bug_b_step_queue(state, s_int + 1)
     return None
@@ -272,6 +273,7 @@ def ensure_builtin_migration_registered() -> None:
 
 
 ensure_builtin_migration_registered()
+__import__("engine.effects")
 
 
 # ---------------------------------------------------------------------------
@@ -990,6 +992,7 @@ def _resolve_machine_targets_from(
             state.light_trigger(1)
             if trk is not None:
                 trk.on_trigger_lit(1)
+                trk.on_defense_parade_classique(1)
             parried_strikes += 1
             aborted_by_jaguar = True
             break
@@ -1003,6 +1006,7 @@ def _resolve_machine_targets_from(
             state.light_trigger(1)
             if trk is not None:
                 trk.on_trigger_lit(1)
+                trk.on_defense_parade_classique(1)
             parried_strikes += 1
             continue
 
@@ -1017,6 +1021,7 @@ def _resolve_machine_targets_from(
             state.light_trigger(1)
             if trk is not None:
                 trk.on_trigger_lit(1)
+                trk.on_defense_parade_classique(1)
             parried_strikes += 1
             continue
 
@@ -1045,6 +1050,7 @@ def _resolve_machine_targets_from(
             state.light_trigger(2)
             if trk is not None:
                 trk.on_trigger_lit(2)
+                trk.on_defense_piege(1)
             parried_strikes += 1
             resume_f = (
                 "RESUME_MACHINE_ATTACK_5",
@@ -1104,10 +1110,12 @@ def _resolve_machine_targets_from(
                 state.light_trigger(6)
                 if trk is not None:
                     trk.on_trigger_lit(6)
+                    trk.on_defense_parade_avec_insectes(1)
             else:
                 state.light_trigger(1)
                 if trk is not None:
                     trk.on_trigger_lit(1)
+                    trk.on_defense_parade_classique(1)
             parried_strikes += 1
             continue
 
@@ -1296,6 +1304,7 @@ def apply_repousse_finale(state: GameState) -> GameOver:
 
     if not state.repousse_finale_applied:
         trk = _get_active_telemetry()
+        arbres_before_repousse = state.total_arbres_plateau()
         for r in range(state.cfg.n_players):
             for p in range(1, state.cfg.p_max + 1):
                 if state.is_route_forestiere(r, p):
@@ -1316,9 +1325,11 @@ def apply_repousse_finale(state: GameState) -> GameOver:
         state._continuation.clear()
         _transition_step(state, STEP_GAME_OVER)
         score_now = state.total_arbres_plateau()
+        arbres_regrown = max(0, score_now - arbres_before_repousse)
         init_now = state.cfg.n_players * sum(state.cfg.dotation_arbres)
         ratio_now = score_now / init_now if init_now > 0 else 0.0
         if trk is not None:
+            trk.on_defense_repousse_finale(arbres_regrown)
             trk.on_game_over_ratio(state, cause=cause, ratio_arbres=ratio_now)
             trk.on_end_turn(state, game_over=True)
 
@@ -1528,10 +1539,12 @@ def _bind_hands_and_collect_reves_3_2(
     initial_track = [state.get_tactique_at_rank(i) for i in range(TRACK_LEN)]
     seats_by_rank: list[list[tuple[int, int, int, int, int]]] = [[] for _ in range(TRACK_LEN)]
     reveal_triggers: list[int] = []
+    sabotages_revealed = 0
     for s in range(n):
         card, d1, d2, lec_m, _ = state.get_player_hand(s)
         if card == CARD_SABOTAGE:
             reveal_triggers.append(3)
+            sabotages_revealed += 1
         elif 1 <= card <= 12 and 1 <= lec_m <= 6:
             seats_by_rank[lec_m - 1].append((s, card, d1, d2, lec_m))
             if (not state.was_seat_deviated_by_bug_this_turn(s)) and is_reve_code(
@@ -1542,6 +1555,8 @@ def _bind_hands_and_collect_reves_3_2(
     act_mode = state.cfg.reve_activation_mode
     adv_mode = state.cfg.reve_advance_mode
     trk = _get_active_telemetry()
+    if trk is not None and sabotages_revealed > 0:
+        trk.on_defense_sabotage_revele(sabotages_revealed)
     reve_queue: list[tuple[int, int, bool]] = []
 
     for r_idx in range(TRACK_LEN):

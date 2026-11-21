@@ -18,10 +18,10 @@ LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
-STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_4.json"
-STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_4.json"
-STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_4.js"
-SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_4.json"
+STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_5.json"
+STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_5.json"
+STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_5.js"
+SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_5.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -273,10 +273,8 @@ def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
 def verify_studio_coherence() -> None:
     """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python.
 
-    En phase CORE_STABILIZATION (Mode 2 à blanc), le stock historique des 100 profils
-    est archivé dans archive/legacy_tiles_v5_3/ et n'est plus vérifié ici.
-    Contrôles actifs :
-    - docs/data/spec_formelle_v5_4.json == data/spec_bundle_v5_4.json['spec_formelle_v5_4'] ;
+    Contrôles actifs (Socle figé v5.5) :
+    - docs/data/spec_formelle_v5_5.json == data/spec_bundle_v5_5.json['spec_formelle_v5_5'] ;
     - Topologies (P4_*, P5_*) == engine.state.TOPOLOGIES_DOTATION ;
     - 6 axes du châssis (clés + valeurs) == engine.state.CHASSIS_AXES_OPTIONS.
     """
@@ -291,23 +289,23 @@ def verify_studio_coherence() -> None:
 
     errors: list[str] = []
 
-    # 1. Cohérence spec_formelle_v5_4.json <-> bundle
-    if bundle.get("spec_formelle_v5_4") != spec_doc:
+    # 1. Cohérence spec_formelle_v5_5.json <-> bundle
+    if bundle.get("spec_formelle_v5_5") != spec_doc:
         errors.append(
-            "Désynchronisation entre docs/data/spec_formelle_v5_4.json et "
-            "data/spec_bundle_v5_4.json['spec_formelle_v5_4']"
+            "Désynchronisation entre docs/data/spec_formelle_v5_5.json et "
+            "data/spec_bundle_v5_5.json['spec_formelle_v5_5']"
         )
 
     from engine.state import CHASSIS_AXES_OPTIONS, TOPOLOGIES_DOTATION
 
-    # 2. Topologies déclarées dans docs/data/catalog_v5_4.json <-> engine.state.TOPOLOGIES_DOTATION
+    # 2. Topologies déclarées dans docs/data/catalog_v5_5.json <-> engine.state.TOPOLOGIES_DOTATION
     cat_topos: dict[str, tuple[int, ...]] = {
         str(code): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
         for code, meta in catalog.get("topologies", {}).items()
     }
     if cat_topos != TOPOLOGIES_DOTATION:
         errors.append(
-            f"Topologies docs/data/catalog_v5_4.json ({cat_topos}) != "
+            f"Topologies docs/data/catalog_v5_5.json ({cat_topos}) != "
             f"engine.state.TOPOLOGIES_DOTATION ({TOPOLOGIES_DOTATION})"
         )
 
@@ -336,9 +334,9 @@ def verify_studio_coherence() -> None:
     if errors:
         raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Cœur Studio (docs/data/ <-> simulateur : "
+        f"[4/8] Cohérence Socle v5.5 Studio (docs/data/ <-> simulateur : "
         f"spec_formelle, {len(TOPOLOGIES_DOTATION)} topologies, "
-        f"{len(engine_axes)} axes châssis ; Mode 2 à blanc) : OK"
+        f"{len(engine_axes)} axes châssis) : OK"
     )
 
 

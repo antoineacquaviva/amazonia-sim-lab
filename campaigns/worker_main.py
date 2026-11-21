@@ -48,7 +48,11 @@ from engine.state import (
     GameState,
     decode_chassis_index,
 )
-from engine.telemetry import REVEIL_ANATOMY_FIELDS, TelemetryTracker
+from engine.telemetry import (
+    DEFENSE_ATTRIBUTION_FIELDS,
+    REVEIL_ANATOMY_FIELDS,
+    TelemetryTracker,
+)
 
 CANONICAL_32_SLOTS: tuple[str, ...] = (
     *(f"G{i}" for i in range(1, 16)),
@@ -1231,7 +1235,7 @@ _MANIFEST_D_SLOTS: tuple[str, ...] = (
 
 def _sanitize_slug(raw: str) -> str:
     cleaned = re.sub(r"[^a-zA-Z0-9_-]+", "_", raw.strip().lower()).strip("_")
-    return cleaned or "campagne_v5_4"
+    return cleaned or "campagne_v5_5"
 
 
 def _match_axis_bit(axis_name: str, val: Any, opts_tuple: tuple[Any, ...]) -> int:
@@ -1252,19 +1256,31 @@ def _match_axis_bit(axis_name: str, val: Any, opts_tuple: tuple[Any, ...]) -> in
 
 def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     """Résout un manifeste JSON `campaigns/<nom>.json` en plan exécutable déterministe."""
-    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v5_4")))
+    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v5_5")))
     raw_players = manifest.get("player_counts", [4])
     player_counts = sorted({int(n) for n in raw_players})
     if not player_counts or any(n not in (3, 4, 5, 6) for n in player_counts):
         raise ValueError(f"player_counts invalide (attendu 3..6) : {player_counts}")
 
     games_per_cfg = max(1, int(manifest.get("games_per_configuration", 1)))
-    bot_name = str(manifest.get("bot", "B2")).strip().upper()
-    if bot_name not in ("B0", "B1", "B2"):
-        raise ValueError(f"Bot non supporté dans le manifeste : {bot_name!r} (attendu B0/B1/B2)")
-    k_max = int(manifest.get("k_max", 0 if bot_name == "B0" else 3))
+    raw_bots = manifest.get("bots")
+    if raw_bots is not None:
+        if isinstance(raw_bots, str):
+            bot_list = [raw_bots.strip().upper()]
+        else:
+            bot_list = [str(b).strip().upper() for b in raw_bots]
+    else:
+        bot_list = [str(manifest.get("bot", "B2")).strip().upper()]
+    bot_list = list(dict.fromkeys(bot_list))
+    if not bot_list or any(b not in ("B0", "B1", "B2") for b in bot_list):
+        raise ValueError(
+            f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} (attendu B0/B1/B2)"
+        )
+    bot_name = bot_list[0]
+    k_max_default = int(manifest.get("k_max", 0 if bot_name == "B0" else 3))
     mode = int(manifest.get("mode", 3))
     exp_seed = int(manifest.get("seed", 20261119))
+    include_full_tile_metrics = bool(manifest.get("include_full_tile_metrics", False))
 
     # 1. Résolution des châssis (produit cartésien des axes variables + axes figés,
     #    avec repli éventuel sur base_instance.config_index_192 au format Studio 1..192)
@@ -1327,8 +1343,9 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     # 2. Résolution explicite du génome de base (32 slots)
     bundle_id = str(base_inst.get("bundle_id", "STANDARD_A")).strip().upper()
     base_map: dict[str, str] = {slot_id: "A" for slot_id in CANONICAL_32_SLOTS}
-    # Défaut v5.4.2 : SLOT_BUG_CERVEAU actif sur profil B (Déviation Synaptique 3.2)
+    # Défauts officiels v5.5 : Déviation Synaptique (Bug=B) & Bouclier de lisière (Colonie=B)
     base_map["SLOT_BUG_CERVEAU"] = "B"
+    base_map["SLOT_COLONISATION_GARDIENS"] = "B"
     if bundle_id == "LOT_01_PILOT":
         for s, p in LOT_01_PROFILES:
             if s in base_map:
@@ -1405,7 +1422,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 if base_map[s] != "A":
                     tested_tiles_set.append((s, base_map[s]))
 
-    # 3b. Paramètres hors-châssis Activation Rêves (v5.4.2) & Pari Gardiens (v5.4.3)
+    # 3b. Paramètres hors-châssis consolidés v5.5
     raw_act_modes = manifest.get("reve_activation_modes", manifest.get("reve_activation_mode"))
     if raw_act_modes is None:
         r_act_modes: list[str] = ["1_DEF_1_MACHINE"]
@@ -1436,7 +1453,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_adv_modes = manifest.get("reve_advance_modes", manifest.get("reve_advance_mode"))
     if raw_adv_modes is None:
-        adv_modes: list[str] = ["JUMP_PUSH"]
+        adv_modes: list[str] = ["CLEAR_RANK_ONLY"]
         explicit_adv_mode_sweep = False
     elif isinstance(raw_adv_modes, str):
         adv_modes = [raw_adv_modes.strip().upper()]
@@ -1507,7 +1524,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     profile_variants = expanded_variants
 
     # 4. Construction des unités de calcul (chaque configuration = games_per_cfg parties,
-    #    avec appariement CRN strict sur chaque paire de tables miroirs)
+    #    avec appariement CRN strict sur chaque paire de tables miroirs et par bot)
     base_peuples_raw = base_inst.get("peuples_cercle", [])
     base_peuples: tuple[str, ...] = tuple(str(p).strip().upper() for p in base_peuples_raw)
     table_selection = str(manifest.get("table_selection", "PALIER1_DEFAULT")).strip().upper()
@@ -1515,95 +1532,99 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     units: list[dict[str, Any]] = []
     config_idx = 0
-    for n_pl in player_counts:
-        if (
-            len(base_peuples) == n_pl
-            and len(set(base_peuples)) == n_pl
-            and all(p in PEUPLES_ORDER for p in base_peuples)
-        ):
-            mir = mirror_peuples(base_peuples)
-            t1_id = "-".join(base_peuples)
-            t2_id = "-".join(mir)
-            if games_per_cfg >= 2 and mir != base_peuples:
-                candidate_tables: tuple[tuple[str, tuple[str, ...]], ...] = (
-                    (t1_id, base_peuples),
-                    (t2_id, mir),
-                )
-            else:
-                candidate_tables = ((t1_id, base_peuples),)
-        elif table_selection == "ALL_PEUPLE_COMBOS":
-            all_combs = tuple(
-                ("-".join(comb), comb)
-                for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
-                if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
-            )
-            candidate_tables = all_combs[: min(games_per_cfg, len(all_combs))]
-        else:
-            all_t = tuple(
-                (tid, pl)
-                for tid, pl in PALIER1_TABLES_BY_N[n_pl]
-                if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
-            )
-            candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
-
-        n_tables = len(candidate_tables)
-        base_per_tbl = games_per_cfg // n_tables
-        rem_tbl = games_per_cfg % n_tables
-
-        # Regroupe les paires miroirs consécutives pour leur affecter le même rep_start (CRN)
-        table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
-        idx_t = 0
-        while idx_t < n_tables:
-            t_id_a, p_a = candidate_tables[idx_t]
+    for b_name in bot_list:
+        b_k_max = 0 if b_name == "B0" else int(manifest.get("k_max", 3))
+        for n_pl in player_counts:
             if (
-                idx_t + 1 < n_tables
-                and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
+                len(base_peuples) == n_pl
+                and len(set(base_peuples)) == n_pl
+                and all(p in PEUPLES_ORDER for p in base_peuples)
             ):
-                t_id_b, p_b = candidate_tables[idx_t + 1]
-                table_groups.append((True, ((idx_t, t_id_a, p_a), (idx_t + 1, t_id_b, p_b))))
-                idx_t += 2
+                mir = mirror_peuples(base_peuples)
+                t1_id = "-".join(base_peuples)
+                t2_id = "-".join(mir)
+                if games_per_cfg >= 2 and mir != base_peuples:
+                    candidate_tables: tuple[tuple[str, tuple[str, ...]], ...] = (
+                        (t1_id, base_peuples),
+                        (t2_id, mir),
+                    )
+                else:
+                    candidate_tables = ((t1_id, base_peuples),)
+            elif table_selection == "ALL_PEUPLE_COMBOS":
+                all_combs = tuple(
+                    ("-".join(comb), comb)
+                    for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
+                    if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
+                )
+                candidate_tables = all_combs[: min(games_per_cfg, len(all_combs))]
             else:
-                table_groups.append((False, ((idx_t, t_id_a, p_a),)))
-                idx_t += 1
+                all_t = tuple(
+                    (tid, pl)
+                    for tid, pl in PALIER1_TABLES_BY_N[n_pl]
+                    if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
+                )
+                candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
 
-        for ch_id in chassis_ids:
-            for var in profile_variants:
-                rep_offset = 0
-                for is_mirror_pair, grp in table_groups:
-                    max_g_in_grp = 0
-                    for t_i, t_id, peuples in grp:
-                        g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
-                        if g_cnt <= 0:
-                            continue
-                        max_g_in_grp = max(max_g_in_grp, g_cnt)
-                        units.append(
-                            {
-                                "campaign": campaign_name,
-                                "config_id": config_idx,
-                                "n_players": n_pl,
-                                "chassis_id": ch_id,
-                                "variant_idx": var["variant_idx"],
-                                "variant_id": var["variant_id"],
-                                "compared_slots": var["compared_slots"],
-                                "tile_profiles": var["tile_profiles"],
-                                "reve_activation_mode": var["reve_activation_mode"],
-                                "gardien_bet_cap_policy": var["gardien_bet_cap_policy"],
-                                "reve_advance_mode": var["reve_advance_mode"],
-                                "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
-                                "table_id": t_id,
-                                "peuples": peuples,
-                                "n_animaux_sauvages": sum(1 for p in peuples if p in ANIMAUX_SAUVAGES),
-                                "is_mirror_pair": is_mirror_pair,
-                                "bot": bot_name,
-                                "k_max": k_max,
-                                "mode": mode,
-                                "exp_seed": exp_seed,
-                                "rep_start": rep_offset,
-                                "n_games": g_cnt,
-                            }
-                        )
-                    rep_offset += max_g_in_grp
-                config_idx += 1
+            n_tables = len(candidate_tables)
+            base_per_tbl = games_per_cfg // n_tables
+            rem_tbl = games_per_cfg % n_tables
+
+            # Regroupe les paires miroirs consécutives pour leur affecter le même rep_start (CRN)
+            table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
+            idx_t = 0
+            while idx_t < n_tables:
+                t_id_a, p_a = candidate_tables[idx_t]
+                if (
+                    idx_t + 1 < n_tables
+                    and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
+                ):
+                    t_id_b, p_b = candidate_tables[idx_t + 1]
+                    table_groups.append((True, ((idx_t, t_id_a, p_a), (idx_t + 1, t_id_b, p_b))))
+                    idx_t += 2
+                else:
+                    table_groups.append((False, ((idx_t, t_id_a, p_a),)))
+                    idx_t += 1
+
+            for ch_id in chassis_ids:
+                for var in profile_variants:
+                    rep_offset = 0
+                    for is_mirror_pair, grp in table_groups:
+                        max_g_in_grp = 0
+                        for t_i, t_id, peuples in grp:
+                            g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
+                            if g_cnt <= 0:
+                                continue
+                            max_g_in_grp = max(max_g_in_grp, g_cnt)
+                            units.append(
+                                {
+                                    "campaign": campaign_name,
+                                    "config_id": config_idx,
+                                    "n_players": n_pl,
+                                    "chassis_id": ch_id,
+                                    "variant_idx": var["variant_idx"],
+                                    "variant_id": var["variant_id"],
+                                    "compared_slots": var["compared_slots"],
+                                    "tile_profiles": var["tile_profiles"],
+                                    "reve_activation_mode": var["reve_activation_mode"],
+                                    "gardien_bet_cap_policy": var["gardien_bet_cap_policy"],
+                                    "reve_advance_mode": var["reve_advance_mode"],
+                                    "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
+                                    "table_id": t_id,
+                                    "peuples": peuples,
+                                    "n_animaux_sauvages": sum(
+                                        1 for p in peuples if p in ANIMAUX_SAUVAGES
+                                    ),
+                                    "is_mirror_pair": is_mirror_pair,
+                                    "bot": b_name,
+                                    "k_max": b_k_max,
+                                    "mode": mode,
+                                    "exp_seed": exp_seed,
+                                    "rep_start": rep_offset,
+                                    "n_games": g_cnt,
+                                }
+                            )
+                        rep_offset += max_g_in_grp
+                    config_idx += 1
 
     return {
         "campaign_name": campaign_name,
@@ -1620,11 +1641,13 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "profile_variants": profile_variants,
         "tested_tiles": tuple(tested_tiles_set),
         "varying_tiles": tuple(varying_tiles_set),
+        "include_full_tile_metrics": include_full_tile_metrics,
         "games_per_configuration": games_per_cfg,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
         "bot": bot_name,
-        "k_max": k_max,
+        "bots": tuple(bot_list),
+        "k_max": k_max_default,
         "mode": mode,
         "exp_seed": exp_seed,
         "units": units,
@@ -1679,6 +1702,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     sum_cascade_sweeps = 0
     sum_mid_combat = 0
     reveil_anat_acc: dict[str, int] = {k: 0 for k in REVEIL_ANATOMY_FIELDS}
+    def_attr_acc: dict[str, int] = {k: 0 for k in DEFENSE_ATTRIBUTION_FIELDS}
 
     for i in range(n_games):
         rep_id = rep_start + i
@@ -1762,6 +1786,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         sum_player_decisions += int(ts.total_player_decisions)
         sum_cascade_sweeps += int(ts.cascade_sweeps)
         sum_mid_combat += int(ts.mid_combat_interrupts)
+        for k in DEFENSE_ATTRIBUTION_FIELDS:
+            def_attr_acc[k] += int(getattr(ts, k))
         if ts.rs_count or ts.rf_count:
             for k in REVEIL_ANATOMY_FIELDS:
                 reveil_anat_acc[k] += int(getattr(ts, k))
@@ -1826,6 +1852,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "sum_mid_combat": sum_mid_combat,
         "cell_wall_sec": round(wall_sec, 4),
     }
+    out_row.update(def_attr_acc)
     out_row.update(reveil_anat_acc)
     return out_row
 

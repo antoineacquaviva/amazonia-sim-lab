@@ -507,7 +507,7 @@ class GameConfig:
     coordonnateur_initial: int = 0
     max_revision_passes: int = 4
 
-    # 6 axes du châssis v5.4.2
+    # 6 axes du châssis v5.5
     profil_piste: str = "P4_2233"
     regle_ouverture_reve_multiple: str = "UNIQUE_PAR_TOUR"
     offset_seuil_parade: int = 0
@@ -515,11 +515,10 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres hors-châssis Activation Rêves (v5.4.2), Plafond Pari Gardiens / Avancée Rêves (v5.4.5)
-    # & Déclencheur 4. Gardien (v5.4.6)
+    # Paramètres consolidés v5.5 : Activation Rêves, Plafond Pari Gardiens, Avancée Rêves & 4. Gardien
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
-    reve_advance_mode: str = "JUMP_PUSH"
+    reve_advance_mode: str = "CLEAR_RANK_ONLY"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
@@ -626,11 +625,11 @@ class GameConfig:
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
-        reve_advance_mode: str = "JUMP_PUSH",
+        reve_advance_mode: str = "CLEAR_RANK_ONLY",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v5.4.6 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v5.5 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -650,7 +649,7 @@ class GameConfig:
         return cls(**kwargs)
 
     def gardien_bet_cap_for_case(self, case_1_6: int) -> int:
-        """Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.4.5)."""
+        """Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2)."""
         if self.gardien_bet_cap_policy == "MAX_2_RES_MAX_1" and case_1_6 == 4:
             return 1
         return 2
@@ -663,7 +662,7 @@ class GameConfig:
         return None
 
     def profile_for_slot(self, slot_id: str) -> str | None:
-        """Retourne le profil actif d'un emplacement (Bug=B, Colonie=A par défaut en Mode 2+)."""
+        """Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5)."""
         if self.mode == 1:
             return None
         if self.mode == 2:
@@ -671,15 +670,13 @@ class GameConfig:
                 for s_id, prof in self.tile_profiles:
                     if s_id == slot_id:
                         return prof
-                return "B" if slot_id == "SLOT_BUG_CERVEAU" else "A"
+                return "B"
             return None
         for s_id, prof in self.tile_profiles:
             if s_id == slot_id:
                 return prof
-        if slot_id == "SLOT_BUG_CERVEAU":
+        if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
             return "B"
-        if slot_id == "SLOT_COLONISATION_GARDIENS":
-            return "A"
         return "A"
 
 

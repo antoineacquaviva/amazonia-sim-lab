@@ -1,6 +1,6 @@
 {
-  "schema_version": "5.4",
-  "description": "Garde-fous sémantiques et lexicaux vérifiés automatiquement sur Amazonia Doc Studio (Livret Didactique, Catalogue hors historique et rendu DOM headless) lors de chaque verify_lot.py.",
+  "schema_version": "5.5.0",
+  "description": "Garde-fous sémantiques, lexicaux et éditoriaux vérifiés automatiquement sur Amazonia Doc Studio v5.5 (Livret Joueur, Catalogue et rendu DOM headless) lors de chaque verify_lot.py.",
   "banned_in_livret": [
     "Une tuile Rêve occupe",
     "en Siège",
@@ -30,7 +30,26 @@
     "gardien_resonance_cap",
     "reveil_reves_policy",
     "mobilisation croisée",
-    "DISTINCT_WON_2"
+    "DISTINCT_WON_2",
+    "CLEAR_RANK_ONLY",
+    "UNIFORM_MAX_2",
+    "DISTINCT_OPEN_1",
+    "SLOT_BUG_CERVEAU",
+    "SLOT_COLONISATION_GARDIENS",
+    "Mode 1",
+    "Mode 2",
+    "Mode 3",
+    "Mode 4",
+    "v5.4",
+    "v5.3",
+    "n'allume plus",
+    "n’allume plus",
+    "est supprimée",
+    "Rêves hors Éveil",
+    "1_DEF_1_MACHINE",
+    "MAX_2_RES_MAX_1",
+    "JUMP_PUSH",
+    "FREE_SLOT_ONLY"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",
@@ -50,12 +69,18 @@
     {
       "peuples": ["M", "R", "O", "I"],
       "must_contain": [
-        "Condition inactive dans cette partie (aucun peuple onirique H/E autour de la table)",
-        "pari d'activation",
-        "max 2 Défenseurs par Gardien",
-        "tous les paris sont gagnés",
-        "Rêves hors Éveil",
-        "CLEAR_RANK_ONLY",
+        "1. Présentation &amp; Objectif",
+        "2. Matériel &amp; Mise en place",
+        "3. Vue d’ensemble d’un tour",
+        "4. Déroulé d’un tour étape par étape",
+        "5. Les Peuples et leurs mécaniques propres",
+        "6. Fin de partie &amp; Repousse Finale",
+        "7. Mémento de table (Aide de jeu)",
+        "Condition inactive dans cette partie (aucun Peuple Onirique autour de la table).",
+        "maximum 2 Défenseurs par Gardien",
+        "tous les paris du tour sont gagnés",
+        "1 événement = au plus 1 déclencheur",
+        "Bouclier de lisière",
         "Ratissage",
         "<code>T1</code>",
         "/ 192"
@@ -64,9 +89,10 @@
     {
       "peuples": ["H", "E", "I"],
       "must_contain": [
-        "Condition inactive dans cette partie (aucun Peuple Animal Sauvage M/R/O autour de la table)",
-        "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
-        "CLEAR_RANK_ONLY",
+        "Condition inactive dans cette partie (aucun Peuple Animal Sauvage autour de la table).",
+        "Les <strong>4 tuiles Rêve</strong> de la partie",
+        "cases 1 à 4",
+        "si toutes les machines pointant sur ce rang ont été annulées ce tour-ci",
         "Ratissage",
         "<code>T1</code>"
       ]
@@ -74,11 +100,11 @@
     {
       "peuples": ["M", "R", "O", "H"],
       "must_contain": [
-        "Toutes les <strong>2 tuiles Rêve</strong> en jeu",
-        "Rangs 1 à 2",
-        "pari d'activation",
-        "max 2 Défenseurs par Gardien",
-        "tous les paris sont gagnés",
+        "Les <strong>2 tuiles Rêve</strong> de la partie",
+        "cases 1 à 2",
+        "maximum 2 Défenseurs par Gardien",
+        "tous les paris du tour sont gagnés",
+        "glissez 1 Défenseur sous la tuile",
         "Ratissage",
         "<code>T1</code>"
       ]
@@ -86,11 +112,11 @@
     {
       "peuples": ["M", "R", "H", "E"],
       "must_contain": [
-        "Toutes les <strong>4 tuiles Rêve</strong> en jeu",
-        "Rangs 1 à 4",
-        "pari d'activation",
-        "max 2 Défenseurs par Gardien",
-        "tous les paris sont gagnés",
+        "Les <strong>4 tuiles Rêve</strong> de la partie",
+        "cases 1 à 4",
+        "maximum 2 Défenseurs par Gardien",
+        "tous les paris du tour sont gagnés",
+        "Pont routier",
         "Ratissage",
         "<code>T1</code>"
       ]

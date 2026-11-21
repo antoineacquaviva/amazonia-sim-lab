@@ -71,11 +71,12 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     start_idx, end_idx, total = bounds
     rotations = tuple(PEUPLES_ORDER[rot:] + PEUPLES_ORDER[:rot] for rot in range(6))
 
-    # Phase CORE_STABILIZATION : 100 % Modes 1 & 2 (30 % Mode 1, 70 % Mode 2 à blanc)
-    t1 = (total * 30) // 100
+    # Socle gelé v5.5 : 20 % Mode 1, 40 % Mode 2, 40 % Mode 4 (catalogue actif 32 slots)
+    t1 = (total * 20) // 100
+    t2 = (total * 60) // 100
 
     for game_idx in range(start_idx, end_idx):
-        mode = 1 if game_idx < t1 else 2
+        mode = 1 if game_idx < t1 else (2 if game_idx < t2 else 4)
         n_players = 3 + (game_idx % 4)
         chassis_id = (game_idx * 17) % NUM_CHASSIS
         peuples = rotations[game_idx % 6][:n_players]
@@ -93,14 +94,20 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 "1_DEF_1_MACHINE",
                 "1_DEF_ALL_RANK",
                 "BINOME_ALL_RANK",
-            )[game_idx % 3],
-            gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2],
-            reve_advance_mode=("JUMP_PUSH", "CLEAR_RANK_ONLY")[(game_idx // 2) % 2],
+            )[game_idx % 3]
+            if mode == 2
+            else "1_DEF_1_MACHINE",
+            gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2]
+            if mode == 2
+            else "UNIFORM_MAX_2",
+            reve_advance_mode=("CLEAR_RANK_ONLY", "JUMP_PUSH")[(game_idx // 2) % 2]
+            if mode == 2
+            else "CLEAR_RANK_ONLY",
             gardien_4_trigger_mode="DISTINCT_OPEN_1",
             tile_profiles=(
                 (
                     ("SLOT_BUG_CERVEAU", "B"),
-                    ("SLOT_COLONISATION_GARDIENS", ("A", "B")[(game_idx // 8) % 2]),
+                    ("SLOT_COLONISATION_GARDIENS", "B" if mode == 4 else ("B", "A")[(game_idx // 8) % 2]),
                 )
                 if mode >= 2
                 else ()

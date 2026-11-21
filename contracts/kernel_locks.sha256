@@ -1,6 +1,7 @@
-# Phase CORE_STABILIZATION (Mode 2 à blanc) — Noyau volontairement dégelé
-# pour permettre des itérations rapides sur les règles symétriques (v5.4.x -> v5.5).
-# Le snapshot complet v5.4.3 + 100 tuiles est figé sur le tag Git :
-#   archive/v5.4.3-legacy-100-tiles
-# Re-sceller engine/{state,rng,primitives,core_engine}.py ici dès validation
-# des critères de contracts/CORE_FREEZE_CRITERIA.md.
+# Socle Officiel Figé v5.5 (schema_version = 5.5.0) — Noyau Scellé
+# Empreintes SHA-256 vérifiées par la porte [1/8] de verify_lot.py.
+# Interdiction absolue de modifier un fichier listé sans approbation explicite de l auteur.
+ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
+a021702005f420452fb20c6733d42175b2912d679f940c9d55e157c656a600ed  engine/state.py
+c09ec199daa7a371bfa8db2133883eb57b8e989645a6be487565984425d8801e  engine/primitives.py
+b2a00316b10bff4e14a933643b0599aad64aaef5f764b35f361ec3ae694b2769  engine/core_engine.py

@@ -5,6 +5,6 @@ WORKDIR /app
 COPY engine/ ./engine/
 COPY bots/ ./bots/
 COPY campaigns/ ./campaigns/
-COPY data/spec_bundle_v5_4.json ./data/spec_bundle_v5_4.json
+COPY data/spec_bundle_v5_5.json ./data/spec_bundle_v5_5.json
 
 ENTRYPOINT ["pypy3", "-m", "campaigns.worker_main"]

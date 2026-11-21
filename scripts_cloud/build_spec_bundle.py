@@ -1,4 +1,4 @@
-"""Génère data/spec_bundle_v5_4.json et engine/effects/mode3_reference.json depuis le Studio."""
+"""Génère data/spec_bundle_v5_5.json (contrat exécutable v5.5.0) depuis le Studio."""
 
 from __future__ import annotations
 
@@ -18,9 +18,9 @@ from scripts_cloud.studio_paths import resolve_studio_dir
 DATA_DIR = ROOT / "data"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
 LOCK_FILE = DATA_DIR / "studio_lock.json"
-SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_4.json"
-CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_4.json"
-OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_4.json"
+SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_5.json"
+CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_5.json"
+OUT_BUNDLE = DATA_DIR / "spec_bundle_v5_5.json"
 OUT_MODE3 = ROOT / "engine" / "effects" / "mode3_reference.json"
 
 RES_VOCAB = frozenset(
@@ -43,7 +43,7 @@ TRIG_VOCAB = frozenset({f"TRIG_{i}" for i in range(1, 7)})
 
 
 def _load_studio_js_objects() -> dict[str, Any]:
-    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_4.js"
+    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_5.js"
     if not studio_js_path.exists():
         raise FileNotFoundError(
             f"Fichier Studio introuvable : {studio_js_path} "
@@ -325,14 +325,14 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
             if slot_id == "SLOT_BUG_CERVEAU":
                 chosen_key = "B"
                 rationale = (
-                    "Profil B actif par défaut depuis v5.4.2 "
-                    "(Déviation Synaptique en 3.2, Apprentissage supprimé)."
+                    "Profil B actif par défaut en v5.5 "
+                    "(Déviation Synaptique en 3.2 sur la Piste des Tactiques fixe)."
                 )
                 replaced_a.append({"slot": slot_id, "chosen": chosen_key, "reason": rationale})
             else:
-                chosen_key = "A"
-                rationale = "Migration fixée à A selon la référence Mode 3."
-                kept_a_count += 1
+                chosen_key = "B"
+                rationale = "Profil B actif par défaut en v5.5 (Bouclier de lisière en 5.3)."
+                replaced_a.append({"slot": slot_id, "chosen": chosen_key, "reason": rationale})
         else:
             scored = []
             for pk, p in profils.items():
@@ -359,8 +359,8 @@ def _build_mode3_reference(catalogue: dict[str, Any]) -> dict[str, Any]:
         }
 
     return {
-        "schema_version": "5.4.0",
-        "description": "Sélection de référence Mode 3 (1 profil épuré par emplacement, Migrations A/A).",
+        "schema_version": "5.5.0",
+        "description": "Sélection de référence Mode 3/4 (socle gelé v5.5, Migrations B/B).",
         "criteres_priorite": [
             "1. Zéro modification de l'ordre d'attaque ou du secret des paravents",
             "2. Minimum de dette mémorielle (zéro TransientModifier multi-sous-étapes si évitable)",
@@ -391,14 +391,17 @@ def _file_lock_entry(path: Path) -> dict[str, object]:
 
 
 def build_bundle() -> None:
-    studio_js_path = resolve_studio_dir(ROOT) / "data" / "amazonia_data_v5_4.js"
+    studio_data_dir = resolve_studio_dir(ROOT) / "data"
+    studio_js_path = studio_data_dir / "amazonia_data_v5_5.js"
+    studio_livret_path = studio_data_dir / "livret_v5_5.js"
     studio_js = _load_studio_js_objects()
     spec_data = json.loads(SPEC_FILE.read_text(encoding="utf-8"))
     catalog_meta = json.loads(CATALOG_FILE.read_text(encoding="utf-8"))
     studio_sha256 = {
-        "catalog_v5_4.json": _file_lock_entry(CATALOG_FILE),
-        "spec_formelle_v5_4.json": _file_lock_entry(SPEC_FILE),
-        "amazonia_data_v5_4.js": _file_lock_entry(studio_js_path),
+        "catalog_v5_5.json": _file_lock_entry(CATALOG_FILE),
+        "spec_formelle_v5_5.json": _file_lock_entry(SPEC_FILE),
+        "amazonia_data_v5_5.js": _file_lock_entry(studio_js_path),
+        "livret_v5_5.js": _file_lock_entry(studio_livret_path),
     }
 
     catalogue = studio_js["CATALOGUE_TUILES"]
@@ -408,8 +411,8 @@ def build_bundle() -> None:
 
     bundle = {
         "meta": {
-            "schema_version": "5.4.0",
-            "source_studio_version": "v5.4",
+            "schema_version": "5.5.0",
+            "source_studio_version": "v5.5",
             "studio_sha256": studio_sha256,
             "total_emplacements": len(catalogue),
             "total_profils": sum(len(s["profils"]) for s in catalogue.values()),
@@ -455,7 +458,7 @@ def build_bundle() -> None:
             "remelange_etape": "6.3",
             "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout",
         },
-        "spec_formelle_v5_4": spec_data,
+        "spec_formelle_v5_5": spec_data,
         "catalogue_tuiles": catalogue,
     }
 

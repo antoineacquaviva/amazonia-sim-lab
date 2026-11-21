@@ -68,7 +68,7 @@ def test_portable_studio_dir_resolution(
 
     integrated_data = fake_repo / "docs" / "data"
     integrated_data.mkdir(parents=True)
-    (integrated_data / "catalog_v5_4.json").write_text("{}", encoding="utf-8")
+    (integrated_data / "catalog_v5_5.json").write_text("{}", encoding="utf-8")
     assert resolve_studio_dir(fake_repo) == (fake_repo / "docs").resolve()
 
     custom_studio = tmp_path / "custom-studio"

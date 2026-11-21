@@ -1,0 +1,42 @@
+{
+  "campaign_name": "baseline_mode4_v5_5",
+  "description": "État des lieux initial Mode 4 sur le socle gelé v5.5 : catalogue complet 32 emplacements (base STANDARD_A + SLOT_BUG_CERVEAU=B Déviation + SLOT_COLONISATION_GARDIENS=B Bouclier de lisière), courbe de progression multi-bots B0 < B1 < B2, tables N=3..6 sur toutes les combinaisons de Peuples (42 tables, min_animaux_sauvages=0), 6 châssis canoniques (chassis_id 0..5), comptabilité defense_attribution et tile_metrics complet sur les 32 emplacements (8 640 parties).",
+  "mode": 4,
+  "bots": ["B0", "B1", "B2"],
+  "k_max": 3,
+  "seed": 20261126,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 0,
+  "games_per_configuration": 120,
+  "reve_activation_mode": "1_DEF_1_MACHINE",
+  "reve_advance_mode": "CLEAR_RANK_ONLY",
+  "gardien_bet_cap_policy": "UNIFORM_MAX_2",
+  "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
+  "include_full_tile_metrics": true,
+  "base_instance": {
+    "config_index_192": 1,
+    "bundle_id": "STANDARD_A",
+    "slots_insectes": {
+      "SLOT_BUG_CERVEAU": "B",
+      "SLOT_COLONISATION_GARDIENS": "B"
+    }
+  },
+  "chassis_plan": {
+    "varying_axes": [
+      {
+        "key": "Profil_Piste",
+        "values": [
+          "P4_2233",
+          "P4_2223",
+          "P4_1223",
+          "P5_22233",
+          "P5_22223",
+          "P5_12223"
+        ]
+      }
+    ],
+    "fixed_axes": {}
+  },
+  "slot_profile_comparisons": {}
+}

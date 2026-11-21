@@ -128,11 +128,11 @@ class _EconomieStore:
 
 
 def get_economie_catalog() -> dict[tuple[str, str], EconomieNode]:
-    """Charge une seule fois le graphe orienté `economie_bot` depuis `data/spec_bundle_v5_4.json`."""
+    """Charge une seule fois le graphe orienté `economie_bot` depuis `data/spec_bundle_v5_5.json`."""
     if _EconomieStore.cache is not None:
         return _EconomieStore.cache
 
-    spec_path = Path(__file__).resolve().parent.parent / "data" / "spec_bundle_v5_4.json"
+    spec_path = Path(__file__).resolve().parent.parent / "data" / "spec_bundle_v5_5.json"
     raw = json.loads(spec_path.read_text(encoding="utf-8"))
     cat = raw["catalogue_tuiles"]
     nodes: dict[tuple[str, str], EconomieNode] = {}

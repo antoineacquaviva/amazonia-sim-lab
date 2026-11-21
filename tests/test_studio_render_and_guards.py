@@ -2,9 +2,9 @@
 
 Exécuté automatiquement par `pytest` (porte [7/8] de `verify_lot.py`) sans aucune
 dépendance npm :
-1. Vérifie les schémas critiques de `amazonia_data_v5_4.js` (`VERSION_CHANGELOG[*].deltas`,
+1. Vérifie les schémas critiques de `amazonia_data_v5_5.js` (`VERSION_CHANGELOG[*].deltas`,
    `TOPOLOGIES_PISTE_SPEC[*].{code, p_max, dotation, somme, arbres_par_rayon}`).
-2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `livret_v5_4.js` dans
+2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `livret_v5_5.js` dans
    Node `vm` sur un mini-DOM mocké pour plusieurs tables (`0`, `1`, `2` peuples oniriques)
    et tous les 6 profils de pistes.
 3. Vérifie : zéro exception JS, zéro `NaN` / `undefined` dans le DOM rendu, journal
@@ -21,8 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GUARDS_PATH = ROOT / "contracts" / "studio_rules_guards.json"
 STUDIO_INDEX = ROOT / "docs" / "index.html"
-STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v5_4.js"
-STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v5_4.js"
+STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v5_5.js"
+STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v5_5.js"
 
 
 _NODE_HARNESS = r"""
@@ -44,7 +44,7 @@ if (inlineScripts.length === 0) {
   throw new Error('Aucun script inline trouvé dans docs/index.html');
 }
 
-// Lightweight mock DOM supporting all IDs referenced by docs/index.html & livret_v5_4.js
+// Lightweight mock DOM supporting all IDs referenced by docs/index.html & livret_v5_5.js
 function makeElement(id) {
   const classes = new Set();
   const el = {
@@ -52,7 +52,7 @@ function makeElement(id) {
     _innerHTML: '',
     _textContent: '',
     value: id === 'changelog-filter-select' ? 'ALL'
-         : id === 'diff-version-select' ? 'v5.3'
+         : id === 'diff-version-select' ? 'v5.4.7'
          : id === 'filter-famille' || id === 'filter-peuple' || id === 'filter-tag' || id === 'filter-scope' ? 'ALL'
          : '',
     className: '',
@@ -218,6 +218,13 @@ for (const check of guards.required_livret_assertions || []) {
     refreshAllUI();
   })()`, sandbox);
   const livretHtml = getEl('rulebook-article').innerHTML;
+  for (const banned of guards.banned_in_livret || []) {
+    if (livretHtml.includes(banned)) {
+      throw new Error(
+        `Motif interdit "${banned}" dans le Livret rendu (#rulebook-article) pour table ${check.peuples.join('-')}`
+      );
+    }
+  }
   for (const expected of check.must_contain) {
     if (!livretHtml.includes(expected)) {
       throw new Error(
@@ -236,7 +243,7 @@ console.log(JSON.stringify({
 
 
 def test_studio_banned_terms_in_livret_source() -> None:
-    """Interdit tout résidu textuel de règles obsolètes dans docs/data/livret_v5_4.js."""
+    """Interdit tout résidu textuel de règles obsolètes ou jargon interne dans docs/data/livret_v5_5.js."""
     guards = json.loads(GUARDS_PATH.read_text(encoding="utf-8"))
     livret_src = STUDIO_LIVRET.read_text(encoding="utf-8")
     violations = [pat for pat in guards["banned_in_livret"] if pat in livret_src]

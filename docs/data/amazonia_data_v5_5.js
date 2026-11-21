@@ -1,5 +1,5 @@
 // =========================================================================
-// data/amazonia_data_v5_4.js — Données canoniques Amazonia v5.4.7 (6 profils · 192 châssis · Partition stricte 6 déclencheurs · 4. Gardien DISTINCT_OPEN_1 · Bouclier de lisière · Éveil 100 % Gardiens · Rêves CLEAR_RANK_ONLY)
+// data/amazonia_data_v5_5.js — Données canoniques Amazonia v5.5 (Socle Gelé · 6 profils · 192 châssis · 32 emplacements actifs)
 // =========================================================================
 const PEUPLES = {
   "M": {
@@ -622,7 +622,7 @@ const CATALOGUE_TUILES = {
           "REDEPLOIEMENT"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées (renvoyez G4 sur sa Face 1 en lisière ; il libère sa case et perd son marqueur « utilisé »).",
+        "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de −1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées et renvoyez ce Gardien sur sa Face 1 en lisière (sa case est immédiatement libérée).",
         "temoin": "Le renvoi en lisière libère la case Gardien pour une future construction ; le Gardien repasse Face 1 et perd son marqueur « utilisé »."
       },
       "B": {
@@ -826,7 +826,7 @@ const CATALOGUE_TUILES = {
           "SOUCHES"
         ],
         "requires_options": {},
-        "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée (déclenche la case 2).",
+        "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée.",
         "temoin": "Fonctionne sur toute la roue dès qu’une Souche est présente."
       },
       "B": {
@@ -974,7 +974,7 @@ const CATALOGUE_TUILES = {
           "SABOTAGE"
         ],
         "requires_options": {},
-        "texte": "<strong>Face 1 :</strong> Ajoutez définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de 6.3 ; allume la case 3).<br><strong>Face 2 :</strong> Ajoutez définitivement 2 cartes Sabotage de la réserve au paquet Machine (allume la case 3).",
+        "texte": "<strong>Face 1 :</strong> Ajoutez définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de fin de tour).<br><strong>Face 2 :</strong> Ajoutez définitivement 2 cartes Sabotage de la réserve au paquet Machine (mises de côté pour le remélange de fin de tour).",
         "temoin": "Dilue durablement le paquet Machine en réaction à n’importe quel Déclencheur (réserve de cartes Sabotage illimitée)."
       },
       "B": {
@@ -1239,7 +1239,7 @@ const CATALOGUE_TUILES = {
           "AVANCEE_REVE"
         ],
         "requires_options": {},
-        "texte": "Échangez une tuile Rêve de la Piste des Tactiques avec sa voisine de gauche (r → r-1, sans ouvrir son Slot ni allumer la case 5).",
+        "texte": "Faites avancer d’1 rang vers la gauche une tuile Rêve de la Piste des Tactiques (en poussant d’un cran tout bloc contigu de Rêves, sans activer son effet).",
         "temoin": "Si l’échange regroupe ainsi en bloc à gauche toutes les tuiles Rêves en jeu (rangs 1..k), le Sommeil du Contremaître sera validé lors de la vérification de fin de partie en 5.3."
       },
       "B": {
@@ -1309,7 +1309,7 @@ const CATALOGUE_TUILES = {
           "ARMEMENT"
         ],
         "requires_options": {},
-        "texte": "Posez 1 jeton Insecte sur une parcelle non rasée ou une case Furtivité contenant au moins 1 Défenseur (allume la case 6).",
+        "texte": "Posez 1 jeton Insecte sur une parcelle non rasée ou une case Furtivité contenant au moins 1 Défenseur.",
         "temoin": "Peut compléter un binôme furtif avant 4.1 ou renforcer une Parade en 5."
       },
       "B": {
@@ -1365,7 +1365,7 @@ const CATALOGUE_TUILES = {
           "INSECTES"
         ],
         "requires_options": {},
-        "texte": "Défaussez 1 Insecte d’une parcelle Forêt pour poser 1 Piège sur cette parcelle ou une parcelle non rasée adjacente du même rayon sans Piège (allume la case 2).",
+        "texte": "Défaussez 1 Insecte d’une parcelle Forêt pour poser 1 Piège sur cette parcelle ou une parcelle non rasée adjacente du même rayon sans Piège.",
         "temoin": "Attention : ne défaussez pas le dernier pion qui devait fournir le point de Défense armant ce Piège !"
       },
       "B": {
@@ -1778,7 +1778,7 @@ const CATALOGUE_TUILES = {
           "INSECTES"
         ],
         "requires_options": {},
-        "texte": "Posez 1 Insecte de la réserve sur une parcelle non rasée d’un rayon de cette paire (H ou I, allume la case 6).",
+        "texte": "Posez 1 Insecte de la réserve sur une parcelle non rasée d’un rayon de cette paire (H ou I).",
         "temoin": "Fournit un Insecte dès l’Étape 3.2 avant l’action des binômes en 4.1."
       },
       "B": {
@@ -1902,7 +1902,7 @@ const CATALOGUE_TUILES = {
           "POSE"
         ],
         "requires_options": {},
-        "texte": "Posez 1 Piège sur une parcelle non rasée sans Piège des rayons E ou R, même occupée par une machine ou ciblée (allume la case 2).",
+        "texte": "Posez 1 Piège sur une parcelle non rasée sans Piège des rayons E ou R, même occupée par une machine ou ciblée.",
         "temoin": "Pose un Piège directement sur une cible révélée en 3.2."
       },
       "B": {
@@ -2277,7 +2277,7 @@ const CATALOGUE_TUILES = {
           "INSECTES"
         ],
         "requires_options": {},
-        "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3).",
+        "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de fin de tour).",
         "temoin": "Résolu dans le bloc indivisible du Nid : enrichit définitivement le paquet Machine, puis au balayage suivant les cases 3 et 6 sont examinées dans l’ordre 1 → 6."
       },
       "B": {
@@ -2537,8 +2537,31 @@ const CATALOGUE_TUILES = {
 
 const VERSION_CHANGELOG = [
   {
+    "version": "v5.5",
+    "date": "Socle gelé en vigueur (2026-11-20)",
+    "titre": "Gel officiel du socle v5.5, refonte éditoriale complète du Livret et état des lieux Mode 4",
+    "resume": "Gel officiel du socle symétrique v5.5 (schema_version 5.5.0) consolidant toutes les règles validées en 5.4.7 : Piste des Tactiques fixe T1..T6, Rêves en coût d'activation (avancée uniquement si toutes les machines du rang sont annulées), Piste des Gardiens à pari uniforme (0/1/2 Défenseurs glissés, Face 2 en 5.3 uniquement sur pari gagné), partition stricte des 6 déclencheurs, Réveil de la Forêt 100 % Gardiens, Insectes Déviation + Bouclier de lisière. Réécriture intégrale du livret de règles joueur en 7 sections didactiques, vérification des 30 tuiles actives STANDARD_A en Mode 4, et enrichissement du digest (defense_attribution + tile_metrics complet).",
+    "deltas": [
+      {
+        "domaine": "Gel du socle v5.5 (moteur & 4 couches Studio)",
+        "avant": "v5.4.7 : Phase de stabilisation Mode 2 à blanc (verrous kernel dégelés, défauts hérités JUMP_PUSH et Colonie A).",
+        "apres": "v5.5 (5.5.0) : Socle officiellement gelé et verrouillé (kernel_locks.sha256 rescellé), défauts officiels CLEAR_RANK_ONLY + SLOT_BUG_CERVEAU=B + SLOT_COLONISATION_GARDIENS=B, compatibilité vérifiée des 30 tuiles actives STANDARD_A avec la double activation Gardien et le passage Face 2 en 5.3 uniquement."
+      },
+      {
+        "domaine": "Refonte complète du Livret de Règles joueur",
+        "avant": "v5.4.7 : Livret accumulant des correctifs successifs, des codes techniques et des formulations rétrospectives.",
+        "apres": "v5.5 : Livret réécrit intégralement de zéro en 7 sections éditoriales modernes (Présentation, Matériel, Vue d’ensemble, Déroulé étape par étape, Les Peuples, Fin & Repousse, Mémento de table), vocabulaire unifié, encadrés Règle d’or & Exemple concret, zéro jargon technique."
+      },
+      {
+        "domaine": "Digest enrichi & Manifeste Mode 4 baseline_mode4_v5_5",
+        "avant": "v5.4.7 : Campagnes mono-bot sans ventilation defense_attribution ni tile_metrics complet sur les 32 emplacements.",
+        "apres": "v5.5 : Section defense_attribution (7 postes), support multi-bots B0/B1/B2, tile_metrics complet sur les 32 slots, et manifeste baseline_mode4_v5_5.json prêt pour le premier état des lieux Mode 4."
+      }
+    ]
+  },
+  {
     "version": "v5.4.7",
-    "date": "Version en vigueur (2026-11-20)",
+    "date": "Validation pré-gel (2026-11-20)",
     "titre": "Finalisation du socle : 6. Insecte strict (sans 4.2 Nids) & 4. Gardien verrouillé sur DISTINCT_OPEN_1",
     "resume": "Correction des deux biais détectés sur calibration_declencheurs_v5_4 : la production d’un Nid en 4.2 n’allume plus jamais 6. Insecte (partition stricte exclusivement en 3.2 déviation Bug ou 5.1 Parade classique avec dépense >= 1 Insecte), verrouillage définitif de 4. Gardien sur DISTINCT_OPEN_1 (suppression de DISTINCT_WON_2), et recalibrage de B2 (valorisation réaliste du Sabotage en 4.1 et arbitrage Migration 4.3 forêt / Bug / Bouclier de lisière).",
     "deltas": [
@@ -2822,8 +2845,8 @@ const VERSION_CHANGELOG = [
   }
 ];
 
-const SPEC_FORMELLE_V5_4 = {
-  "schema_version": "5.4.7",
+const SPEC_FORMELLE_V5_5 = {
+  "schema_version": "5.5.0",
   "date_consolidation": "2026-11-20",
   "architecture_reference": {
     "total_emplacements_synergie": 30,
@@ -2878,7 +2901,7 @@ const SPEC_FORMELLE_V5_4 = {
     "communication_muette": "Silence tactique complet tant que les paravents sont fermés (aucun échange verbal ou gestuel sur les coups, cartes ou dés). Sous Le Cri d'Alarme de l'Ara (ouverture anticipée), visibilité publique des cartes et dés mais pose individuelle sans concertation orale.",
     "pont_routier_routes_forestieres": "Le long d'un rayon de Forêt, toute Route Forestière est systématiquement sautée : viser devant, avancer, reculer, glisser un Piège ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Latéralement (Forêt <-> Furtivité), une Route Forestière est infranchissable et inoccupable.",
     "suppression_dette_et_verrouillage": "Zéro Insecte engagé et zéro verrouillage des parcelles ciblées. Les Insectes requis lors d’une parade classique sont défaussés immédiatement à la frappe. Tant qu'un Insecte est sur le plateau, il est libre. Seul un Piège ayant déjà paré au moins une frappe ce tour-ci ne peut plus payer un coût volontaire avant son retrait de fin d'attaques.",
-    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Partition stricte des 6 déclencheurs (« 1 événement = au plus 1 déclencheur ») : en 3.2 (par carte révélée) 3. Sabotage > 6. Insecte (déviation Bug) > 5. Rêve (dé M sur rang Rêve, annulée ou non) ; en 4.1 Furtivité aucun déclencheur 2 ni 3 ; la production d'un Nid en 4.2 n'allume jamais 6. Insecte ; en 5.1/5.2 (par frappe bloquée) 2. Piégeage (Piège armé) > 6. Insecte (Parade classique avec dépense >= 1 Insecte) > 1. Parade (Défenseurs seuls). Case 4. Gardien verrouillée sur DISTINCT_OPEN_1 (anti-boucle conservé : 1re ouverture du tour de chaque autre Gardien distinct). Zéro marqueur 'utilisé' : plafond uniforme UNIFORM_MAX_2 (max 2 Défenseurs par Gardien en 2.2). Balayage à plat de 1 à 6."
+    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Partition stricte des 6 déclencheurs (« 1 événement = au plus 1 déclencheur ») : en 3.2 (par carte révélée) 3. Sabotage > 6. Insecte (déviation sur Tactiques) > 5. Rêve (dé M sur rang Rêve, annulée ou non) ; en 4.1 Furtivité et en 4.2 production de Nid aucun déclencheur n'est allumé ; en 5.1/5.2 (par frappe bloquée) 2. Piégeage (Piège armé) > 6. Insecte (Parade classique avec dépense >= 1 Insecte) > 1. Parade (Défenseurs seuls). Case 4. Gardien : 1re ouverture du tour de chaque autre Gardien distinct (anti-boucle conservé). Pari uniforme de 0, 1 ou 2 Défenseurs maximum par Gardien construit en 2.2 (glissés sous la tuile à chaque déclenchement). Balayage à plat de 1 à 6."
   },
   "etapes_tour": [
     {
@@ -2898,7 +2921,7 @@ const SPEC_FORMELLE_V5_4 = {
       "regles": [
         "2.1 / 2.2 Pose sous paravent fermé : 1er Défenseur irrévocable sur sa Forêt ou ses 2 lisières ; puis Défenseur de portée globale (réflexion -> choix définitif). Anti-blocage : pose interdite sur Route Forestière, tuile construite/pleine/inconstructible ou rive Furtivité bordant une Route (si parcelle requise).",
         "Piste de Furtivité à 4 emplacements par case (2 jumeaux rive J1, 2 jumeaux rive J2 ; max 2 Défenseurs par case). Lorsqu'un Défenseur ENTRE sur une case de Furtivité (1er Défenseur, 2e en réflexion ou 2e posé directement en choix définitif), on le pose sur l'un des 4 emplacements valides et l'éventuel autre Défenseur présent glisse aussitôt sur l'emplacement jumeau du même bord (orientant l'unique action du binôme). Retourner sur place un jeton de sa face réflexion à sa face choix définitif se fait strictement sur son emplacement actuel, sans déplacement ni tirage.",
-        "2.2 Portée globale, Activation des Rêves & Pari sur les Gardiens : pose en réflexion puis définitive partout sur le plateau, y compris sur un Rêve de la Piste des Tactiques fixe (coût d'activation en 3.2) ou en pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; max 2 Défenseurs par Gardien selon gardien_bet_cap_policy : UNIFORM_MAX_2 ou MAX_2_RES_MAX_1 sur 4. Gardien). Un Gardien sans Défenseur reste inactif ce tour-ci."
+        "2.2 Portée globale, Activation des Rêves & Pari sur les Gardiens : pose en réflexion puis définitive partout sur le plateau, y compris sur un Rêve de la Piste des Tactiques fixe (coût d'activation en 3.2 : 1 Défenseur annule 1 machine) ou en pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; 0, 1 ou 2 Défenseurs maximum par Gardien, glissés sous la tuile à chaque déclenchement). Un Gardien sans Défenseur reste inactif ce tour-ci."
       ]
     },
     {
@@ -2910,7 +2933,7 @@ const SPEC_FORMELLE_V5_4 = {
         "3.1 Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
         "3.1 Rêve : un Rêve construit se pose par-dessus la case libre la plus à droite de la piste fixe T1..T6 (case 6, puis case 5 si 6 est déjà occupée par un Rêve, etc.). Aucune Tactique n'est éjectée (les Insectes Bug restent sur leur numéro d'emplacement imprimé). Ce Rêve est immédiatement présent sur la piste pour l’étape 3.2.",
         "3.1 Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents.",
-        "3.2 Révélation simultanée (paravents ouverts) — partition stricte « 1 carte révélée = au plus 1 déclencheur » : (a) 3. Sabotage si la carte révélée est un Sabotage ; (b) sinon 6. Insecte si un pion Insecte Bug (SLOT_BUG_CERVEAU=B) dévie le dé M de ±1 rang ; (c) sinon 5. Rêve si le dé retenu M d'une carte Machine pointe sur un rang occupé par une tuile Rêve (que la machine soit annulée par un Défenseur sur ce Rêve ou joue la Tactique imprimée dessous). Résolution des Rêves (Option A 1_DEF_1_MACHINE) : chaque Défenseur dessus annule 1 machine (en priorisant la plus menaçante) ; le Rêve avance vers la gauche (CLEAR_RANK_ONLY : uniquement si toutes les machines du rang M ont été annulées ce tour-ci)."
+        "3.2 Révélation simultanée (paravents ouverts) — partition stricte « 1 carte révélée = au plus 1 déclencheur » : (a) 3. Sabotage si la carte révélée est un Sabotage ; (b) sinon 6. Insecte si un pion Insecte de la Piste des Tactiques (SLOT_BUG_CERVEAU=B) dévie le dé M de ±1 rang ; (c) sinon 5. Rêve si le dé retenu M d'une carte Machine pointe sur un rang occupé par une tuile Rêve (que la machine soit annulée par un Défenseur sur ce Rêve ou joue la Tactique imprimée dessous). Résolution des Rêves (1_DEF_1_MACHINE) : chaque Défenseur dessus annule 1 machine (en priorisant la plus menaçante) ; le Rêve avance vers la gauche (CLEAR_RANK_ONLY) uniquement si toutes les machines du rang M ont été annulées ce tour-ci."
       ]
     },
     {
@@ -2918,8 +2941,8 @@ const SPEC_FORMELLE_V5_4 = {
       "code": "FURTIVITE_NIDS_ET_MIGRATION",
       "nom": "Furtivité (4.1), Production des Nids (4.2) et Migration des Insectes (4.3)",
       "regles": [
-        "4.1 Furtivité : chaque binôme complet sur une case de Furtivité (2 Défenseurs sur la même rive, ou 1 Défenseur + 1 Insecte défaussé) déclenche 1 seule action, gouvernée par le joueur de la rive occupée — Piège si aucune machine présente (Déclencheur 2) OU Sabotage si au moins 1 machine présente et aucune active ce tour (Ratissage = active ; une machine annulée par un Rêve en 3.2 est inactive et donc sabotable ; allume Déclencheur 3).",
-        "4.2 Production des Nids : chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (la production d'un Nid n'allume jamais 6. Insecte), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens. Une production hors phase (Le Miel des Ancêtres) ne crée que les jetons Insecte sans déclencher le pouvoir propre du Nid.",
+        "4.1 Furtivité : chaque binôme complet sur une case de Furtivité (2 Défenseurs sur la même rive, ou 1 Défenseur + 1 Insecte défaussé) déclenche 1 seule action, gouvernée par le joueur de la rive occupée — Piège si aucune machine présente OU Sabotage si au moins 1 machine présente et aucune active ce tour (Ratissage = active ; une machine annulée par un Rêve en 3.2 est inactive et donc sabotable). La pose d'un Piège ou l'acquisition d'un Sabotage en 4.1 n'allume aucun déclencheur Gardien.",
+        "4.2 Production des Nids : chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (sans allumer le déclencheur 6. Insecte), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens.",
         "4.3 Migration : chaque Insecte sur la roue peut se déplacer de 0 ou 1 cran (jusqu'à 2 avec L'Envol du Batará Suiveur), même s'il a bougé lors de la production d'un Nid. On retourne chaque jeton déplacé sur sa face verso pour suivi, puis on remet tous les jetons à l'endroit en fin de Migration avant d'évaluer la Colonisation.",
         "4.3 Pistes globales : depuis la dernière parcelle non rasée d'un rayon, 1 cran permet d'entrer sur n'importe quelle case 1..6 d'une piste globale (Bug du Cerveau ou Colonisation des Gardiens), sans limite de jetons par case. Cet aller simple est définitif."
       ]
@@ -2935,7 +2958,7 @@ const SPEC_FORMELLE_V5_4 = {
         "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
         "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
         "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
-        "Issue des paris Gardiens, Bouclier de lisière & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné, le Gardien reste en piste et passe Face 2 s'il est double-face en Mode 4 ; >= 1 Défenseur restant -> pari perdu : si SLOT_COLONISATION_GARDIENS=B et >= 1 Insecte sur sa case, défausser 1 Insecte pour empêcher le retour en lisière tout en gardant le pari PERDU et la face actuelle, sinon retour immédiat en lisière Face 1). Test de fin de partie : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Éveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 Défenseur restant en 5.3). Si atteint : passage direct à la Repousse Finale."
+        "Issue des paris Gardiens, Bouclier de lisière & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné : le Gardien reste en piste et passe Face 2 s'il est double-face ; >= 1 Défenseur restant -> pari perdu : si Bouclier de lisière SLOT_COLONISATION_GARDIENS=B et >= 1 Insecte sur sa case, défausser 1 Insecte pour garder le Gardien en piste sur sa face actuelle tout en laissant le pari PERDU, sinon retour immédiat en lisière Face 1). Test de fin de partie : priorité absolue au Tour 8 ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Réveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur les Gardiens et aucun pari perdu). Si atteint : passage direct à la Repousse Finale."
       ]
     },
     {
@@ -2959,20 +2982,20 @@ const SPEC_FORMELLE_V5_4 = {
     "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
     "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Ratissage irréversible maintenu.",
     "A10": "Autonomie du Ratissage : pion double face retourné définitivement sur la dernière parcelle non rasée ; +1 puissance imprimée (traité comme +1 rouge à tous égards, jetons rouges antérieurs conservés) et application systématique de T1 Sur place sur la piste fixe.",
-    "A11": "Piste des Tactiques fixe (T1..T6 imprimées en dur) et placement des Rêves (v5.4.2) : aucune tuile Tactique mobile ni éjection de Tactique. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.). Les Insectes Bug restent sur leur numéro d'emplacement imprimé.",
+    "A11": "Piste des Tactiques fixe (T1..T6 imprimées en dur) et placement des Rêves (v5.5) : aucune Tactique mobile ni éjection de Tactique. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.). Les Insectes sur la Piste des Tactiques restent sur leur numéro de case imprimé.",
     "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
     "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
-    "A14": "Éveil de la Forêt 100 % Piste des Gardiens (v5.4.7) : actif uniquement si au moins 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue à Tour 8). En 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu'aucun pari n'est perdu (0 Défenseur restant sur la Piste des Gardiens). Un Gardien sauvé par Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B) reste en piste mais son pari reste PERDU (ne compte pas pour l'Éveil).",
-    "A15": "Test de fin de partie (5.3) : priorité absolue à Tour 8 (au Tour 8, la fin est toujours TOUR_8) ; sur les Tours 1..7, vérification directe après issue des paris Gardiens (et Bouclier de lisière éventuel) de Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu à gauche cases 1..k de la Piste des Tactiques) ou d'Éveil de la Forêt 100 % Gardiens (les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 Défenseur restant en 5.3). Passage direct à la Repousse Finale.",
+    "A14": "Éveil / Réveil de la Forêt 100 % Piste des Gardiens (v5.5) : actif uniquement si >= 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue au Tour 8). En 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu'aucun pari n'est perdu (0 Défenseur restant). Un Gardien sauvé par Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B) reste en piste sur sa face actuelle mais son pari reste PERDU (ne compte pas pour le Réveil).",
+    "A15": "Test de fin de partie (5.3, v5.5) : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, vérification directe après issue des paris Gardiens (et Bouclier de lisière éventuel) de Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu cases 1..k) ou de Réveil de la Forêt 100 % Piste des Gardiens (tous les N Défenseurs engagés en 2.2 sur les Gardiens et aucun pari perdu). Passage direct à la Repousse Finale.",
     "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
     "A17": "Migration des Insectes : 0 ou 1 cran facultatif (suivi par retournement des pions) ; aller simple définitif et sans limite vers les pistes globales.",
     "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
     "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
     "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
-    "A21": "Activation et avancée des Rêves (v5.4.6) : en 2.2, un joueur peut poser son Défenseur sur un Rêve déjà présent sur la piste fixe T1..T6 (coût d'activation indépendant de l'Éveil). En 3.2 (Option A : 1_DEF_1_MACHINE), chaque Défenseur posé sur un Rêve annule 1 machine pointant sur ce rang M (en priorisant la plus menaçante) ; toute machine non annulée exécute la Tactique T1..T6 imprimée sous la case. Dès qu'au moins 1 machine est annulée, le Rêve s'ouvre et avance vers la gauche (par saut/poussée vers la 1re case libre à gauche) en mode CLEAR_RANK_ONLY uniquement si TOUTES les machines de ce rang M ont été annulées ce tour-ci. Déclencheur 5. Rêve (partition stricte 3.2) : s'allume pour chaque carte Machine non déviée par un Bug dont le dé retenu M pointe sur un rang occupé par un Rêve (que la machine soit annulée ou joue la Tactique dessous).",
-    "A22": "Pari d'activation sur les Gardiens & Partition stricte des 6 déclencheurs (v5.4.7) : actif si >= 1 Peuple Animal Sauvage (M/R/O) est à la table. Plafond uniforme UNIFORM_MAX_2 (max 2 Défenseurs par Gardien construit cases 1..6 ; 0 = inactif). Partition stricte (« 1 événement = au plus 1 déclencheur ») : 3.2 (Sabotage > Insecte Bug > Rêve) ; 4.1 sans déclencheur 2/3 ; la production d'un Nid en 4.2 n'allume jamais 6. Insecte ; 5.1/5.2 (Piégeage > Insecte Parade >=1 Insecte > Parade Défenseurs seuls) ; 4. Gardien verrouillée sur DISTINCT_OPEN_1 (anti-boucle conservé : 1re ouverture du tour de chaque autre Gardien distinct). En 5.3 : 0 Défenseur restant -> pari gagné (reste en piste, passe Face 2 en Mode 4 si double-face) ; >= 1 Défenseur restant -> pari perdu (retour en lisière Face 1, sauf Bouclier de lisière SLOT_COLONISATION_GARDIENS=B qui défausse 1 Insecte de la case pour garder la tuile sur sa face actuelle, le pari restant PERDU).",
-    "A23": "Apprentissage supprimé (v5.4.2) : plus aucun jeton Apprentissage ni déplacement des Tactiques en Étape 6 (piste T1..T6 imprimée en dur). SLOT_BUG_CERVEAU bascule par défaut sur le profil B (Déviation Synaptique ±1 rang en 3.2).",
-    "A24": "Cartes Sabotage (dilution permanente, v5.4.6) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis en Furtivité 4.1 ajoute définitivement 1 carte Sabotage au paquet Machine en 6.3 (n'allume plus 3. Sabotage à l'acquisition) ; 1 carte Sabotage révélée à l'ouverture des paravents en 3.2 fait perdre 1 activation au Contremaître, allume 3. Sabotage (partition stricte 3.2), puis est remélangée en fin de tour.",
+    "A21": "Activation et avancée des Rêves (v5.5) : en 2.2, un joueur peut poser son Défenseur sur un Rêve de la Piste des Tactiques fixe. En 3.2 (1_DEF_1_MACHINE), 1 Défenseur annule 1 machine pointant sur ce rang M (priorité à la plus menaçante) ; toute machine non annulée exécute la Tactique T1..T6 imprimée dessous. Le Rêve s'ouvre dès qu'au moins 1 machine est annulée et avance vers la gauche (CLEAR_RANK_ONLY) uniquement si toutes les machines du rang M sont annulées ce tour-ci. Déclencheur 5. Rêve (partition stricte 3.2) : s'allume pour chaque carte Machine non déviée par un Insecte dont le dé retenu M pointe sur un rang occupé par un Rêve.",
+    "A22": "Pari uniforme sur les Gardiens & Partition stricte des 6 déclencheurs (v5.5) : actif si >= 1 Animal Sauvage (M/R/O) est à la table. Pari uniforme UNIFORM_MAX_2 (0, 1 ou 2 Défenseurs maximum par Gardien construit cases 1..6, glissés sous la tuile à chaque déclenchement). Partition stricte (« 1 événement = au plus 1 déclencheur ») : en 3.2 Sabotage > Insecte sur Tactiques > Rêve ; en 4.1 et 4.2 Nids aucun déclencheur ; en 5.1/5.2 Piégeage > Insecte en Parade >= 1 Insecte > Parade par Défenseurs seuls ; 4. Gardien sur 1re ouverture du tour de chaque autre Gardien distinct (DISTINCT_OPEN_1, anti-boucle conservé). En 5.3 : pari gagné -> reste en piste et passe Face 2 si double-face ; pari perdu -> retour en lisière Face 1, sauf Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B) qui défausse 1 Insecte de la case pour garder le Gardien en piste sur sa face actuelle, le pari restant PERDU.",
+    "A23": "Piste des Tactiques fixe & Déviation par Insectes (v5.5) : piste T1..T6 imprimée en dur sans jeton ni déplacement de Tactiques en Étape 6. SLOT_BUG_CERVEAU=B (Déviation Synaptique ±1 rang en 3.2) et SLOT_COLONISATION_GARDIENS=B (Bouclier de lisière en 5.3) sont actifs par défaut.",
+    "A24": "Cartes Sabotage (dilution permanente, v5.5) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis en Furtivité 4.1 est mis de côté pour rejoindre définitivement le paquet Machine en 6.3 (sans allumer 3. Sabotage) ; 1 carte Sabotage révélée à l'ouverture des paravents en 3.2 fait perdre 1 activation au Contremaître, allume 3. Sabotage (partition stricte 3.2), puis est remélangée en fin de tour.",
     "A25": "Séquence des attaques : Tactiques 1..6 puis Ratissages ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
   }
 };

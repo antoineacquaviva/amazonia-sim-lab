@@ -35,22 +35,23 @@ from campaigns.digest_builder import (
     chassis_id_to_studio_index_384,
     write_digest_and_prompt_files,
 )
-from campaigns.worker_main import resolve_manifest_plan
-from engine.telemetry import REVEIL_ANATOMY_FIELDS
+from campaigns.worker_main import CANONICAL_32_SLOTS, resolve_manifest_plan
+from engine.state import ANIMAUX_SAUVAGES, MATRICE_PAIRES
+from engine.telemetry import DEFENSE_ATTRIBUTION_FIELDS, REVEIL_ANATOMY_FIELDS
 from scripts_cloud.studio_paths import find_gcloud
 
 REGION: str = "europe-west9"
 BUCKET_NAME: str = "amazonia-sim-runs"
 IMAGE_URI: str = "europe-west9-docker.pkg.dev/amazonia-sim/sim-workers/worker-pypy:latest"
 WORKER_IMAGE_HASH_GCS_URI: str = f"gs://{BUCKET_NAME}/meta/worker_image_hash.txt"
-# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_4.json)
+# Sources embarquées dans `Dockerfile.worker` (COPY engine/, bots/, campaigns/, data/spec_bundle_v5_5.json)
 # ainsi que `Dockerfile.worker` lui-même (image de base PyPy et ENTRYPOINT).
 WORKER_IMAGE_SOURCE_PATHS: tuple[str, ...] = (
     "Dockerfile.worker",
     "engine",
     "bots",
     "campaigns",
-    "data/spec_bundle_v5_4.json",
+    "data/spec_bundle_v5_5.json",
 )
 _IGNORED_DIR_NAMES: frozenset[str] = frozenset({"__pycache__", ".pytest_cache", ".ruff_cache"})
 _IGNORED_FILE_SUFFIXES: frozenset[str] = frozenset({".pyc", ".pyo", ".pyd"})
@@ -75,7 +76,7 @@ def compute_worker_image_hash(root: Path = ROOT) -> str:
     """Calcule une empreinte SHA-256 déterministe des sources embarquées dans `Dockerfile.worker`.
 
     Couvre `Dockerfile.worker`, `engine/`, `bots/`, `campaigns/` (hors manifestes `*.json`
-    téléversés à la volée sur GCS) et `data/spec_bundle_v5_4.json`, en ignorant les caches
+    téléversés à la volée sur GCS) et `data/spec_bundle_v5_5.json`, en ignorant les caches
     Python (`__pycache__`, `*.pyc`, etc.) conformément à `.dockerignore`.
     """
     collected: list[tuple[str, Path]] = []
@@ -618,6 +619,171 @@ def _build_reveil_anatomy_block(
     }
 
 
+def _build_defense_attribution_block(
+    con: duckdb.DuckDBPyConnection,
+    cell_cols: set[str],
+    total_games: int,
+) -> dict[str, Any] | None:
+    """Construit la section `defense_attribution` (7 postes + moyennes par partie + ventilation par bot)."""
+    if not any(col in cell_cols for col in DEFENSE_ATTRIBUTION_FIELDS):
+        return None
+
+    def _sum_sql(col: str) -> str:
+        return (
+            f"CAST(COALESCE(SUM({col}), 0) AS BIGINT) AS {col}"
+            if col in cell_cols
+            else f"0 AS {col}"
+        )
+
+    select_cols = ",\n            ".join(_sum_sql(c) for c in DEFENSE_ATTRIBUTION_FIELDS)
+    g_raw = _query_dicts(con, f"SELECT {select_cols} FROM cells")[0]
+
+    key_map: tuple[tuple[str, str], ...] = (
+        ("parade_classique", "da_parade_classique"),
+        ("piege", "da_piege"),
+        ("parade_avec_insectes", "da_parade_avec_insectes"),
+        ("reve_annulation", "da_reve_annulation"),
+        ("sabotage_revele", "da_sabotage_revele"),
+        ("insecte_bug_deviation", "da_insecte_bug_deviation"),
+        ("arbres_repousse_finale", "da_arbres_repousse_finale"),
+    )
+    denom = max(1, total_games)
+    out: dict[str, Any] = {}
+    per_game: dict[str, float] = {}
+    neutral_keys = (
+        "parade_classique",
+        "piege",
+        "parade_avec_insectes",
+        "reve_annulation",
+        "sabotage_revele",
+        "insecte_bug_deviation",
+    )
+    total_neutral = 0
+    for pub_k, col_k in key_map:
+        val = int(g_raw.get(col_k) or 0)
+        out[pub_k] = val
+        per_game[pub_k] = round(val / denom, 3)
+        if pub_k in neutral_keys:
+            total_neutral += val
+    out["total_neutralisations"] = total_neutral
+    out["per_game"] = per_game
+
+    by_bot_raw = _query_dicts(
+        con,
+        f"""
+        SELECT
+            bot,
+            CAST(SUM(n_games) AS INTEGER) AS n_games,
+            {select_cols}
+        FROM cells
+        GROUP BY bot
+        ORDER BY bot
+        """,
+    )
+    if len(by_bot_raw) > 1:
+        by_bot_out: list[dict[str, Any]] = []
+        for brow in by_bot_raw:
+            b_ng = max(1, int(brow["n_games"]))
+            b_entry: dict[str, Any] = {"bot": str(brow["bot"]), "n_games": int(brow["n_games"])}
+            for pub_k, col_k in key_map:
+                b_entry[pub_k] = round(int(brow.get(col_k) or 0) / b_ng, 3)
+            by_bot_out.append(b_entry)
+        out["by_bot"] = by_bot_out
+    return out
+
+
+def _active_slots_for_peuples_circle(peuples_str: str) -> set[str]:
+    """Retourne l'ensemble des emplacements (parmi les 32) effectivement actifs sur ce cercle."""
+    peuples = tuple(p.strip().upper() for p in peuples_str.split("-") if p.strip())
+    n = len(peuples)
+    active: set[str] = set()
+    if n >= 3:
+        for i in range(n):
+            pair_key = f"{peuples[i]}_{peuples[(i + 1) % n]}"
+            pair_tiles = MATRICE_PAIRES.get(pair_key)
+            if pair_tiles:
+                active.add(pair_tiles[0])
+                active.add(pair_tiles[1])
+    if "I" in peuples:
+        active.add("SLOT_BUG_CERVEAU")
+        if any(p in ANIMAUX_SAUVAGES for p in peuples):
+            active.add("SLOT_COLONISATION_GARDIENS")
+    return active
+
+
+def _build_full_tile_metrics(
+    con: duckdb.DuckDBPyConnection,
+    base_tile_profiles: dict[str, str],
+    global_mean_ratio: float,
+) -> dict[str, dict[str, Any]]:
+    """Agrège `tile_metrics` sur l'ensemble des 32 emplacements actifs (tables où chaque tuile joue)."""
+    rows = _query_dicts(
+        con,
+        """
+        SELECT
+            peuples,
+            bot,
+            CAST(SUM(n_games) AS INTEGER) AS n_games,
+            SUM(sum_ratio_arbres) AS sum_ratio,
+            SUM(cvar20_ratio * n_games) AS weighted_cvar20
+        FROM cells
+        WHERE n_games > 0
+        GROUP BY peuples, bot
+        """,
+    )
+    acc: dict[str, dict[str, Any]] = {}
+    distinct_bots: set[str] = set()
+    for row in rows:
+        peuples_s = str(row.get("peuples") or "")
+        bot_s = str(row.get("bot") or "")
+        distinct_bots.add(bot_s)
+        ng = int(row["n_games"])
+        sr = float(row["sum_ratio"])
+        wc = float(row["weighted_cvar20"])
+        for slot_id in _active_slots_for_peuples_circle(peuples_s):
+            if slot_id not in acc:
+                acc[slot_id] = {
+                    "n_games": 0,
+                    "sum_ratio": 0.0,
+                    "weighted_cvar20": 0.0,
+                    "by_bot": {},
+                }
+            acc[slot_id]["n_games"] += ng
+            acc[slot_id]["sum_ratio"] += sr
+            acc[slot_id]["weighted_cvar20"] += wc
+            b_map = acc[slot_id]["by_bot"].setdefault(bot_s, [0, 0.0])
+            b_map[0] += ng
+            b_map[1] += sr
+
+    multi_bot = len(distinct_bots) > 1
+    out: dict[str, dict[str, Any]] = {}
+    for slot_id in CANONICAL_32_SLOTS:
+        prof = str(base_tile_profiles.get(slot_id, "B" if slot_id.startswith("SLOT_") else "A"))
+        tok = f"{slot_id}:{prof}"
+        slot_acc = acc.get(slot_id)
+        if not slot_acc or int(slot_acc["n_games"]) <= 0:
+            continue
+        ng = int(slot_acc["n_games"])
+        mr = round(float(slot_acc["sum_ratio"]) / ng, 4)
+        cv = round(float(slot_acc["weighted_cvar20"]) / ng, 4)
+        entry: dict[str, Any] = {
+            "slot": slot_id,
+            "profile": prof,
+            "n_games": ng,
+            "mean_ratio_arbres": mr,
+            "cvar20": cv,
+            "delta_vs_global": round(mr - global_mean_ratio, 4),
+        }
+        if multi_bot:
+            entry["by_bot"] = {
+                b_key: round(b_vals[1] / b_vals[0], 4)
+                for b_key, b_vals in sorted(slot_acc["by_bot"].items())
+                if b_vals[0] > 0
+            }
+        out[tok] = entry
+    return out
+
+
 def aggregate_campaign_duckdb(
     *,
     manifest: dict[str, Any],
@@ -1040,6 +1206,16 @@ def aggregate_campaign_duckdb(
             "cvar20": round(acc["weighted_cvar20"] / ng, 4) if ng > 0 else 0.0,
         }
 
+    base_tile_profiles_plan: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
+    if not tile_metrics and (
+        bool(plan.get("include_full_tile_metrics", False)) or int(plan.get("mode", 0)) >= 4
+    ):
+        tile_metrics = _build_full_tile_metrics(
+            con,
+            base_tile_profiles_plan,
+            float(g_stats["mean_ratio_arbres"] or 0.0),
+        )
+
     by_variant_clean = [
         {k: v for k, v in row.items() if k != "compared_slots_json"}
         for row in by_variant[:24]
@@ -1214,6 +1390,9 @@ def aggregate_campaign_duckdb(
         digest_payload["by_variant_x_n_animaux_sauvages"] = by_variant_x_n_animaux_sauvages
     if forks_block is not None:
         digest_payload["forks"] = forks_block
+    defense_attr_block = _build_defense_attribution_block(con, cell_cols, total_games)
+    if defense_attr_block is not None:
+        digest_payload["defense_attribution"] = defense_attr_block
     reveil_anatomy_block = _build_reveil_anatomy_block(con, cell_cols)
     if reveil_anatomy_block is not None:
         digest_payload["reveil_anatomy"] = reveil_anatomy_block

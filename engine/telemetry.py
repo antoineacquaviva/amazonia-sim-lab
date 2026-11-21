@@ -25,10 +25,21 @@ from engine.state import (
 )
 
 __all__ = (
+    "DEFENSE_ATTRIBUTION_FIELDS",
     "REVEIL_ANATOMY_FIELDS",
     "TelemetrySummary",
     "TelemetryTracker",
     "count_active_transient_modifiers",
+)
+
+DEFENSE_ATTRIBUTION_FIELDS: tuple[str, ...] = (
+    "da_parade_classique",
+    "da_piege",
+    "da_parade_avec_insectes",
+    "da_reve_annulation",
+    "da_sabotage_revele",
+    "da_insecte_bug_deviation",
+    "da_arbres_repousse_finale",
 )
 
 REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
@@ -176,6 +187,14 @@ class TelemetrySummary(NamedTuple):
     reves_activated: int = 0
     machines_cancelled_by_reve: int = 0
     machines_bypassed_inactive_reve: int = 0
+    # Comptabilité d'attribution défensive v5.5 (da_*)
+    da_parade_classique: int = 0
+    da_piege: int = 0
+    da_parade_avec_insectes: int = 0
+    da_reve_annulation: int = 0
+    da_sabotage_revele: int = 0
+    da_insecte_bug_deviation: int = 0
+    da_arbres_repousse_finale: int = 0
     # Anatomie diagnostique des tours d'Éveil réussi (rs_*)
     rs_count: int = 0
     rs_tour: int = 0
@@ -279,6 +298,13 @@ class TelemetryTracker:
     reves_activated: int = 0
     machines_cancelled_by_reve: int = 0
     machines_bypassed_inactive_reve: int = 0
+    da_parade_classique: int = 0
+    da_piege: int = 0
+    da_parade_avec_insectes: int = 0
+    da_reve_annulation: int = 0
+    da_sabotage_revele: int = 0
+    da_insecte_bug_deviation: int = 0
+    da_arbres_repousse_finale: int = 0
     _turn_closed: bool = False
     # État transitoire du tour courant pour l'anatomie de l'Éveil
     _turn_strikes: int = 0
@@ -733,11 +759,42 @@ class TelemetryTracker:
         """Enregistre les cartes Machine annulées par un Rêve activé en Étape 3.2."""
         if count > 0:
             self.machines_cancelled_by_reve += count
+            self.da_reve_annulation += count
 
     def on_machines_bypassed_inactive_reve(self, count: int) -> None:
         """Enregistre les cartes Machine exécutant la Tactique imprimée sous un Rêve inactif."""
         if count > 0:
             self.machines_bypassed_inactive_reve += count
+
+    def on_defense_parade_classique(self, count: int = 1) -> None:
+        """Enregistre les frappes parées par Défenseurs seuls (ou parade auto Jaguar/Harpie)."""
+        if count > 0:
+            self.da_parade_classique += count
+
+    def on_defense_piege(self, count: int = 1) -> None:
+        """Enregistre les frappes neutralisées par un Piège armé en 5.1/5.2."""
+        if count > 0:
+            self.da_piege += count
+
+    def on_defense_parade_avec_insectes(self, count: int = 1) -> None:
+        """Enregistre les frappes parées via Parade classique en défaussant >= 1 Insecte."""
+        if count > 0:
+            self.da_parade_avec_insectes += count
+
+    def on_defense_sabotage_revele(self, count: int = 1) -> None:
+        """Enregistre les cartes Sabotage révélées en 3.2 (activation machine neutralisée)."""
+        if count > 0:
+            self.da_sabotage_revele += count
+
+    def on_defense_bug_deviation(self, count: int = 1) -> None:
+        """Enregistre les déviations de dé M par Insecte sur la Piste des Tactiques en 3.2."""
+        if count > 0:
+            self.da_insecte_bug_deviation += count
+
+    def on_defense_repousse_finale(self, trees_regrown: int) -> None:
+        """Enregistre le nombre total d'Arbres repoussés depuis les Souches en fin de partie."""
+        if trees_regrown > 0:
+            self.da_arbres_repousse_finale += trees_regrown
 
     def on_end_turn(self, _state: GameState, *, game_over: bool) -> None:
         """Clôture le ratio `physical_ops / max(1, decisions_joueurs)` du tour écoulé."""
@@ -788,6 +845,13 @@ class TelemetryTracker:
             reves_activated=self.reves_activated,
             machines_cancelled_by_reve=self.machines_cancelled_by_reve,
             machines_bypassed_inactive_reve=self.machines_bypassed_inactive_reve,
+            da_parade_classique=self.da_parade_classique,
+            da_piege=self.da_piege,
+            da_parade_avec_insectes=self.da_parade_avec_insectes,
+            da_reve_annulation=self.da_reve_annulation,
+            da_sabotage_revele=self.da_sabotage_revele,
+            da_insecte_bug_deviation=self.da_insecte_bug_deviation,
+            da_arbres_repousse_finale=self.da_arbres_repousse_finale,
             rs_count=self.rs_count,
             rs_tour=self.rs_tour,
             rs_ratio_arbres_bp=self.rs_ratio_arbres_bp,
