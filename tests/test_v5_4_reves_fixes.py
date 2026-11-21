@@ -44,7 +44,7 @@ def test_fixed_track_192_chassis_and_bug_b_default() -> None:
     assert cfg.reve_activation_mode == "1_DEF_1_MACHINE"
     assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
-    assert cfg.reve_advance_mode == "EXCLUSIVE_CHOICE"
+    assert cfg.reve_advance_mode == "SAUT"
 
     st = GameState(cfg)
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(TRACK_LEN)] == [

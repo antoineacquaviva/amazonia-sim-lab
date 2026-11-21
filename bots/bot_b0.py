@@ -233,12 +233,22 @@ class BotB0:
             # Politique réflexe B0 : avance si Sommeil réalisable ou case >= 5 en début de partie, sinon bloque
             can_adv = bool(decision.context.get("can_advance", False))
             case_c = int(decision.context.get("case", 1))
+            dest_case_raw = decision.context.get("dest_case")
             if can_adv and "AVANCER" in opts and obs.tour <= 7:
                 total_r = cfg.total_reves_partie
                 if total_r > 0:
                     reves_on = sum(1 for c2 in range(1, 7) if obs.reve_at_case(c2) > 0)
                     gaps = sum(1 for c2 in range(1, total_r + 1) if obs.reve_at_case(c2) == 0)
-                    if reves_on == total_r and gaps == 1 and case_c > total_r:
+                    dest_ok = (
+                        (int(dest_case_raw) <= total_r)
+                        if isinstance(dest_case_raw, int)
+                        else (
+                            (case_c - 1 <= total_r)
+                            if cfg.reve_advance_mode == "PAS_A_PAS"
+                            else True
+                        )
+                    )
+                    if reves_on == total_r and gaps == 1 and case_c > total_r and dest_ok:
                         return "AVANCER"
                 if case_c >= 5 and obs.tour <= 4:
                     return "AVANCER"

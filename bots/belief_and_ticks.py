@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 from engine.core_engine import (
     advance_step2_to_2_2,
@@ -61,6 +61,28 @@ _MIN_2D6_PROBS: tuple[float, ...] = (
 )
 
 TargetScorer = Callable[[PlayerObservation, GameConfig, "BeliefSummary", tuple[Any, ...], bool], float]
+
+
+@runtime_checkable
+class HeldAwareScorer(Protocol):
+    retreat_orphans: bool
+
+    def __call__(
+        self,
+        obs: PlayerObservation,
+        cfg: GameConfig,
+        belief: BeliefSummary,
+        target: tuple[Any, ...],
+        is_first_defender: bool,
+    ) -> float: ...
+
+    def held_score(
+        self,
+        obs: PlayerObservation,
+        cfg: GameConfig,
+        belief: BeliefSummary,
+        cur_spot: tuple[Any, ...],
+    ) -> float: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -767,6 +789,70 @@ def resolve_step2_2_from_state(
                     if moved:
                         total_rev_moves += 1
 
+    # 3c. Retrait propre en fin de passes « en réflexion » des Défenseurs restés seuls (1/2) sur un
+    #     chantier de Lisière ou une rive de Furtivité (0 effet sans binôme complet), pour B2.
+    if max_passes > 0 and isinstance(scorer, HeldAwareScorer) and scorer.retreat_orphans:
+        for s in range(n):
+            if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
+                continue
+            cur_sp = _current_def2_target_public(state, s)
+            if cur_sp is None or cur_sp[0] not in ("FURTIVITE", "LISIERE"):
+                continue
+            obs_s = _get_isolated_obs(
+                state, s, counterfactual_open_paravents=counterfactual_open_paravents
+            )
+            is_orphan = False
+            if cur_sp[0] == "FURTIVITE":
+                _, l_o, p_o, rv_o = cur_sp
+                is_orphan = obs_s.furtivite_rive_defs(int(l_o), int(p_o), int(rv_o)) == 1
+            elif cur_sp[0] == "LISIERE" and obs_s.mode >= 2:
+                _, sl_o = cur_sp
+                _, st_lo, nb_co = obs_s.lisiere_tile_info(int(sl_o))
+                is_orphan = st_lo == LISIERE_UNCONSTRUCTED and nb_co == 1
+            if not is_orphan:
+                continue
+
+            def _is_viable_fallback(cand_t: tuple[Any, ...], o_ref: PlayerObservation) -> bool:
+                ck = cand_t[0]
+                if ck == "GARDIEN_PARI":
+                    return False
+                if ck == "FURTIVITE":
+                    return o_ref.furtivite_rive_defs(int(cand_t[1]), int(cand_t[2]), int(cand_t[3])) == 1
+                if ck == "LISIERE":
+                    if o_ref.mode < 2:
+                        return False
+                    _, st_c, nb_cc = o_ref.lisiere_tile_info(int(cand_t[1]))
+                    return st_c == LISIERE_UNCONSTRUCTED and nb_cc == 1
+                return True
+
+            legal_viable = tuple(
+                t
+                for t in list_legal_targets(
+                    state, s, is_first_defender=False, exclude_own_def2=True
+                )
+                if _is_viable_fallback(t, obs_s)
+            )
+            if legal_viable:
+                bel_s = build_belief_summary(obs_s, cfg)
+                fallback_t, _ = _pick_best_target_isolated(
+                    obs_s,
+                    cfg,
+                    bel_s,
+                    legal_viable,
+                    scorer,
+                    is_first_defender=False,
+                    sous_etape_salt=253,
+                )
+                moved = apply_step2_def2(
+                    state,
+                    s,
+                    ("DEPLACER_REFLEXION", fallback_t),
+                    check_legal=False,
+                    telemetry=telemetry,
+                )
+                if moved:
+                    total_rev_moves += 1
+
     finish_step2_to_3_1(state, telemetry=telemetry)
     return {"passes_executed": passes_done, "revision_moves": total_rev_moves}
 
@@ -779,6 +865,8 @@ def _score_held_spot(
     scorer: TargetScorer,
 ) -> float:
     """Évalue la valeur marginale du poste déjà occupé par le 2e Défenseur du joueur."""
+    if isinstance(scorer, HeldAwareScorer):
+        return scorer.held_score(obs, cfg, belief, cur_spot)
     kind = cur_spot[0]
     base = scorer(obs, cfg, belief, cur_spot, False)
     # Correction d'auto-occupation : dans `obs`, notre propre 2e Défenseur est déjà compté sur cur_spot !

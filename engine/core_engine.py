@@ -1670,8 +1670,15 @@ def _apply_reve_choice_3_2(
             for _ in range(open_count):
                 reve_open_items.append((code_m, r_num, False, "BLOQUER"))
     else:
+        assert choice == "AVANCER", f"Choix de Rêve 3.2 invalide : {choice!r}"
+        cur_pos_check = state.find_tactique_rank(code_m)
+        assert cur_pos_check is not None and (
+            state.get_reve_advance_dest_rank(cur_pos_check, check_turn_cap=True) is not None
+        ), "AVANCER interdit pour ce Rêve selon la variante active"
+        state.increment_reve_advances_this_turn()
+
         # AVANCER : 1 seul Défenseur suffit, 0 machine annulée (toutes exécutent la Tactique dessous),
-        # pouvoir du Rêve actif et saut vers la 1re case libre à gauche.
+        # pouvoir du Rêve actif et avancée (saut ou pas-à-pas) vers la destination à gauche.
         for s, card, d1, d2, lec_m in entries:
             state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
         consumed_reves = state.consume_reve_activation_defenders(case_1_6, 1)
@@ -1684,7 +1691,7 @@ def _apply_reve_choice_3_2(
         else:
             open_count = len(entries)
         if open_count <= 0:
-            # Même si déjà ouvert ce tour, le saut d'avancée s'effectue une fois
+            # Même si déjà ouvert ce tour, l'avancée s'effectue une fois
             cur_pos_r = state.find_tactique_rank(code_m)
             if cur_pos_r is not None and cur_pos_r > 0:
                 prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
@@ -1992,10 +1999,13 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                     0, ("STEP_3_2_REVE_CHOICE_QUEUE", reve_choices_q, cur_idx + 1)
                 )
             cur_pos_r = state.find_tactique_rank(int(code_m))
-            can_advance = cur_pos_r is not None and any(
-                not is_reve_code(state.get_tactique_at_rank(j))
-                for j in range(cur_pos_r - 1, -1, -1)
+            dest_r = (
+                state.get_reve_advance_dest_rank(cur_pos_r, check_turn_cap=True)
+                if cur_pos_r is not None
+                else None
             )
+            can_advance = dest_r is not None
+            opts = ("BLOQUER", "AVANCER") if can_advance else ("BLOQUER",)
             slot_id = f"R{int(r_num)}"
             _, orig_peuple, _ = SYNERGY_META[slot_id]
             gov = _governor_for_peuple(state, orig_peuple)
@@ -2003,7 +2013,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             req = DecisionRequest(
                 decideur=gov,
                 decision_type=DEC_CHOIX_REVE_3_2,
-                options=("BLOQUER", "AVANCER"),
+                options=opts,
                 context={
                     "case": int(case_1_6),
                     "r_num": int(r_num),
@@ -2012,6 +2022,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                     "n_machines": len(entries),
                     "machine_seats": tuple(int(e[0]) for e in entries),
                     "can_advance": bool(can_advance),
+                    "dest_case": (dest_r + 1) if dest_r is not None else None,
                     "tour": state.tour,
                 },
             )

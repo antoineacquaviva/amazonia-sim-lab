@@ -990,17 +990,20 @@ def aggregate_campaign_duckdb(
     ratios_by_variant: dict[str, list[float]] = {}
     ratios_by_n_animaux: dict[int, list[float]] = {}
     ratios_by_variant_n: dict[tuple[str, int], list[float]] = {}
+    ratios_by_variant_bot_n: dict[tuple[str, str, int], list[float]] = {}
     ratios_by_variant_animaux: dict[tuple[str, int], list[float]] = {}
     for tr in cell_table_rows:
         mr_t = float(tr["table_mean_ratio"])
         v_id_t = str(tr["variant_id"])
+        bot_t = str(tr["bot"])
         n_pl_t = int(tr["n_players"])
         all_table_ratios.append(mr_t)
-        ratios_by_mode.setdefault((int(tr["mode"]), str(tr["bot"])), []).append(mr_t)
+        ratios_by_mode.setdefault((int(tr["mode"]), bot_t), []).append(mr_t)
         ratios_by_n.setdefault(n_pl_t, []).append(mr_t)
         ratios_by_chassis.setdefault(int(tr["chassis_id"]), []).append(mr_t)
         ratios_by_variant.setdefault(v_id_t, []).append(mr_t)
         ratios_by_variant_n.setdefault((v_id_t, n_pl_t), []).append(mr_t)
+        ratios_by_variant_bot_n.setdefault((v_id_t, bot_t, n_pl_t), []).append(mr_t)
         if tr.get("n_animaux_sauvages") is not None:
             na_t = int(tr["n_animaux_sauvages"])
             ratios_by_n_animaux.setdefault(na_t, []).append(mr_t)
@@ -1175,6 +1178,37 @@ def aggregate_campaign_duckdb(
     for row in by_variant_x_n_players:
         row["table_cvar20_ratio"] = _cvar_bottom_values(
             ratios_by_variant_n.get((str(row["variant_id"]), int(row["n_players"])), []), 0.20
+        )
+
+    by_variant_x_bot_x_n_players = _query_dicts(
+        con,
+        f"""
+        SELECT
+            variant_id,
+            bot,
+            n_players,
+            CAST(SUM(n_games) AS INTEGER) AS n_games,
+            ROUND(SUM(sum_arbres) * 1.0 / SUM(n_games), 3) AS mean_score_arbres,
+            ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
+            ROUND(SUM(cvar20_ratio * n_games) / SUM(n_games), 4) AS cvar20_ratio,
+            ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
+            ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
+            ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+            {reveil_diag_sql}
+            {reve_act_sql}
+            {v6_metrics_sql}
+            ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
+        FROM cells
+        GROUP BY variant_id, bot, n_players
+        ORDER BY variant_id ASC, bot ASC, n_players ASC
+        """,
+    )
+    for row in by_variant_x_bot_x_n_players:
+        row["table_cvar20_ratio"] = _cvar_bottom_values(
+            ratios_by_variant_bot_n.get(
+                (str(row["variant_id"]), str(row["bot"]), int(row["n_players"])), []
+            ),
+            0.20,
         )
 
     by_variant_x_n_animaux_sauvages: list[dict[str, Any]] = []
@@ -1423,6 +1457,7 @@ def aggregate_campaign_duckdb(
         "by_chassis": by_chassis,
         "by_variant": by_variant_clean,
         "by_variant_x_n_players": by_variant_x_n_players,
+        "by_variant_x_bot_x_n_players": by_variant_x_bot_x_n_players,
         "tile_metrics": tile_metrics,
     }
     if by_n_animaux_sauvages:

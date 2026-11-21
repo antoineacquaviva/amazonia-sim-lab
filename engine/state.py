@@ -44,6 +44,7 @@ __all__ = (
     "PIEGE_AUCUN",
     "PIEGE_DECLENCHE",
     "RATISSAGE_TACTIQUE_SPEC",
+    "REVE_ADVANCE_MODES",
     "STATE_BUF_SIZE",
     "STEP_1_1_RATISSAGE",
     "STEP_1_2_DEAL",
@@ -503,7 +504,8 @@ class _Mem:
     TRANS_GARDIEN_OPENED_MASK: int = _Layout.alloc(1, "TRANS_GARDIEN_OPENED_MASK")  # bits 0..5 = cases 1..6 ouvertes ce tour
     TRANS_GARDIEN_WON_MASK: int = _Layout.alloc(1, "TRANS_GARDIEN_WON_MASK")  # bits 0..5 = cases 1..6 pari achevé ce tour
     TRANS_BUG_DEVIATED_MASK: int = _Layout.alloc(1, "TRANS_BUG_DEVIATED_MASK")  # bits 0..5 = sièges déviés par Bug en 3.2
-    TRANS_RESERVED_3: int = _Layout.alloc(3, "TRANS_RESERVED_3")  # 3 octets de réserve transitoire
+    TRANS_REVE_ADVANCE_COUNT: int = _Layout.alloc(1, "TRANS_REVE_ADVANCE_COUNT")  # nb de Rêves ayant choisi AVANCER ce tour
+    TRANS_RESERVED_2: int = _Layout.alloc(2, "TRANS_RESERVED_2")  # 2 octets de réserve transitoire
     TRANS_VOLUNTARY_APP_COUNTER: int = _Layout.alloc(1, "TRANS_VOLUNTARY_APP_COUNTER")  # 1 octet
     TRANSIENT_END: int = _Layout._cursor
 
@@ -513,6 +515,16 @@ class _Mem:
 assert _Layout._cursor <= STATE_BUF_SIZE - MIN_FREE_RESERVE_BYTES, (
     f"Réserve libre insuffisante : {_Layout._cursor} octets utilisés sur {STATE_BUF_SIZE} "
     f"(réserve < {MIN_FREE_RESERVE_BYTES})"
+)
+
+REVE_ADVANCE_MODES: tuple[str, ...] = (
+    "SAUT",
+    "PAS_A_PAS",
+    "SAUT_MAX_1_PAR_TOUR",
+)
+_VALID_REVE_ADVANCE_MODES: tuple[str, ...] = (
+    *REVE_ADVANCE_MODES,
+    "EXCLUSIVE_CHOICE",
 )
 
 
@@ -550,7 +562,7 @@ class GameConfig:
     # Paramètres consolidés v6.0 : Activation Rêves, Plafond Pari Gardiens, Avancée Rêves & 4. Gardien
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
-    reve_advance_mode: str = "EXCLUSIVE_CHOICE"
+    reve_advance_mode: str = "SAUT"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
@@ -596,9 +608,9 @@ class GameConfig:
         assert self.gardien_bet_cap_policy in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1"), (
             f"gardien_bet_cap_policy invalide : {self.gardien_bet_cap_policy}"
         )
-        assert self.reve_advance_mode == "EXCLUSIVE_CHOICE", (
-            f"reve_advance_mode invalide (v6.0 : EXCLUSIVE_CHOICE uniquement, CLEAR_RANK_ONLY supprimé) : "
-            f"{self.reve_advance_mode}"
+        assert self.reve_advance_mode in _VALID_REVE_ADVANCE_MODES, (
+            f"reve_advance_mode invalide (v6.0 : SAUT, PAS_A_PAS, SAUT_MAX_1_PAR_TOUR ou alias EXCLUSIVE_CHOICE ; "
+            f"CLEAR_RANK_ONLY supprimé) : {self.reve_advance_mode}"
         )
         assert self.gardien_4_trigger_mode == "DISTINCT_OPEN_1", (
             f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {self.gardien_4_trigger_mode}"
@@ -658,7 +670,7 @@ class GameConfig:
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
-        reve_advance_mode: str = "EXCLUSIVE_CHOICE",
+        reve_advance_mode: str = "SAUT",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
@@ -1054,6 +1066,21 @@ class PlayerObservation:
         idx = r * MAX_P + (p - 1)
         b = self._snap[_Mem.FORET_DEFENSEURS + (idx >> 1)]
         return ((b >> 4) & 0x0F) if (idx & 1) else (b & 0x0F)
+
+    def parcel_def1_count(self, r: int, p: int) -> int:
+        """Nombre de 1ers Défenseurs (Étape 2.1, publics) posés sur la parcelle (r, p)."""
+        target_raw = _LOC_FORET_BASE + r * MAX_P + (p - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2] == target_raw:
+                cnt += 1
+        return cnt
+
+    @property
+    def reve_advances_this_turn(self) -> int:
+        """Nombre de Rêves ayant déjà choisi AVANCER en 3.2 durant ce tour."""
+        return self._snap[_Mem.TRANS_REVE_ADVANCE_COUNT]
 
     def parcel_has_nid(self, r: int, p: int) -> bool:
         """Retourne True si un Nid est présent sur (r, p) en Mode >= 2."""
@@ -2498,6 +2525,41 @@ class GameState:
         """Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug)."""
         assert 0 <= seat < MAX_N
         self._buf[_Mem.TRANS_BUG_DEVIATED_MASK] |= 1 << seat
+
+    @property
+    def reve_advances_this_turn(self) -> int:
+        """Nombre de Rêves ayant choisi AVANCER en 3.2 durant ce tour."""
+        return self._buf[_Mem.TRANS_REVE_ADVANCE_COUNT]
+
+    def increment_reve_advances_this_turn(self) -> None:
+        """Incrémente le compteur de Rêves ayant choisi AVANCER en 3.2 durant ce tour."""
+        self._buf[_Mem.TRANS_REVE_ADVANCE_COUNT] = min(
+            255, self._buf[_Mem.TRANS_REVE_ADVANCE_COUNT] + 1
+        )
+
+    def get_reve_advance_dest_rank(
+        self, rank_0_5: int, *, check_turn_cap: bool = True
+    ) -> int | None:
+        """Retourne l'index `0..5` de destination si le Rêve en `rank_0_5` peut avancer, sinon None.
+
+        - `SAUT` (ou alias `EXCLUSIVE_CHOICE`) : 1re case libre à gauche ;
+        - `PAS_A_PAS` : uniquement `rank_0_5 - 1` si libre ;
+        - `SAUT_MAX_1_PAR_TOUR` : 1re case libre à gauche si aucun Rêve n'a déjà choisi `AVANCER` ce tour.
+        """
+        assert 0 <= rank_0_5 < TRACK_LEN
+        if rank_0_5 == 0:
+            return None
+        adv_mode = self.cfg.reve_advance_mode
+        if check_turn_cap and adv_mode == "SAUT_MAX_1_PAR_TOUR" and self.reve_advances_this_turn >= 1:
+            return None
+        if adv_mode == "PAS_A_PAS":
+            if not is_reve_code(self.get_tactique_at_rank(rank_0_5 - 1)):
+                return rank_0_5 - 1
+            return None
+        for j in range(rank_0_5 - 1, -1, -1):
+            if not is_reve_code(self.get_tactique_at_rank(j)):
+                return j
+        return None
 
     def get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int:
         """Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — retourne toujours 0."""

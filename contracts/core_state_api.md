@@ -79,6 +79,7 @@ zéro `import random`, zéro état global mutable).
 - `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = ...`
 - `NUM_CHASSIS: int = 1`
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
+- `REVE_ADVANCE_MODES: tuple[str, ...] = ('SAUT', 'PAS_A_PAS', 'SAUT_MAX_1_PAR_TOUR')`
 
 ### Fonctions publiques
 
@@ -141,7 +142,7 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='EXCLUSIVE_CHOICE', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='SAUT', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).
@@ -241,6 +242,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `piste_tactiques: tuple[TactiqueSlotObs, ...]`
 - `piste_colonie: tuple[int, ...]`
 - `machines: tuple[MachineObs, ...]`
+- `reve_advances_this_turn: int` — Nombre de Rêves ayant déjà choisi AVANCER en 3.2 durant ce tour.
 
 **Méthodes :**
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int`
@@ -251,6 +253,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `parcel_insectes(self, r: int, p: int) -> int` — Nombre d'Insectes sur (r, p) en O(1).
 - `parcel_piege(self, r: int, p: int) -> int` — État du Piège (0=aucun, 1=actif, 2=déclenché) sur (r, p) en O(1).
 - `parcel_defenseurs(self, r: int, p: int) -> int` — Nombre de Défenseurs en forêt sur (r, p) en O(1).
+- `parcel_def1_count(self, r: int, p: int) -> int` — Nombre de 1ers Défenseurs (Étape 2.1, publics) posés sur la parcelle (r, p).
 - `parcel_has_nid(self, r: int, p: int) -> bool` — Retourne True si un Nid est présent sur (r, p) en Mode >= 2.
 - `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1).
 - `furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int` — Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1).
@@ -293,6 +296,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `sabotage_deck_count: int`
 - `sabotage_pending_count: int`
 - `reshuffle_count: int`
+- `reve_advances_this_turn: int` — Nombre de Rêves ayant choisi AVANCER en 3.2 durant ce tour.
 
 **Méthodes :**
 - `clone(self) -> GameState` — Copie rapide et strictement indépendante à l'octet près (compatible IS-MCTS / Forks).
@@ -411,6 +415,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `count_other_gardiens_won_this_turn(self) -> int` — Nombre de Gardiens distincts hors case 4 ayant achevé leur pari ce tour.
 - `was_seat_deviated_by_bug_this_turn(self, seat: int) -> bool` — Vrai si la carte Machine du siège `seat` a déjà été déviée par un Bug en 3.2 ce tour.
 - `mark_seat_deviated_by_bug_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug).
+- `increment_reve_advances_this_turn(self) -> None` — Incrémente le compteur de Rêves ayant choisi AVANCER en 3.2 durant ce tour.
+- `get_reve_advance_dest_rank(self, rank_0_5: int, *, check_turn_cap: bool=True) -> int | None` — Retourne l'index `0..5` de destination si le Rêve en `rank_0_5` peut avancer, sinon None. - `SAUT` (ou alias `EXCLUSIVE_CHOICE`) : 1re case libre à gauche ; - `PAS_A_PAS` : uniquement `rank_0_5 - 1` si libre ; - `SAUT_MAX_1_PAR_TOUR` : 1re case libre à gauche si aucun Rêve n'a déjà choisi `AVANCER` ce tour.
 - `get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — retourne toujours 0.
 - `add_pending_apprentissage_at_rank(self, rank_0_5: int, delta: int) -> None` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — sans effet.
 - `get_pending_voluntary_app_reduction(self) -> tuple[int, int]` — Retourne (nb_retraits_volontaires_restants, seat_decideur) mémorisés pour 6.1.

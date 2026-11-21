@@ -638,16 +638,10 @@ def prim_permutation_piste(
         assert 0 <= rank_a < TRACK_LEN
         code = state.get_tactique_at_rank(rank_a)
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
-        if rank_a == 0:
-            return False
-        dest: int | None = None
-        for j in range(rank_a - 1, -1, -1):
-            if not is_reve_code(state.get_tactique_at_rank(j)):
-                dest = j
-                break
+        dest = state.get_reve_advance_dest_rank(rank_a, check_turn_cap=False)
         if dest is None:
             return False
-        # v6.0 : le Rêve saute directement vers la 1re case libre à sa gauche ;
+        # v6.0 : le Rêve se déplace vers `dest` (saut à la 1re case libre à gauche ou pas-à-pas d'1 case) ;
         # la case libérée retrouve sa Tactique imprimée T1..T6 (rank_a + 1).
         state.set_tactique_at_rank(dest, code)
         state.set_tactique_at_rank(rank_a, rank_a + 1)

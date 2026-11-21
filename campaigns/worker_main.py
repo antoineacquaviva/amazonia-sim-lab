@@ -1453,7 +1453,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_adv_modes = manifest.get("reve_advance_modes", manifest.get("reve_advance_mode"))
     if raw_adv_modes is None:
-        adv_modes: list[str] = ["EXCLUSIVE_CHOICE"]
+        adv_modes: list[str] = ["SAUT"]
         explicit_adv_mode_sweep = False
     elif isinstance(raw_adv_modes, str):
         adv_modes = [raw_adv_modes.strip().upper()]
@@ -1462,9 +1462,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         adv_modes = [str(x).strip().upper() for x in raw_adv_modes]
         explicit_adv_mode_sweep = True
     for radv in adv_modes:
-        if radv != "EXCLUSIVE_CHOICE":
+        if radv not in ("SAUT", "PAS_A_PAS", "SAUT_MAX_1_PAR_TOUR", "EXCLUSIVE_CHOICE"):
             raise ValueError(
-                f"reve_advance_mode invalide (v6.0 : EXCLUSIVE_CHOICE uniquement, CLEAR_RANK_ONLY supprimé) : {radv!r}"
+                f"reve_advance_mode invalide (v6.0 : SAUT, PAS_A_PAS, SAUT_MAX_1_PAR_TOUR ou alias EXCLUSIVE_CHOICE ; "
+                f"CLEAR_RANK_ONLY supprimé) : {radv!r}"
             )
 
     raw_g4_modes = manifest.get("gardien_4_trigger_modes", manifest.get("gardien_4_trigger_mode"))
