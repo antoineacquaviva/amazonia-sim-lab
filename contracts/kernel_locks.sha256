@@ -2,6 +2,6 @@
 # Empreintes SHA-256 vérifiées par la porte [1/8] de verify_lot.py.
 # Le socle figé v5.5 reste intact sur main.
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-8b8e8cf86aead788beabddb858691bc8c4653622d7fea6b9f92c87cfb79cb411  engine/state.py
+7eeb6adab733bcb4f8b499e25f978c9aa73cbca21d99cb7643f40c7c32f3f382  engine/state.py
 d68f709ca5ad4d220f1d10f8876bf343590079dbcf0faace8ed21f4e0428ce93  engine/primitives.py
 9b7ec99a1d5c041a92fb43657a87a419495216c3f88e93954c6383f75932681b  engine/core_engine.py

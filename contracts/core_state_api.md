@@ -81,7 +81,7 @@ zéro `import random`, zéro état global mutable).
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
 - `REVE_ADVANCE_MODES: tuple[str, ...] = ('SAUT',)`
 - `REVE_5_TRIGGER_MODES: tuple[str, ...] = ('PASSIF', 'ACTIF')`
-- `REVE_ADVANCE_COST_MODES: tuple[str, ...] = ('1DEF', '2DEF')`
+- `REVE_ADVANCE_COST_MODES: tuple[str, ...] = ('1DEF', '2DEF', 'ONIRIQUE_COUNT')`
 
 ### Fonctions publiques
 

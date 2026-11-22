@@ -1540,87 +1540,6 @@ def _build_ockham_razor_block(
     return out_ok
 
 
-def _build_initiation_cohort_block(
-    con: duckdb.DuckDBPyConnection,
-    raw_cols: set[str],
-) -> dict[str, Any] | None:
-    """Agrège de manière strictement isolée la cohorte secondaire `cohort_role = 'INITIATION'` (P4_1223)."""
-    if "cohort_role" not in raw_cols:
-        return None
-    cnt_row = _query_dicts(
-        con,
-        "SELECT CAST(COALESCE(SUM(n_games), 0) AS INTEGER) AS ng FROM raw_cells WHERE cohort_role = 'INITIATION'",
-    )
-    if not cnt_row or int(cnt_row[0]["ng"] or 0) <= 0:
-        return None
-
-    tot_r = _query_dicts(
-        con,
-        """
-        SELECT
-            CAST(SUM(n_games) AS INTEGER) AS total_games,
-            ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
-            ROUND(SUM(cvar20_ratio * n_games) / SUM(n_games), 4) AS cvar20_ratio,
-            ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
-            ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
-            ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
-            ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
-        FROM raw_cells
-        WHERE cohort_role = 'INITIATION'
-        """,
-    )[0]
-    t_rows = _query_dicts(
-        con,
-        """
-        SELECT variant_id, bot, n_players, sum_ratio_arbres * 1.0 / n_games AS mr
-        FROM raw_cells
-        WHERE cohort_role = 'INITIATION' AND n_games > 0
-        """,
-    )
-    all_mr = [float(x["mr"]) for x in t_rows]
-    vbn_mr: dict[tuple[str, str, int], list[float]] = {}
-    for x in t_rows:
-        vbn_mr.setdefault(
-            (str(x["variant_id"]), str(x["bot"]), int(x["n_players"])), []
-        ).append(float(x["mr"]))
-
-    by_vbn = _query_dicts(
-        con,
-        """
-        SELECT
-            variant_id,
-            chassis_id,
-            bot,
-            n_players,
-            CAST(SUM(n_games) AS INTEGER) AS n_games,
-            ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
-            ROUND(SUM(cvar20_ratio * n_games) / SUM(n_games), 4) AS cvar20_ratio,
-            ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
-            ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
-            ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
-            ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
-        FROM raw_cells
-        WHERE cohort_role = 'INITIATION'
-        GROUP BY variant_id, chassis_id, bot, n_players
-        ORDER BY variant_id, bot, n_players
-        """,
-    )
-    for r in by_vbn:
-        r["table_cvar20_ratio"] = _cvar_bottom_values(
-            vbn_mr.get((str(r["variant_id"]), str(r["bot"]), int(r["n_players"])), []), 0.20
-        )
-
-    return {
-        "cohort_role": "INITIATION",
-        "strict_isolation_from_canon": True,
-        "totals": {
-            **tot_r,
-            "table_cvar20_ratio": _cvar_bottom_values(all_mr, 0.20),
-        },
-        "by_variant_x_bot_x_n_players": by_vbn,
-    }
-
-
 def _active_slots_for_peuples_circle(peuples_str: str) -> set[str]:
     """Retourne l'ensemble des emplacements (parmi les 32) effectivement actifs sur ce cercle."""
     peuples = tuple(p.strip().upper() for p in peuples_str.split("-") if p.strip())
@@ -1733,16 +1652,8 @@ def aggregate_campaign_duckdb(
     parquet_posix = parquet_path.as_posix()
 
     con = duckdb.connect(":memory:")
-    con.execute(f"CREATE TABLE raw_cells AS SELECT * FROM read_json_auto('{glob_pattern}')")
-    con.execute(f"COPY raw_cells TO '{parquet_posix}' (FORMAT PARQUET, COMPRESSION ZSTD)")
-
-    raw_cols = {str(r[0]) for r in con.sql("DESCRIBE raw_cells").fetchall()}
-    if "cohort_role" in raw_cols:
-        con.execute(
-            "CREATE VIEW cells AS SELECT * FROM raw_cells WHERE COALESCE(cohort_role, 'CANON') = 'CANON'"
-        )
-    else:
-        con.execute("CREATE VIEW cells AS SELECT * FROM raw_cells")
+    con.execute(f"CREATE TABLE cells AS SELECT * FROM read_json_auto('{glob_pattern}')")
+    con.execute(f"COPY cells TO '{parquet_posix}' (FORMAT PARQUET, COMPRESSION ZSTD)")
 
     cell_cols = {str(r[0]) for r in con.sql("DESCRIBE cells").fetchall()}
     has_ops_cols = "sum_physical_ops" in cell_cols and "sum_player_decisions" in cell_cols
@@ -2434,9 +2345,6 @@ def aggregate_campaign_duckdb(
         ockham_block = _build_ockham_razor_block(con, cell_cols)
         if ockham_block is not None:
             digest_payload["ockham_razor"] = ockham_block
-    initiation_cohort_block = _build_initiation_cohort_block(con, raw_cols)
-    if initiation_cohort_block is not None:
-        digest_payload["initiation_block"] = initiation_cohort_block
 
     digest_path, prompt_path, final_digest = write_digest_and_prompt_files(
         campaign_name,

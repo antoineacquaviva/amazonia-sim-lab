@@ -1,6 +1,6 @@
 """Tests unitaires de préparation de l'audit exhaustif v6.0 :
-- Chantier 1 : Sabotage actif sur B1/B2/B3, verrouillage ADV=SAUT & séparation stricte CANON (P4_2233) vs INITIATION (P4_1223)
-- Chantier 2 : REVE_TRIG in {PASSIF, ACTIF} et ADV_COST in {1DEF, 2DEF}
+- Chantier 1 : Sabotage actif sur B1/B2/B3, verrouillage ADV=SAUT & P4_2233 unique
+- Chantier 2 : REVE_TRIG in {PASSIF, ACTIF} et ADV_COST in {1DEF, 2DEF, ONIRIQUE_COUNT}
 - Chantier 3 : Couverture intégrale du Référentiel d'acceptation v6.x (acceptance_v6, sommeil_temporality, charge_assaut_metrics, furtivite_metrics)
 - Chantier 4 : Instrumentation Rasoir d'Ockham (41 micro-règles + 8 embranchements de faux dilemmes)
 """
@@ -76,7 +76,6 @@ def test_v6_0_reve_5_trigger_passif_vs_actif_and_partition() -> None:
 
         st.step = STEP_3_2_REVEAL
         _ = step_until_decision(st)
-        # Sous PASSIF, le pari en case 5 est gagné et le Gardien s'ouvre ; sous ACTIF, le pari reste non consommé !
         assert st.has_gardien_opened_this_turn(5) is expected_lit
         assert st.count_gardien_pari_defenders_at_case(5) == (0 if expected_lit else 1)
 
@@ -144,24 +143,49 @@ def test_v6_0_reve_5_trigger_passif_vs_actif_and_partition() -> None:
         assert st_act.count_gardien_pari_defenders_at_case(5) == 0
 
 
-def test_v6_0_reve_advance_cost_1def_vs_2def() -> None:
-    """Vérifie ADV_COST=2DEF : 1 Défenseur ne donne accès qu'à BLOQUER (1 machine annulée), 2 Défenseurs débloquent AVANCER."""
-    assert REVE_ADVANCE_COST_MODES == ("1DEF", "2DEF")
+def test_v6_0_reve_advance_cost_1def_2def_and_onirique_count() -> None:
+    """Vérifie ADV_COST in {1DEF, 2DEF, ONIRIQUE_COUNT} (1 Déf à 1 Onirique vs 2 Déf à 2 Oniriques)."""
+    assert REVE_ADVANCE_COST_MODES == ("1DEF", "2DEF", "ONIRIQUE_COUNT")
 
     with pytest.raises(AssertionError, match="reve_advance_cost_mode"):
         GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), reve_advance_cost_mode="3DEF")
+
+    # Vérifie ONIRIQUE_COUNT à 1 Peuple Onirique (1 Déf suffit) vs 2 Peuples Oniriques (2 Déf requis)
+    cfg_oni_1 = GameConfig(
+        n_players=3,
+        mode=2,
+        peuples=("M", "R", "H"),
+        reve_advance_cost_mode="ONIRIQUE_COUNT",
+        exp_seed=7200,
+    )
+    assert cfg_oni_1.nb_peuples_oniriques == 1
+    assert cfg_oni_1.required_defenders_for_reve_advance() == 1
+
+    st_o1 = GameState(cfg_oni_1)
+    st_o1.tour = 2
+    st_o1.set_tactique_at_rank(5, TILE_R_BASE + 1)
+    st_o1.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st_o1.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+    st_o1.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
+    st_o1.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_o1.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_o1.step = STEP_3_2_REVEAL
+    req_o1 = step_until_decision(st_o1)
+    assert isinstance(req_o1, DecisionRequest) and req_o1.decision_type == DEC_CHOIX_REVE_3_2
+    assert req_o1.options == ("BLOQUER", "AVANCER")
 
     cfg_2d = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "H", "E"),
-        reve_advance_cost_mode="2DEF",
+        reve_advance_cost_mode="ONIRIQUE_COUNT",
         reve_5_trigger_mode="ACTIF",
         exp_seed=7201,
     )
+    assert cfg_2d.nb_peuples_oniriques == 2
     assert cfg_2d.required_defenders_for_reve_advance() == 2
 
-    # Cas A : 1 seul Défenseur sur le Rêve en case 6 -> seul BLOQUER est légal, annule 1 machine sur 2
+    # Cas A : 1 seul Défenseur sur le Rêve à 2 Oniriques -> seul BLOQUER est légal, annule 1 machine sur 2
     st_1 = GameState(cfg_2d)
     st_1.tour = 2
     st_1.set_tactique_at_rank(5, TILE_R_BASE + 1)
@@ -189,7 +213,7 @@ def test_v6_0_reve_advance_cost_1def_vs_2def() -> None:
     assert st_1.get_tactique_at_rank(5) == TILE_R_BASE + 1
     assert trk_1.summary().dil_reve_forced_block == 1
 
-    # Cas B : 2 Défenseurs sur le Rêve en case 6 -> ("BLOQUER", "AVANCER") proposé, AVANCER consomme 2 Défenseurs
+    # Cas B : 2 Défenseurs sur le Rêve -> ("BLOQUER", "AVANCER") proposé, AVANCER consomme 2 Défenseurs
     st_2 = GameState(cfg_2d)
     st_2.tour = 2
     st_2.set_tactique_at_rank(5, TILE_R_BASE + 1)
@@ -214,7 +238,7 @@ def test_v6_0_reve_advance_cost_1def_vs_2def() -> None:
     apply_choice(st_2, "AVANCER", telemetry=trk_2)
     assert st_2.count_reve_activation_consumed_at_case(6) == 2
     _ = step_until_decision(st_2, telemetry=trk_2)
-    assert st_2.get_tactique_at_rank(4) == TILE_R_BASE + 1  # Avancé en case 5
+    assert st_2.get_tactique_at_rank(4) == TILE_R_BASE + 1
     assert st_2.get_player_hand(0)[4] == 6 and st_2.get_player_hand(1)[4] == 6
     assert trk_2.summary().dil_reve_dual_advance == 1
 
@@ -224,7 +248,7 @@ def test_v6_0_sabotage_revived_in_b2_b1_and_b3() -> None:
     sab_acq_b2 = 0
     sab_rev_b2 = 0
     sab_acq_b1 = 0
-    tables = (("M", "R", "O"), ("M", "R", "H", "I"), ("M", "R", "O", "H", "I"))
+    tables = (("M", "R", "O"), ("M", "R", "H", "I"), ("M", "R", "O", "H", "E"))
     for rep in range(36):
         peuples = tables[rep % len(tables)]
         cfg = GameConfig.from_chassis_index(
@@ -233,7 +257,7 @@ def test_v6_0_sabotage_revived_in_b2_b1_and_b3() -> None:
             mode=2,
             peuples=peuples,
             reve_5_trigger_mode="ACTIF",
-            reve_advance_cost_mode="2DEF",
+            reve_advance_cost_mode="ONIRIQUE_COUNT",
             exp_seed=7300,
             rep_id=rep,
             max_revision_passes=3,
@@ -255,14 +279,13 @@ def test_v6_0_sabotage_revived_in_b2_b1_and_b3() -> None:
     assert sab_rev_b2 >= 1, f"Aucun Sabotage tiré en 1.2 sur B2 : sab_rev_b2={sab_rev_b2}"
     assert sab_acq_b1 >= 1, f"Sabotage B1 inerte : sab_acq_b1={sab_acq_b1}"
 
-    # Vérifie aussi que B3 tourne proprement avec REVE_TRIG=ACTIF & ADV_COST=2DEF sans violer d'invariant
     cfg_b3 = GameConfig.from_chassis_index(
         0,
         n_players=4,
         mode=2,
-        peuples=("M", "R", "H", "I"),
+        peuples=("M", "R", "H", "E"),
         reve_5_trigger_mode="ACTIF",
-        reve_advance_cost_mode="2DEF",
+        reve_advance_cost_mode="ONIRIQUE_COUNT",
         exp_seed=7399,
         rep_id=0,
         max_revision_passes=3,
@@ -275,60 +298,48 @@ def test_v6_0_sabotage_revived_in_b2_b1_and_b3() -> None:
     assert trk_b3.summary().mem_debt_score == 0
     obs_b3 = st_b3.get_observation(0)
     assert obs_b3.reve_5_trigger_mode == "ACTIF"
-    assert obs_b3.reve_advance_cost_mode == "2DEF"
+    assert obs_b3.reve_advance_cost_mode == "ONIRIQUE_COUNT"
 
 
-def test_v6_0_audit_manifest_cohort_isolation_and_digest_coverage(
+def test_v6_0_audit_manifest_2x3_and_digest_coverage(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Vérifie audit_exhaustif_socle_v6_0.json, la non-mixité CANON/INITIATION et 100 % des blocs digest v6.x."""
+    """Vérifie audit_exhaustif_socle_v6_0.json (2x3 variantes, P4_2233 unique, 41 040 parties) et les blocs digest v6.x."""
     import campaigns.digest_builder as db_mod
 
     manifest_path = ROOT / "campaigns" / "manifests" / "audit_exhaustif_socle_v6_0.json"
     assert manifest_path.is_file()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert "initiation_block" not in manifest
     plan = resolve_manifest_plan(manifest)
 
     assert plan["campaign_name"] == "audit_exhaustif_socle_v6_0"
-    assert plan["chassis_ids"] == (0,)  # P4_2233 unique dans la cohorte CANON
-    assert len(plan["profile_variants"]) == 4
+    assert plan["chassis_ids"] == (0,)  # P4_2233 unique
+    assert len(plan["profile_variants"]) == 6
     assert {v["variant_id"] for v in plan["profile_variants"]} == {
         "REVE_TRIG=PASSIF|ADV_COST=1DEF",
         "REVE_TRIG=PASSIF|ADV_COST=2DEF",
+        "REVE_TRIG=PASSIF|ADV_COST=ONIRIQUE_COUNT",
         "REVE_TRIG=ACTIF|ADV_COST=1DEF",
         "REVE_TRIG=ACTIF|ADV_COST=2DEF",
+        "REVE_TRIG=ACTIF|ADV_COST=ONIRIQUE_COUNT",
     }
-    # 4 variantes * 3 bots * 4 tailles * 570 = 27 360 CANON + 4 * 2 * 4 * 285 = 9 120 INITIATION = 36 480
-    assert plan["canon_games"] == 27_360
-    assert plan["initiation_block"]["total_games"] == 9_120
-    assert plan["total_games"] == 36_480
-    canon_units = [u for u in plan["units"] if u["cohort_role"] == "CANON"]
-    init_units = [u for u in plan["units"] if u["cohort_role"] == "INITIATION"]
-    assert all(u["chassis_id"] == 0 for u in canon_units)
-    assert all(u["chassis_id"] == 2 for u in init_units)
+    # 6 variantes * 3 bots * 4 tailles * 570 = 41 040 parties
+    assert plan["total_configurations"] == 72
+    assert plan["total_games"] == 41_040
+    assert all(u["chassis_id"] == 0 for u in plan["units"])
 
-    # Micro-run local couvrant CANON (P4_2233) + INITIATION (P4_1223), 2 variantes, B0/B1/B2, N=3..6
+    # Micro-run local couvrant 2 variantes (dont ONIRIQUE_COUNT), B0/B1/B2, N=3..6
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_audit_socle_v6_0"
     micro_manifest["games_per_configuration"] = 3
     micro_manifest["reve_5_trigger_modes"] = ["PASSIF", "ACTIF"]
-    micro_manifest["reve_advance_cost_modes"] = ["2DEF"]
-    micro_manifest["initiation_block"] = {
-        "enabled": True,
-        "profil_piste": "P4_1223",
-        "bots": ["B1", "B2"],
-        "player_counts": [3, 6],
-        "games_per_configuration": 2,
-    }
+    micro_manifest["reve_advance_cost_modes"] = ["ONIRIQUE_COUNT"]
 
     micro_file = tmp_path / "micro_audit_socle_v6_0.json"
     micro_file.write_text(json.dumps(micro_manifest), encoding="utf-8")
     micro_plan = resolve_manifest_plan(micro_manifest)
-    # CANON : 2 variantes * 3 bots * 4 tailles * 3 = 72 parties
-    # INITIATION : 2 variantes * 2 bots * 2 tailles * 2 = 16 parties
-    assert micro_plan["canon_games"] == 72
-    assert micro_plan["initiation_block"]["total_games"] == 16
-    assert micro_plan["total_games"] == 88
+    assert micro_plan["total_games"] == 72
 
     shards_dir = tmp_path / "shards"
     rc = run_campaign_manifest(
@@ -358,27 +369,18 @@ def test_v6_0_audit_manifest_cohort_isolation_and_digest_coverage(
         job_wall_sec=0.8,
     )
 
-    # 1) Non-mixité stricte : totals et by_chassis ne contiennent QUE P4_2233 (72 parties),
-    #    tandis que Parquet archive les 88 parties et initiation_block isole les 16 parties P4_1223 !
     assert digest["totals"]["total_games"] == 72
     assert [r["chassis_id"] for r in digest["by_chassis"]] == [0]
-    assert "initiation_block" in digest
-    init_blk = digest["initiation_block"]
-    assert init_blk["cohort_role"] == "INITIATION"
-    assert init_blk["strict_isolation_from_canon"] is True
-    assert init_blk["totals"]["total_games"] == 16
-    assert {r["chassis_id"] for r in init_blk["by_variant_x_bot_x_n_players"]} == {2}
+    assert "initiation_block" not in digest
 
     con_pq = duckdb.connect(":memory:")
     pq_tot_row = con_pq.execute(
         f"SELECT CAST(SUM(n_games) AS INTEGER) FROM read_parquet('{parquet_path.as_posix()}')"
     ).fetchone()
     assert pq_tot_row is not None
-    pq_tot = int(pq_tot_row[0])
+    assert int(pq_tot_row[0]) == 72
     con_pq.close()
-    assert pq_tot == 88
 
-    # 2) Couverture intégrale du Référentiel d'acceptation v6.x
     assert "acceptance_v6" in digest
     acc = digest["acceptance_v6"]
     assert len(acc["bot_hierarchy_and_cognition"]) == 2
@@ -392,7 +394,6 @@ def test_v6_0_audit_manifest_cohort_isolation_and_digest_coverage(
         assert all("table_cvar20_ratio" in r for r in eq["by_has_insectes"])
         assert all("table_cvar20_ratio" in r for r in eq["by_n_peuples_oniriques"])
 
-    # 3) Temporalité Sommeil, Charge/Assaut normalisée par machine & Furtivité
     assert "sommeil_temporality" in digest
     st_blk = digest["sommeil_temporality"]
     assert set(st_blk["global"]["tour_counts"].keys()) == {f"T{t}" for t in range(1, 8)}
@@ -401,7 +402,7 @@ def test_v6_0_audit_manifest_cohort_isolation_and_digest_coverage(
 
     assert "charge_assaut_metrics" in digest
     ca_blk = digest["charge_assaut_metrics"]
-    assert len(ca_blk["by_bot_x_n_players"]) == 12  # 3 bots * 4 N
+    assert len(ca_blk["by_bot_x_n_players"]) == 12
     for row in ca_blk["by_bot_x_n_players"]:
         assert row["n_machines"] == 2 * row["n_players"]
         assert "tokens_per_machine_end_act1" in row
@@ -418,7 +419,6 @@ def test_v6_0_audit_manifest_cohort_isolation_and_digest_coverage(
     ):
         assert k in fu_blk["global"]
 
-    # 4) Instrumentation Rasoir d'Ockham (41 micro-règles + 8 embranchements de dilemmes)
     assert "ockham_razor" in digest
     ok_blk = digest["ockham_razor"]
     assert ok_blk["reference_policy"] == "B2"

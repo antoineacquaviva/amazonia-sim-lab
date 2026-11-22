@@ -31,7 +31,6 @@ from campaigns.designs import (
     sequential_halving_select,
 )
 from campaigns.digest_builder import (
-    axes_dict_to_chassis_id,
     build_mobile_one_tap_html,
     build_prompt_gemini_markdown,
     build_self_contained_digest,
@@ -1519,8 +1518,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         ac_modes = [str(x).strip().upper() for x in raw_ac_modes]
         explicit_ac_sweep = True
     for acm in ac_modes:
-        if acm not in ("1DEF", "2DEF"):
-            raise ValueError(f"reve_advance_cost_mode invalide (attendu 1DEF/2DEF) : {acm!r}")
+        if acm not in ("1DEF", "2DEF", "ONIRIQUE_COUNT"):
+            raise ValueError(
+                f"reve_advance_cost_mode invalide (attendu 1DEF/2DEF/ONIRIQUE_COUNT) : {acm!r}"
+            )
 
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True
@@ -1708,64 +1709,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         cohort_games_per_cfg=games_per_cfg,
         start_config_idx=0,
     )
-    canon_games = sum(int(u["n_games"]) for u in units)
-
-    # 4b. Bloc secondaire optionnel « mode Initiation » (ex: P4_1223, chassis_id = 2)
-    #     strictement étiqueté cohort_role = 'INITIATION' pour ne jamais mélanger ses agrégats avec CANON.
-    init_meta: dict[str, Any] = {"enabled": False, "chassis_ids": (), "total_games": 0}
-    raw_init_blk = manifest.get("initiation_block")
-    if isinstance(raw_init_blk, dict) and bool(raw_init_blk.get("enabled", False)):
-        init_profil = str(raw_init_blk.get("profil_piste", "P4_1223")).strip().upper()
-        init_chassis_ids: list[int] = []
-        for ch_id in chassis_ids:
-            dec = dict(decode_chassis_index(ch_id))
-            dec["profil_piste"] = init_profil
-            init_cid = axes_dict_to_chassis_id(dec)
-            if init_cid not in init_chassis_ids:
-                init_chassis_ids.append(init_cid)
-        init_bots_raw = raw_init_blk.get("bots", bot_list)
-        init_bots = (
-            [init_bots_raw.strip().upper()]
-            if isinstance(init_bots_raw, str)
-            else [str(b).strip().upper() for b in init_bots_raw]
-        )
-        for ib in init_bots:
-            if ib not in ("B0", "B1", "B2", "B3"):
-                raise ValueError(f"initiation_block.bots invalide : {ib!r}")
-        init_players = sorted(
-            {int(n) for n in raw_init_blk.get("player_counts", player_counts)}
-        )
-        init_games_per_cfg = max(
-            1, int(raw_init_blk.get("games_per_configuration", games_per_cfg))
-        )
-        raw_var_filter = raw_init_blk.get("variant_ids")
-        if raw_var_filter:
-            allowed_vids = {str(v) for v in raw_var_filter}
-            init_variants = [v for v in profile_variants if str(v["variant_id"]) in allowed_vids]
-            if not init_variants:
-                init_variants = profile_variants
-        else:
-            init_variants = profile_variants
-
-        init_units, config_idx = _append_cohort_units(
-            cohort_role="INITIATION",
-            cohort_bots=init_bots,
-            cohort_players=init_players,
-            cohort_chassis=init_chassis_ids,
-            cohort_variants=init_variants,
-            cohort_games_per_cfg=init_games_per_cfg,
-            start_config_idx=config_idx,
-        )
-        units.extend(init_units)
-        init_meta = {
-            "enabled": True,
-            "profil_piste": init_profil,
-            "chassis_ids": tuple(init_chassis_ids),
-            "bots": tuple(init_bots),
-            "player_counts": tuple(init_players),
-            "games_per_configuration": init_games_per_cfg,
-            "total_games": sum(int(u["n_games"]) for u in init_units),
-        }
+    for u_item in units:
+        u_item.pop("cohort_role", None)
 
     return {
         "campaign_name": campaign_name,
@@ -1784,8 +1729,6 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
         "games_per_configuration": games_per_cfg,
-        "canon_games": canon_games,
-        "initiation_block": init_meta,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
         "bot": bot_name,
@@ -1799,7 +1742,6 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     t0 = time.perf_counter()
-    cohort_role = str(unit.get("cohort_role", "CANON"))
     n_pl = int(unit["n_players"])
     ch_id = int(unit["chassis_id"])
     mode = int(unit["mode"])
@@ -1998,7 +1940,6 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
 
     out_row: dict[str, Any] = {
         "campaign": str(unit["campaign"]),
-        "cohort_role": cohort_role,
         "config_id": int(unit["config_id"]),
         "n_players": n_pl,
         "n_machines_initial": 2 * n_pl,

@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "audit_exhaustif_socle_v6_0",
+      "label": "Audit comparatif exhaustif Mode 2 du socle v6.0 (Référentiel d'acceptation v6.x Blocs 1 & 2 + Cartographie Rasoir d'Ockham) : déplacement des Rêves figé sur ADV=SAUT, châssis canonique unique P4_2233 (chassis_id=0, 570 parties/config = PPCM exact des 19/15/6/1 tables A>=1 soit 41 040 parties) croisant 2x3 REVE_TRIG in {PASSIF, ACTIF} x ADV_COST in {1DEF, 2DEF, ONIRIQUE_COUNT} sur B0/B1/B2 et N=3..6. (41040 parties)",
+      "file": "digest_audit_exhaustif_socle_v6_0.json",
+      "campaign": "audit_exhaustif_socle_v6_0",
+      "generated_at_utc": "2026-11-22T11:14:19Z",
+      "total_games": 41040
+    },
+    {
       "id": "calibration_sommeil_v6_0",
       "label": "Calibration Mode 2 du Sommeil du Contremaître et de l'Éveil sur le socle v6.0 (tuiles neutres) : duel anti-raccourci 6J entre 3 variantes de déplacement des Rêves sur choix AVANCER (SAUT référence v6.0 vers la 1re case libre à gauche sans limite/tour vs PAS_A_PAS d'1 seule case adjacente libre à gauche vs SAUT_MAX_1_PAR_TOUR plafonné à 1 Rêve avançant par tour avec priorité au Rêve le plus proche du Sommeil). Bots B0, B1, B2 (politique B2 rééquilibrée Acte 1 Charge vs Furtivité + Éveil 5-6J), N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 25 920 parties. (25920 parties)",
       "file": "digest_calibration_sommeil_v6_0.json",

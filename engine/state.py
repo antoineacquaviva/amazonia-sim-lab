@@ -525,7 +525,7 @@ _VALID_REVE_ADVANCE_MODES: tuple[str, ...] = (
     "EXCLUSIVE_CHOICE",
 )
 REVE_5_TRIGGER_MODES: tuple[str, ...] = ("PASSIF", "ACTIF")
-REVE_ADVANCE_COST_MODES: tuple[str, ...] = ("1DEF", "2DEF")
+REVE_ADVANCE_COST_MODES: tuple[str, ...] = ("1DEF", "2DEF", "ONIRIQUE_COUNT")
 
 
 def get_layout_report() -> dict[str, Any]:
@@ -622,7 +622,7 @@ class GameConfig:
             f"reve_5_trigger_mode invalide (attendu PASSIF ou ACTIF) : {self.reve_5_trigger_mode}"
         )
         assert self.reve_advance_cost_mode in REVE_ADVANCE_COST_MODES, (
-            f"reve_advance_cost_mode invalide (attendu 1DEF ou 2DEF) : {self.reve_advance_cost_mode}"
+            f"reve_advance_cost_mode invalide (attendu 1DEF, 2DEF ou ONIRIQUE_COUNT) : {self.reve_advance_cost_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -710,6 +710,8 @@ class GameConfig:
         """Nombre minimal de Défenseurs requis sur un Rêve pour choisir AVANCER en 3.2."""
         if self.reve_advance_cost_mode == "2DEF":
             return 2
+        if self.reve_advance_cost_mode == "ONIRIQUE_COUNT":
+            return max(1, int(self.nb_peuples_oniriques))
         return 1
 
     def gardien_bet_cap_for_case(self, case_1_6: int) -> int:

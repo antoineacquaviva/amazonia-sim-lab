@@ -99,7 +99,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             reve_5_trigger_mode=("PASSIF", "ACTIF")[(game_idx // 3) % 2]
             if mode == 2
             else "PASSIF",
-            reve_advance_cost_mode=("1DEF", "2DEF")[(game_idx // 5) % 2]
+            reve_advance_cost_mode=("1DEF", "2DEF", "ONIRIQUE_COUNT")[(game_idx // 5) % 3]
             if mode == 2
             else "1DEF",
             tile_profiles=(

@@ -1,6 +1,6 @@
 {
   "campaign_name": "audit_exhaustif_socle_v6_0",
-  "description": "Audit exhaustif Mode 2 du socle v6.0 (Référentiel d'acceptation v6.x Blocs 1 & 2 + Cartographie Rasoir d'Ockham) : déplacement des Rêves figé sur ADV=SAUT, châssis canonique principal P4_2233 (chassis_id=0, cohorte CANON, 570 parties/config = PPCM exact des 19/15/6/1 tables A>=1 soit 27 360 parties) croisant 2x2 REVE_TRIG in {PASSIF, ACTIF} x ADV_COST in {1DEF, 2DEF} sur B0/B1/B2 et N=3..6, + bloc secondaire isolé mode Initiation P4_1223 (chassis_id=2, cohorte INITIATION non mélangée, B1/B2, 9 120 parties).",
+  "description": "Audit comparatif exhaustif Mode 2 du socle v6.0 (Référentiel d'acceptation v6.x Blocs 1 & 2 + Cartographie Rasoir d'Ockham) : déplacement des Rêves figé sur ADV=SAUT, châssis canonique unique P4_2233 (chassis_id=0, 570 parties/config = PPCM exact des 19/15/6/1 tables A>=1 soit 41 040 parties) croisant 2x3 REVE_TRIG in {PASSIF, ACTIF} x ADV_COST in {1DEF, 2DEF, ONIRIQUE_COUNT} sur B0/B1/B2 et N=3..6.",
   "mode": 2,
   "bots": ["B0", "B1", "B2"],
   "k_max": 3,
@@ -17,7 +17,8 @@
   ],
   "reve_advance_cost_modes": [
     "1DEF",
-    "2DEF"
+    "2DEF",
+    "ONIRIQUE_COUNT"
   ],
   "gardien_bet_cap_policy": "UNIFORM_MAX_2",
   "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
@@ -34,13 +35,6 @@
     "fixed_axes": {
       "Profil_Piste": "P4_2233"
     }
-  },
-  "initiation_block": {
-    "enabled": true,
-    "profil_piste": "P4_1223",
-    "bots": ["B1", "B2"],
-    "player_counts": [3, 4, 5, 6],
-    "games_per_configuration": 285
   },
   "slot_profile_comparisons": {}
 }
