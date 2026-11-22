@@ -234,16 +234,72 @@ for (const check of guards.required_livret_assertions || []) {
   }
 }
 
+// 5. Verify 12 Coup d'œil quick-access links in docs/index.html match rendered anchors + dynamic controls
+const expectedBriques = [
+  'brique-mise-en-place',
+  'brique-preparation',
+  'brique-pose',
+  'brique-ouverture-reves',
+  'brique-furtivite',
+  'brique-nids-migration',
+  'brique-attaques-piegeages',
+  'brique-menage',
+  'brique-gardiens-eveil',
+  'brique-reves-sommeil',
+  'brique-peuple-insectes',
+  'brique-memento',
+];
+if (!html.includes('selon vos réglages v6.1') || html.includes('selon vos réglages v6.0')) {
+  throw new Error('Libellé dynamique de docs/index.html non aligné sur v6.1');
+}
+if (html.includes('livret_v5_3.js')) {
+  throw new Error('Commentaire obsolète livret_v5_3.js encore présent dans docs/index.html');
+}
+const lastLivretHtml = getEl('rulebook-article').innerHTML;
+for (const bid of expectedBriques) {
+  if (!html.includes(`href="#${bid}"`)) {
+    throw new Error(`Lien rapide manquant dans docs/index.html : href="#${bid}"`);
+  }
+  if (!lastLivretHtml.includes(`id="${bid}"`)) {
+    throw new Error(`Ancre de brique manquante dans le Livret rendu : id="${bid}"`);
+  }
+}
+
+// Verify dynamic option variations (Offset +1, grouped placement, N=3, toggleDynamicHighlight)
+vm.runInContext(`(() => {
+  toggleDynamicHighlight(false);
+  toggleDynamicHighlight(true);
+  state.peuplesCercle = ['M', 'H', 'I'];
+  state.chassis.Offset_Seuil_Parade = 1;
+  state.chassis.Placement_Initial_Machines = 'MEME_PARCELLE_P1';
+  state.chassis.Synergie_Binome_Machines = 'MUTUALISATION_PUISSANCE_MEME_PARCELLE';
+  refreshAllUI();
+})()`, sandbox);
+const altLivretHtml = getEl('rulebook-article').innerHTML;
+if (!altLivretHtml.includes('Table à 3 joueurs') || !altLivretHtml.includes('+ 1 (décalage de difficulté actif)')) {
+  throw new Error('Interpolations dynamiques (N=3 / Offset +1) absentes du Livret rendu');
+}
+if (!altLivretHtml.includes('Mutualisation') || !altLivretHtml.includes('départ groupé')) {
+  throw new Error('Interpolations dynamiques (Synergie / Placement groupé) absentes du Livret rendu');
+}
+for (const banned of guards.banned_in_rendered_dom || []) {
+  const re = new RegExp(`\\b${banned}\\b`);
+  if (re.test(altLivretHtml)) {
+    throw new Error(`Motif interdit "${banned}" dans le Livret rendu (options alternatives)`);
+  }
+}
+
 console.log(JSON.stringify({
   ok: true,
   topologies_checked: schemaReport.topoKeys.length,
   tables_checked: (guards.required_livret_assertions || []).length,
+  briques_checked: expectedBriques.length,
 }));
 """
 
 
 def test_studio_banned_terms_in_livret_source() -> None:
-    """Interdit tout résidu textuel de règles obsolètes ou jargon interne dans docs/data/livret_v5_5.js."""
+    """Interdit tout résidu textuel de règles obsolètes ou jargon interne dans docs/data/livret_v6_0.js."""
     guards = json.loads(GUARDS_PATH.read_text(encoding="utf-8"))
     livret_src = STUDIO_LIVRET.read_text(encoding="utf-8")
     violations = [pat for pat in guards["banned_in_livret"] if pat in livret_src]
@@ -274,6 +330,7 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     assert payload["ok"] is True
     assert payload["topologies_checked"] == 6
     assert payload["tables_checked"] == 4
+    assert payload["briques_checked"] == 12
 
 
 _NODE_COPY_DIGEST_HARNESS = r"""

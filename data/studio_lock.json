@@ -17,8 +17,8 @@
       "source": "docs/data/amazonia_data_v6_0.js"
     },
     "livret_v6_0.js": {
-      "sha256": "ddca2a3de33a1ea97ddd8e7b38c06d9bf24555199847354538667266cf297f33",
-      "bytes": 74725,
+      "sha256": "1d35bea29629a503cf5dd318544be3c6dd9108c48dd09f4cd96a8f356cce917a",
+      "bytes": 88979,
       "source": "docs/data/livret_v6_0.js"
     }
   }
