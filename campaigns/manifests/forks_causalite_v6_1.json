@@ -1,6 +1,6 @@
 {
   "campaign_name": "forks_causalite_v6_1",
-  "description": "Campagne Micro de forks contrefactuels appariés (CRN) du socle gelé v6.1 (Mode 2, B2, chassis_id = 24 / config_index_192 = 5, SINGLE_STRIKE, FRAPPE_NON_PAREE, N=3..6, 120 trajectoires/table = 480 trajectoires) : mesure l'impact marginal causal exact (Delta V ± IC 95 %) sur (1) la 1re pose 2.1 (B2 vs B0 Réflexe, et DEF1 sur Rêve en 2.1 vs sans Rêve 2.1), (2) la 2e pose 2.2 (K=3 vs K=0 vs paravents ouverts : valeur de la révision muette et coût du silence), (3) les binômes Furtivité « Chaud vs Calme » (Rive Piège et Rive Sabotage vs contrefactuels purs dès 2.1), (4) la pose du Piège autonome en 4.1 par le propriétaire du rayon, et (5) les tentatives d'Éveil 100 % Gardiens vs survie.",
+  "description": "Campagne Micro de forks contrefactuels appariés (CRN) du socle scellé v6.1 (Mode 2, B2, châssis unique P4_2233, N=3..6, 120 trajectoires/table = 480 trajectoires) : impact marginal causal exact (Delta V ± IC 95 %) en 2.1, 2.2, Furtivité Rive Piège / Rive Sabotage, 4.1 Pose Piège et 5.3 Éveil.",
   "campaign_kind": "MICRO_FORKS",
   "micro_forks": true,
   "mode": 2,
@@ -13,28 +13,5 @@
   "games_per_configuration": 120,
   "fork_selection_rollouts": 3,
   "fork_eval_rollouts": 4,
-  "reve_activation_mode": "1_DEF_1_MACHINE",
-  "reve_advance_mode": "CLEAR_RANK_ONLY",
-  "reve_5_trigger_mode": "ACTIF",
-  "gardien_bet_cap_policy": "UNIFORM_MAX_2",
-  "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
-  "piege_scope_mode": "SINGLE_STRIKE",
-  "charge_gain_mode": "FRAPPE_NON_PAREE",
-  "base_instance": {
-    "config_index_192": 5,
-    "bundle_id": "STANDARD_A",
-    "slots_insectes": {
-      "SLOT_BUG_CERVEAU": "B",
-      "SLOT_COLONISATION_GARDIENS": "B"
-    }
-  },
-  "chassis_plan": {
-    "varying_axes": [],
-    "fixed_axes": {
-      "Profil_Piste": "P4_2233",
-      "Placement_Initial_Machines": "BULLDOZER_P1_ABATTEUSE_P2",
-      "Role_Abatteuse_Fin_De_Piste": "STANDARD_COUPE_ARBRE"
-    }
-  },
   "slot_profile_comparisons": {}
 }

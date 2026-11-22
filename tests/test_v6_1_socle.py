@@ -85,23 +85,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 
 
-def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_scope_modes() -> None:
-    # Verrouillage strict : TURN_PARCEL est rejeté en v6.1 scellé (SINGLE_STRIKE figé)
-    with pytest.raises(AssertionError):
-        GameConfig(
-            n_players=4,
-            mode=2,
-            peuples=("M", "R", "O", "I"),
-            piege_scope_mode="TURN_PARCEL",
-            exp_seed=9100,
-        )
-
+def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_single_strike() -> None:
     # A) Piège autonome avec 0 Défenseur et 0 Insecte -> bloque seul, défaussé aussitôt, allume 2. Piégeage
     cfg_ss = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
-        piege_scope_mode="SINGLE_STRIKE",
         exp_seed=9101,
     )
     st0 = GameState(cfg_ss)
@@ -168,7 +157,6 @@ def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_scope_modes() -> No
     assert st_ss.get_parcel_piege(0, 4) == PIEGE_AUCUN
     s_ss = trk_ss.summary()
     assert s_ss.ok_pieges_triggered == 1
-    assert s_ss.ok_piege_multi_strike_parries == 0
     assert s_ss.da_piege == 1
 
 
@@ -177,7 +165,6 @@ def test_v6_1_piege_no_stacking_persistence_nid_traversal_and_route_clear() -> N
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
-        piege_scope_mode="SINGLE_STRIKE",
         exp_seed=9103,
     )
     st = GameState(cfg)
@@ -459,26 +446,15 @@ def test_v6_1_furtivite_ratissage_plus_card_and_independence_from_bug_and_reve()
 
 
 def test_v6_1_charge_gain_frozen_frappe_non_paree_and_t3_t6_edge_cases() -> None:
-    # DEGAT_EFFECTIF est définitivement rejeté dans le socle gelé v6.1
-    with pytest.raises(AssertionError, match="charge_gain_mode"):
-        GameConfig(
-            n_players=4,
-            mode=2,
-            peuples=("M", "R", "O", "I"),
-            charge_gain_mode="DEGAT_EFFECTIF",
-            exp_seed=9401,
-        )
-
     cfg_fnp = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
         exp_seed=9401,
     )
-    assert cfg_fnp.charge_gain_mode == "FRAPPE_NON_PAREE"
 
     # 1) Abatteuse en Charge sur parcelle réelle (0 Arbre, 2 Souches) non parée :
-    #    FRAPPE_NON_PAREE : 1 frappe réelle non parée -> +1 jeton !
+    #    1 frappe réelle non parée -> +1 jeton !
     st = GameState(cfg_fnp)
     st.tour = 1  # T1 = Charge
     st.set_parcel_arbres_souches(0, 1, 0, 2)
@@ -524,7 +500,7 @@ def test_v6_1_charge_gain_frozen_frappe_non_paree_and_t3_t6_edge_cases() -> None
     #    3b) T6 (Charge en Acte 2, Tour 5) depuis la dernière parcelle p=4 (0 Arbre, 2 Souches) :
     #        SUR_PLACE cible p=4 (réelle), DEVANT hors-plateau ignorée :
     #        - si p=4 porte un Piège autonome -> 0 jeton ;
-    #        - si p=4 n'est pas parée -> +1 jeton sous FRAPPE_NON_PAREE !
+    #        - si p=4 n'est pas parée -> +1 jeton !
     st_p4_trap = GameState(cfg_fnp)
     st_p4_trap.tour = 5  # Acte 2 : T6 = Charge
     st_p4_trap.set_parcel_arbres_souches(0, 4, 0, 2)
@@ -552,12 +528,10 @@ def test_v6_1_causal_forks_manifest_and_deterministic_replays(
     import campaigns.digest_builder as db_mod
 
     # A) Rejeu déterministe strict et mem_debt == 0 sur B0, B1, B2, B3
-    cfg = GameConfig.from_chassis_index(
-        0,
+    cfg = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "H", "I"),
-        charge_gain_mode="FRAPPE_NON_PAREE",
         exp_seed=9501,
         rep_id=3,
         max_revision_passes=3,
@@ -586,7 +560,6 @@ def test_v6_1_causal_forks_manifest_and_deterministic_replays(
         cfg, target_tour=2, is_b2=True, n_selection_rollouts=2, n_eval_rollouts=2
     )
     assert cf.has_2_1_anchor is True
-    assert cf.has_charge_gain_fork is False
     assert cf.mf_2_2 is not None
     assert cf.total_rollouts > 0
 
@@ -595,7 +568,7 @@ def test_v6_1_causal_forks_manifest_and_deterministic_replays(
     forks_manifest = json.loads(forks_manifest_path.read_text(encoding="utf-8"))
     full_plan = resolve_manifest_plan(forks_manifest)
     assert full_plan["micro_forks"] is True
-    assert full_plan["chassis_ids"] == (24,)
+    assert full_plan["profil_piste"] == "P4_2233"
 
     micro_forks: dict[str, Any] = dict(forks_manifest)
     micro_forks["campaign_name"] = "micro_forks_v6_1_unit"

@@ -20,16 +20,15 @@ from bots.heuristic_engine import play_game_b1, play_game_b2
 from engine.core_engine import apply_choice, step_until_decision
 from engine.primitives import GameOver
 from engine.state import (
-    CHARGE_GAIN_MODES,
+    CANONICAL_P_MAX,
+    CANONICAL_PROFIL_PISTE,
     FURT_RIVE_PIEGE,
     FURT_RIVE_SABOTAGE,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    NUM_CHASSIS,
     PEUPLES_ORDER,
     PIEGE_AUCUN,
-    PIEGE_SCOPE_MODES,
     TRACK_LEN,
     GameConfig,
     GameState,
@@ -45,6 +44,8 @@ def _check_board_invariants(state: GameState) -> None:
     cfg = state.cfg
     n = cfg.n_players
     p_max = cfg.p_max
+    assert cfg.profil_piste == CANONICAL_PROFIL_PISTE
+    assert p_max == CANONICAL_P_MAX
     dotation = cfg.dotation_arbres
 
     for r in range(n):
@@ -95,7 +96,7 @@ def _check_board_invariants(state: GameState) -> None:
 def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     start_idx, end_idx, total = bounds
 
-    # Socle expérimental v6.1 : 20 % Mode 1, 50 % Mode 2, 30 % Mode 4 (catalogue actif 32 slots)
+    # Socle scellé v6.1 : 20 % Mode 1, 50 % Mode 2, 30 % Mode 4 (catalogue actif 30 tuiles)
     t1 = (total * 20) // 100
     t2 = (total * 70) // 100
 
@@ -104,42 +105,22 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
         n_players = 3 + (game_idx % 4)
         tables_n = _ALL_TABLES_BY_N[n_players]
         peuples = tables_n[(game_idx // 4) % len(tables_n)]
-        # Couvrir majoritairement P4_2233 (chassis 0) ainsi que toutes les 192 combinaisons d'axes
-        chassis_id = 0 if (game_idx % 3 == 0) else ((game_idx * 17) % NUM_CHASSIS)
         bot_sel = game_idx % 5  # 0,1,2 -> B0 ; 3 -> B1 ; 4 -> B2
 
-        cfg = GameConfig.from_chassis_index(
-            chassis_id,
+        cfg = GameConfig(
             n_players=n_players,
             mode=mode,
             peuples=peuples,
             exp_seed=900_000 + mode * 10_000,
             rep_id=game_idx,
             max_revision_passes=0 if bot_sel < 3 else 3,
-            reve_activation_mode="1_DEF_1_MACHINE",
-            gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2]
-            if mode == 2
-            else "UNIFORM_MAX_2",
-            reve_advance_mode="CLEAR_RANK_ONLY",
-            gardien_4_trigger_mode="DISTINCT_OPEN_1",
-            reve_5_trigger_mode="ACTIF",
-            charge_gain_mode=CHARGE_GAIN_MODES[(game_idx // 2) % len(CHARGE_GAIN_MODES)],
-            piege_scope_mode=PIEGE_SCOPE_MODES[(game_idx // 7) % len(PIEGE_SCOPE_MODES)],
-            tile_profiles=(
-                (
-                    ("SLOT_BUG_CERVEAU", "B"),
-                    ("SLOT_COLONISATION_GARDIENS", "B" if mode == 4 else ("B", "A")[(game_idx // 8) % 2]),
-                )
-                if mode >= 2
-                else ()
-            ),
         )
 
         state = GameState(cfg)
         trk = TelemetryTracker() if (game_idx % 20 == 0) else None
 
         if bot_sel == 3:
-            over = play_game_b1(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            over = play_game_b1(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
             if trk is not None and mode <= 2:
@@ -147,7 +128,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             continue
 
         if bot_sel == 4:
-            over = play_game_b2(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            over = play_game_b2(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
             if trk is not None and mode <= 2:

@@ -1,8 +1,8 @@
 """Tests unitaires de l'instrumentation d'acceptation v6.1 et Rasoir d'Ockham :
-- REVE_TRIG=ACTIF figé et partition stricte 6. Insecte > 5. Rêve
+- REVE_TRIG=ACTIF natif et partition stricte 6. Insecte > 5. Rêve
 - Sabotage actif sur B1/B2/B3 en Furtivité « Chaud vs Calme » et mem_debt == 0
 - Couverture intégrale du Référentiel d'acceptation (acceptance_v6, game_cvar20_ratio, charge_assaut_metrics, furtivite_metrics)
-- Instrumentation Rasoir d'Ockham (46 micro-règles + 8 embranchements de dilemmes)
+- Instrumentation Rasoir d'Ockham vivante (42 micro-règles + 7 embranchements)
 """
 
 from __future__ import annotations
@@ -22,11 +22,9 @@ from engine.core_engine import apply_choice, step_until_decision
 from engine.primitives import DecisionRequest
 from engine.state import (
     CARD_SABOTAGE,
-    CHARGE_GAIN_MODES,
     FACE_DEFINITIF,
     MACHINE_ABATTEUSE,
     MACHINE_STATUS_NORMAL,
-    REVE_5_TRIGGER_MODES,
     STEP_3_2_REVEAL,
     STEP_GAME_OVER,
     TILE_R_BASE,
@@ -44,15 +42,8 @@ from run_campaign import aggregate_campaign_duckdb
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_v6_1_reve_5_trigger_locked_actif_and_partition() -> None:
-    """Vérifie REVE_TRIG=ACTIF & CHARGE_GAIN=FRAPPE_NON_PAREE figés ainsi que la partition stricte 6. Insecte > 5. Rêve."""
-    assert REVE_5_TRIGGER_MODES == ("ACTIF",)
-    assert CHARGE_GAIN_MODES == ("FRAPPE_NON_PAREE",)
-
-    for bad_trig in ("PASSIF", "INVALID"):
-        with pytest.raises(AssertionError, match="reve_5_trigger_mode"):
-            GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), reve_5_trigger_mode=bad_trig)
-
+def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
+    """Vérifie le déclencheur 5. Rêve natif (actif uniquement si défendu) et la partition 6. Insecte > 5. Rêve."""
     # 1) Rêve en case 6 SANS Défenseur touché par un dé M=6 -> inerte, 5. Rêve NE s'allume PAS
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=7101)
     st_inert = GameState(cfg)
@@ -92,7 +83,7 @@ def test_v6_1_reve_5_trigger_locked_actif_and_partition() -> None:
     _ = step_until_decision(st_bug)
     assert st_bug.has_gardien_opened_this_turn(6) is True
     assert st_bug.has_gardien_opened_this_turn(5) is False
-    assert st_bug.get_player_hand(0)[4] == 0  # La machine déviée a bien été annulée par le Défenseur sur R1 !
+    assert st_bug.get_player_hand(0)[4] == 0  # Machine déviée annulée par le Défenseur sur R1
 
     # 3) Rêve portant >= 1 Défenseur (posé en 2.1) annulant une carte non déviée -> 5. Rêve s'allume !
     st_act = GameState(cfg)
@@ -121,8 +112,7 @@ def test_v6_1_furtivite_piege_and_sabotage_active_in_b2_b1_and_b3() -> None:
     tables = (("M", "R", "O"), ("M", "R", "H", "I"), ("M", "R", "O", "H", "E"))
     for rep in range(36):
         peuples = tables[rep % len(tables)]
-        cfg = GameConfig.from_chassis_index(
-            0,
+        cfg = GameConfig(
             n_players=len(peuples),
             mode=2,
             peuples=peuples,
@@ -149,8 +139,7 @@ def test_v6_1_furtivite_piege_and_sabotage_active_in_b2_b1_and_b3() -> None:
     assert sab_acq_b2 >= 2, f"Rive Sabotage B2 inerte : sab_acq_b2={sab_acq_b2}"
     assert pieges_b1 + sab_acq_b1 >= 3
 
-    cfg_b3 = GameConfig.from_chassis_index(
-        0,
+    cfg_b3 = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "H", "E"),
@@ -164,22 +153,19 @@ def test_v6_1_furtivite_piege_and_sabotage_active_in_b2_b1_and_b3() -> None:
     assert st_b3.step == STEP_GAME_OVER
     assert out_b3.tour_fin <= 8
     assert trk_b3.summary().mem_debt_score == 0
-    obs_b3 = st_b3.get_observation(0)
-    assert obs_b3.reve_5_trigger_mode == "ACTIF"
-    assert obs_b3.charge_gain_mode == "FRAPPE_NON_PAREE"
 
 
 def test_v6_1_macro_and_micro_forks_digest_coverage(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Vérifie validation_socle_v6_1.json + forks_causalite_v6_1.json et tous les blocs du digest v6.1."""
+    """Vérifie validation_socle_v6_1.json et tous les blocs vivants du digest v6.1."""
     import campaigns.digest_builder as db_mod
 
     manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_1.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     plan = resolve_manifest_plan(manifest)
 
-    assert plan["chassis_ids"] == (24,)
+    assert plan["profil_piste"] == "P4_2233"
     assert len(plan["profile_variants"]) == 1
     assert {v["variant_id"] for v in plan["profile_variants"]} == {"BASE"}
     assert plan["total_configurations"] == 12
@@ -223,6 +209,9 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
 
     assert digest["totals"]["total_games"] == 36
     assert "game_cvar20_ratio" in digest["totals"]
+    assert "by_chassis" not in digest
+    assert "cross_check_v6_0_to_v6_1" not in digest
+    assert "selection_manifest" not in digest
     con_pq = duckdb.connect(":memory:")
     pq_tot_row = con_pq.execute(
         f"SELECT CAST(SUM(n_games) AS INTEGER) FROM read_parquet('{parquet_path.as_posix()}')"
@@ -246,34 +235,11 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
         "win_rate_rive_sabotage_pct",
         "pieges_placed_per_game",
         "pieges_triggered_per_game",
-        "piege_multi_strike_parries_per_game",
     ):
         assert k in fu_blk
 
     ok_blk = digest["ockham_razor"]
-    assert len(OCKHAM_COUNT_FIELDS) == 46
-    assert len(DILEMMA_CHOICE_FIELDS) == 32
-    assert len(ok_blk["primary"]["micro_rules"]) == 46
-    assert len(ok_blk["primary"]["decision_branches"]) == 8
-
-    cc_blk = digest["cross_check_v6_0_to_v6_1"]
-    assert cc_blk["baseline_campaign"] == "audit_exhaustif_socle_v6_0"
-    assert cc_blk["reference_bot"] == "B2"
-    p1 = cc_blk["phase1_blocking_audit"]
-    assert p1["abatteuse_ratissage_souche"]["verdict"] == "REMOVED_IN_V6_1_STANDARD_COUPE_ARBRE"
-    assert p1["invariants_and_fuzzing"]["zero_mem_debt_all_bots"] is True
-    assert p1["autonomous_piege_scope"]["configured_piege_scope_modes"] == ["SINGLE_STRIKE"]
-    p2 = cc_blk["phase2_displacement_targets_b2_by_variant"]
-    assert set(p2.keys()) == {"BASE"}
-    for vid_k, v_blk in p2.items():
-        assert v_blk["n_games_ref_bot"] > 0, vid_k
-        for sec in (
-            "difficulte_globale",
-            "eveil_actif_et_reve_2_1",
-            "equite_et_sommeil",
-            "furtivite_chaud_vs_calme_et_pieges_autonomes",
-            "summary",
-        ):
-            assert sec in v_blk
-        assert v_blk["equite_et_sommeil"]["in_target_sommeil_zero"] is True
-
+    assert len(OCKHAM_COUNT_FIELDS) == 42
+    assert len(DILEMMA_CHOICE_FIELDS) == 28
+    assert len(ok_blk["primary"]["micro_rules"]) == 42
+    assert len(ok_blk["primary"]["decision_branches"]) == 7

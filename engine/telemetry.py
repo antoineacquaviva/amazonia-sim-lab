@@ -13,11 +13,10 @@ from engine.state import (
     MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
     PIEGE_ACTIF,
-    STEP_1_1_RATISSAGE,
+    STEP_1_2_DEAL,
     STEP_4_1_FURTIVITE,
     STEP_4_2_NIDS,
     STEP_5_1_TACTIQUES,
-    STEP_6_1_APPRENTISSAGE,
     STEP_6_2_EVOLUTION,
     STEP_6_3_END_TURN,
     STEP_GAME_OVER,
@@ -38,8 +37,6 @@ __all__ = (
 )
 
 V6_METRICS_FIELDS: tuple[str, ...] = (
-    "reves_choice_block",
-    "reves_choice_advance",
     "power_tokens_end_act1",
     "act1_reached",
     "power_tokens_end_game",
@@ -47,7 +44,6 @@ V6_METRICS_FIELDS: tuple[str, ...] = (
     "charge_gains_act1",
     "charge_gains_act2",
     "furtivite_1_rive_turns",
-    "furtivite_2_rives_turns",
 )
 
 DEFENSE_ATTRIBUTION_FIELDS: tuple[str, ...] = (
@@ -67,18 +63,15 @@ OCKHAM_COUNT_FIELDS: tuple[str, ...] = (
     "ok_furt_rive_sabotage_lost",
     "ok_furt_orphan_pawns",
     "ok_furt_failed_binomes",
-    "ok_furt_double_same_cell",
     "ok_furt_multi_rive_turns",
     "ok_pieges_placed",
     "ok_pieges_triggered",
-    "ok_piege_multi_strike_parries",
     "ok_pieges_unused_end",
     "ok_pont_routier_jumps",
     "ok_routes_created",
     "ok_repli_bordure",
     "ok_repli_coeur_exception",
     "ok_retrait_definitif_machine",
-    "ok_abatteuse_ratissage_souche",
     "ok_abatteuse_ratissage_0_arbre",
     "ok_contact_nid_renvois",
     "ok_contact_nid_insectes_perdus",
@@ -88,7 +81,6 @@ OCKHAM_COUNT_FIELDS: tuple[str, ...] = (
     "ok_charge_zero_gain_parried",
     "ok_charge_zero_gain_barren",
     "ok_ratissage_entries_6_3",
-    "ok_ratissage_entries_1_1",
     "ok_ratissage_activations",
     "ok_sabotage_acquired",
     "ok_sabotage_unrevealed_end",
@@ -110,15 +102,11 @@ OCKHAM_COUNT_FIELDS: tuple[str, ...] = (
 )
 
 DILEMMA_CHOICE_FIELDS: tuple[str, ...] = (
-    "dil_reve_dual_block",
-    "dil_reve_dual_advance",
-    "dil_reve_forced_block",
     "dil_bug_passer",
     "dil_bug_minus",
     "dil_bug_plus",
     "dil_mig_stay",
     "dil_mig_foret",
-    "dil_mig_furtivite",
     "dil_mig_bug",
     "dil_mig_colonie",
     "dil_def1_foret",
@@ -251,14 +239,6 @@ def count_active_transient_modifiers(state: GameState) -> int:
             if flags:
                 active += _bit_count_u8(flags)
 
-    for rank_idx in range(TRACK_LEN):
-        if state.get_pending_apprentissage_at_rank(rank_idx) != 0:
-            active += 1
-
-    vol_cnt, _ = state.get_pending_voluntary_app_reduction()
-    if vol_cnt > 0:
-        active += vol_cnt
-
     # Verrous 1/tour et drapeaux transitoires d'effets mémorisés sans jeton physique (ex: G6 A avant 3.2)
     for lock_idx in range(64):
         if state.has_used_once_per_turn(lock_idx):
@@ -290,7 +270,7 @@ class TelemetrySummary(NamedTuple):
     reves_activated: int = 0
     machines_cancelled_by_reve: int = 0
     machines_bypassed_inactive_reve: int = 0
-    # Comptabilité d'attribution défensive v5.5 (da_*)
+    # Comptabilité d'attribution défensive (da_*)
     da_parade_classique: int = 0
     da_piege: int = 0
     da_parade_avec_insectes: int = 0
@@ -298,9 +278,7 @@ class TelemetrySummary(NamedTuple):
     da_sabotage_revele: int = 0
     da_insecte_bug_deviation: int = 0
     da_arbres_repousse_finale: int = 0
-    # Compteurs spécifiques cœur v6.0
-    reves_choice_block: int = 0
-    reves_choice_advance: int = 0
+    # Compteurs spécifiques cœur v6.1
     power_tokens_end_act1: int = 0
     act1_reached: int = 0
     power_tokens_end_game: int = 0
@@ -308,7 +286,6 @@ class TelemetrySummary(NamedTuple):
     charge_gains_act1: int = 0
     charge_gains_act2: int = 0
     furtivite_1_rive_turns: int = 0
-    furtivite_2_rives_turns: int = 0
     # Instrumentation Rasoir d'Ockham (ok_*)
     ok_furt_rive_piege: int = 0
     ok_furt_rive_sabotage: int = 0
@@ -316,18 +293,15 @@ class TelemetrySummary(NamedTuple):
     ok_furt_rive_sabotage_lost: int = 0
     ok_furt_orphan_pawns: int = 0
     ok_furt_failed_binomes: int = 0
-    ok_furt_double_same_cell: int = 0
     ok_furt_multi_rive_turns: int = 0
     ok_pieges_placed: int = 0
     ok_pieges_triggered: int = 0
-    ok_piege_multi_strike_parries: int = 0
     ok_pieges_unused_end: int = 0
     ok_pont_routier_jumps: int = 0
     ok_routes_created: int = 0
     ok_repli_bordure: int = 0
     ok_repli_coeur_exception: int = 0
     ok_retrait_definitif_machine: int = 0
-    ok_abatteuse_ratissage_souche: int = 0
     ok_abatteuse_ratissage_0_arbre: int = 0
     ok_contact_nid_renvois: int = 0
     ok_contact_nid_insectes_perdus: int = 0
@@ -337,7 +311,6 @@ class TelemetrySummary(NamedTuple):
     ok_charge_zero_gain_parried: int = 0
     ok_charge_zero_gain_barren: int = 0
     ok_ratissage_entries_6_3: int = 0
-    ok_ratissage_entries_1_1: int = 0
     ok_ratissage_activations: int = 0
     ok_sabotage_acquired: int = 0
     ok_sabotage_unrevealed_end: int = 0
@@ -357,15 +330,11 @@ class TelemetrySummary(NamedTuple):
     ok_def1_global_fallback: int = 0
     ok_impasse_totale: int = 0
     # Distributions de choix pour détection des faux dilemmes (dil_*)
-    dil_reve_dual_block: int = 0
-    dil_reve_dual_advance: int = 0
-    dil_reve_forced_block: int = 0
     dil_bug_passer: int = 0
     dil_bug_minus: int = 0
     dil_bug_plus: int = 0
     dil_mig_stay: int = 0
     dil_mig_foret: int = 0
-    dil_mig_furtivite: int = 0
     dil_mig_bug: int = 0
     dil_mig_colonie: int = 0
     dil_def1_foret: int = 0
@@ -500,9 +469,7 @@ class TelemetryTracker:
     da_sabotage_revele: int = 0
     da_insecte_bug_deviation: int = 0
     da_arbres_repousse_finale: int = 0
-    # Compteurs spécifiques v6.0
-    reves_choice_block: int = 0
-    reves_choice_advance: int = 0
+    # Compteurs spécifiques cœur v6.1
     power_tokens_end_act1: int = 0
     act1_reached: int = 0
     power_tokens_end_game: int = 0
@@ -510,11 +477,6 @@ class TelemetryTracker:
     charge_gains_act1: int = 0
     charge_gains_act2: int = 0
     furtivite_1_rive_turns: int = 0
-    furtivite_2_rives_turns: int = 0
-    _turn_furt_cur_cell: int = -1
-    _turn_furt_cur_count: int = 0
-    _turn_furt_has_1: bool = False
-    _turn_furt_has_2: bool = False
     _turn_furt_total_rives_exec: int = 0
     _turn_step2_moved: bool = False
     _turn_closed: bool = False
@@ -525,18 +487,15 @@ class TelemetryTracker:
     ok_furt_rive_sabotage_lost: int = 0
     ok_furt_orphan_pawns: int = 0
     ok_furt_failed_binomes: int = 0
-    ok_furt_double_same_cell: int = 0
     ok_furt_multi_rive_turns: int = 0
     ok_pieges_placed: int = 0
     ok_pieges_triggered: int = 0
-    ok_piege_multi_strike_parries: int = 0
     ok_pieges_unused_end: int = 0
     ok_pont_routier_jumps: int = 0
     ok_routes_created: int = 0
     ok_repli_bordure: int = 0
     ok_repli_coeur_exception: int = 0
     ok_retrait_definitif_machine: int = 0
-    ok_abatteuse_ratissage_souche: int = 0
     ok_abatteuse_ratissage_0_arbre: int = 0
     ok_contact_nid_renvois: int = 0
     ok_contact_nid_insectes_perdus: int = 0
@@ -546,7 +505,6 @@ class TelemetryTracker:
     ok_charge_zero_gain_parried: int = 0
     ok_charge_zero_gain_barren: int = 0
     ok_ratissage_entries_6_3: int = 0
-    ok_ratissage_entries_1_1: int = 0
     ok_ratissage_activations: int = 0
     ok_sabotage_acquired: int = 0
     ok_sabotage_unrevealed_end: int = 0
@@ -566,15 +524,11 @@ class TelemetryTracker:
     ok_def1_global_fallback: int = 0
     ok_impasse_totale: int = 0
     # Distributions de choix pour détection des faux dilemmes (dil_*)
-    dil_reve_dual_block: int = 0
-    dil_reve_dual_advance: int = 0
-    dil_reve_forced_block: int = 0
     dil_bug_passer: int = 0
     dil_bug_minus: int = 0
     dil_bug_plus: int = 0
     dil_mig_stay: int = 0
     dil_mig_foret: int = 0
-    dil_mig_furtivite: int = 0
     dil_mig_bug: int = 0
     dil_mig_colonie: int = 0
     dil_def1_foret: int = 0
@@ -906,28 +860,13 @@ class TelemetryTracker:
             self.rf_trig6_lit += trig6_lit
             self.rf_sabotage_in_deck += sab_in_deck
 
-    def _flush_furtivite_cur_cell(self) -> None:
-        if self._turn_furt_cur_count >= 2:
-            self._turn_furt_has_2 = True
-            self.ok_furt_double_same_cell += 1
-        elif self._turn_furt_cur_count == 1:
-            self._turn_furt_has_1 = True
-        self._turn_furt_cur_cell = -1
-        self._turn_furt_cur_count = 0
-
-    def on_furtivite_rive_executed(self, cell_key: int, action_kind: str = "") -> None:
-        """Enregistre l'exécution d'une rive Furtivité complète en 4.1 sur `cell_key`."""
+    def on_furtivite_rive_executed(self, _cell_key: int, action_kind: str = "") -> None:
+        """Enregistre l'exécution d'une rive Furtivité complète en 4.1."""
         self._turn_furt_total_rives_exec += 1
         if action_kind == "PIEGE":
             self.ok_furt_rive_piege += 1
         elif action_kind == "SABOTAGE":
             self.ok_furt_rive_sabotage += 1
-        if cell_key == self._turn_furt_cur_cell:
-            self._turn_furt_cur_count += 1
-        else:
-            self._flush_furtivite_cur_cell()
-            self._turn_furt_cur_cell = cell_key
-            self._turn_furt_cur_count = 1
 
     def on_furtivite_orphan_pawn(self, count: int = 1) -> None:
         """Enregistre un pion Défenseur resté seul (1/2) sur une rive en 4.1 (perdu à blanc)."""
@@ -944,29 +883,12 @@ class TelemetryTracker:
                 self.ok_furt_rive_sabotage_lost += count
 
     def on_furtivite_step_end(self) -> None:
-        """Clôture le suivi 1-rive / 2-rives de l'Étape 4.1 pour le tour courant."""
-        self._flush_furtivite_cur_cell()
-        if self._turn_furt_has_2:
-            self.furtivite_2_rives_turns += 1
-        elif self._turn_furt_has_1:
+        """Clôture le suivi des rives Furtivité résolues à l'Étape 4.1 pour le tour courant."""
+        if self._turn_furt_total_rives_exec >= 1:
             self.furtivite_1_rive_turns += 1
         if self._turn_furt_total_rives_exec >= 2:
             self.ok_furt_multi_rive_turns += 1
-        self._turn_furt_has_1 = False
-        self._turn_furt_has_2 = False
         self._turn_furt_total_rives_exec = 0
-
-    def on_reve_choice(self, choice: str, *, dual_options: bool = True) -> None:
-        """Enregistre le blocage d'un Rêve activé en 3.2."""
-        if choice == "BLOQUER":
-            self.reves_choice_block += 1
-            if dual_options:
-                self.dil_reve_dual_block += 1
-            else:
-                self.dil_reve_forced_block += 1
-        elif choice == "AVANCER":
-            self.reves_choice_advance += 1
-            self.dil_reve_dual_advance += 1
 
     def on_charge_gain(self, count: int = 1, *, tour: int = 1) -> None:
         """Enregistre un gain de jeton Puissance issu du mode CHARGE."""
@@ -1039,8 +961,6 @@ class TelemetryTracker:
             self.ok_mig_moves += 1
             if dst_kind == "FORET":
                 self.dil_mig_foret += 1
-            elif dst_kind == "FURTIVITE":
-                self.dil_mig_furtivite += 1
             elif dst_kind == "BUG":
                 self.dil_mig_bug += 1
             elif dst_kind == "COLONIE":
@@ -1074,7 +994,7 @@ class TelemetryTracker:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
         if prev_step == STEP_4_1_FURTIVITE and next_step == STEP_4_2_NIDS:
             self.on_furtivite_step_end()
-        if next_step == STEP_1_1_RATISSAGE and prev_step == STEP_6_3_END_TURN:
+        if next_step == STEP_1_2_DEAL and prev_step == STEP_6_3_END_TURN:
             self._turn_closed = False
             self._turn_strikes = 0
             self._turn_reves_opened = 0
@@ -1082,10 +1002,6 @@ class TelemetryTracker:
             self._turn_reveil_active = False
             self._turn_def_snap = None
             self._turn_pre5_snap = None
-            self._turn_furt_cur_cell = -1
-            self._turn_furt_cur_count = 0
-            self._turn_furt_has_1 = False
-            self._turn_furt_has_2 = False
             self._turn_furt_total_rives_exec = 0
             self._turn_step2_moved = False
             return
@@ -1094,7 +1010,7 @@ class TelemetryTracker:
             if self._turn_reveil_active:
                 self._snapshot_pre_step5(state)
         elif (
-            next_step in (STEP_6_2_EVOLUTION, STEP_6_1_APPRENTISSAGE)
+            next_step == STEP_6_2_EVOLUTION
             and self._turn_reveil_active
             and self._turn_pre5_snap is not None
         ):
@@ -1110,7 +1026,7 @@ class TelemetryTracker:
             self.act1_reached = 1
         self.power_tokens_end_game = tot_pow
 
-        # Reliquats inutilisés en fin de partie (Pièges, Insectes Forêt/Furtivité/Bug/Colonie, Sabotages)
+        # Reliquats inutilisés en fin de partie (Pièges, Insectes Forêt/Bug/Colonie, Sabotages)
         n = state.cfg.n_players
         p_max = state.cfg.p_max
         unused_pieges = 0
@@ -1120,7 +1036,6 @@ class TelemetryTracker:
                 if state.get_parcel_piege(r, p) == PIEGE_ACTIF:
                     unused_pieges += 1
                 unused_ins_board += state.get_parcel_insectes(r, p)
-                unused_ins_board += state.get_furtivite_insectes(r, p)
         unused_bugs = 0
         unused_colonie = 0
         for c in range(1, TRACK_LEN + 1):
@@ -1133,10 +1048,7 @@ class TelemetryTracker:
         self.ok_colonie_unused_end = unused_colonie
         wasted_bugs = min(self.dil_mig_bug, unused_bugs)
         wasted_col = min(self.dil_mig_colonie, unused_colonie)
-        wasted_wheel = min(
-            self.dil_mig_foret + self.dil_mig_furtivite,
-            unused_ins_board,
-        )
+        wasted_wheel = min(self.dil_mig_foret, unused_ins_board)
         self.ok_mig_wasted_end = wasted_bugs + wasted_col + wasted_wheel
         self.ok_sabotage_unrevealed_end = max(
             0, self.ok_sabotage_acquired - self.da_sabotage_revele
@@ -1364,8 +1276,6 @@ class TelemetryTracker:
             da_sabotage_revele=self.da_sabotage_revele,
             da_insecte_bug_deviation=self.da_insecte_bug_deviation,
             da_arbres_repousse_finale=self.da_arbres_repousse_finale,
-            reves_choice_block=self.reves_choice_block,
-            reves_choice_advance=self.reves_choice_advance,
             power_tokens_end_act1=self.power_tokens_end_act1,
             act1_reached=self.act1_reached,
             power_tokens_end_game=self.power_tokens_end_game,
@@ -1373,25 +1283,21 @@ class TelemetryTracker:
             charge_gains_act1=self.charge_gains_act1,
             charge_gains_act2=self.charge_gains_act2,
             furtivite_1_rive_turns=self.furtivite_1_rive_turns,
-            furtivite_2_rives_turns=self.furtivite_2_rives_turns,
             ok_furt_rive_piege=self.ok_furt_rive_piege,
             ok_furt_rive_sabotage=self.ok_furt_rive_sabotage,
             ok_furt_rive_piege_lost=self.ok_furt_rive_piege_lost,
             ok_furt_rive_sabotage_lost=self.ok_furt_rive_sabotage_lost,
             ok_furt_orphan_pawns=self.ok_furt_orphan_pawns,
             ok_furt_failed_binomes=self.ok_furt_failed_binomes,
-            ok_furt_double_same_cell=self.ok_furt_double_same_cell,
             ok_furt_multi_rive_turns=self.ok_furt_multi_rive_turns,
             ok_pieges_placed=self.ok_pieges_placed,
             ok_pieges_triggered=self.ok_pieges_triggered,
-            ok_piege_multi_strike_parries=self.ok_piege_multi_strike_parries,
             ok_pieges_unused_end=self.ok_pieges_unused_end,
             ok_pont_routier_jumps=self.ok_pont_routier_jumps,
             ok_routes_created=self.ok_routes_created,
             ok_repli_bordure=self.ok_repli_bordure,
             ok_repli_coeur_exception=self.ok_repli_coeur_exception,
             ok_retrait_definitif_machine=self.ok_retrait_definitif_machine,
-            ok_abatteuse_ratissage_souche=self.ok_abatteuse_ratissage_souche,
             ok_abatteuse_ratissage_0_arbre=self.ok_abatteuse_ratissage_0_arbre,
             ok_contact_nid_renvois=self.ok_contact_nid_renvois,
             ok_contact_nid_insectes_perdus=self.ok_contact_nid_insectes_perdus,
@@ -1401,7 +1307,6 @@ class TelemetryTracker:
             ok_charge_zero_gain_parried=self.ok_charge_zero_gain_parried,
             ok_charge_zero_gain_barren=self.ok_charge_zero_gain_barren,
             ok_ratissage_entries_6_3=self.ok_ratissage_entries_6_3,
-            ok_ratissage_entries_1_1=self.ok_ratissage_entries_1_1,
             ok_ratissage_activations=self.ok_ratissage_activations,
             ok_sabotage_acquired=self.ok_sabotage_acquired,
             ok_sabotage_unrevealed_end=self.ok_sabotage_unrevealed_end,
@@ -1420,15 +1325,11 @@ class TelemetryTracker:
             ok_liberation_batisseur_3j=self.ok_liberation_batisseur_3j,
             ok_def1_global_fallback=self.ok_def1_global_fallback,
             ok_impasse_totale=self.ok_impasse_totale,
-            dil_reve_dual_block=self.dil_reve_dual_block,
-            dil_reve_dual_advance=self.dil_reve_dual_advance,
-            dil_reve_forced_block=self.dil_reve_forced_block,
             dil_bug_passer=self.dil_bug_passer,
             dil_bug_minus=self.dil_bug_minus,
             dil_bug_plus=self.dil_bug_plus,
             dil_mig_stay=self.dil_mig_stay,
             dil_mig_foret=self.dil_mig_foret,
-            dil_mig_furtivite=self.dil_mig_furtivite,
             dil_mig_bug=self.dil_mig_bug,
             dil_mig_colonie=self.dil_mig_colonie,
             dil_def1_foret=self.dil_def1_foret,

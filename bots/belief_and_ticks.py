@@ -16,6 +16,7 @@ from engine.core_engine import (
 )
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    CANONICAL_DOTATION,
     CARD_SABOTAGE,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
@@ -109,22 +110,11 @@ def _next_non_razed_obs(obs: PlayerObservation, p_max: int, r: int, from_p: int)
 
 
 def _machine_effective_tokens_obs(
-    machines: tuple[Any, ...], cfg: GameConfig, r: int, m_type: int
+    machines: tuple[Any, ...], r: int, m_type: int
 ) -> tuple[int, int]:
     m_self = machines[r * 2 + m_type]
     rouges = m_self.rouges + (1 if m_self.status == MACHINE_STATUS_RATISSAGE else 0)
-    bleus = m_self.bleus
-    if cfg.synergie_binome_machines == "MUTUALISATION_PUISSANCE_MEME_PARCELLE":
-        other = machines[r * 2 + (1 - m_type)]
-        if (
-            m_self.status != MACHINE_STATUS_RETIRED
-            and other.status != MACHINE_STATUS_RETIRED
-            and m_self.position > 0
-            and m_self.position == other.position
-        ):
-            rouges += other.rouges + (1 if other.status == MACHINE_STATUS_RATISSAGE else 0)
-            bleus += other.bleus
-    return rouges, bleus
+    return rouges, m_self.bleus
 
 
 def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSummary:
@@ -174,10 +164,10 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         if prob <= 0.0 or obs.is_route(r, target_p):
             return
         idx = r * MAX_P + (target_p - 1)
-        rouges, bleus = _machine_effective_tokens_obs(machines, cfg, r, m_type)
+        rouges, bleus = _machine_effective_tokens_obs(machines, r, m_type)
         if is_charge:
             rouges = 0
-        base_s = cfg.dotation_arbres[target_p - 1] + cfg.offset_seuil_parade
+        base_s = CANONICAL_DOTATION[target_p - 1]
         s_eff = float(max(1, base_s + rouges - bleus + mod_seuil))
         strike_prob[idx] = min(2.5, strike_prob[idx] + prob)
         seuil_sum[idx] += prob * s_eff
@@ -220,25 +210,16 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
             lec = h.lecture_m
             if st_m == MACHINE_STATUS_NORMAL and pos_m > 0 and lec is not None and 1 <= lec <= 6:
-                t_code, _, _ = obs.tactique_code_bugs_app(lec - 1)
+                t_code, _ = obs.tactique_code_bugs(lec - 1)
                 if is_reve_code(t_code):
                     reve_prob[lec - 1] = 1.0
                     n_def_r = obs.reve_activation_defenders(lec)
-                    act_mode = cfg.reve_activation_mode
                     own_on_lec = (
                         obs.player_def1_reve_case(own_seat) == lec
                         or obs.player_def2_reve_case(own_seat) == lec
                     )
-                    is_cancelled = (
-                        (act_mode == "1_DEF_ALL_RANK" and n_def_r >= 1)
-                        or (act_mode == "BINOME_ALL_RANK" and n_def_r >= 2)
-                        or (
-                            act_mode == "1_DEF_1_MACHINE"
-                            and (
-                                (s == own_seat and (own_on_lec or n_def_r >= 2))
-                                or (s != own_seat and n_def_r >= 1)
-                            )
-                        )
+                    is_cancelled = (s == own_seat and (own_on_lec or n_def_r >= 2)) or (
+                        s != own_seat and n_def_r >= 1
                     )
                     if is_cancelled:
                         if s == own_seat:
@@ -306,7 +287,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                 for rank_idx in range(TRACK_LEN):
                     p_m_val = _MIN_2D6_PROBS[rank_idx]
                     p_joint = p_card_drawn * p_m_val
-                    t_code, _, _ = obs.tactique_code_bugs_app(rank_idx)
+                    t_code, _ = obs.tactique_code_bugs(rank_idx)
                     eff_t_code = rank_idx + 1
                     p_exec = p_joint
                     if is_reve_code(t_code):
@@ -334,7 +315,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             if p <= p_max and seuil_w[idx] > 1e-6:
                 expected_seuil.append(seuil_sum[idx] / seuil_w[idx])
             elif p <= p_max:
-                expected_seuil.append(float(max(1, cfg.dotation_arbres[p - 1] + cfg.offset_seuil_parade)))
+                expected_seuil.append(float(max(1, CANONICAL_DOTATION[p - 1])))
             else:
                 expected_seuil.append(1.0)
 
@@ -409,7 +390,7 @@ def compute_private_urgency(
         pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
         lec = own_hand.lecture_m
         if st_m == MACHINE_STATUS_NORMAL and pos_m > 0 and lec is not None and 1 <= lec <= 6:
-            t_code, _, _ = obs.tactique_code_bugs_app(lec - 1)
+            t_code, _ = obs.tactique_code_bugs(lec - 1)
             if is_tactique_code(t_code):
                 spec = TACTIQUES_SPEC[t_code]
                 cand_ps: list[int] = []
@@ -727,16 +708,7 @@ def resolve_step2_2_from_state(
                     if obs_s.gardien_present_at_case(ck)
                     and obs_s.gardien_pari_defenders(ck) >= 1
                 )
-                col4 = (
-                    1
-                    if (
-                        cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "A"
-                        and obs_s.piste_colonie[3] >= 1
-                    )
-                    else 0
-                )
-                max_case4_trigs = distinct_other_cases + col4
-                if max_case4_trigs < res_bets:
+                if distinct_other_cases < res_bets:
                     # Impossible d'allumer 4. Gardien assez de fois pour consommer tous les paris dessus !
                     need_gard_retreat = True
             if need_gard_retreat:
@@ -768,55 +740,7 @@ def resolve_step2_2_from_state(
                     if moved:
                         total_rev_moves += 1
 
-    # 3b. Retrait propre en fin de passes « en réflexion » pour l'activation des Rêves (modes historiques) :
-    if (
-        max_passes > 0
-        and cfg.mode >= 2
-        and cfg.reve_activation_mode in ("BINOME_ALL_RANK", "1_DEF_ALL_RANK")
-    ):
-        for s in range(n):
-            if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
-                continue
-            obs_s = _get_isolated_obs(
-                state, s, counterfactual_open_paravents=counterfactual_open_paravents
-            )
-            rc = obs_s.player_def2_reve_case(s)
-            if rc <= 0:
-                continue
-            cnt_rc = obs_s.reve_activation_defenders(rc)
-            need_retreat = (cfg.reve_activation_mode == "BINOME_ALL_RANK" and cnt_rc < 2) or (
-                cfg.reve_activation_mode == "1_DEF_ALL_RANK" and cnt_rc >= 2
-            )
-            if need_retreat:
-                legal_alt = tuple(
-                    t
-                    for t in list_legal_targets(
-                        state, s, is_first_defender=False, exclude_own_def2=True
-                    )
-                    if t[0] != "REVE_ACTIVATION" and t[0] != "GARDIEN_PARI"
-                )
-                if legal_alt:
-                    bel_s = build_belief_summary(obs_s, cfg)
-                    fallback_t, _ = _pick_best_target_isolated(
-                        obs_s,
-                        cfg,
-                        bel_s,
-                        legal_alt,
-                        scorer,
-                        is_first_defender=False,
-                        sous_etape_salt=251,
-                    )
-                    moved = apply_step2_def2(
-                        state,
-                        s,
-                        ("DEPLACER_REFLEXION", fallback_t),
-                        check_legal=False,
-                        telemetry=telemetry,
-                    )
-                    if moved:
-                        total_rev_moves += 1
-
-    # 3c. Retrait propre en fin de passes « en réflexion » des Défenseurs restés seuls (1/2) sur un
+    # 3b. Retrait propre en fin de passes « en réflexion » des Défenseurs restés seuls (1/2) sur un
     #     chantier de Lisière ou une rive de Furtivité (0 effet sans binôme complet), pour B2.
     if max_passes > 0 and isinstance(scorer, HeldAwareScorer) and scorer.retreat_orphans:
         for s in range(n):
@@ -910,7 +834,6 @@ def _score_held_spot(
     if kind == "REVE_ACTIVATION":
         _, case_c = cur_spot
         c_i = int(case_c)
-        cnt = obs.reve_activation_defenders(c_i)
         own_hand = obs.hand_of(obs.observer_seat)
         own_hits = (
             own_hand.card is not None
@@ -918,21 +841,7 @@ def _score_held_spot(
             and own_hand.lecture_m == c_i
             and obs.player_def1_reve_case(obs.observer_seat) != c_i
         )
-        act_mode = cfg.reve_activation_mode
-        if act_mode == "1_DEF_1_MACHINE":
-            return base + (180.0 if own_hits else -120.0)
-        if act_mode == "1_DEF_ALL_RANK":
-            if cnt == 1 and own_hits:
-                return base + 260.0
-            if cnt >= 2:
-                return base - 220.0
-            return base - 80.0
-        # BINOME_ALL_RANK
-        if cnt == 2:
-            return base + 380.0
-        if cnt > 2:
-            return base - 220.0
-        return base - 60.0
+        return base + (180.0 if own_hits else -120.0)
     if kind == "LISIERE":
         _, slot_idx = cur_spot
         _, st_l, nb_c = obs.lisiere_tile_info(int(slot_idx))

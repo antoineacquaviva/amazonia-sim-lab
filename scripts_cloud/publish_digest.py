@@ -726,7 +726,6 @@ def publish_campaign_digest(
     campaign_slug: str,
     stats_payload: dict[str, Any] | None = None,
     *,
-    chassis_ids: list[int] | tuple[int, ...] | None = None,
     tested_tiles: list[str] | tuple[tuple[str, str], ...] | None = None,
     digests_dir: Path | None = None,
     push_gcs: bool = True,
@@ -749,7 +748,6 @@ def publish_campaign_digest(
     digest_path, prompt_path, digest = write_digest_and_prompt_files(
         slug,
         stats_payload,
-        chassis_ids=chassis_ids,
         tested_tiles=tested_tiles,
         digests_dir=out_dir,
     )

@@ -21,36 +21,20 @@ from run_campaign import (
 
 def _sample_manifest() -> dict[str, object]:
     return {
-        "schema_version": "5.4",
+        "schema_version": "6.1",
         "manifest_type": "campaign_plan",
         "campaign_name": "test_micro_unit",
         "description": "Test unitaire manifeste",
+        "mode": 4,
         "player_counts": [3, 4],
         "games_per_configuration": 2,
         "bot": "B0",
-        "chassis_plan": {
-            "varying_axes": [
-                {"key": "Profil_Piste", "label": "Profil_Piste", "values": ["P4_2233", "P4_2223"]},
-            ],
-            "fixed_axes": {
-                "Regle_Ouverture_Reve_Multiple": "UNIQUE_PAR_TOUR",
-                "Offset_Seuil_Parade": 0,
-                "Mise_En_Place_Tactiques": "ORDRE_FIXE_T1_T6",
-                "Placement_Initial_Machines": "MEME_PARCELLE_P1",
-                "Role_Abatteuse_Fin_De_Piste": "STANDARD_COUPE_ARBRE",
-                "Synergie_Binome_Machines": "INDIVIDUELLE",
-            },
-        },
         "slot_profile_comparisons": {
             "G7": ["A", "B"],
         },
         "base_instance": {
             "bundle_id": "STANDARD_A",
             "peuples_cercle": ["M", "R", "O", "H"],
-            "slots_insectes": {
-                "SLOT_BUG_CERVEAU": "A",
-                "SLOT_COLONISATION_GARDIENS": "A",
-            },
         },
     }
 
@@ -70,9 +54,9 @@ def _create_fake_worker_tree(root: Path) -> None:
 def test_resolve_manifest_plan_cartesian_and_totals() -> None:
     plan = resolve_manifest_plan(_sample_manifest())
     assert plan["campaign_name"] == "test_micro_unit"
-    assert plan["chassis_ids"] == (0, 1)
-    assert plan["total_configurations"] == 2 * 2 * 2  # 2 N * 2 chassis * 2 profils G7
-    assert plan["total_games"] == 16
+    assert plan["profil_piste"] == "P4_2233"
+    assert plan["total_configurations"] == 2 * 2  # 2 N * 2 profils G7 (châssis unique P4_2233)
+    assert plan["total_games"] == 8
     assert plan["tested_tiles"] == (("G7", "A"), ("G7", "B"))
 
 
@@ -81,7 +65,6 @@ def test_local_manifest_worker_duckdb_and_studio_index(
 ) -> None:
     manifest = _sample_manifest()
     manifest["player_counts"] = [4]
-    manifest["chassis_plan"] = {"varying_axes": [], "fixed_axes": {"Profil_Piste": "P4_2233"}}
     manifest["games_per_configuration"] = 2
 
     manifest_file = tmp_path / "test_micro_unit.json"
@@ -372,7 +355,7 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
         "arbres_repousse_finale",
     } <= set(digest["defense_attribution"].keys())
     assert "studio_sha256" in core and len(core["studio_sha256"]) >= 2
-    assert len(core["chassis_6_axes"]) == 1
+    assert core["chassis_canonique"]["profil_piste"] == "P4_2233"
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
     sf = core["spec_formelle"]
@@ -426,7 +409,6 @@ def test_aggregate_campaign_duckdb_includes_forks_with_seeds(
         "task_games_per_sec": 20.0,
         "config_id": 0,
         "n_players": 4,
-        "chassis_id": 0,
         "p_max": 4,
         "variant_idx": 0,
         "variant_id": "G7:A",

@@ -6,7 +6,6 @@ from typing import Any
 
 from engine.core_engine import (
     DEC_CHOIX_CASE_GARDIEN,
-    DEC_COLONIE_A_OPEN,
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MIGRATION_INSECTE_4_3,
     DEC_ORDRE_CONSTRUCTION_3_1,
@@ -21,11 +20,13 @@ from engine.core_engine import (
 from engine.primitives import DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    CANONICAL_DOTATION,
     CARD_SABOTAGE,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
     FURT_RIVE_PIEGE,
     FURT_RIVE_SABOTAGE,
+    GARDIEN_BET_CAP,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_RATISSAGE,
@@ -87,7 +88,7 @@ def _compute_threat_and_machine_masks(
         ray, m_type = unpack_machine_card(own_hand.card)
         lec_m = own_hand.lecture_m
         if lec_m is not None and 1 <= lec_m <= 6:
-            t_code, _, _ = obs.tactique_code_bugs_app(lec_m - 1)
+            t_code, _ = obs.tactique_code_bugs(lec_m - 1)
             if is_tactique_code(t_code):
                 pos, st = obs.machine_pos_status(ray, m_type)
                 if st != MACHINE_STATUS_RETIRED and pos > 0:
@@ -150,7 +151,7 @@ def _score_defender_target(
         r_i, p_i = int(r), int(p)
         defs = obs.parcel_defenseurs(r_i, p_i)
         cur_def = defs + obs.parcel_insectes(r_i, p_i)
-        seuil_base = cfg.dotation_arbres[p_i - 1] + cfg.offset_seuil_parade
+        seuil_base = CANONICAL_DOTATION[p_i - 1]
         bit = 1 << (r_i * MAX_P + (p_i - 1))
         score = 100
 
@@ -233,7 +234,7 @@ def _score_defender_target(
             return 0
         own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
         allies_c = obs.gardien_pari_defenders(c_i) - (1 if own_c == c_i else 0)
-        if allies_c >= cfg.gardien_bet_cap_for_case(c_i):
+        if allies_c >= GARDIEN_BET_CAP:
             return 0
         total_g = obs.total_gardien_pari_defenders()
         if obs.tour <= 7 and total_g >= obs.n_players - 1 and drew_sabotage_or_none:
@@ -255,20 +256,7 @@ def _score_defender_target(
         # Éviter de poser son 2e Défenseur sur un Rêve où l'on a déjà mis son 1er Défenseur pour sa propre carte
         if (not is_first_defender) and obs.player_def1_reve_case(obs.observer_seat) == c_i:
             return 45
-        allies = obs.reve_activation_defenders(c_i)
-        act_mode = cfg.reve_activation_mode
-        if act_mode == "1_DEF_1_MACHINE":
-            return 435 if own_hits else 70
-        if act_mode == "1_DEF_ALL_RANK":
-            if allies >= 1:
-                return 30
-            return 450 if own_hits else 70
-        # BINOME_ALL_RANK
-        if allies >= 2:
-            return 30
-        if allies == 1:
-            return 460 if own_hits else (260 if drew_sabotage_or_none else 120)
-        return 330 if own_hits else 60
+        return 435 if own_hits else 70
 
     return 0
 
@@ -401,9 +389,6 @@ class BotB0:
                         best_p = cand_p
             return best_p
 
-        if dtype == DEC_COLONIE_A_OPEN:
-            return "OUVRIR" if "OUVRIR" in opts else opts[0]
-
         if dtype == DEC_ORDRE_CONSTRUCTION_3_1:
             best_slot = opts[0]
             best_sc = -1
@@ -524,7 +509,7 @@ class BotB0:
                 if mk == "COLONIE":
                     sc = 500 if obs.gardien_available_at_case(int(mv[1])) else 260
                 elif mk == "BUG":
-                    t_code, t_bugs, _ = obs.tactique_code_bugs_app(int(mv[1]) - 1)
+                    t_code, t_bugs = obs.tactique_code_bugs(int(mv[1]) - 1)
                     sc = 420 if (is_tactique_code(t_code) and t_bugs == 0) else 220
                 elif mk == "FORET":
                     dst_r, dst_p = int(mv[1]), int(mv[2])

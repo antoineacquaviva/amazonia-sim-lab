@@ -1,14 +1,10 @@
-"""Tests dédiés à la Piste des Tactiques fixe T1..T6, purge 6.1,
-SLOT_BUG_CERVEAU=B par défaut et activation des Rêves en 2.1 + 2.2 (v6.1 CLEAR_RANK_ONLY).
+"""Tests dédiés à la Piste des Tactiques fixe T1..T6,
+SLOT_BUG_CERVEAU=B natif et activation des Rêves en 2.1 + 2.2 (v6.1 1_DEF_1_MACHINE / CLEAR_RANK_ONLY).
 """
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 from bots.heuristic_engine import play_game_b2
-from campaigns.worker_main import resolve_manifest_plan
 from engine.core_engine import (
     apply_step2_def1,
     apply_step2_def2,
@@ -22,7 +18,6 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    NUM_CHASSIS,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     STEP_3_2_REVEAL,
@@ -35,28 +30,13 @@ from engine.state import (
 )
 from engine.telemetry import TelemetryTracker
 
-ROOT = Path(__file__).resolve().parent.parent
 
-
-def test_fixed_track_192_chassis_and_bug_b_default() -> None:
-    assert NUM_CHASSIS == 192
+def test_fixed_track_and_bug_b_default() -> None:
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=5420)
-    assert cfg.reve_activation_mode == "1_DEF_1_MACHINE"
     assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
-    assert cfg.reve_advance_mode == "CLEAR_RANK_ONLY"
 
     st = GameState(cfg)
-    assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(TRACK_LEN)] == [
-        "T1",
-        "T2",
-        "T3",
-        "T4",
-        "T5",
-        "T6",
-    ]
-    # SWAP_RANKS est neutralisé sur piste fixe
-    assert prim_permutation_piste(st, "SWAP_RANKS", rank_a=0, rank_b=1) is False
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(TRACK_LEN)] == [
         "T1",
         "T2",
@@ -83,7 +63,7 @@ def test_reve_construction_rightmost_free_and_jump_push_advance() -> None:
         "R1",
     ]
 
-    # Primitive Mode 4 : Avancée de R1 (index 5) alors que index 4 porte R2 -> SAUTE vers la 1re case libre à gauche (index 3)
+    # Primitive Mode 4 : Avancée de R1 (index 5) alors que index 4 porte R2 -> SAUTE vers index 3
     assert prim_permutation_piste(st, "ADVANCE_REVE_LEFT", rank_a=5) is True
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(6)] == [
         "T1",
@@ -129,15 +109,9 @@ def test_step_2_1_and_2_2_reve_activation_open_while_gardien_stays_def2_only() -
     assert obs.player_def2_reve_case(1) == 6
 
 
-def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
-    def _run_case(mode_name: str, n_defs: int) -> tuple[int, int, int | None, int, int, int]:
-        cfg = GameConfig(
-            n_players=4,
-            mode=2,
-            peuples=("M", "R", "O", "H"),
-            reve_activation_mode=mode_name,
-            exp_seed=5423,
-        )
+def test_reve_activation_1_def_1_machine_and_telemetry() -> None:
+    def _run_case(n_defs: int) -> tuple[int, int, int | None, int, int, int]:
+        cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=5423)
         st = GameState(cfg)
         st.set_tactique_at_rank(4, TILE_R_BASE + 1)  # R1 sur case 5 (sous-jacente : T5)
         st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
@@ -165,50 +139,12 @@ def test_reve_activation_modes_a_b_c_and_telemetry() -> None:
             ts.machines_bypassed_inactive_reve,
         )
 
-    # Option A (1_DEF_1_MACHINE) avec blocage pur CLEAR_RANK_ONLY (le Rêve reste en index 4) :
-    assert _run_case("1_DEF_1_MACHINE", 0) == (5, 5, 4, 0, 0, 2)
-    assert _run_case("1_DEF_1_MACHINE", 1) == (5, 0, 4, 1, 1, 1)
-    assert _run_case("1_DEF_1_MACHINE", 2) == (0, 0, 4, 1, 2, 0)
+    # Scellé v6.1 : 1_DEF_1_MACHINE + blocage pur (le Rêve reste en index 4)
+    assert _run_case(0) == (5, 5, 4, 0, 0, 2)
+    assert _run_case(1) == (5, 0, 4, 1, 1, 1)
+    assert _run_case(2) == (0, 0, 4, 1, 2, 0)
 
-    # Option B (1_DEF_ALL_RANK) :
-    assert _run_case("1_DEF_ALL_RANK", 0) == (5, 5, 4, 0, 0, 2)
-    assert _run_case("1_DEF_ALL_RANK", 1) == (0, 0, 4, 1, 2, 0)
-
-    # Option C (BINOME_ALL_RANK) :
-    assert _run_case("BINOME_ALL_RANK", 1) == (5, 5, 4, 0, 0, 2)
-    assert _run_case("BINOME_ALL_RANK", 2) == (0, 0, 4, 1, 2, 0)
-
-
-def test_calibration_reves_fixes_manifest_and_b2_smoke() -> None:
-    manifest_path = ROOT / "campaigns" / "manifests" / "calibration_reves_fixes_v5_4.json"
-    assert manifest_path.is_file()
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    plan = resolve_manifest_plan(manifest)
-
-    assert plan["mode"] == 2
-    assert plan["bot"] == "B2"
-    assert list(plan["player_counts"]) == [3, 4, 5, 6]
-    assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
-    assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
-    assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "A"
-    assert len(plan["profile_variants"]) == 3
-    assert {v["reve_activation_mode"] for v in plan["profile_variants"]} == {
-        "1_DEF_1_MACHINE",
-        "1_DEF_ALL_RANK",
-        "BINOME_ALL_RANK",
-    }
-    oniric_counts = {sum(1 for p in u["peuples"] if p in ("H", "E")) for u in plan["units"]}
-    assert oniric_counts == {0, 1, 2}
-
-    for mode_name in ("1_DEF_1_MACHINE", "1_DEF_ALL_RANK", "BINOME_ALL_RANK"):
-        cfg = GameConfig(
-            n_players=4,
-            mode=2,
-            peuples=("M", "R", "H", "E"),
-            reve_activation_mode=mode_name,
-            exp_seed=5424,
-        )
-        trk = TelemetryTracker()
-        over = play_game_b2(GameState(cfg), k_max_passes=3, telemetry=trk)
-        assert 1 <= over.tour_fin <= 8
-        assert 0.0 <= over.ratio_arbres <= 1.0
+    cfg_b2 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), exp_seed=5424)
+    over = play_game_b2(GameState(cfg_b2), k_max_passes=3, telemetry=TelemetryTracker())
+    assert 1 <= over.tour_fin <= 8
+    assert 0.0 <= over.ratio_arbres <= 1.0

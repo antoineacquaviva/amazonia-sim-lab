@@ -161,7 +161,6 @@ def test_v6_zero_repousse_finale_and_abatteuse_ratissage_stump_exception() -> No
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "H"),
-        role_abatteuse_fin_de_piste="ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
         exp_seed=6003,
     )
     st_arr = GameState(cfg_arr)
@@ -177,7 +176,6 @@ def test_v6_zero_repousse_finale_and_abatteuse_ratissage_stump_exception() -> No
     assert st_arr.is_route_forestiere(0, 4) is False
     assert st_arr.get_parcel_souches(0, 4) == 1
     assert trk_arr.summary().ok_abatteuse_ratissage_0_arbre == 1
-    assert trk_arr.summary().ok_abatteuse_ratissage_souche == 0
 
     # Sur une parcelle à 3 Arbres, l'Abatteuse coupe les 3 Arbres d'un seul coup !
     st_arr.set_parcel_arbres_souches(1, 3, 3, 0)
@@ -188,9 +186,6 @@ def test_v6_zero_repousse_finale_and_abatteuse_ratissage_stump_exception() -> No
 
 
 def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
-    with pytest.raises(AssertionError):
-        GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), reve_advance_mode="SAUT")
-
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), exp_seed=6004)
     st_blk = GameState(cfg)
     st_blk.tour = 2
@@ -218,8 +213,7 @@ def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
     assert st_blk.get_player_hand(0)[4] == 6
     assert st_blk.get_tactique_at_rank(5) == TILE_R_BASE + 3
     assert st_blk.count_gardien_pari_consumed_at_case(5) == 1
-    assert trk_blk.summary().reves_choice_block == 1
-    assert trk_blk.summary().reves_choice_advance == 0
+    assert trk_blk.summary().da_reve_annulation == 1
 
     arbres_01_before = st_blk.get_parcel_arbres(0, 1)
     arbres_02_before = st_blk.get_parcel_arbres(0, 2)
@@ -326,7 +320,7 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
     assert plan["mode"] == 2
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
-    assert plan["chassis_ids"] == (24,)
+    assert plan["profil_piste"] == "P4_2233"
     assert plan["total_configurations"] == 12
     assert plan["total_games"] == 6_840
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
@@ -368,10 +362,10 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
     )
 
     assert digest["active_core_rules"]["version"] == "6.1.0-alpha"
+    assert digest["active_core_rules"]["chassis_canonique"]["profil_piste"] == "P4_2233"
     totals = digest["totals"]
     assert totals["count_charge_gains"] > 0
     assert totals["mean_power_tokens_end_game"] > 0.0
-    assert totals["count_reves_choice_advance"] == 0
     assert "defense_attribution" in digest
     assert digest["defense_attribution"]["arbres_repousse_finale"] == 0
 

@@ -1,4 +1,4 @@
-"""Tests unitaires v6.1 : verrouillage CLEAR_RANK_ONLY en socle, B0 < B1 < B2, ouverture 2.1 Rêves & Furtivité,
+"""Tests unitaires v6.1 : châssis unique P4_2233, hiérarchie B0 < B1 < B2, ouverture 2.1 Rêves & Furtivité,
 et table croisée by_variant_x_bot_x_n_players.
 """
 
@@ -16,11 +16,13 @@ from bots.heuristic_engine import play_game_b1, play_game_b2
 from campaigns.worker_main import resolve_manifest_plan, run_campaign_manifest
 from engine.core_engine import list_legal_targets
 from engine.state import (
+    CANONICAL_DOTATION,
+    CANONICAL_P_MAX,
+    CANONICAL_PROFIL_PISTE,
     LISIERE_CONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_RETIRED,
-    REVE_ADVANCE_MODES,
     TILE_R_BASE,
     GameConfig,
     GameState,
@@ -31,25 +33,18 @@ from run_campaign import aggregate_campaign_duckdb
 ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_v6_1_reve_advance_mode_locked_to_clear_rank_only() -> None:
-    """En v6.1, le socle verrouille CLEAR_RANK_ONLY ; les anciens modes SAUT / PAS_A_PAS / EXCLUSIVE_CHOICE sont rejetés."""
-    assert REVE_ADVANCE_MODES == ("CLEAR_RANK_ONLY",)
-
-    for legacy_mode in ("SAUT", "PAS_A_PAS", "SAUT_MAX_1_PAR_TOUR", "EXCLUSIVE_CHOICE"):
-        with pytest.raises(AssertionError, match="reve_advance_mode"):
-            GameConfig(
-                n_players=4,
-                mode=2,
-                peuples=("M", "R", "H", "E"),
-                reve_advance_mode=legacy_mode,
-                exp_seed=6101,
-            )
+def test_v6_1_canonical_chassis_locked_p4_2233() -> None:
+    """En v6.1, le socle exécute directement le châssis unique P4_2233 sans commutateurs obsolètes."""
+    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), exp_seed=6101)
+    assert cfg.profil_piste == CANONICAL_PROFIL_PISTE == "P4_2233"
+    assert cfg.p_max == CANONICAL_P_MAX == 4
+    assert cfg.dotation_arbres == CANONICAL_DOTATION == (2, 2, 3, 3)
 
 
 def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Valide validation_socle_v6_1.json (P4_2233 + FRAPPE_NON_PAREE gelé) et by_variant_x_bot_x_n_players."""
+    """Valide validation_socle_v6_1.json (P4_2233) et by_variant_x_bot_x_n_players."""
     import campaigns.digest_builder as db_mod
 
     manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_1.json"
@@ -61,25 +56,14 @@ def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     assert plan["mode"] == 2
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
-    assert plan["chassis_ids"] == (24,)
+    assert plan["profil_piste"] == "P4_2233"
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
     assert len({u["peuples"] for u in plan["units"]}) == 41
-
-    bad_manifest = dict(manifest)
-    bad_manifest["reve_advance_modes"] = ["SAUT"]
-    with pytest.raises(ValueError, match="reve_advance_mode"):
-        resolve_manifest_plan(bad_manifest)
-
-    bad_charge_manifest = dict(manifest)
-    bad_charge_manifest["charge_gain_modes"] = ["DEGAT_EFFECTIF"]
-    with pytest.raises(ValueError, match="charge_gain_mode"):
-        resolve_manifest_plan(bad_charge_manifest)
 
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_cross_v6_1"
     micro_manifest["player_counts"] = [3, 6]
     micro_manifest["games_per_configuration"] = 2
-    micro_manifest["gardien_bet_cap_policies"] = ["UNIFORM_MAX_2", "MAX_2_RES_MAX_1"]
 
     micro_file = tmp_path / "micro_cross_v6_1.json"
     micro_file.write_text(json.dumps(micro_manifest), encoding="utf-8")
@@ -114,15 +98,9 @@ def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
 
     assert "by_variant_x_bot_x_n_players" in digest
     cross_rows = digest["by_variant_x_bot_x_n_players"]
-    assert len(cross_rows) == 12
-
+    assert len(cross_rows) == 6
     combos = {(r["variant_id"], r["bot"], r["n_players"]) for r in cross_rows}
-    assert combos == {
-        (v, b, n)
-        for v in ("CAP=UNIFORM_MAX_2", "CAP=MAX_2_RES_MAX_1")
-        for b in ("B0", "B1", "B2")
-        for n in (3, 6)
-    }
+    assert combos == {("BASE", b, n) for b in ("B0", "B1", "B2") for n in (3, 6)}
 
 
 def test_v6_1_b2_beats_b1_beats_b0_smoke() -> None:
@@ -132,8 +110,7 @@ def test_v6_1_b2_beats_b1_beats_b0_smoke() -> None:
     for rep in range(n_games):
         n_pl = (3, 4, 5)[rep % 3]
         peuples = (("M", "H", "I"), ("M", "R", "H", "I"), ("M", "R", "O", "H", "I"))[rep % 3]
-        cfg = GameConfig.from_chassis_index(
-            0,
+        cfg = GameConfig(
             n_players=n_pl,
             mode=2,
             peuples=peuples,

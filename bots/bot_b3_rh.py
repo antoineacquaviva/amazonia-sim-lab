@@ -86,19 +86,6 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         rep_id=det_rep,
         coordonnateur_initial=cfg.coordonnateur_initial,
         max_revision_passes=cfg.max_revision_passes,
-        profil_piste=cfg.profil_piste,
-        regle_ouverture_reve_multiple=cfg.regle_ouverture_reve_multiple,
-        offset_seuil_parade=cfg.offset_seuil_parade,
-        placement_initial_machines=cfg.placement_initial_machines,
-        role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
-        synergie_binome_machines=cfg.synergie_binome_machines,
-        reve_activation_mode=cfg.reve_activation_mode,
-        gardien_bet_cap_policy=cfg.gardien_bet_cap_policy,
-        reve_advance_mode=cfg.reve_advance_mode,
-        gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
-        reve_5_trigger_mode=cfg.reve_5_trigger_mode,
-        charge_gain_mode=cfg.charge_gain_mode,
-        piege_scope_mode=cfg.piege_scope_mode,
         tile_profiles=cfg.tile_profiles,
     )
 
@@ -173,7 +160,7 @@ def determinize_state_from_obs(
                 d1 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2)
                 d2 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2 + 1)
                 lec_m = min(d1, d2)
-                t_code, _, _ = obs.tactique_code_bugs_app(lec_m - 1)
+                t_code, _ = obs.tactique_code_bugs(lec_m - 1)
                 bound_t = t_code if is_tactique_code(t_code) else 0
                 det.set_player_hand(s, c_draw, d1, d2, lec_m, bound_t)
 

@@ -16,29 +16,24 @@ from pathlib import Path
 from typing import Any
 
 from engine.state import (
-    CHASSIS_AXES_OPTIONS,
-    NUM_CHASSIS,
-    decode_chassis_index,
-    encode_chassis_axes,
+    ABATTEUSE_INIT_PARCEL,
+    BULLDOZER_INIT_PARCEL,
+    CANONICAL_ARBRES_PAR_RAYON,
+    CANONICAL_DOTATION,
+    CANONICAL_P_MAX,
+    CANONICAL_PROFIL_PISTE,
+    GARDIEN_BET_CAP,
 )
 
 __all__ = (
     "GEMINI_EDITORIAL_HEADER",
     "MAX_DIGEST_BYTES",
-    "axes_dict_to_chassis_id",
     "build_active_core_rules",
     "build_mobile_one_tap_html",
     "build_prompt_gemini_markdown",
     "build_self_contained_digest",
     "build_tested_tiles_rules",
-    "chassis_id_to_studio_index",
-    "chassis_id_to_studio_index_192",
-    "chassis_id_to_studio_index_384",
-    "decode_chassis_axes",
     "load_spec_bundle",
-    "studio_index_192_to_chassis_id",
-    "studio_index_384_to_chassis_id",
-    "studio_index_to_chassis_id",
     "write_digest_and_prompt_files",
 )
 
@@ -68,91 +63,22 @@ def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
     return dict(json.loads(target.read_text(encoding="utf-8")))
 
 
-def chassis_id_to_studio_index(chassis_id: int) -> int:
-    """Convertit un `chassis_id` moteur (0..191, LSB = Profil_Piste) en `config_index_192` Studio (1..192, MSB = Profil_Piste)."""
-    if not (0 <= chassis_id < NUM_CHASSIS):
-        raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
-    decoded = decode_chassis_index(int(chassis_id))
-    studio_zero = 0
-    for axis_name, opts in CHASSIS_AXES_OPTIONS:
-        studio_zero = studio_zero * len(opts) + opts.index(decoded[axis_name])
-    return studio_zero + 1
-
-
-def studio_index_to_chassis_id(studio_index: int) -> int:
-    """Convertit un `config_index_192` Doc Studio (1..192) en `chassis_id` moteur (0..191)."""
-    if not (1 <= studio_index <= NUM_CHASSIS):
-        raise ValueError(f"studio_index hors plage 1..{NUM_CHASSIS} : {studio_index}")
-    rem = int(studio_index) - 1
-    digits_rev: list[int] = []
-    for _axis_name, opts in reversed(CHASSIS_AXES_OPTIONS):
-        radix = len(opts)
-        digits_rev.append(rem % radix)
-        rem //= radix
-    digits = list(reversed(digits_rev))
-    chassis_id = 0
-    mult = 1
-    for ax_idx, (_axis_name, opts) in enumerate(CHASSIS_AXES_OPTIONS):
-        chassis_id += digits[ax_idx] * mult
-        mult *= len(opts)
-    return chassis_id
-
-
-chassis_id_to_studio_index_192 = chassis_id_to_studio_index
-studio_index_192_to_chassis_id = studio_index_to_chassis_id
-chassis_id_to_studio_index_384 = chassis_id_to_studio_index
-studio_index_384_to_chassis_id = studio_index_to_chassis_id
-
-
-def axes_dict_to_chassis_id(axes: Mapping[str, Any]) -> int:
-    """Encode un dictionnaire d'axes nommés (clés moteur ou Doc Studio, insensible à la casse) en `chassis_id` (0..191)."""
-    lowered = {str(k).lower(): v for k, v in axes.items()}
-    normalized: dict[str, Any] = {}
-    for axis_name, opts in CHASSIS_AXES_OPTIONS:
-        raw = lowered.get(axis_name.lower(), opts[0])
-        matched = False
-        for opt in opts:
-            if raw == opt or str(raw).strip().upper() == str(opt).strip().upper():
-                normalized[axis_name] = opt
-                matched = True
-                break
-        if not matched:
-            raise ValueError(
-                f"Valeur invalide pour l'axe {axis_name!r} : {raw!r} (attendu {opts!r})"
-            )
-    return encode_chassis_axes(normalized)
-
-
-def decode_chassis_axes(chassis_id: int) -> dict[str, Any]:
-    """Décode les valeurs exactes des 6 axes d'un `chassis_id` (0..191) avec son `studio_config_index_192` (1..192)."""
-    if not (0 <= chassis_id < NUM_CHASSIS):
-        raise ValueError(f"chassis_id hors plage 0..{NUM_CHASSIS - 1} : {chassis_id}")
-    decoded = decode_chassis_index(int(chassis_id))
-    axes: dict[str, Any] = {
-        "chassis_id": int(chassis_id),
-        "studio_config_index_192": chassis_id_to_studio_index(int(chassis_id)),
-    }
-    for axis_name, _opts in CHASSIS_AXES_OPTIONS:
-        axes[axis_name] = decoded[axis_name]
-    return axes
-
-
 def build_active_core_rules(
-    chassis_ids: Sequence[int] = (0,),
     *,
     bundle: dict[str, Any] | None = None,
     bundle_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Extrait dynamiquement `active_core_rules` depuis le `spec_bundle` actif.
+    """Extrait dynamiquement `active_core_rules` du socle v6.1 depuis le `spec_bundle` actif.
 
     Contient :
     - `version`, `source_studio_version` et `spec_bundle_sha256`,
     - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
-    - `chassis_6_axes` (valeurs exactes des 6 axes + `chassis_id` 0..191 + `studio_config_index_192` 1..192),
+    - `chassis_canonique` (châssis unique scellé v6.1 : `P4_2233`, départ décalé `B:p1 / A:p2`,
+      seuil Charge/Assaut, Rêves `2.1` + `1_DEF_1_MACHINE` + `CLEAR_RANK_ONLY`, Furtivité
+      « Chaud vs Calme », Pièges autonomes `SINGLE_STRIKE`, Gardiens pari `0/1/2`),
     - `tactiques` (`T1..T6` Réglette réversible Face A / Face B + Ratissage ASSAUT permanent),
     - `machine_damage_rules` et `machine_deck_rules`,
-    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`, Furtivité libre A1,
-      chaîne des Parades / Pièges, Sabotage par dilution, Rêves Bloquer/Avancer, Fins `5.3`).
+    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`).
     """
     target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
     if bundle is not None:
@@ -174,15 +100,7 @@ def build_active_core_rules(
         else:
             studio_sha256[str(fname)] = str(info)
 
-    unique_chassis = tuple(dict.fromkeys(int(c) for c in (chassis_ids or (0,))))
-    chassis_list = [decode_chassis_axes(cid) for cid in unique_chassis]
-
-    sf = (
-        spec_bundle.get("spec_formelle_v6_0")
-        or spec_bundle.get("spec_formelle_v5_5")
-        or spec_bundle.get("spec_formelle_v5_4")
-        or {}
-    )
+    sf = spec_bundle.get("spec_formelle_v6_0") or {}
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
     etapes_raw: list[dict[str, Any]] = sorted(
         sf.get("etapes_tour", []),
@@ -199,7 +117,7 @@ def build_active_core_rules(
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "6.0.0-alpha"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "6.1.0-alpha"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
@@ -211,12 +129,32 @@ def build_active_core_rules(
         "fins_5_3": f"{av.get('A14', '')} | {av.get('A15', '')}",
     }
 
+    chassis_canonique: dict[str, Any] = {
+        "profil_piste": CANONICAL_PROFIL_PISTE,
+        "p_max": CANONICAL_P_MAX,
+        "dotation_arbres": list(CANONICAL_DOTATION),
+        "arbres_par_rayon": CANONICAL_ARBRES_PAR_RAYON,
+        "placement_initial_machines": "BULLDOZER_P1_ABATTEUSE_P2",
+        "bulldozer_init_parcel": BULLDOZER_INIT_PARCEL,
+        "abatteuse_init_parcel": ABATTEUSE_INIT_PARCEL,
+        "seuil_parade": "P4_2233_CHARGE_IGNORE_PUISSANCE",
+        "charge_gain": "FRAPPE_NON_PAREE",
+        "gardien_bet_cap": GARDIEN_BET_CAP,
+        "reve_activation": "1_DEF_1_MACHINE",
+        "reve_advance_mode_2": "CLEAR_RANK_ONLY",
+        "reve_5_trigger": "ACTIF",
+        "furtivite": "CHAUD_VS_CALME_2_RIVES",
+        "piege": "AUTONOME_SINGLE_STRIKE",
+        "abatteuse_ratissage": "STANDARD_COUPE_ARBRE",
+        "ratissage_transition": "FIN_DE_TOUR_6_3",
+    }
+
     return {
-        "version": str(meta.get("schema_version", "6.0.0-alpha")),
-        "source_studio_version": str(meta.get("source_studio_version", "v6.0")),
+        "version": str(meta.get("schema_version", "6.1.0-alpha")),
+        "source_studio_version": str(meta.get("source_studio_version", "v6.1")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
-        "chassis_6_axes": chassis_list,
+        "chassis_canonique": chassis_canonique,
         "tactiques": list(spec_bundle.get("tactiques", [])),
         "machine_damage_rules": dict(spec_bundle.get("machine_damage_rules", {})),
         "machine_deck_rules": dict(spec_bundle.get("machine_deck_rules", {})),
@@ -273,25 +211,10 @@ def build_tested_tiles_rules(
     return out
 
 
-def _infer_chassis_ids_from_payload(payload: dict[str, Any]) -> tuple[int, ...]:
-    found: list[int] = []
-    for list_key in ("by_mode_and_chassis", "by_chassis"):
-        rows = payload.get(list_key)
-        if isinstance(rows, list):
-            for row in rows:
-                if isinstance(row, dict) and "chassis_id" in row:
-                    found.append(int(row["chassis_id"]))
-        if found:
-            break
-    if not found:
-        found.append(0)
-    return tuple(dict.fromkeys(found))
-
-
 def _infer_tested_tiles_from_payload(payload: dict[str, Any]) -> list[str]:
     totals = payload.get("totals")
     if isinstance(totals, dict):
-        for key in ("tested_tiles", "lot_01_profiles", "tile_profiles"):
+        for key in ("tested_tiles", "tile_profiles"):
             val = totals.get(key)
             if isinstance(val, list) and val:
                 return [str(x) for x in val]
@@ -342,27 +265,19 @@ def _infer_varying_tile_pairs(
 def build_self_contained_digest(
     stats_payload: dict[str, Any],
     *,
-    chassis_ids: Sequence[int] | None = None,
     tested_tiles: Sequence[str | Sequence[str]] | None = None,
     bundle: dict[str, Any] | None = None,
     bundle_path: Path | None = None,
 ) -> dict[str, Any]:
     """Assemble un digest 100 % auto-portant (`active_core_rules` + `tested_tiles_rules` + stats)."""
     spec_bundle = bundle if bundle is not None else load_spec_bundle(bundle_path)
-    resolved_chassis = (
-        tuple(int(c) for c in chassis_ids)
-        if chassis_ids is not None
-        else _infer_chassis_ids_from_payload(stats_payload)
-    )
     resolved_tiles = (
         tested_tiles
         if tested_tiles is not None
         else _infer_tested_tiles_from_payload(stats_payload)
     )
 
-    core_rules = build_active_core_rules(
-        resolved_chassis, bundle=bundle, bundle_path=bundle_path
-    )
+    core_rules = build_active_core_rules(bundle=bundle, bundle_path=bundle_path)
     tiles_rules = build_tested_tiles_rules(resolved_tiles, bundle=spec_bundle)
 
     ordered: dict[str, Any] = {}
@@ -406,7 +321,7 @@ def build_mobile_one_tap_html(
     generated_at = html.escape(str(digest.get("generated_at_utc", "")))
     camp_title = html.escape(str(digest.get("campaign", campaign_slug)))
     core_ver = html.escape(
-        str(digest.get("active_core_rules", {}).get("version", "5.3.1"))
+        str(digest.get("active_core_rules", {}).get("version", "6.1.0-alpha"))
     )
     prompt_escaped = html.escape(prompt_markdown)
     md_filename = html.escape(f"PROMPT_GEMINI_{campaign_slug}.md")
@@ -569,7 +484,6 @@ def write_digest_and_prompt_files(
     campaign_slug: str,
     stats_payload: dict[str, Any],
     *,
-    chassis_ids: Sequence[int] | None = None,
     tested_tiles: Sequence[str | Sequence[str]] | None = None,
     varying_tiles: Sequence[str | Sequence[str]] | None = None,
     digests_dir: Path | None = None,
@@ -587,7 +501,6 @@ def write_digest_and_prompt_files(
 
     digest = build_self_contained_digest(
         stats_payload,
-        chassis_ids=chassis_ids,
         tested_tiles=tested_tiles,
         bundle_path=bundle_path,
     )

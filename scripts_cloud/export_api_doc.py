@@ -11,7 +11,7 @@ OUT_DOC = ROOT / "contracts" / "core_state_api.md"
 TARGET_MODULES: tuple[tuple[str, str], ...] = (
     ("engine/state.py", "État de jeu (`engine.state`)"),
     ("engine/rng.py", "PRNG adressable par événement (`engine.rng`)"),
-    ("engine/primitives.py", "Bus des 8 Primitives & Hooks (`engine.primitives`)"),
+    ("engine/primitives.py", "Bus des 7 Primitives & Hooks Mode 4 (`engine.primitives`)"),
     ("engine/effects/registry.py", "Registre stateless des tuiles (`engine.effects.registry`)"),
 )
 

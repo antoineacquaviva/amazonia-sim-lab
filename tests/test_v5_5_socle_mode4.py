@@ -85,7 +85,7 @@ def _resolve_pending_decisions(
 # ---------------------------------------------------------------------------
 
 
-def test_v5_5_all_30_active_tiles_and_4_migrations_registered() -> None:
+def test_v5_5_all_30_active_tiles_and_native_migrations_registered() -> None:
     registered = set(list_registered_tiles())
     expected_30 = (
         {(f"G{i}", "A") for i in range(1, 16)}
@@ -93,9 +93,7 @@ def test_v5_5_all_30_active_tiles_and_4_migrations_registered() -> None:
         | {(f"M{i}", "A") for i in range(1, 6)}
     )
     expected_migrations = {
-        ("SLOT_BUG_CERVEAU", "A"),
         ("SLOT_BUG_CERVEAU", "B"),
-        ("SLOT_COLONISATION_GARDIENS", "A"),
         ("SLOT_COLONISATION_GARDIENS", "B"),
     }
     assert expected_30 <= registered
@@ -417,25 +415,17 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     manifest_path = ROOT / "campaigns" / "manifests" / "baseline_mode4_v5_5.json"
     assert manifest_path.is_file(), "campaigns/manifests/baseline_mode4_v5_5.json manquant"
     raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    bad_manifest = dict(raw_manifest)
-    bad_manifest["reve_advance_mode"] = "EXCLUSIVE_CHOICE"
-    with pytest.raises(ValueError, match="CLEAR_RANK_ONLY"):
-        resolve_manifest_plan(bad_manifest)
-
     plan = resolve_manifest_plan(raw_manifest)
 
     assert plan["campaign_name"] == "baseline_mode4_v5_5"
     assert plan["mode"] == 4
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
-    assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
-    assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
-    assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert plan["profile_variants"][0]["reve_advance_mode"] == "CLEAR_RANK_ONLY"
+    assert plan["profil_piste"] == "P4_2233"
     assert plan["include_full_tile_metrics"] is True
-    # 3 bots * 4 N * 6 chassis * 1 profil = 72 configurations ; 72 * 120 = 8 640 parties
-    assert plan["total_configurations"] == 72
-    assert plan["total_games"] == 8640
+    # 3 bots * 4 N * 1 profil = 12 configurations ; 12 * 120 = 1 440 parties (châssis unique P4_2233)
+    assert plan["total_configurations"] == 12
+    assert plan["total_games"] == 1440
     # Toutes les 42 tables uniques (C(6,3)+C(6,4)+C(6,5)+C(6,6)) présentes
     unique_tables = {u["peuples"] for u in plan["units"]}
     assert len(unique_tables) == 42
@@ -447,9 +437,9 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
     import campaigns.digest_builder as db_mod
 
     manifest: dict[str, Any] = {
-        "schema_version": "6.0.0-alpha",
+        "schema_version": "6.1.0-alpha",
         "manifest_type": "campaign_plan",
-        "campaign_name": "micro_mode4_v6_0_test",
+        "campaign_name": "micro_mode4_v6_1_test",
         "description": "Validation locale Mode 4 multi-bots B0/B1/B2 avec 32 slots et defense_attribution",
         "mode": 4,
         "bots": ["B0", "B1", "B2"],
@@ -459,17 +449,9 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
         "min_animaux_sauvages": 0,
         "games_per_configuration": 20,
         "include_full_tile_metrics": True,
-        "chassis_plan": {
-            "varying_axes": [],
-            "fixed_axes": {"Profil_Piste": "P4_2233"},
-        },
         "base_instance": {
             "bundle_id": "STANDARD_A",
             "peuples_cercle": ["M", "R", "O", "H"],
-            "slots_insectes": {
-                "SLOT_BUG_CERVEAU": "B",
-                "SLOT_COLONISATION_GARDIENS": "B",
-            },
         },
     }
     manifest_file = tmp_path / "micro_mode4_v6_0_test.json"

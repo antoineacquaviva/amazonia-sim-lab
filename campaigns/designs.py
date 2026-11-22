@@ -224,19 +224,6 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         rep_id=new_rep_id,
         coordonnateur_initial=old.coordonnateur_initial,
         max_revision_passes=old.max_revision_passes,
-        profil_piste=old.profil_piste,
-        regle_ouverture_reve_multiple=old.regle_ouverture_reve_multiple,
-        offset_seuil_parade=old.offset_seuil_parade,
-        placement_initial_machines=old.placement_initial_machines,
-        role_abatteuse_fin_de_piste=old.role_abatteuse_fin_de_piste,
-        synergie_binome_machines=old.synergie_binome_machines,
-        reve_activation_mode=old.reve_activation_mode,
-        gardien_bet_cap_policy=old.gardien_bet_cap_policy,
-        reve_advance_mode=old.reve_advance_mode,
-        gardien_4_trigger_mode=old.gardien_4_trigger_mode,
-        reve_5_trigger_mode=old.reve_5_trigger_mode,
-        charge_gain_mode=old.charge_gain_mode,
-        piege_scope_mode=old.piege_scope_mode,
         tile_profiles=old.tile_profiles,
     )
     cloned.cfg = new_cfg
@@ -574,20 +561,20 @@ def aggregate_micro_forks(records: list[MicroForkRecord]) -> MicroForkAggregate:
 
 
 # ---------------------------------------------------------------------------
-# Sequential Halving des 128 châssis (Palier 2 & Palier 4)
+# Sequential Halving générique (sélection multi-candidats Mode 4)
 # ---------------------------------------------------------------------------
 
 
 def sequential_halving_select(
-    scores_by_chassis: dict[int, float],
+    scores_by_candidate: dict[int, float],
     *,
     keep_count: int | None = None,
 ) -> tuple[int, ...]:
-    """Retient la moitié supérieure (ou `keep_count`) des châssis triés par score décroissant."""
-    assert len(scores_by_chassis) >= 1
-    k = keep_count if keep_count is not None else max(1, len(scores_by_chassis) // 2)
-    ranked = sorted(scores_by_chassis.items(), key=lambda kv: (-kv[1], kv[0]))
-    return tuple(ch_id for ch_id, _ in ranked[:k])
+    """Retient la moitié supérieure (ou `keep_count`) des candidats triés par score décroissant."""
+    assert len(scores_by_candidate) >= 1
+    k = keep_count if keep_count is not None else max(1, len(scores_by_candidate) // 2)
+    ranked = sorted(scores_by_candidate.items(), key=lambda kv: (-kv[1], kv[0]))
+    return tuple(cand_id for cand_id, _ in ranked[:k])
 
 
 # ---------------------------------------------------------------------------
@@ -614,9 +601,6 @@ class CausalForksSummary:
     delta_v_furt_rive_piege: float = 0.0
     has_furt_rive_sabotage_fork: bool = False
     delta_v_furt_rive_sabotage: float = 0.0
-    has_charge_gain_fork: bool = False
-    delta_v_charge_frappe_minus_degat: float = 0.0
-    delta_tokens_act1_frappe_minus_degat: float = 0.0
 
 
 def run_v6_1_causal_forks_on_config(
@@ -951,8 +935,5 @@ def run_v6_1_causal_forks_on_config(
         delta_v_furt_rive_piege=dv_furt_rp,
         has_furt_rive_sabotage_fork=has_furt_rs,
         delta_v_furt_rive_sabotage=dv_furt_rs,
-        has_charge_gain_fork=False,
-        delta_v_charge_frappe_minus_degat=0.0,
-        delta_tokens_act1_frappe_minus_degat=0.0,
     )
 

@@ -9,8 +9,6 @@ import gzip
 import json
 from pathlib import Path
 
-import pytest
-
 from bots.heuristic_engine import play_game_b2
 from campaigns.worker_main import _execute_manifest_unit, resolve_manifest_plan
 from engine.core_engine import (
@@ -59,8 +57,6 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "H"),
-        reve_advance_mode="CLEAR_RANK_ONLY",
-        tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
     )
     st = GameState(cfg)
     st.tour = 2
@@ -244,8 +240,6 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
-        gardien_4_trigger_mode="DISTINCT_OPEN_1",
-        tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
     )
     st = GameState(cfg)
     st.tour = 2
@@ -272,15 +266,14 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
 
 
 def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
-    """Case 4. Gardien verrouillée sur DISTINCT_OPEN_1 (anti-boucle conservé) ; DISTINCT_WON_2 rejeté."""
+    """Case 4. Gardien scellée sur la règle native DISTINCT_OPEN_1 (anti-boucle conservé)."""
     load_all_effects()
 
-    # 1. DISTINCT_OPEN_1 : 1re ouverture de chaque autre Gardien distinct allume 4 ; 2e ouverture du même NON
+    # 1re ouverture de chaque autre Gardien distinct allume 4 ; 2e ouverture du même NON
     cfg1 = GameConfig(
         n_players=5,
         mode=2,
         peuples=("M", "R", "O", "H", "I"),
-        gardien_4_trigger_mode="DISTINCT_OPEN_1",
     )
     st1 = GameState(cfg1)
     st1.set_gardien_at_case(1, 1, face=1)
@@ -310,38 +303,14 @@ def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
     assert st1.count_gardien_pari_consumed_at_case(4) == 2
     assert st1.count_gardien_pari_defenders_at_case(4) == 0
 
-    # 2. DISTINCT_WON_2 est supprimé et rejeté dans GameConfig et resolve_manifest_plan
-    with pytest.raises(AssertionError):
-        GameConfig(
-            n_players=6,
-            mode=2,
-            peuples=("M", "R", "O", "H", "E", "I"),
-            gardien_4_trigger_mode="DISTINCT_WON_2",
-        )
-    with pytest.raises(ValueError, match="DISTINCT_OPEN_1"):
-        resolve_manifest_plan(
-            {
-                "campaign_name": "invalid_g4",
-                "mode": 2,
-                "bot": "B2",
-                "player_counts": [4],
-                "games_per_configuration": 4,
-                "gardien_4_trigger_mode": "DISTINCT_WON_2",
-                "base_instance": {"config_index_192": 1},
-                "chassis_plan": {"varying_axes": [], "fixed_axes": {}},
-                "slot_profile_comparisons": {},
-            }
-        )
-
 
 def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
-    """SLOT_COLONISATION_GARDIENS=B : sauve la tuile en 5.3 contre 1 Insecte, mais le pari reste PERDU."""
+    """Bouclier de lisière natif : sauve la tuile en 5.3 contre 1 Insecte, mais le pari reste PERDU."""
     load_all_effects()
     cfg = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
-        tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
     )
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
 
@@ -366,12 +335,14 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     st.place_defender_gardien_pari(2, 2, FACE_DEFINITIF)
     st.place_defender_gardien_pari(3, 2, FACE_DEFINITIF)
 
-    # En 4.3, SLOT_COLONISATION_GARDIENS=B ne doit PAS proposer DEC_COLONIE_A_OPEN
+    # En 4.3, le Bouclier sur case 1 reste intact jusqu'en 5.3 (pas d'ouverture forcée)
+    st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3
     st.step = STEP_4_3_MIGRATION
-    st._continuation.append(("COLONIE_SCAN_4_3", 1))
-    while st._continuation:
-        assert _advance_continuation(st) is None
-    assert st.get_colonie_at_case(1) == 1  # Toujours là pour 5.3
+    req_43 = step_until_decision(st)
+    assert isinstance(req_43, DecisionRequest)
+    assert st.get_colonie_at_case(1) == 1
+    st._continuation.clear()
+    st.set_parcel_insectes(3, 1, 0)
 
     # 1 ouverture sur case 1 et 1 sur case 2 -> 1 Déf restant sur chaque case (paris perdus)
     st.light_trigger(1)
@@ -379,8 +350,7 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     st.light_trigger(2)
     sweep_gardiens(st)
 
-    # Maintenant tester un scénario où TOUS les Défenseurs sont sur case 1 (sauvé par Bouclier) :
-    # le pari doit quand même rester PERDU pour l'Éveil !
+    # Le pari sauvé par Bouclier de lisière doit quand même rester PERDU pour l'Éveil !
     trk = TelemetryTracker()
     st.step = STEP_5_3_END_CHECK
     res = step_until_decision(st, telemetry=trk)
@@ -401,14 +371,8 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     assert ts.bouclier_lisiere_saves == 1
 
 
-def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
-    """Manifeste validation_socle_v6_1 (6 840 parties, B0/B1/B2, P4_2233 unique, FRAPPE_NON_PAREE gelé) + reveil_anatomy."""
-    # Le manifeste historique v6.0 (EXCLUSIVE_CHOICE) est proprement rejeté sous v6.1
-    legacy_v60_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_0.json"
-    assert legacy_v60_path.is_file()
-    with pytest.raises(ValueError, match="CLEAR_RANK_ONLY"):
-        resolve_manifest_plan(json.loads(legacy_v60_path.read_text(encoding="utf-8")))
-
+def test_validation_socle_v6_1_manifest_6840_and_digest_schema() -> None:
+    """Manifeste validation_socle_v6_1 (6 840 parties, B0/B1/B2, P4_2233 unique) + reveil_anatomy."""
     manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_1.json"
     assert manifest_path.is_file()
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -417,16 +381,9 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
     assert plan["mode"] == 2
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
-    assert plan["chassis_ids"] == (24,)
+    assert plan["profil_piste"] == "P4_2233"
     assert plan["total_games"] == 6_840
-    assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
-    assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
     assert len(plan["profile_variants"]) == 1
-    assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {"DISTINCT_OPEN_1"}
-    assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"CLEAR_RANK_ONLY"}
-    assert {v["reve_5_trigger_mode"] for v in plan["profile_variants"]} == {"ACTIF"}
-    assert {v["charge_gain_mode"] for v in plan["profile_variants"]} == {"FRAPPE_NON_PAREE"}
-    assert {v["gardien_bet_cap_policy"] for v in plan["profile_variants"]} == {"UNIFORM_MAX_2"}
 
     # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs reveil_anatomy & v6.1
     mini_manifest = dict(manifest)
@@ -435,7 +392,6 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
     mini_manifest["campaign_name"] = "test_validation_socle_v6_1_mini"
     mini_manifest["player_counts"] = [4]
     mini_manifest["games_per_configuration"] = 2
-    mini_manifest["charge_gain_mode"] = "FRAPPE_NON_PAREE"
     mini_plan = resolve_manifest_plan(mini_manifest)
     rows = [_execute_manifest_unit(u) for u in mini_plan["units"][:4]]
     assert all("count_bouclier_lisiere_saves" in r for r in rows)
@@ -495,15 +451,12 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
             if p_clean.exists():
                 p_clean.unlink()
 
-    # Smoke B2 sur 3J et 4J avec Bouclier de lisière et DISTINCT_OPEN_1
+    # Smoke B2 sur 3J et 4J avec Bouclier de lisière et DISTINCT_OPEN_1 natifs
     for n_pl, peup in ((3, ("M", "R", "I")), (4, ("M", "R", "H", "I"))):
         cfg_s = GameConfig(
             n_players=n_pl,
             mode=2,
             peuples=peup,
-            reve_advance_mode="CLEAR_RANK_ONLY",
-            gardien_4_trigger_mode="DISTINCT_OPEN_1",
-            tile_profiles=(("SLOT_BUG_CERVEAU", "B"), ("SLOT_COLONISATION_GARDIENS", "B")),
             exp_seed=5470 + n_pl,
         )
         over = play_game_b2(GameState(cfg_s), k_max_passes=3)

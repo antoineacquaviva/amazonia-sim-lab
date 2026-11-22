@@ -1,4 +1,4 @@
-"""Bus des 8 Primitives Formelles, structures de décision/fin et registre de hooks."""
+"""Bus des 7 Primitives Formelles actives v6.1, structures de décision/fin et registre de hooks Mode 4."""
 
 from __future__ import annotations
 
@@ -36,7 +36,6 @@ __all__ = (
     "HOOK_3_2_REVELATION",
     "HOOK_4_1_FURTIVITE",
     "HOOK_4_2_NID_APRES_PROD",
-    "HOOK_4_3_COLONIE_FIN",
     "HOOK_4_3_MIGRATION_DESTS",
     "HOOK_5_3_PRE_RETRAIT",
     "HOOK_5_APRES_PARADE_PIEGE",
@@ -52,15 +51,11 @@ __all__ = (
     "HOOK_5_PARADE_JAGUAR",
     "HOOK_5_SEUIL_PARADE",
     "HOOK_5_TERRASSEMENT",
-    "HOOK_6_1_BUG",
-    "HOOK_6_1_REDUCTION_VOLONTAIRE",
-    "HOOK_6_2_AVANCEMENT",
     "HOOK_EFFECT_RESUME",
     "HOOK_GARDIEN_OUVERTURE",
     "HOOK_REPOUSSE_FINALE",
     "PRIM_CREATION_ENTITE",
     "PRIM_DEPLACEMENT",
-    "PRIM_MOD_APPRENTISSAGE",
     "PRIM_MOD_LOI_DU_COEUR",
     "PRIM_MOD_PUISSANCE",
     "PRIM_MOD_SEUIL",
@@ -78,7 +73,6 @@ __all__ = (
     "list_registered_tiles",
     "prim_creation_entite",
     "prim_deplacement",
-    "prim_mod_apprentissage",
     "prim_mod_loi_du_coeur",
     "prim_mod_puissance",
     "prim_mod_seuil",
@@ -96,12 +90,11 @@ CAUSE_REVEIL_GARDIENS: str = "REVEIL_GARDIENS"
 # Type canonique de décision émise par un effet de tuile
 DEC_EFFET_TUILE: str = "EFFET_TUILE"
 
-# Les 8 Primitives Formelles v5.3
+# Les 7 Primitives Formelles actives v6.1 / Mode 4
 PRIM_MOD_SEUIL: str = "MOD_SEUIL"
 PRIM_CREATION_ENTITE: str = "CREATION_ENTITE"
 PRIM_DEPLACEMENT: str = "DEPLACEMENT"
 PRIM_MOD_PUISSANCE: str = "MOD_PUISSANCE"
-PRIM_MOD_APPRENTISSAGE: str = "MOD_APPRENTISSAGE"
 PRIM_PERMUTATION_PISTE: str = "PERMUTATION_PISTE"
 PRIM_PARTAGE_INFO_ETAT_GARDIEN: str = "PARTAGE_INFO_ETAT_GARDIEN"
 PRIM_MOD_LOI_DU_COEUR: str = "MOD_LOI_DU_COEUR"
@@ -111,13 +104,12 @@ ALL_PRIMITIVES: tuple[str, ...] = (
     PRIM_CREATION_ENTITE,
     PRIM_DEPLACEMENT,
     PRIM_MOD_PUISSANCE,
-    PRIM_MOD_APPRENTISSAGE,
     PRIM_PERMUTATION_PISTE,
     PRIM_PARTAGE_INFO_ETAT_GARDIEN,
     PRIM_MOD_LOI_DU_COEUR,
 )
 
-# Fenêtres / Hooks du bus d'exécution
+# Fenêtres / Hooks du bus d'exécution (Panier 2 : prises d'accroche Mode 4 préservées)
 HOOK_1_3_LECTURE_DE: str = "HOOK_1_3_LECTURE_DE"
 HOOK_2_1_DEBUT: str = "HOOK_2_1_DEBUT"
 HOOK_2_1_PORTEE_DEF1: str = "HOOK_2_1_PORTEE_DEF1"
@@ -128,7 +120,6 @@ HOOK_3_2_APRES_REVELATION: str = "HOOK_3_2_APRES_REVELATION"
 HOOK_GARDIEN_OUVERTURE: str = "HOOK_GARDIEN_OUVERTURE"
 HOOK_4_1_FURTIVITE: str = "HOOK_4_1_FURTIVITE"
 HOOK_4_2_NID_APRES_PROD: str = "HOOK_4_2_NID_APRES_PROD"
-HOOK_4_3_COLONIE_FIN: str = "HOOK_4_3_COLONIE_FIN"
 HOOK_4_3_MIGRATION_DESTS: str = "HOOK_4_3_MIGRATION_DESTS"
 HOOK_5_DEBUT: str = "HOOK_5_DEBUT"
 HOOK_5_ORDRE_RAYON: str = "HOOK_5_ORDRE_RAYON"
@@ -144,9 +135,6 @@ HOOK_5_TERRASSEMENT: str = "HOOK_5_TERRASSEMENT"
 HOOK_5_CONTACT_NID: str = "HOOK_5_CONTACT_NID"
 HOOK_5_FIN_ATTAQUE_MACHINE: str = "HOOK_5_FIN_ATTAQUE_MACHINE"
 HOOK_5_3_PRE_RETRAIT: str = "HOOK_5_3_PRE_RETRAIT"
-HOOK_6_1_REDUCTION_VOLONTAIRE: str = "HOOK_6_1_REDUCTION_VOLONTAIRE"
-HOOK_6_1_BUG: str = "HOOK_6_1_BUG"
-HOOK_6_2_AVANCEMENT: str = "HOOK_6_2_AVANCEMENT"
 HOOK_REPOUSSE_FINALE: str = "HOOK_REPOUSSE_FINALE"
 HOOK_EFFECT_RESUME: str = "HOOK_EFFECT_RESUME"
 
@@ -620,36 +608,24 @@ def prim_mod_puissance(
     _record_phys_ops(state, ops)
 
 
-def prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None:
-    """Primitive 5 : MOD_APPRENTISSAGE — neutralisée (Apprentissage supprimé en v5.4.2)."""
-    _ = (state, rank_0_5, delta)
-
-
 def prim_permutation_piste(
     state: GameState,
     action: str,
     *,
     rank_a: int = 0,
-    rank_b: int = 0,
     seat: int = 0,
     delta_m: int = 0,
     rebind_tactique: bool = False,
 ) -> bool:
-    """Primitive 6 : PERMUTATION_PISTE — avancée Rêve (saut/poussée) ou lecture M sur piste fixe T1..T6."""
-    if action == "SWAP_RANKS":
-        # Piste des Tactiques T1..T6 imprimée en dur : aucune permutation de Tactiques.
-        _ = (rank_a, rank_b)
-        return False
-
+    """Primitive 5 : PERMUTATION_PISTE — avancée Rêve Mode 4 (ADVANCE_REVE_LEFT) ou décalage dé M."""
     if action == "ADVANCE_REVE_LEFT":
         assert 0 <= rank_a < TRACK_LEN
         code = state.get_tactique_at_rank(rank_a)
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
-        dest = state.get_reve_advance_dest_rank(rank_a, check_turn_cap=False)
+        dest = state.get_reve_advance_dest_rank(rank_a)
         if dest is None:
             return False
-        # v6.0 : le Rêve se déplace vers `dest` (saut à la 1re case libre à gauche ou pas-à-pas d'1 case) ;
-        # la case libérée retrouve sa Tactique imprimée T1..T6 (rank_a + 1).
+        # Hook Mode 4 : le Rêve avance vers la 1re case libre à gauche ; la case libérée retrouve T{rank_a+1}.
         state.set_tactique_at_rank(dest, code)
         state.set_tactique_at_rank(rank_a, rank_a + 1)
         _record_phys_ops(state, 1)
