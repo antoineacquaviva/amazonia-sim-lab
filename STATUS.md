@@ -142,9 +142,6 @@
   - **Enrichissement `defense_attribution` & Support multi-bots / `tile_metrics` complet (`engine/telemetry.py`, `engine/core_engine.py`, `campaigns/worker_main.py`, `run_campaign.py`)** : instrumentation des 7 compteurs (`parade_classique`, `piege`, `parade_avec_insectes`, `reve_annulation`, `sabotage_revele`, `insecte_bug_deviation`, `arbres_repousse_finale`) dans le moteur, les shards worker et le bloc `digest["defense_attribution"]` (totaux, `per_game`, `by_bot`) ; support natif de `"bots": ["B0", "B1", "B2"]` dans `resolve_manifest_plan` et agrégation complète des 32 slots dans `digest["tile_metrics"]` (`include_full_tile_metrics: true`).
   - **Manifeste Mode 4 (`campaigns/manifests/baseline_mode4_v5_5.json`)** : prêt à tirer sans lancer Cloud Run (Mode 4, catalogue complet 32 slots `STANDARD_A` + `Bug=B` + `Colonie=B`, bots `B0`/`B1`/`B2`, `N=3..6`, toutes combinaisons de Peuples = 42 tables uniques, 6 châssis canoniques `0..5`, 72 configurations × 120 parties = **8 640 parties**, `include_full_tile_metrics: true`).
   - **Validation** : nouvelle suite `tests/test_v5_5_socle_mode4.py` (30 tuiles actives + 4 migrations, double activation Gardiens & Face 2 en `5.3`, partition stricte, compteurs `defense_attribution`, plan `baseline_mode4_v5_5.json` et micro-run local Mode 4 multi-bots complet sur 32 slots) ; **`verify_lot.py` 8/8 PORTES 100 % VERT** (`124` tests `pytest`, `ruff`, `pyright` 0 erreur, fuzzer PyPy 3.11 `1 000` parties Modes 1/2/4 OK).
-
-
-
-
-
-
+- *2026-11-22* : **Consignes de restitution éditoriale auteur dans les bilans Gemini (`campaigns/digest_builder.py`, `docs/index.html`)** :
+  - Ajout de `GEMINI_EDITORIAL_STYLE_INSTRUCTIONS` (dans `PROMPT_GEMINI_*.md` et `last_digest.html`) et de `consignes_restitution_auteur` (en tête de tout `digest_*.json` généré) dans `campaigns/digest_builder.py`, ainsi que dans `DIGEST_GEMINI_PROMPT_PREFIX` du bouton 1-tap `📋 Copier Bilan Gemini` de `docs/index.html` (zéro code/variable/référence brute, traduction en langage jeu de société, structure en 4 temps : Hauteur de vue, Chiffres clés, Constats majeurs, Préconisations, et séparation de toute annexe technique Antigravity en fin de réponse).
+  - Couverture ajoutée dans `tests/test_digest_builder_and_bridge.py` et `tests/test_studio_render_and_guards.py` ; **`verify_lot.py` 100 % vert**.

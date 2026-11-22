@@ -23,7 +23,9 @@ from engine.state import (
 )
 
 __all__ = (
+    "AUTHOR_REPORTING_INSTRUCTIONS",
     "GEMINI_EDITORIAL_HEADER",
+    "GEMINI_EDITORIAL_STYLE_INSTRUCTIONS",
     "MAX_DIGEST_BYTES",
     "axes_dict_to_chassis_id",
     "build_active_core_rules",
@@ -51,6 +53,35 @@ GEMINI_EDITORIAL_HEADER: str = (
     "Dossier de simulation Amazonia : Dernier Rempart — utilise les règles cœur et "
     "statistiques ci-dessous comme unique vérité terrain."
 )
+
+GEMINI_EDITORIAL_STYLE_INSTRUCTIONS: str = (
+    "Consignes de restitution pour l'auteur :\n"
+    "- Rédige ton rapport en français naturel, clair et fluide, directement adressé à l'auteur du jeu.\n"
+    "- Zéro code interne, zéro nom de variable, zéro identifiant de variante, zéro numéro de règle ou d'étape, zéro jargon statistique brut : traduis systématiquement chaque notion en langage concret de jeu de société (par exemple : joueurs débutants / intermédiaires / aguerris plutôt que les noms de bots ; les 20 % pires parties plutôt que le sigle statistique ; description claire de chaque variante testée).\n"
+    "- Structure le rapport en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations à table de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.\n"
+    "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
+)
+
+AUTHOR_REPORTING_INSTRUCTIONS: dict[str, Any] = {
+    "public": "Auteur du jeu (restitution éditoriale en français courant)",
+    "interdits": (
+        "Aucun code interne, nom de variable, identifiant de variante, numéro d'étape/règle "
+        "ni sigle statistique brut dans le corps du rapport."
+    ),
+    "traduction_obligatoire": (
+        "Traduire chaque indicateur et variante en langage concret de jeu de société "
+        "(ex. joueurs débutants/intermédiaires/aguerris, pires 20 % de parties, description claire des règles testées)."
+    ),
+    "structure_attendue": [
+        "1. Hauteur de vue (lien avec les travaux en cours et les intentions d'auteur)",
+        "2. Chiffres clés (essentiels, lisibles et contextualisés)",
+        "3. Constats majeurs (forces, fragilités, sensations de 3 à 6 joueurs)",
+        "4. Préconisations pour la suite (arbitrages concrets et hiérarchisés)",
+    ],
+    "annexe_technique": (
+        "Si un prompt technique pour Antigravity est utile, l'isoler en toute fin dans un encart séparé."
+    ),
+}
 
 _STEP_ARBITRAGES_MAP: dict[int, tuple[str, ...]] = {
     1: ("A01", "A22"),
@@ -365,11 +396,18 @@ def build_self_contained_digest(
         if top_key in stats_payload:
             ordered[top_key] = stats_payload[top_key]
 
+    ordered["consignes_restitution_auteur"] = dict(AUTHOR_REPORTING_INSTRUCTIONS)
     ordered["active_core_rules"] = core_rules
     ordered["tested_tiles_rules"] = tiles_rules
 
     for k, v in stats_payload.items():
-        if k in ("campaign", "generated_at_utc", "active_core_rules", "tested_tiles_rules"):
+        if k in (
+            "campaign",
+            "generated_at_utc",
+            "consignes_restitution_auteur",
+            "active_core_rules",
+            "tested_tiles_rules",
+        ):
             continue
         ordered[k] = v
 
@@ -383,6 +421,8 @@ def build_prompt_gemini_markdown(digest: dict[str, Any]) -> str:
         raw_json = json.dumps(digest, separators=(",", ":"), ensure_ascii=False)
     lines = [
         GEMINI_EDITORIAL_HEADER,
+        "",
+        GEMINI_EDITORIAL_STYLE_INSTRUCTIONS,
         "",
         "```json",
         raw_json,

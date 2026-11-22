@@ -441,6 +441,9 @@ setImmediate(() => {
     if (!copied.startsWith(expectedPrefix)) {
       throw new Error('Amorce attendue absente au début du texte copié');
     }
+    if (!copied.includes("Consignes de restitution pour l'auteur :") || !copied.includes("Zéro code interne")) {
+      throw new Error('Consignes de restitution auteur absentes du texte copié');
+    }
     if (!copied.includes('"active_core_rules"') || !copied.includes('"tested_tiles_rules"') || !copied.includes('"tile_metrics"')) {
       throw new Error('Le texte copié ne contient pas le digest complet');
     }

@@ -1001,7 +1001,15 @@
       };
     }
 
-    const DIGEST_GEMINI_PROMPT_PREFIX = "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :";
+    const DIGEST_GEMINI_PROMPT_PREFIX = [
+      "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :",
+      "",
+      "Consignes de restitution pour l'auteur :",
+      "- Rédige ton rapport en français naturel, clair et fluide, directement adressé à l'auteur du jeu.",
+      "- Zéro code interne, zéro nom de variable, zéro identifiant de variante, zéro numéro de règle ou d'étape, zéro jargon statistique brut : traduis systématiquement chaque notion en langage concret de jeu de société (par exemple : joueurs débutants / intermédiaires / aguerris plutôt que les noms de bots ; les 20 % pires parties plutôt que le sigle statistique ; description claire de chaque variante testée).",
+      "- Structure le rapport en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations à table de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.",
+      "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
+    ].join('\n');
     let copyDigestFeedbackTimer = null;
 
     function fallbackCopyTextSync(text) {

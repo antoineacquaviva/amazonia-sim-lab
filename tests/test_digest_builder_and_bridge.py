@@ -119,10 +119,14 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
         legacy_data_copy=False,
     )
     assert d_path.exists() and p_path.exists()
+    assert "consignes_restitution_auteur" in digest
+    assert "structure_attendue" in digest["consignes_restitution_auteur"]
     assert len(digest["active_core_rules"]["chassis_6_axes"]) == 2
     assert [t["slot"] for t in digest["tested_tiles_rules"]] == ["G3", "M1"]
 
     prompt_md = build_prompt_gemini_markdown(digest)
+    assert "Consignes de restitution pour l'auteur :" in prompt_md
+    assert "Zéro code interne" in prompt_md
     html_page = build_mobile_one_tap_html("unit_test_bridge", prompt_md, digest)
     assert "📋 Copier tout le dossier pour l'app Gemini" in html_page
     assert "PROMPT_GEMINI_unit_test_bridge.md" in html_page
