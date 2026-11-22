@@ -79,7 +79,9 @@ zéro `import random`, zéro état global mutable).
 - `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = ...`
 - `NUM_CHASSIS: int = 1`
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
-- `REVE_ADVANCE_MODES: tuple[str, ...] = ('SAUT', 'PAS_A_PAS', 'SAUT_MAX_1_PAR_TOUR')`
+- `REVE_ADVANCE_MODES: tuple[str, ...] = ('SAUT',)`
+- `REVE_5_TRIGGER_MODES: tuple[str, ...] = ('PASSIF', 'ACTIF')`
+- `REVE_ADVANCE_COST_MODES: tuple[str, ...] = ('1DEF', '2DEF')`
 
 ### Fonctions publiques
 
@@ -132,6 +134,8 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `gardien_bet_cap_policy: str`
 - `reve_advance_mode: str`
 - `gardien_4_trigger_mode: str`
+- `reve_5_trigger_mode: str`
+- `reve_advance_cost_mode: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
@@ -142,7 +146,8 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='SAUT', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='SAUT', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', reve_5_trigger_mode: str='PASSIF', reve_advance_cost_mode: str='1DEF', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
+- `required_defenders_for_reve_advance(self) -> int` — Nombre minimal de Défenseurs requis sur un Rêve pour choisir AVANCER en 3.2.
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).
@@ -227,6 +232,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `gardien_bet_cap_policy: str`
 - `reve_advance_mode: str`
 - `gardien_4_trigger_mode: str`
+- `reve_5_trigger_mode: str`
+- `reve_advance_cost_mode: str`
 - `nb_peuples_oniriques: int`
 - `gardien_pari_enabled: bool`
 - `triggers_lit: int`
@@ -416,7 +423,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `was_seat_deviated_by_bug_this_turn(self, seat: int) -> bool` — Vrai si la carte Machine du siège `seat` a déjà été déviée par un Bug en 3.2 ce tour.
 - `mark_seat_deviated_by_bug_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug).
 - `increment_reve_advances_this_turn(self) -> None` — Incrémente le compteur de Rêves ayant choisi AVANCER en 3.2 durant ce tour.
-- `get_reve_advance_dest_rank(self, rank_0_5: int, *, check_turn_cap: bool=True) -> int | None` — Retourne l'index `0..5` de destination si le Rêve en `rank_0_5` peut avancer, sinon None. - `SAUT` (ou alias `EXCLUSIVE_CHOICE`) : 1re case libre à gauche ; - `PAS_A_PAS` : uniquement `rank_0_5 - 1` si libre ; - `SAUT_MAX_1_PAR_TOUR` : 1re case libre à gauche si aucun Rêve n'a déjà choisi `AVANCER` ce tour.
+- `get_reve_advance_dest_rank(self, rank_0_5: int, *, check_turn_cap: bool=True) -> int | None` — Retourne l'index `0..5` de la 1re case libre à gauche (`ADV=SAUT` figé), ou None.
 - `get_pending_apprentissage_at_rank(self, rank_0_5: int) -> int` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — retourne toujours 0.
 - `add_pending_apprentissage_at_rank(self, rank_0_5: int, delta: int) -> None` — Obsolète (Apprentissage 6.1 supprimé en v5.4.2) — sans effet.
 - `get_pending_voluntary_app_reduction(self) -> tuple[int, int]` — Retourne (nb_retraits_volontaires_restants, seat_decideur) mémorisés pour 6.1.

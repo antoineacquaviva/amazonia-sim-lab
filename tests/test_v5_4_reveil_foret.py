@@ -439,8 +439,8 @@ def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
     assert len(plan["profile_variants"]) == 2
     v_ids = {v["variant_id"] for v in plan["profile_variants"]}
     assert v_ids == {
-        "CAP=UNIFORM_MAX_2|ADV=EXCLUSIVE_CHOICE",
-        "CAP=MAX_2_RES_MAX_1|ADV=EXCLUSIVE_CHOICE",
+        "CAP=UNIFORM_MAX_2|ADV=SAUT",
+        "CAP=MAX_2_RES_MAX_1|ADV=SAUT",
     }
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 1 for u in plan["units"])
@@ -461,7 +461,7 @@ def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
     row = _execute_manifest_unit(micro_unit)
     assert row["n_games"] == 2
     assert row["gardien_bet_cap_policy"] in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")
-    assert row["reve_advance_mode"] == "EXCLUSIVE_CHOICE"
+    assert row["reve_advance_mode"] == "SAUT"
     assert "rs_def_parade" in row
     assert "rs_distinct_gardiens_bet" in row
     assert "rs_def_resonance" in row

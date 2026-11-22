@@ -20,6 +20,7 @@ from typing import Any
 
 import engine.effects  # noqa: F401
 from bots.bot_b0 import play_game_b0
+from bots.bot_b3_rh import play_game_b3
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from campaigns.designs import (
     MANDATORY_6_CIRCLES,
@@ -30,6 +31,7 @@ from campaigns.designs import (
     sequential_halving_select,
 )
 from campaigns.digest_builder import (
+    axes_dict_to_chassis_id,
     build_mobile_one_tap_html,
     build_prompt_gemini_markdown,
     build_self_contained_digest,
@@ -42,6 +44,7 @@ from engine.state import (
     ANIMAUX_SAUVAGES,
     CHASSIS_AXES_OPTIONS,
     NUM_CHASSIS,
+    PEUPLES_ONIRIQUES,
     PEUPLES_ORDER,
     STATE_BUF_SIZE,
     GameConfig,
@@ -50,6 +53,8 @@ from engine.state import (
 )
 from engine.telemetry import (
     DEFENSE_ATTRIBUTION_FIELDS,
+    DILEMMA_CHOICE_FIELDS,
+    OCKHAM_COUNT_FIELDS,
     REVEIL_ANATOMY_FIELDS,
     TelemetryTracker,
 )
@@ -1272,9 +1277,9 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     else:
         bot_list = [str(manifest.get("bot", "B2")).strip().upper()]
     bot_list = list(dict.fromkeys(bot_list))
-    if not bot_list or any(b not in ("B0", "B1", "B2") for b in bot_list):
+    if not bot_list or any(b not in ("B0", "B1", "B2", "B3") for b in bot_list):
         raise ValueError(
-            f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} (attendu B0/B1/B2)"
+            f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} (attendu B0/B1/B2/B3)"
         )
     bot_name = bot_list[0]
     k_max_default = int(manifest.get("k_max", 0 if bot_name == "B0" else 3))
@@ -1461,12 +1466,17 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     else:
         adv_modes = [str(x).strip().upper() for x in raw_adv_modes]
         explicit_adv_mode_sweep = True
+    norm_adv_modes: list[str] = []
     for radv in adv_modes:
-        if radv not in ("SAUT", "PAS_A_PAS", "SAUT_MAX_1_PAR_TOUR", "EXCLUSIVE_CHOICE"):
+        if radv not in ("SAUT", "EXCLUSIVE_CHOICE"):
             raise ValueError(
-                f"reve_advance_mode invalide (v6.0 : SAUT, PAS_A_PAS, SAUT_MAX_1_PAR_TOUR ou alias EXCLUSIVE_CHOICE ; "
-                f"CLEAR_RANK_ONLY supprimé) : {radv!r}"
+                f"reve_advance_mode invalide (figé sur SAUT / alias EXCLUSIVE_CHOICE en v6.0 ; "
+                f"PAS_A_PAS, SAUT_MAX_1_PAR_TOUR et CLEAR_RANK_ONLY supprimés) : {radv!r}"
             )
+        norm_adv = "SAUT" if radv == "EXCLUSIVE_CHOICE" else radv
+        if norm_adv not in norm_adv_modes:
+            norm_adv_modes.append(norm_adv)
+    adv_modes = norm_adv_modes
 
     raw_g4_modes = manifest.get("gardien_4_trigger_modes", manifest.get("gardien_4_trigger_mode"))
     if raw_g4_modes is None:
@@ -1484,6 +1494,34 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {g4m!r}"
             )
 
+    raw_r5_modes = manifest.get("reve_5_trigger_modes", manifest.get("reve_5_trigger_mode"))
+    if raw_r5_modes is None:
+        r5_modes: list[str] = ["PASSIF"]
+        explicit_r5_sweep = False
+    elif isinstance(raw_r5_modes, str):
+        r5_modes = [raw_r5_modes.strip().upper()]
+        explicit_r5_sweep = "reve_5_trigger_modes" in manifest
+    else:
+        r5_modes = [str(x).strip().upper() for x in raw_r5_modes]
+        explicit_r5_sweep = True
+    for r5m in r5_modes:
+        if r5m not in ("PASSIF", "ACTIF"):
+            raise ValueError(f"reve_5_trigger_mode invalide (attendu PASSIF/ACTIF) : {r5m!r}")
+
+    raw_ac_modes = manifest.get("reve_advance_cost_modes", manifest.get("reve_advance_cost_mode"))
+    if raw_ac_modes is None:
+        ac_modes: list[str] = ["1DEF"]
+        explicit_ac_sweep = False
+    elif isinstance(raw_ac_modes, str):
+        ac_modes = [raw_ac_modes.strip().upper()]
+        explicit_ac_sweep = "reve_advance_cost_modes" in manifest
+    else:
+        ac_modes = [str(x).strip().upper() for x in raw_ac_modes]
+        explicit_ac_sweep = True
+    for acm in ac_modes:
+        if acm not in ("1DEF", "2DEF"):
+            raise ValueError(f"reve_advance_cost_mode invalide (attendu 1DEF/2DEF) : {acm!r}")
+
     if len(r_act_modes) > 1:
         explicit_reve_act_sweep = True
     if len(cap_pols) > 1:
@@ -1492,11 +1530,17 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         explicit_adv_mode_sweep = True
     if len(g4_modes) > 1:
         explicit_g4_mode_sweep = True
+    if len(r5_modes) > 1:
+        explicit_r5_sweep = True
+    if len(ac_modes) > 1:
+        explicit_ac_sweep = True
 
     expanded_variants: list[dict[str, Any]] = []
     ev_idx = 0
     for var in profile_variants:
-        for ram, gcp, radv, g4m in itertools.product(r_act_modes, cap_pols, adv_modes, g4_modes):
+        for ram, gcp, radv, g4m, r5m, acm in itertools.product(
+            r_act_modes, cap_pols, adv_modes, g4_modes, r5_modes, ac_modes
+        ):
             tag_parts: list[str] = []
             if explicit_reve_act_sweep:
                 tag_parts.append(f"REVE={ram}")
@@ -1506,6 +1550,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 tag_parts.append(f"ADV={radv}")
             if explicit_g4_mode_sweep:
                 tag_parts.append(f"G4={g4m}")
+            if explicit_r5_sweep:
+                tag_parts.append(f"REVE_TRIG={r5m}")
+            if explicit_ac_sweep:
+                tag_parts.append(f"ADV_COST={acm}")
             if tag_parts:
                 ext_tag = "|".join(tag_parts)
                 v_id = ext_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{ext_tag}"
@@ -1521,6 +1569,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "gardien_bet_cap_policy": gcp,
                     "reve_advance_mode": radv,
                     "gardien_4_trigger_mode": g4m,
+                    "reve_5_trigger_mode": r5m,
+                    "reve_advance_cost_mode": acm,
                 }
             )
             ev_idx += 1
@@ -1533,101 +1583,189 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     table_selection = str(manifest.get("table_selection", "PALIER1_DEFAULT")).strip().upper()
     min_animaux = max(0, int(manifest.get("min_animaux_sauvages", 0)))
 
-    units: list[dict[str, Any]] = []
-    config_idx = 0
-    for b_name in bot_list:
-        b_k_max = 0 if b_name == "B0" else int(manifest.get("k_max", 3))
-        for n_pl in player_counts:
-            if (
-                len(base_peuples) == n_pl
-                and len(set(base_peuples)) == n_pl
-                and all(p in PEUPLES_ORDER for p in base_peuples)
-            ):
-                mir = mirror_peuples(base_peuples)
-                t1_id = "-".join(base_peuples)
-                t2_id = "-".join(mir)
-                if games_per_cfg >= 2 and mir != base_peuples:
-                    candidate_tables: tuple[tuple[str, tuple[str, ...]], ...] = (
-                        (t1_id, base_peuples),
-                        (t2_id, mir),
-                    )
-                else:
-                    candidate_tables = ((t1_id, base_peuples),)
-            elif table_selection == "ALL_PEUPLE_COMBOS":
-                all_combs = tuple(
-                    ("-".join(comb), comb)
-                    for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
-                    if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
-                )
-                candidate_tables = all_combs[: min(games_per_cfg, len(all_combs))]
-            else:
-                all_t = tuple(
-                    (tid, pl)
-                    for tid, pl in PALIER1_TABLES_BY_N[n_pl]
-                    if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
-                )
-                candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
-
-            n_tables = len(candidate_tables)
-            base_per_tbl = games_per_cfg // n_tables
-            rem_tbl = games_per_cfg % n_tables
-
-            # Regroupe les paires miroirs consécutives pour leur affecter le même rep_start (CRN)
-            table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
-            idx_t = 0
-            while idx_t < n_tables:
-                t_id_a, p_a = candidate_tables[idx_t]
+    def _append_cohort_units(
+        *,
+        cohort_role: str,
+        cohort_bots: list[str],
+        cohort_players: list[int],
+        cohort_chassis: list[int],
+        cohort_variants: list[dict[str, Any]],
+        cohort_games_per_cfg: int,
+        start_config_idx: int,
+    ) -> tuple[list[dict[str, Any]], int]:
+        built_units: list[dict[str, Any]] = []
+        cfg_cursor = start_config_idx
+        for b_name in cohort_bots:
+            b_k_max = 0 if b_name == "B0" else int(manifest.get("k_max", 4 if b_name == "B3" else 3))
+            for n_pl in cohort_players:
                 if (
-                    idx_t + 1 < n_tables
-                    and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
+                    len(base_peuples) == n_pl
+                    and len(set(base_peuples)) == n_pl
+                    and all(p in PEUPLES_ORDER for p in base_peuples)
                 ):
-                    t_id_b, p_b = candidate_tables[idx_t + 1]
-                    table_groups.append((True, ((idx_t, t_id_a, p_a), (idx_t + 1, t_id_b, p_b))))
-                    idx_t += 2
+                    mir = mirror_peuples(base_peuples)
+                    t1_id = "-".join(base_peuples)
+                    t2_id = "-".join(mir)
+                    if cohort_games_per_cfg >= 2 and mir != base_peuples:
+                        candidate_tables: tuple[tuple[str, tuple[str, ...]], ...] = (
+                            (t1_id, base_peuples),
+                            (t2_id, mir),
+                        )
+                    else:
+                        candidate_tables = ((t1_id, base_peuples),)
+                elif table_selection == "ALL_PEUPLE_COMBOS":
+                    all_combs = tuple(
+                        ("-".join(comb), comb)
+                        for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
+                        if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
+                    )
+                    candidate_tables = all_combs[: min(cohort_games_per_cfg, len(all_combs))]
                 else:
-                    table_groups.append((False, ((idx_t, t_id_a, p_a),)))
-                    idx_t += 1
+                    all_t = tuple(
+                        (tid, pl)
+                        for tid, pl in PALIER1_TABLES_BY_N[n_pl]
+                        if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
+                    )
+                    candidate_tables = all_t[: min(cohort_games_per_cfg, len(all_t))]
 
-            for ch_id in chassis_ids:
-                for var in profile_variants:
-                    rep_offset = 0
-                    for is_mirror_pair, grp in table_groups:
-                        max_g_in_grp = 0
-                        for t_i, t_id, peuples in grp:
-                            g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
-                            if g_cnt <= 0:
-                                continue
-                            max_g_in_grp = max(max_g_in_grp, g_cnt)
-                            units.append(
-                                {
-                                    "campaign": campaign_name,
-                                    "config_id": config_idx,
-                                    "n_players": n_pl,
-                                    "chassis_id": ch_id,
-                                    "variant_idx": var["variant_idx"],
-                                    "variant_id": var["variant_id"],
-                                    "compared_slots": var["compared_slots"],
-                                    "tile_profiles": var["tile_profiles"],
-                                    "reve_activation_mode": var["reve_activation_mode"],
-                                    "gardien_bet_cap_policy": var["gardien_bet_cap_policy"],
-                                    "reve_advance_mode": var["reve_advance_mode"],
-                                    "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
-                                    "table_id": t_id,
-                                    "peuples": peuples,
-                                    "n_animaux_sauvages": sum(
-                                        1 for p in peuples if p in ANIMAUX_SAUVAGES
-                                    ),
-                                    "is_mirror_pair": is_mirror_pair,
-                                    "bot": b_name,
-                                    "k_max": b_k_max,
-                                    "mode": mode,
-                                    "exp_seed": exp_seed,
-                                    "rep_start": rep_offset,
-                                    "n_games": g_cnt,
-                                }
-                            )
-                        rep_offset += max_g_in_grp
-                    config_idx += 1
+                n_tables = len(candidate_tables)
+                base_per_tbl = cohort_games_per_cfg // n_tables
+                rem_tbl = cohort_games_per_cfg % n_tables
+
+                table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
+                idx_t = 0
+                while idx_t < n_tables:
+                    t_id_a, p_a = candidate_tables[idx_t]
+                    if (
+                        idx_t + 1 < n_tables
+                        and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
+                    ):
+                        t_id_b, p_b = candidate_tables[idx_t + 1]
+                        table_groups.append(
+                            (True, ((idx_t, t_id_a, p_a), (idx_t + 1, t_id_b, p_b)))
+                        )
+                        idx_t += 2
+                    else:
+                        table_groups.append((False, ((idx_t, t_id_a, p_a),)))
+                        idx_t += 1
+
+                for ch_id in cohort_chassis:
+                    for var in cohort_variants:
+                        rep_offset = 0
+                        for is_mirror_pair, grp in table_groups:
+                            max_g_in_grp = 0
+                            for t_i, t_id, peuples in grp:
+                                g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
+                                if g_cnt <= 0:
+                                    continue
+                                max_g_in_grp = max(max_g_in_grp, g_cnt)
+                                built_units.append(
+                                    {
+                                        "campaign": campaign_name,
+                                        "cohort_role": cohort_role,
+                                        "config_id": cfg_cursor,
+                                        "n_players": n_pl,
+                                        "n_machines_initial": 2 * n_pl,
+                                        "chassis_id": ch_id,
+                                        "variant_idx": var["variant_idx"],
+                                        "variant_id": var["variant_id"],
+                                        "compared_slots": var["compared_slots"],
+                                        "tile_profiles": var["tile_profiles"],
+                                        "reve_activation_mode": var["reve_activation_mode"],
+                                        "gardien_bet_cap_policy": var["gardien_bet_cap_policy"],
+                                        "reve_advance_mode": var["reve_advance_mode"],
+                                        "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
+                                        "reve_5_trigger_mode": var["reve_5_trigger_mode"],
+                                        "reve_advance_cost_mode": var["reve_advance_cost_mode"],
+                                        "table_id": t_id,
+                                        "peuples": peuples,
+                                        "n_animaux_sauvages": sum(
+                                            1 for p in peuples if p in ANIMAUX_SAUVAGES
+                                        ),
+                                        "has_insectes": 1 if "I" in peuples else 0,
+                                        "n_peuples_oniriques": sum(
+                                            1 for p in peuples if p in PEUPLES_ONIRIQUES
+                                        ),
+                                        "is_mirror_pair": is_mirror_pair,
+                                        "bot": b_name,
+                                        "k_max": b_k_max,
+                                        "mode": mode,
+                                        "exp_seed": exp_seed,
+                                        "rep_start": rep_offset,
+                                        "n_games": g_cnt,
+                                    }
+                                )
+                            rep_offset += max_g_in_grp
+                        cfg_cursor += 1
+        return built_units, cfg_cursor
+
+    units, config_idx = _append_cohort_units(
+        cohort_role="CANON",
+        cohort_bots=bot_list,
+        cohort_players=player_counts,
+        cohort_chassis=chassis_ids,
+        cohort_variants=profile_variants,
+        cohort_games_per_cfg=games_per_cfg,
+        start_config_idx=0,
+    )
+    canon_games = sum(int(u["n_games"]) for u in units)
+
+    # 4b. Bloc secondaire optionnel « mode Initiation » (ex: P4_1223, chassis_id = 2)
+    #     strictement étiqueté cohort_role = 'INITIATION' pour ne jamais mélanger ses agrégats avec CANON.
+    init_meta: dict[str, Any] = {"enabled": False, "chassis_ids": (), "total_games": 0}
+    raw_init_blk = manifest.get("initiation_block")
+    if isinstance(raw_init_blk, dict) and bool(raw_init_blk.get("enabled", False)):
+        init_profil = str(raw_init_blk.get("profil_piste", "P4_1223")).strip().upper()
+        init_chassis_ids: list[int] = []
+        for ch_id in chassis_ids:
+            dec = dict(decode_chassis_index(ch_id))
+            dec["profil_piste"] = init_profil
+            init_cid = axes_dict_to_chassis_id(dec)
+            if init_cid not in init_chassis_ids:
+                init_chassis_ids.append(init_cid)
+        init_bots_raw = raw_init_blk.get("bots", bot_list)
+        init_bots = (
+            [init_bots_raw.strip().upper()]
+            if isinstance(init_bots_raw, str)
+            else [str(b).strip().upper() for b in init_bots_raw]
+        )
+        for ib in init_bots:
+            if ib not in ("B0", "B1", "B2", "B3"):
+                raise ValueError(f"initiation_block.bots invalide : {ib!r}")
+        init_players = sorted(
+            {int(n) for n in raw_init_blk.get("player_counts", player_counts)}
+        )
+        init_games_per_cfg = max(
+            1, int(raw_init_blk.get("games_per_configuration", games_per_cfg))
+        )
+        raw_var_filter = raw_init_blk.get("variant_ids")
+        if raw_var_filter:
+            allowed_vids = {str(v) for v in raw_var_filter}
+            init_variants = [v for v in profile_variants if str(v["variant_id"]) in allowed_vids]
+            if not init_variants:
+                init_variants = profile_variants
+        else:
+            init_variants = profile_variants
+
+        init_units, config_idx = _append_cohort_units(
+            cohort_role="INITIATION",
+            cohort_bots=init_bots,
+            cohort_players=init_players,
+            cohort_chassis=init_chassis_ids,
+            cohort_variants=init_variants,
+            cohort_games_per_cfg=init_games_per_cfg,
+            start_config_idx=config_idx,
+        )
+        units.extend(init_units)
+        init_meta = {
+            "enabled": True,
+            "profil_piste": init_profil,
+            "chassis_ids": tuple(init_chassis_ids),
+            "bots": tuple(init_bots),
+            "player_counts": tuple(init_players),
+            "games_per_configuration": init_games_per_cfg,
+            "total_games": sum(int(u["n_games"]) for u in init_units),
+        }
 
     return {
         "campaign_name": campaign_name,
@@ -1646,6 +1784,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
         "games_per_configuration": games_per_cfg,
+        "canon_games": canon_games,
+        "initiation_block": init_meta,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
         "bot": bot_name,
@@ -1659,6 +1799,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     t0 = time.perf_counter()
+    cohort_role = str(unit.get("cohort_role", "CANON"))
     n_pl = int(unit["n_players"])
     ch_id = int(unit["chassis_id"])
     mode = int(unit["mode"])
@@ -1666,10 +1807,16 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
     gardien_bet_cap_policy = str(unit.get("gardien_bet_cap_policy", "UNIFORM_MAX_2"))
-    reve_advance_mode = str(unit.get("reve_advance_mode", "EXCLUSIVE_CHOICE"))
+    reve_advance_mode = str(unit.get("reve_advance_mode", "SAUT"))
     gardien_4_trigger_mode = str(unit.get("gardien_4_trigger_mode", "DISTINCT_OPEN_1"))
+    reve_5_trigger_mode = str(unit.get("reve_5_trigger_mode", "PASSIF"))
+    reve_advance_cost_mode = str(unit.get("reve_advance_cost_mode", "1DEF"))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
+    )
+    has_insectes = int(unit.get("has_insectes", 1 if "I" in peuples else 0))
+    n_oniriques = int(
+        unit.get("n_peuples_oniriques", sum(1 for p in peuples if p in PEUPLES_ONIRIQUES))
     )
     bot_name = str(unit["bot"])
     k_max = int(unit["k_max"])
@@ -1685,6 +1832,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_t8 = 0
     cnt_reve = 0
     cnt_reveil = 0
+    sommeil_by_t = [0] * 9  # indices 1..7 (et 8 par sécurité)
+    sum_sommeil_tours = 0
+    sum_sommeil_ratio = 0.0
     cnt_reveil_attempts = 0
     cnt_reveil_failures = 0
     cnt_gardien_bets_won = 0
@@ -1699,6 +1849,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_act1_reached = 0
     sum_power_tokens_end_game = 0
     cnt_charge_gains = 0
+    cnt_charge_gains_act1 = 0
+    cnt_charge_gains_act2 = 0
     cnt_furtivite_1_rive_turns = 0
     cnt_furtivite_2_rives_turns = 0
     cnt_arbres_pos = 0
@@ -1714,6 +1866,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     sum_mid_combat = 0
     reveil_anat_acc: dict[str, int] = {k: 0 for k in REVEIL_ANATOMY_FIELDS}
     def_attr_acc: dict[str, int] = {k: 0 for k in DEFENSE_ATTRIBUTION_FIELDS}
+    ok_sum_acc: dict[str, int] = {f"sum_{k}": 0 for k in OCKHAM_COUNT_FIELDS}
+    ok_games_acc: dict[str, int] = {f"games_{k}": 0 for k in OCKHAM_COUNT_FIELDS}
+    dil_sum_acc: dict[str, int] = {f"sum_{k}": 0 for k in DILEMMA_CHOICE_FIELDS}
 
     for i in range(n_games):
         rep_id = rep_start + i
@@ -1730,6 +1885,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             gardien_bet_cap_policy=gardien_bet_cap_policy,
             reve_advance_mode=reve_advance_mode,
             gardien_4_trigger_mode=gardien_4_trigger_mode,
+            reve_5_trigger_mode=reve_5_trigger_mode,
+            reve_advance_cost_mode=reve_advance_cost_mode,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1750,6 +1907,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             gardien_bet_cap_policy=gardien_bet_cap_policy,
             reve_advance_mode=reve_advance_mode,
             gardien_4_trigger_mode=gardien_4_trigger_mode,
+            reve_5_trigger_mode=reve_5_trigger_mode,
+            reve_advance_cost_mode=reve_advance_cost_mode,
             tile_profiles=tile_profiles if mode >= 2 else (),
         )
         trk = TelemetryTracker()
@@ -1760,23 +1919,32 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             res = play_game_b1(
                 st, k_max_passes=k_max, max_steps=2000, chassis_id=ch_id, telemetry=trk
             )
+        elif bot_name == "B3":
+            res = play_game_b3(
+                st, k_max_passes=max(1, k_max), max_steps=2000, chassis_id=ch_id, telemetry=trk
+            )
         else:
             res = play_game_b2(
                 st, k_max_passes=k_max, max_steps=2000, chassis_id=ch_id, telemetry=trk
             )
 
         rt = float(res.ratio_arbres)
+        tf = int(res.tour_fin)
         ratios.append(rt)
         sum_arbres += int(res.score_arbres)
         sum_ratio += rt
         sum_sq_ratio += rt * rt
-        sum_tours += int(res.tour_fin)
+        sum_tours += tf
         if res.score_arbres > 0:
             cnt_arbres_pos += 1
         if res.cause_fin == CAUSE_TOUR_8:
             cnt_t8 += 1
         elif res.cause_fin == CAUSE_REVE_RANG_1:
             cnt_reve += 1
+            sum_sommeil_tours += tf
+            sum_sommeil_ratio += rt
+            if 1 <= tf <= 8:
+                sommeil_by_t[tf] += 1
         elif res.cause_fin == CAUSE_REVEIL_GARDIENS:
             cnt_reveil += 1
 
@@ -1795,6 +1963,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         cnt_act1_reached += int(ts.act1_reached)
         sum_power_tokens_end_game += int(ts.power_tokens_end_game)
         cnt_charge_gains += int(ts.charge_gains)
+        cnt_charge_gains_act1 += int(ts.charge_gains_act1)
+        cnt_charge_gains_act2 += int(ts.charge_gains_act2)
         cnt_furtivite_1_rive_turns += int(ts.furtivite_1_rive_turns)
         cnt_furtivite_2_rives_turns += int(ts.furtivite_2_rives_turns)
         sum_mem_debt += int(ts.mem_debt_score)
@@ -1807,6 +1977,15 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         sum_mid_combat += int(ts.mid_combat_interrupts)
         for k in DEFENSE_ATTRIBUTION_FIELDS:
             def_attr_acc[k] += int(getattr(ts, k))
+        for k in OCKHAM_COUNT_FIELDS:
+            v_ok = int(getattr(ts, k))
+            if v_ok > 0:
+                ok_sum_acc[f"sum_{k}"] += v_ok
+                ok_games_acc[f"games_{k}"] += 1
+        for k in DILEMMA_CHOICE_FIELDS:
+            v_dl = int(getattr(ts, k))
+            if v_dl > 0:
+                dil_sum_acc[f"sum_{k}"] += v_dl
         if ts.rs_count or ts.rf_count:
             for k in REVEIL_ANATOMY_FIELDS:
                 reveil_anat_acc[k] += int(getattr(ts, k))
@@ -1819,8 +1998,10 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
 
     out_row: dict[str, Any] = {
         "campaign": str(unit["campaign"]),
+        "cohort_role": cohort_role,
         "config_id": int(unit["config_id"]),
         "n_players": n_pl,
+        "n_machines_initial": 2 * n_pl,
         "chassis_id": ch_id,
         "p_max": p_max_val,
         "variant_idx": int(unit["variant_idx"]),
@@ -1829,10 +2010,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "gardien_bet_cap_policy": gardien_bet_cap_policy,
         "reve_advance_mode": reve_advance_mode,
         "gardien_4_trigger_mode": gardien_4_trigger_mode,
+        "reve_5_trigger_mode": reve_5_trigger_mode,
+        "reve_advance_cost_mode": reve_advance_cost_mode,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
         "n_animaux_sauvages": n_animaux,
+        "has_insectes": has_insectes,
+        "n_peuples_oniriques": n_oniriques,
         "bot": bot_name,
         "k_max": k_max,
         "mode": mode,
@@ -1853,6 +2038,15 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_tour_8": cnt_t8,
         "count_reve_rang_1": cnt_reve,
         "count_reveil_gardiens": cnt_reveil,
+        "sum_sommeil_tours": sum_sommeil_tours,
+        "sum_sommeil_ratio_arbres": round(sum_sommeil_ratio, 6),
+        "sommeil_t1": sommeil_by_t[1],
+        "sommeil_t2": sommeil_by_t[2],
+        "sommeil_t3": sommeil_by_t[3],
+        "sommeil_t4": sommeil_by_t[4],
+        "sommeil_t5": sommeil_by_t[5],
+        "sommeil_t6": sommeil_by_t[6],
+        "sommeil_t7": sommeil_by_t[7],
         "count_reveil_attempts": cnt_reveil_attempts,
         "count_reveil_failures": cnt_reveil_failures,
         "count_gardien_bets_won": cnt_gardien_bets_won,
@@ -1867,6 +2061,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "count_act1_reached": cnt_act1_reached,
         "sum_power_tokens_end_game": sum_power_tokens_end_game,
         "count_charge_gains": cnt_charge_gains,
+        "count_charge_gains_act1": cnt_charge_gains_act1,
+        "count_charge_gains_act2": cnt_charge_gains_act2,
         "count_furtivite_1_rive_turns": cnt_furtivite_1_rive_turns,
         "count_furtivite_2_rives_turns": cnt_furtivite_2_rives_turns,
         "sum_mem_debt": sum_mem_debt,
@@ -1880,6 +2076,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "cell_wall_sec": round(wall_sec, 4),
     }
     out_row.update(def_attr_acc)
+    out_row.update(ok_sum_acc)
+    out_row.update(ok_games_acc)
+    out_row.update(dil_sum_acc)
     out_row.update(reveil_anat_acc)
     return out_row
 

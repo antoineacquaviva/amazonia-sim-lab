@@ -44,6 +44,8 @@ __all__ = (
     "PIEGE_AUCUN",
     "PIEGE_DECLENCHE",
     "RATISSAGE_TACTIQUE_SPEC",
+    "REVE_5_TRIGGER_MODES",
+    "REVE_ADVANCE_COST_MODES",
     "REVE_ADVANCE_MODES",
     "STATE_BUF_SIZE",
     "STEP_1_1_RATISSAGE",
@@ -517,15 +519,13 @@ assert _Layout._cursor <= STATE_BUF_SIZE - MIN_FREE_RESERVE_BYTES, (
     f"(réserve < {MIN_FREE_RESERVE_BYTES})"
 )
 
-REVE_ADVANCE_MODES: tuple[str, ...] = (
-    "SAUT",
-    "PAS_A_PAS",
-    "SAUT_MAX_1_PAR_TOUR",
-)
+REVE_ADVANCE_MODES: tuple[str, ...] = ("SAUT",)
 _VALID_REVE_ADVANCE_MODES: tuple[str, ...] = (
     *REVE_ADVANCE_MODES,
     "EXCLUSIVE_CHOICE",
 )
+REVE_5_TRIGGER_MODES: tuple[str, ...] = ("PASSIF", "ACTIF")
+REVE_ADVANCE_COST_MODES: tuple[str, ...] = ("1DEF", "2DEF")
 
 
 def get_layout_report() -> dict[str, Any]:
@@ -559,11 +559,14 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres consolidés v6.0 : Activation Rêves, Plafond Pari Gardiens, Avancée Rêves & 4. Gardien
+    # Paramètres consolidés v6.0 : Activation Rêves, Plafond Pari Gardiens, Avancée SAUT & 4. Gardien
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
     reve_advance_mode: str = "SAUT"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
+    # Commutateurs candidats d'audit v6.0 (5. Rêve PASSIF/ACTIF & Coût AVANCER 1DEF/2DEF)
+    reve_5_trigger_mode: str = "PASSIF"
+    reve_advance_cost_mode: str = "1DEF"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
@@ -609,11 +612,17 @@ class GameConfig:
             f"gardien_bet_cap_policy invalide : {self.gardien_bet_cap_policy}"
         )
         assert self.reve_advance_mode in _VALID_REVE_ADVANCE_MODES, (
-            f"reve_advance_mode invalide (v6.0 : SAUT, PAS_A_PAS, SAUT_MAX_1_PAR_TOUR ou alias EXCLUSIVE_CHOICE ; "
-            f"CLEAR_RANK_ONLY supprimé) : {self.reve_advance_mode}"
+            f"reve_advance_mode invalide (figé sur SAUT ou alias EXCLUSIVE_CHOICE ; "
+            f"PAS_A_PAS, SAUT_MAX_1_PAR_TOUR et CLEAR_RANK_ONLY supprimés) : {self.reve_advance_mode}"
         )
         assert self.gardien_4_trigger_mode == "DISTINCT_OPEN_1", (
             f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {self.gardien_4_trigger_mode}"
+        )
+        assert self.reve_5_trigger_mode in REVE_5_TRIGGER_MODES, (
+            f"reve_5_trigger_mode invalide (attendu PASSIF ou ACTIF) : {self.reve_5_trigger_mode}"
+        )
+        assert self.reve_advance_cost_mode in REVE_ADVANCE_COST_MODES, (
+            f"reve_advance_cost_mode invalide (attendu 1DEF ou 2DEF) : {self.reve_advance_cost_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -672,6 +681,8 @@ class GameConfig:
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
         reve_advance_mode: str = "SAUT",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
+        reve_5_trigger_mode: str = "PASSIF",
+        reve_advance_cost_mode: str = "1DEF",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
         """Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191."""
@@ -688,10 +699,18 @@ class GameConfig:
             "gardien_bet_cap_policy": gardien_bet_cap_policy,
             "reve_advance_mode": reve_advance_mode,
             "gardien_4_trigger_mode": gardien_4_trigger_mode,
+            "reve_5_trigger_mode": reve_5_trigger_mode,
+            "reve_advance_cost_mode": reve_advance_cost_mode,
             "tile_profiles": tile_profiles,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
+
+    def required_defenders_for_reve_advance(self) -> int:
+        """Nombre minimal de Défenseurs requis sur un Rêve pour choisir AVANCER en 3.2."""
+        if self.reve_advance_cost_mode == "2DEF":
+            return 2
+        return 1
 
     def gardien_bet_cap_for_case(self, case_1_6: int) -> int:
         """Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2)."""
@@ -859,6 +878,14 @@ class PlayerObservation:
     @property
     def gardien_4_trigger_mode(self) -> str:
         return self._cfg.gardien_4_trigger_mode
+
+    @property
+    def reve_5_trigger_mode(self) -> str:
+        return self._cfg.reve_5_trigger_mode
+
+    @property
+    def reve_advance_cost_mode(self) -> str:
+        return self._cfg.reve_advance_cost_mode
 
     @property
     def nb_peuples_oniriques(self) -> int:
@@ -2540,21 +2567,10 @@ class GameState:
     def get_reve_advance_dest_rank(
         self, rank_0_5: int, *, check_turn_cap: bool = True
     ) -> int | None:
-        """Retourne l'index `0..5` de destination si le Rêve en `rank_0_5` peut avancer, sinon None.
-
-        - `SAUT` (ou alias `EXCLUSIVE_CHOICE`) : 1re case libre à gauche ;
-        - `PAS_A_PAS` : uniquement `rank_0_5 - 1` si libre ;
-        - `SAUT_MAX_1_PAR_TOUR` : 1re case libre à gauche si aucun Rêve n'a déjà choisi `AVANCER` ce tour.
-        """
+        """Retourne l'index `0..5` de la 1re case libre à gauche (`ADV=SAUT` figé), ou None."""
+        _ = check_turn_cap
         assert 0 <= rank_0_5 < TRACK_LEN
         if rank_0_5 == 0:
-            return None
-        adv_mode = self.cfg.reve_advance_mode
-        if check_turn_cap and adv_mode == "SAUT_MAX_1_PAR_TOUR" and self.reve_advances_this_turn >= 1:
-            return None
-        if adv_mode == "PAS_A_PAS":
-            if not is_reve_code(self.get_tactique_at_rank(rank_0_5 - 1)):
-                return rank_0_5 - 1
             return None
         for j in range(rank_0_5 - 1, -1, -1):
             if not is_reve_code(self.get_tactique_at_rank(j)):

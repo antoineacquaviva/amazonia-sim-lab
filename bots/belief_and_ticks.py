@@ -302,9 +302,14 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                     if is_reve_code(t_code):
                         reve_prob[rank_idx] = 1.0 - (1.0 - reve_prob[rank_idx]) * (1.0 - p_joint)
                         # Rêve sans Défenseur : la Tactique imprimée dessous s'exécute à 100 % ;
-                        # avec Défenseur, elle peut encore s'exécuter si choix AVANCER (~35 %).
-                        if obs.reve_activation_defenders(eff_t_code) >= 1:
+                        # avec >= req_adv Défenseur(s), elle peut s'exécuter si choix AVANCER (~35 %) ;
+                        # sous 2DEF avec 1 seul Défenseur, BLOQUER est forcé (~15 % de débordement multi-cartes).
+                        n_r_def = obs.reve_activation_defenders(eff_t_code)
+                        req_adv = cfg.required_defenders_for_reve_advance()
+                        if n_r_def >= req_adv:
                             p_exec = p_joint * 0.35
+                        elif n_r_def >= 1:
+                            p_exec = p_joint * 0.15
                     spec = TACTIQUES_SPEC[eff_t_code]
                     chg = is_tactique_charge(eff_t_code, obs.tour)
                     for c_kind in spec.cibles:
@@ -741,10 +746,18 @@ def resolve_step2_2_from_state(
 
     # 3b. Retrait propre en fin de passes « en réflexion » pour l'activation des Rêves :
     #     - en BINOME_ALL_RANK : si un Rêve n'a pas atteint 2 Défenseurs, le Défenseur isolé se replie ;
-    #     - en 1_DEF_ALL_RANK : si >= 2 Défenseurs sont empilés sur le même Rêve, le surnuméraire se replie.
-    if max_passes > 0 and cfg.mode >= 2 and cfg.reve_activation_mode in (
-        "BINOME_ALL_RANK",
-        "1_DEF_ALL_RANK",
+    #     - en 1_DEF_ALL_RANK : si >= 2 Défenseurs sont empilés sur le même Rêve, le surnuméraire se replie ;
+    #     - sous ADV_COST=2DEF (1_DEF_1_MACHINE) : un Défenseur spéculatif isolé (1/2, sans propre dé M sur la case)
+    #       ne pourra pas choisir AVANCER et se replie si scorer.retreat_orphans est actif.
+    check_2def_speculative = (
+        cfg.reve_activation_mode == "1_DEF_1_MACHINE"
+        and cfg.required_defenders_for_reve_advance() >= 2
+        and isinstance(scorer, HeldAwareScorer)
+        and scorer.retreat_orphans
+    )
+    if max_passes > 0 and cfg.mode >= 2 and (
+        cfg.reve_activation_mode in ("BINOME_ALL_RANK", "1_DEF_ALL_RANK")
+        or check_2def_speculative
     ):
         for s in range(n):
             if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
@@ -756,9 +769,16 @@ def resolve_step2_2_from_state(
             if rc <= 0:
                 continue
             cnt_rc = obs_s.reve_activation_defenders(rc)
+            own_h = obs_s.hand_of(s)
+            own_hits_rc = (
+                own_h.card is not None
+                and 1 <= own_h.card <= 2 * n
+                and own_h.lecture_m == rc
+            )
             need_retreat = (
                 (cfg.reve_activation_mode == "BINOME_ALL_RANK" and cnt_rc < 2)
                 or (cfg.reve_activation_mode == "1_DEF_ALL_RANK" and cnt_rc >= 2)
+                or (check_2def_speculative and cnt_rc < 2 and not own_hits_rc)
             )
             if need_retreat:
                 legal_alt = tuple(

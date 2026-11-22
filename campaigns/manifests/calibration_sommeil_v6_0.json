@@ -1,6 +1,6 @@
 {
   "campaign_name": "calibration_sommeil_v6_0",
-  "description": "Calibration Mode 2 du Sommeil du Contremaître et de l'Éveil sur le socle v6.0 (tuiles neutres) : duel anti-raccourci 6J entre 3 variantes de déplacement des Rêves sur choix AVANCER (SAUT référence v6.0 vers la 1re case libre à gauche sans limite/tour vs PAS_A_PAS d'1 seule case adjacente libre à gauche vs SAUT_MAX_1_PAR_TOUR plafonné à 1 Rêve avançant par tour avec priorité au Rêve le plus proche du Sommeil). Bots B0, B1, B2 (politique B2 rééquilibrée Acte 1 Charge vs Furtivité + Éveil 5-6J), N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 25 920 parties.",
+  "description": "Calibration Mode 2 du Sommeil du Contremaître et de l'Éveil sur le socle v6.0 (tuiles neutres, déplacement des Rêves figé sur SAUT vers la 1re case libre à gauche). Bots B0, B1, B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, châssis canonique P4_2233 (chassis_id 0).",
   "mode": 2,
   "bots": ["B0", "B1", "B2"],
   "k_max": 3,
@@ -10,11 +10,7 @@
   "min_animaux_sauvages": 1,
   "games_per_configuration": 120,
   "reve_activation_mode": "1_DEF_1_MACHINE",
-  "reve_advance_modes": [
-    "SAUT",
-    "PAS_A_PAS",
-    "SAUT_MAX_1_PAR_TOUR"
-  ],
+  "reve_advance_mode": "SAUT",
   "gardien_bet_cap_policy": "UNIFORM_MAX_2",
   "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
   "base_instance": {
@@ -26,20 +22,10 @@
     }
   },
   "chassis_plan": {
-    "varying_axes": [
-      {
-        "key": "Profil_Piste",
-        "values": [
-          "P4_2233",
-          "P4_2223",
-          "P4_1223",
-          "P5_22233",
-          "P5_22223",
-          "P5_12223"
-        ]
-      }
-    ],
-    "fixed_axes": {}
+    "varying_axes": [],
+    "fixed_axes": {
+      "Profil_Piste": "P4_2233"
+    }
   },
   "slot_profile_comparisons": {}
 }

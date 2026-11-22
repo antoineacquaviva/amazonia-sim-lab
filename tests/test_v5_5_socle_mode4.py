@@ -434,7 +434,7 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert plan["profile_variants"][0]["reve_advance_mode"] == "EXCLUSIVE_CHOICE"
+    assert plan["profile_variants"][0]["reve_advance_mode"] == "SAUT"
     assert plan["include_full_tile_metrics"] is True
     # 3 bots * 4 N * 6 chassis * 1 profil = 72 configurations ; 72 * 120 = 8 640 parties
     assert plan["total_configurations"] == 72

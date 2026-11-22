@@ -1,4 +1,4 @@
-"""Collecteur léger des 4 capteurs cognitifs v5.3 (100 % stdlib PyPy 3.11)."""
+"""Collecteur léger des 4 capteurs cognitifs, de l'attribution défensive et du Rasoir d'Ockham (100 % stdlib PyPy 3.11)."""
 
 from __future__ import annotations
 
@@ -28,6 +28,8 @@ from engine.state import (
 
 __all__ = (
     "DEFENSE_ATTRIBUTION_FIELDS",
+    "DILEMMA_CHOICE_FIELDS",
+    "OCKHAM_COUNT_FIELDS",
     "REVEIL_ANATOMY_FIELDS",
     "V6_METRICS_FIELDS",
     "TelemetrySummary",
@@ -42,6 +44,8 @@ V6_METRICS_FIELDS: tuple[str, ...] = (
     "act1_reached",
     "power_tokens_end_game",
     "charge_gains",
+    "charge_gains_act1",
+    "charge_gains_act2",
     "furtivite_1_rive_turns",
     "furtivite_2_rives_turns",
 )
@@ -56,10 +60,89 @@ DEFENSE_ATTRIBUTION_FIELDS: tuple[str, ...] = (
     "da_arbres_repousse_finale",
 )
 
+OCKHAM_COUNT_FIELDS: tuple[str, ...] = (
+    "ok_furt_rive_piege",
+    "ok_furt_rive_sabotage",
+    "ok_furt_orphan_pawns",
+    "ok_furt_failed_binomes",
+    "ok_furt_double_same_cell",
+    "ok_furt_multi_rive_turns",
+    "ok_pieges_unused_end",
+    "ok_pont_routier_jumps",
+    "ok_routes_created",
+    "ok_repli_bordure",
+    "ok_repli_coeur_exception",
+    "ok_retrait_definitif_machine",
+    "ok_abatteuse_ratissage_souche",
+    "ok_abatteuse_ratissage_0_arbre",
+    "ok_contact_nid_renvois",
+    "ok_contact_nid_insectes_perdus",
+    "ok_penurie_cartes_machine",
+    "ok_charge_activations",
+    "ok_charge_zero_gain",
+    "ok_charge_zero_gain_parried",
+    "ok_charge_zero_gain_barren",
+    "ok_ratissage_entries_6_3",
+    "ok_ratissage_entries_1_1",
+    "ok_ratissage_activations",
+    "ok_sabotage_acquired",
+    "ok_sabotage_unrevealed_end",
+    "ok_mig_moves",
+    "ok_mig_wasted_end",
+    "ok_bugs_unused_end",
+    "ok_colonie_unused_end",
+    "ok_insectes_foret_unused_end",
+    "ok_bouclier_saves",
+    "ok_gardien_return_lisiere",
+    "ok_gardien_face2_upgrades",
+    "ok_cascade_case4_openings",
+    "ok_cascade_second_pass_sweeps",
+    "ok_tour8_blocked_sommeil",
+    "ok_tour8_blocked_eveil",
+    "ok_liberation_batisseur_3j",
+    "ok_def1_global_fallback",
+    "ok_impasse_totale",
+)
+
+DILEMMA_CHOICE_FIELDS: tuple[str, ...] = (
+    "dil_reve_dual_block",
+    "dil_reve_dual_advance",
+    "dil_reve_forced_block",
+    "dil_bug_passer",
+    "dil_bug_minus",
+    "dil_bug_plus",
+    "dil_mig_stay",
+    "dil_mig_foret",
+    "dil_mig_furtivite",
+    "dil_mig_bug",
+    "dil_mig_colonie",
+    "dil_def1_foret",
+    "dil_def1_lisiere",
+    "dil_def1_furtivite",
+    "dil_def2_foret",
+    "dil_def2_lisiere",
+    "dil_def2_furtivite",
+    "dil_def2_reve",
+    "dil_def2_gardien",
+    "dil_step2_turns_with_move",
+    "dil_step2_turns_zero_move",
+    "dil_ordre_constr_3_1",
+    "dil_ordre_nid_4_2",
+    "dil_ordre_att_5_1",
+    "dil_ordre_rat_5_2",
+    "dil_gardien_c1",
+    "dil_gardien_c2",
+    "dil_gardien_c3",
+    "dil_gardien_c4",
+    "dil_gardien_c5",
+    "dil_gardien_c6",
+)
+
 REVEIL_ANATOMY_FIELDS: tuple[str, ...] = (
     "rs_count",
     "rs_tour",
     "rs_ratio_arbres_bp",
+    "rs_t1",
     "rs_t2",
     "rs_t3",
     "rs_t4",
@@ -179,7 +262,7 @@ def count_active_transient_modifiers(state: GameState) -> int:
 
 
 class TelemetrySummary(NamedTuple):
-    """Synthèse par partie des 4 capteurs cognitifs définis dans rule-bots-telemetry.md."""
+    """Synthèse par partie des capteurs cognitifs, d'attribution défensive et du Rasoir d'Ockham."""
 
     mem_debt_score: int
     law_stack_mean: float
@@ -216,12 +299,89 @@ class TelemetrySummary(NamedTuple):
     act1_reached: int = 0
     power_tokens_end_game: int = 0
     charge_gains: int = 0
+    charge_gains_act1: int = 0
+    charge_gains_act2: int = 0
     furtivite_1_rive_turns: int = 0
     furtivite_2_rives_turns: int = 0
+    # Instrumentation Rasoir d'Ockham (ok_*)
+    ok_furt_rive_piege: int = 0
+    ok_furt_rive_sabotage: int = 0
+    ok_furt_orphan_pawns: int = 0
+    ok_furt_failed_binomes: int = 0
+    ok_furt_double_same_cell: int = 0
+    ok_furt_multi_rive_turns: int = 0
+    ok_pieges_unused_end: int = 0
+    ok_pont_routier_jumps: int = 0
+    ok_routes_created: int = 0
+    ok_repli_bordure: int = 0
+    ok_repli_coeur_exception: int = 0
+    ok_retrait_definitif_machine: int = 0
+    ok_abatteuse_ratissage_souche: int = 0
+    ok_abatteuse_ratissage_0_arbre: int = 0
+    ok_contact_nid_renvois: int = 0
+    ok_contact_nid_insectes_perdus: int = 0
+    ok_penurie_cartes_machine: int = 0
+    ok_charge_activations: int = 0
+    ok_charge_zero_gain: int = 0
+    ok_charge_zero_gain_parried: int = 0
+    ok_charge_zero_gain_barren: int = 0
+    ok_ratissage_entries_6_3: int = 0
+    ok_ratissage_entries_1_1: int = 0
+    ok_ratissage_activations: int = 0
+    ok_sabotage_acquired: int = 0
+    ok_sabotage_unrevealed_end: int = 0
+    ok_mig_moves: int = 0
+    ok_mig_wasted_end: int = 0
+    ok_bugs_unused_end: int = 0
+    ok_colonie_unused_end: int = 0
+    ok_insectes_foret_unused_end: int = 0
+    ok_bouclier_saves: int = 0
+    ok_gardien_return_lisiere: int = 0
+    ok_gardien_face2_upgrades: int = 0
+    ok_cascade_case4_openings: int = 0
+    ok_cascade_second_pass_sweeps: int = 0
+    ok_tour8_blocked_sommeil: int = 0
+    ok_tour8_blocked_eveil: int = 0
+    ok_liberation_batisseur_3j: int = 0
+    ok_def1_global_fallback: int = 0
+    ok_impasse_totale: int = 0
+    # Distributions de choix pour détection des faux dilemmes (dil_*)
+    dil_reve_dual_block: int = 0
+    dil_reve_dual_advance: int = 0
+    dil_reve_forced_block: int = 0
+    dil_bug_passer: int = 0
+    dil_bug_minus: int = 0
+    dil_bug_plus: int = 0
+    dil_mig_stay: int = 0
+    dil_mig_foret: int = 0
+    dil_mig_furtivite: int = 0
+    dil_mig_bug: int = 0
+    dil_mig_colonie: int = 0
+    dil_def1_foret: int = 0
+    dil_def1_lisiere: int = 0
+    dil_def1_furtivite: int = 0
+    dil_def2_foret: int = 0
+    dil_def2_lisiere: int = 0
+    dil_def2_furtivite: int = 0
+    dil_def2_reve: int = 0
+    dil_def2_gardien: int = 0
+    dil_step2_turns_with_move: int = 0
+    dil_step2_turns_zero_move: int = 0
+    dil_ordre_constr_3_1: int = 0
+    dil_ordre_nid_4_2: int = 0
+    dil_ordre_att_5_1: int = 0
+    dil_ordre_rat_5_2: int = 0
+    dil_gardien_c1: int = 0
+    dil_gardien_c2: int = 0
+    dil_gardien_c3: int = 0
+    dil_gardien_c4: int = 0
+    dil_gardien_c5: int = 0
+    dil_gardien_c6: int = 0
     # Anatomie diagnostique des tours d'Éveil réussi (rs_*)
     rs_count: int = 0
     rs_tour: int = 0
     rs_ratio_arbres_bp: int = 0
+    rs_t1: int = 0
     rs_t2: int = 0
     rs_t3: int = 0
     rs_t4: int = 0
@@ -297,7 +457,7 @@ class TelemetrySummary(NamedTuple):
 
 @dataclass(slots=True)
 class TelemetryTracker:
-    """Collecteur optionnel sans état global mutable mesurant la charge cognitive d'une partie."""
+    """Collecteur optionnel sans état global mutable mesurant la charge cognitive et le Rasoir d'Ockham."""
 
     mem_debt_score: int = 0
     strike_count: int = 0
@@ -335,13 +495,91 @@ class TelemetryTracker:
     act1_reached: int = 0
     power_tokens_end_game: int = 0
     charge_gains: int = 0
+    charge_gains_act1: int = 0
+    charge_gains_act2: int = 0
     furtivite_1_rive_turns: int = 0
     furtivite_2_rives_turns: int = 0
     _turn_furt_cur_cell: int = -1
     _turn_furt_cur_count: int = 0
     _turn_furt_has_1: bool = False
     _turn_furt_has_2: bool = False
+    _turn_furt_total_rives_exec: int = 0
+    _turn_step2_moved: bool = False
     _turn_closed: bool = False
+    # Instrumentation Rasoir d'Ockham (ok_*)
+    ok_furt_rive_piege: int = 0
+    ok_furt_rive_sabotage: int = 0
+    ok_furt_orphan_pawns: int = 0
+    ok_furt_failed_binomes: int = 0
+    ok_furt_double_same_cell: int = 0
+    ok_furt_multi_rive_turns: int = 0
+    ok_pieges_unused_end: int = 0
+    ok_pont_routier_jumps: int = 0
+    ok_routes_created: int = 0
+    ok_repli_bordure: int = 0
+    ok_repli_coeur_exception: int = 0
+    ok_retrait_definitif_machine: int = 0
+    ok_abatteuse_ratissage_souche: int = 0
+    ok_abatteuse_ratissage_0_arbre: int = 0
+    ok_contact_nid_renvois: int = 0
+    ok_contact_nid_insectes_perdus: int = 0
+    ok_penurie_cartes_machine: int = 0
+    ok_charge_activations: int = 0
+    ok_charge_zero_gain: int = 0
+    ok_charge_zero_gain_parried: int = 0
+    ok_charge_zero_gain_barren: int = 0
+    ok_ratissage_entries_6_3: int = 0
+    ok_ratissage_entries_1_1: int = 0
+    ok_ratissage_activations: int = 0
+    ok_sabotage_acquired: int = 0
+    ok_sabotage_unrevealed_end: int = 0
+    ok_mig_moves: int = 0
+    ok_mig_wasted_end: int = 0
+    ok_bugs_unused_end: int = 0
+    ok_colonie_unused_end: int = 0
+    ok_insectes_foret_unused_end: int = 0
+    ok_bouclier_saves: int = 0
+    ok_gardien_return_lisiere: int = 0
+    ok_gardien_face2_upgrades: int = 0
+    ok_cascade_case4_openings: int = 0
+    ok_cascade_second_pass_sweeps: int = 0
+    ok_tour8_blocked_sommeil: int = 0
+    ok_tour8_blocked_eveil: int = 0
+    ok_liberation_batisseur_3j: int = 0
+    ok_def1_global_fallback: int = 0
+    ok_impasse_totale: int = 0
+    # Distributions de choix pour détection des faux dilemmes (dil_*)
+    dil_reve_dual_block: int = 0
+    dil_reve_dual_advance: int = 0
+    dil_reve_forced_block: int = 0
+    dil_bug_passer: int = 0
+    dil_bug_minus: int = 0
+    dil_bug_plus: int = 0
+    dil_mig_stay: int = 0
+    dil_mig_foret: int = 0
+    dil_mig_furtivite: int = 0
+    dil_mig_bug: int = 0
+    dil_mig_colonie: int = 0
+    dil_def1_foret: int = 0
+    dil_def1_lisiere: int = 0
+    dil_def1_furtivite: int = 0
+    dil_def2_foret: int = 0
+    dil_def2_lisiere: int = 0
+    dil_def2_furtivite: int = 0
+    dil_def2_reve: int = 0
+    dil_def2_gardien: int = 0
+    dil_step2_turns_with_move: int = 0
+    dil_step2_turns_zero_move: int = 0
+    dil_ordre_constr_3_1: int = 0
+    dil_ordre_nid_4_2: int = 0
+    dil_ordre_att_5_1: int = 0
+    dil_ordre_rat_5_2: int = 0
+    dil_gardien_c1: int = 0
+    dil_gardien_c2: int = 0
+    dil_gardien_c3: int = 0
+    dil_gardien_c4: int = 0
+    dil_gardien_c5: int = 0
+    dil_gardien_c6: int = 0
     # État transitoire du tour courant pour l'anatomie de l'Éveil
     _turn_strikes: int = 0
     _turn_reves_opened: int = 0
@@ -353,6 +591,7 @@ class TelemetryTracker:
     rs_count: int = 0
     rs_tour: int = 0
     rs_ratio_arbres_bp: int = 0
+    rs_t1: int = 0
     rs_t2: int = 0
     rs_t3: int = 0
     rs_t4: int = 0
@@ -563,7 +802,9 @@ class TelemetryTracker:
             self.rs_count += 1
             self.rs_tour += tour
             self.rs_ratio_arbres_bp += round(ratio_arbres * 10000.0)
-            if tour == 2:
+            if tour == 1:
+                self.rs_t1 += 1
+            elif tour == 2:
                 self.rs_t2 += 1
             elif tour == 3:
                 self.rs_t3 += 1
@@ -650,19 +891,35 @@ class TelemetryTracker:
     def _flush_furtivite_cur_cell(self) -> None:
         if self._turn_furt_cur_count >= 2:
             self._turn_furt_has_2 = True
+            self.ok_furt_double_same_cell += 1
         elif self._turn_furt_cur_count == 1:
             self._turn_furt_has_1 = True
         self._turn_furt_cur_cell = -1
         self._turn_furt_cur_count = 0
 
-    def on_furtivite_rive_executed(self, cell_key: int) -> None:
+    def on_furtivite_rive_executed(self, cell_key: int, action_kind: str = "") -> None:
         """Enregistre l'exécution d'une rive Furtivité complète en 4.1 sur `cell_key`."""
+        self._turn_furt_total_rives_exec += 1
+        if action_kind == "PIEGE":
+            self.ok_furt_rive_piege += 1
+        elif action_kind == "SABOTAGE":
+            self.ok_furt_rive_sabotage += 1
         if cell_key == self._turn_furt_cur_cell:
             self._turn_furt_cur_count += 1
         else:
             self._flush_furtivite_cur_cell()
             self._turn_furt_cur_cell = cell_key
             self._turn_furt_cur_count = 1
+
+    def on_furtivite_orphan_pawn(self, count: int = 1) -> None:
+        """Enregistre un pion Défenseur resté seul (1/2) sur une rive en 4.1 (perdu à blanc)."""
+        if count > 0:
+            self.ok_furt_orphan_pawns += count
+
+    def on_furtivite_failed_binome(self, count: int = 1) -> None:
+        """Enregistre un binôme 2/2 en 4.1 n'exécutant rien (machine active en 3.2, déjà piégé ou Route)."""
+        if count > 0:
+            self.ok_furt_failed_binomes += count
 
     def on_furtivite_step_end(self) -> None:
         """Clôture le suivi 1-rive / 2-rives de l'Étape 4.1 pour le tour courant."""
@@ -671,20 +928,123 @@ class TelemetryTracker:
             self.furtivite_2_rives_turns += 1
         elif self._turn_furt_has_1:
             self.furtivite_1_rive_turns += 1
+        if self._turn_furt_total_rives_exec >= 2:
+            self.ok_furt_multi_rive_turns += 1
         self._turn_furt_has_1 = False
         self._turn_furt_has_2 = False
+        self._turn_furt_total_rives_exec = 0
 
-    def on_reve_choice(self, choice: str) -> None:
+    def on_reve_choice(self, choice: str, *, dual_options: bool = True) -> None:
         """Enregistre le choix exclusif d'un Rêve activé en 3.2 ('BLOQUER' ou 'AVANCER')."""
         if choice == "BLOQUER":
             self.reves_choice_block += 1
+            if dual_options:
+                self.dil_reve_dual_block += 1
+            else:
+                self.dil_reve_forced_block += 1
         elif choice == "AVANCER":
             self.reves_choice_advance += 1
+            self.dil_reve_dual_advance += 1
 
-    def on_charge_gain(self, count: int = 1) -> None:
+    def on_charge_gain(self, count: int = 1, *, tour: int = 1) -> None:
         """Enregistre un gain de jeton Puissance issu du mode CHARGE sur dégât effectif."""
         if count > 0:
             self.charge_gains += count
+            if tour <= 4:
+                self.charge_gains_act1 += count
+            else:
+                self.charge_gains_act2 += count
+
+    def on_charge_activation_resolved(
+        self, *, gained_red: bool, all_parried: bool
+    ) -> None:
+        """Enregistre l'issue d'une activation de machine en mode CHARGE (gain ou 0 gain)."""
+        self.ok_charge_activations += 1
+        if not gained_red:
+            self.ok_charge_zero_gain += 1
+            if all_parried:
+                self.ok_charge_zero_gain_parried += 1
+            else:
+                self.ok_charge_zero_gain_barren += 1
+
+    def on_step2_def1_placed(self, target_kind: str) -> None:
+        """Enregistre la famille de cible choisie en 2.1."""
+        if target_kind == "FORET":
+            self.dil_def1_foret += 1
+        elif target_kind == "LISIERE":
+            self.dil_def1_lisiere += 1
+        elif target_kind == "FURTIVITE":
+            self.dil_def1_furtivite += 1
+        elif target_kind == "PASSER_IMPASSE":
+            self.ok_impasse_totale += 1
+
+    def on_step2_revision_moved(self) -> None:
+        """Signale qu'au moins un 2e Défenseur s'est déplacé durant les passes de révision 2.2."""
+        self._turn_step2_moved = True
+
+    def on_step2_locked_summary(self, state: GameState) -> None:
+        """Enregistre la distribution finale des 2es Défenseurs verrouillés à la sortie de 2.2."""
+        if self._turn_step2_moved:
+            self.dil_step2_turns_with_move += 1
+        else:
+            self.dil_step2_turns_zero_move += 1
+        self._turn_step2_moved = False
+        for s in range(state.cfg.n_players):
+            raw = state.get_player_def_loc_raw(s, 1)
+            if raw == 0:
+                continue
+            kind, _a, _b, _c = state.decode_def_loc(raw)
+            if kind == "FORET":
+                self.dil_def2_foret += 1
+            elif kind == "LISIERE":
+                self.dil_def2_lisiere += 1
+            elif kind == "FURTIVITE":
+                self.dil_def2_furtivite += 1
+            elif kind in ("REVE_ACTIVATION", "REVE_ACTIVATION_CONSUMED"):
+                self.dil_def2_reve += 1
+            elif kind in ("GARDIEN_PARI", "GARDIEN_PARI_CONSUMED"):
+                self.dil_def2_gardien += 1
+            elif kind == "IMPASSE":
+                self.ok_impasse_totale += 1
+
+    def on_migration_decision(self, dst_kind: str) -> None:
+        """Enregistre le choix de migration 4.3 parmi >= 2 destinations légales."""
+        if dst_kind == "RESTER":
+            self.dil_mig_stay += 1
+        else:
+            self.ok_mig_moves += 1
+            if dst_kind == "FORET":
+                self.dil_mig_foret += 1
+            elif dst_kind == "FURTIVITE":
+                self.dil_mig_furtivite += 1
+            elif dst_kind == "BUG":
+                self.dil_mig_bug += 1
+            elif dst_kind == "COLONIE":
+                self.dil_mig_colonie += 1
+
+    def on_bug_3_2_decision(self, choice: str) -> None:
+        """Enregistre le choix de Déviation Synaptique 3.2 (PASSER / M_MOINS_1 / M_PLUS_1)."""
+        if choice == "PASSER":
+            self.dil_bug_passer += 1
+        elif choice == "M_MOINS_1":
+            self.dil_bug_minus += 1
+        elif choice == "M_PLUS_1":
+            self.dil_bug_plus += 1
+
+    def on_gardien_case_chosen(self, case_1_6: int) -> None:
+        """Enregistre la case 1..6 choisie à la construction d'un Gardien (si >= 2 cases libres)."""
+        if case_1_6 == 1:
+            self.dil_gardien_c1 += 1
+        elif case_1_6 == 2:
+            self.dil_gardien_c2 += 1
+        elif case_1_6 == 3:
+            self.dil_gardien_c3 += 1
+        elif case_1_6 == 4:
+            self.dil_gardien_c4 += 1
+        elif case_1_6 == 5:
+            self.dil_gardien_c5 += 1
+        elif case_1_6 == 6:
+            self.dil_gardien_c6 += 1
 
     def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
@@ -702,6 +1062,8 @@ class TelemetryTracker:
             self._turn_furt_cur_count = 0
             self._turn_furt_has_1 = False
             self._turn_furt_has_2 = False
+            self._turn_furt_total_rives_exec = 0
+            self._turn_step2_moved = False
             return
         if next_step == STEP_5_1_TACTIQUES:
             self._turn_strikes = 0
@@ -717,12 +1079,45 @@ class TelemetryTracker:
             self.mem_debt_score += count_active_transient_modifiers(state)
 
     def on_game_over_ratio(self, state: GameState, *, cause: str, ratio_arbres: float) -> None:
-        """Finalise l'anatomie d'Éveil et les compteurs de jetons Puissance de fin de partie."""
+        """Finalise l'anatomie d'Éveil, les jetons Puissance et les reliquats Ockham de fin de partie."""
         tot_pow = state.total_power_tokens_plateau()
         if state.tour >= 4 and self.act1_reached == 0:
             self.power_tokens_end_act1 = tot_pow
             self.act1_reached = 1
         self.power_tokens_end_game = tot_pow
+
+        # Reliquats inutilisés en fin de partie (Pièges, Insectes Forêt/Furtivité/Bug/Colonie, Sabotages)
+        n = state.cfg.n_players
+        p_max = state.cfg.p_max
+        unused_pieges = 0
+        unused_ins_board = 0
+        for r in range(n):
+            for p in range(1, p_max + 1):
+                if state.get_parcel_piege(r, p) == PIEGE_ACTIF:
+                    unused_pieges += 1
+                unused_ins_board += state.get_parcel_insectes(r, p)
+                unused_ins_board += state.get_furtivite_insectes(r, p)
+        unused_bugs = 0
+        unused_colonie = 0
+        for c in range(1, TRACK_LEN + 1):
+            unused_bugs += state.get_bugs_at_case(c)
+            unused_colonie += state.get_colonie_at_case(c)
+
+        self.ok_pieges_unused_end = unused_pieges
+        self.ok_insectes_foret_unused_end = unused_ins_board
+        self.ok_bugs_unused_end = unused_bugs
+        self.ok_colonie_unused_end = unused_colonie
+        wasted_bugs = min(self.dil_mig_bug, unused_bugs)
+        wasted_col = min(self.dil_mig_colonie, unused_colonie)
+        wasted_wheel = min(
+            self.dil_mig_foret + self.dil_mig_furtivite,
+            unused_ins_board,
+        )
+        self.ok_mig_wasted_end = wasted_bugs + wasted_col + wasted_wheel
+        self.ok_sabotage_unrevealed_end = max(
+            0, self.ok_sabotage_acquired - self.da_sabotage_revele
+        )
+
         if self._turn_reveil_active and self._turn_pre5_snap is not None:
             self._finalize_reveil_turn(
                 state,
@@ -755,11 +1150,14 @@ class TelemetryTracker:
         repasses: int,
         opened: int,
         in_combat: bool,
+        opened_in_later_pass: int = 0,
     ) -> None:
         """Enregistre une fenêtre de balayage `sweep_gardiens` (repassages 1->6 et ouvertures)."""
         self.interrupt_windows_count += 1
         self.cascade_sweeps += repasses
         self.gardiens_opened_total += opened
+        if opened_in_later_pass > 0:
+            self.ok_cascade_second_pass_sweeps += 1
         if in_combat and opened > 0:
             self.mid_combat_interrupts += opened
 
@@ -829,6 +1227,7 @@ class TelemetryTracker:
         """Enregistre le nombre de Gardiens sauvés du retour en lisière par Bouclier de lisière en 5.3."""
         if count > 0:
             self.bouclier_lisiere_saves += count
+            self.ok_bouclier_saves += count
 
     def on_trigger_lit(self, case_num: int) -> None:
         """Enregistre l'allumage de chacune des 6 cases déclencheurs 1..6 durant le tour."""
@@ -899,7 +1298,7 @@ class TelemetryTracker:
             self._turn_closed = True
 
     def summary(self) -> TelemetrySummary:
-        """Retourne l'instantané immuable des 4 capteurs cognitifs de la partie."""
+        """Retourne l'instantané immuable des capteurs de la partie."""
         pending_turns = self.turns_measured
         pending_sum_fidd = self.sum_turn_fiddliness
         if not self._turn_closed and (self.turn_physical_ops > 0 or self.turn_player_decisions > 0):
@@ -947,11 +1346,86 @@ class TelemetryTracker:
             act1_reached=self.act1_reached,
             power_tokens_end_game=self.power_tokens_end_game,
             charge_gains=self.charge_gains,
+            charge_gains_act1=self.charge_gains_act1,
+            charge_gains_act2=self.charge_gains_act2,
             furtivite_1_rive_turns=self.furtivite_1_rive_turns,
             furtivite_2_rives_turns=self.furtivite_2_rives_turns,
+            ok_furt_rive_piege=self.ok_furt_rive_piege,
+            ok_furt_rive_sabotage=self.ok_furt_rive_sabotage,
+            ok_furt_orphan_pawns=self.ok_furt_orphan_pawns,
+            ok_furt_failed_binomes=self.ok_furt_failed_binomes,
+            ok_furt_double_same_cell=self.ok_furt_double_same_cell,
+            ok_furt_multi_rive_turns=self.ok_furt_multi_rive_turns,
+            ok_pieges_unused_end=self.ok_pieges_unused_end,
+            ok_pont_routier_jumps=self.ok_pont_routier_jumps,
+            ok_routes_created=self.ok_routes_created,
+            ok_repli_bordure=self.ok_repli_bordure,
+            ok_repli_coeur_exception=self.ok_repli_coeur_exception,
+            ok_retrait_definitif_machine=self.ok_retrait_definitif_machine,
+            ok_abatteuse_ratissage_souche=self.ok_abatteuse_ratissage_souche,
+            ok_abatteuse_ratissage_0_arbre=self.ok_abatteuse_ratissage_0_arbre,
+            ok_contact_nid_renvois=self.ok_contact_nid_renvois,
+            ok_contact_nid_insectes_perdus=self.ok_contact_nid_insectes_perdus,
+            ok_penurie_cartes_machine=self.ok_penurie_cartes_machine,
+            ok_charge_activations=self.ok_charge_activations,
+            ok_charge_zero_gain=self.ok_charge_zero_gain,
+            ok_charge_zero_gain_parried=self.ok_charge_zero_gain_parried,
+            ok_charge_zero_gain_barren=self.ok_charge_zero_gain_barren,
+            ok_ratissage_entries_6_3=self.ok_ratissage_entries_6_3,
+            ok_ratissage_entries_1_1=self.ok_ratissage_entries_1_1,
+            ok_ratissage_activations=self.ok_ratissage_activations,
+            ok_sabotage_acquired=self.ok_sabotage_acquired,
+            ok_sabotage_unrevealed_end=self.ok_sabotage_unrevealed_end,
+            ok_mig_moves=self.ok_mig_moves,
+            ok_mig_wasted_end=self.ok_mig_wasted_end,
+            ok_bugs_unused_end=self.ok_bugs_unused_end,
+            ok_colonie_unused_end=self.ok_colonie_unused_end,
+            ok_insectes_foret_unused_end=self.ok_insectes_foret_unused_end,
+            ok_bouclier_saves=self.ok_bouclier_saves,
+            ok_gardien_return_lisiere=self.ok_gardien_return_lisiere,
+            ok_gardien_face2_upgrades=self.ok_gardien_face2_upgrades,
+            ok_cascade_case4_openings=self.ok_cascade_case4_openings,
+            ok_cascade_second_pass_sweeps=self.ok_cascade_second_pass_sweeps,
+            ok_tour8_blocked_sommeil=self.ok_tour8_blocked_sommeil,
+            ok_tour8_blocked_eveil=self.ok_tour8_blocked_eveil,
+            ok_liberation_batisseur_3j=self.ok_liberation_batisseur_3j,
+            ok_def1_global_fallback=self.ok_def1_global_fallback,
+            ok_impasse_totale=self.ok_impasse_totale,
+            dil_reve_dual_block=self.dil_reve_dual_block,
+            dil_reve_dual_advance=self.dil_reve_dual_advance,
+            dil_reve_forced_block=self.dil_reve_forced_block,
+            dil_bug_passer=self.dil_bug_passer,
+            dil_bug_minus=self.dil_bug_minus,
+            dil_bug_plus=self.dil_bug_plus,
+            dil_mig_stay=self.dil_mig_stay,
+            dil_mig_foret=self.dil_mig_foret,
+            dil_mig_furtivite=self.dil_mig_furtivite,
+            dil_mig_bug=self.dil_mig_bug,
+            dil_mig_colonie=self.dil_mig_colonie,
+            dil_def1_foret=self.dil_def1_foret,
+            dil_def1_lisiere=self.dil_def1_lisiere,
+            dil_def1_furtivite=self.dil_def1_furtivite,
+            dil_def2_foret=self.dil_def2_foret,
+            dil_def2_lisiere=self.dil_def2_lisiere,
+            dil_def2_furtivite=self.dil_def2_furtivite,
+            dil_def2_reve=self.dil_def2_reve,
+            dil_def2_gardien=self.dil_def2_gardien,
+            dil_step2_turns_with_move=self.dil_step2_turns_with_move,
+            dil_step2_turns_zero_move=self.dil_step2_turns_zero_move,
+            dil_ordre_constr_3_1=self.dil_ordre_constr_3_1,
+            dil_ordre_nid_4_2=self.dil_ordre_nid_4_2,
+            dil_ordre_att_5_1=self.dil_ordre_att_5_1,
+            dil_ordre_rat_5_2=self.dil_ordre_rat_5_2,
+            dil_gardien_c1=self.dil_gardien_c1,
+            dil_gardien_c2=self.dil_gardien_c2,
+            dil_gardien_c3=self.dil_gardien_c3,
+            dil_gardien_c4=self.dil_gardien_c4,
+            dil_gardien_c5=self.dil_gardien_c5,
+            dil_gardien_c6=self.dil_gardien_c6,
             rs_count=self.rs_count,
             rs_tour=self.rs_tour,
             rs_ratio_arbres_bp=self.rs_ratio_arbres_bp,
+            rs_t1=self.rs_t1,
             rs_t2=self.rs_t2,
             rs_t3=self.rs_t3,
             rs_t4=self.rs_t4,

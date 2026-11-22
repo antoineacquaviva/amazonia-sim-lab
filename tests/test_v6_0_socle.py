@@ -529,7 +529,7 @@ def test_v6_0_manifest_plan_and_duckdb_digest_metrics(
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert plan["profile_variants"][0]["reve_advance_mode"] == "EXCLUSIVE_CHOICE"
+    assert plan["profile_variants"][0]["reve_advance_mode"] == "SAUT"
     assert plan["profile_variants"][0]["gardien_bet_cap_policy"] == "UNIFORM_MAX_2"
     assert plan["profile_variants"][0]["gardien_4_trigger_mode"] == "DISTINCT_OPEN_1"
     # 3 bots * 4 N * 6 chassis = 72 configs * 120 = 8 640 parties ; 41 tables uniques avec A >= 1

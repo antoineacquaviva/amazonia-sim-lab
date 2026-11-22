@@ -47,6 +47,7 @@ from engine.state import (
     CARD_NONE,
     CARD_SABOTAGE,
     LISIERE_CONSTRUCTED,
+    LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
@@ -95,6 +96,8 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         gardien_bet_cap_policy=cfg.gardien_bet_cap_policy,
         reve_advance_mode=cfg.reve_advance_mode,
         gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
+        reve_5_trigger_mode=cfg.reve_5_trigger_mode,
+        reve_advance_cost_mode=cfg.reve_advance_cost_mode,
         tile_profiles=cfg.tile_profiles,
     )
 
@@ -226,8 +229,13 @@ def evaluate_horizon_state(state: GameState) -> float:
             rat_pen = 0.018 if st == MACHINE_STATUS_RATISSAGE else 0.0
             danger += 0.012 * depth_w + 0.008 * net_pow + rat_pen
 
-    # Actifs défensifs et progression coopérative sur le plateau
+    # Actifs défensifs, dilution Sabotage et progression coopérative sur le plateau
     assets = 0.0
+    rem_turns = max(0, 8 - state.tour)
+    sab_tot = min(4, state.sabotage_deck_count + state.sabotage_pending_count)
+    if sab_tot > 0 and rem_turns > 0:
+        assets += 0.0055 * rem_turns * sab_tot
+
     for r in range(n):
         for p in range(1, p_max + 1):
             if state.get_parcel_piege(r, p) == PIEGE_ACTIF:
@@ -497,65 +505,7 @@ def _score_held_spot_b3(
     cur_spot: tuple[Any, ...],
 ) -> float:
     """Évalue la valeur marginale du poste déjà occupé par le 2e Défenseur du joueur."""
-    kind = cur_spot[0]
-    base = score_target_b2(obs, cfg, belief, cur_spot, False)
-    if kind == "GARDIEN_PARI":
-        tot_on_track = obs.total_gardien_pari_defenders()
-        if obs.tour <= 7 and tot_on_track >= obs.n_players:
-            return base + 420.0
-        return base - 120.0
-    if kind == "REVE_ACTIVATION":
-        _, case_c = cur_spot
-        c_i = int(case_c)
-        cnt = obs.reve_activation_defenders(c_i)
-        own_hand = obs.hand_of(obs.observer_seat)
-        own_hits = (
-            own_hand.card is not None and 1 <= own_hand.card <= 12 and own_hand.lecture_m == c_i
-        )
-        act_mode = cfg.reve_activation_mode
-        if act_mode == "1_DEF_1_MACHINE":
-            return base + (180.0 if own_hits else -120.0)
-        if act_mode == "1_DEF_ALL_RANK":
-            if cnt == 1 and own_hits:
-                return base + 260.0
-            if cnt >= 2:
-                return base - 220.0
-            return base - 80.0
-        if cnt == 2:
-            return base + 380.0
-        if cnt > 2:
-            return base - 220.0
-        return base - 60.0
-    if kind == "LISIERE":
-        _, slot_idx = cur_spot
-        _, st_l, nb_c = obs.lisiere_tile_info(int(slot_idx))
-        if st_l == 1 and nb_c == 2:
-            return base + 420.0
-        if st_l == 1 and nb_c == 1:
-            return base - 260.0
-    elif kind == "FURTIVITE":
-        _, l_idx, p, rv = cur_spot
-        d_rv = obs.furtivite_rive_defs(int(l_idx), int(p), int(rv))
-        if d_rv == 2:
-            return base + 310.0
-        return base - 210.0
-    elif kind == "FORET":
-        _, r, p = cur_spot
-        r_i, p_i = int(r), int(p)
-        defs = obs.parcel_defenseurs(r_i, p_i)
-        tot_def = defs + obs.parcel_insectes(r_i, p_i)
-        idx = r_i * 5 + (p_i - 1)
-        seuil_e = belief.parcel_expected_seuil[idx]
-        s_prob = belief.parcel_strike_prob[idx]
-        if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and tot_def == 1:
-            return base + 380.0
-        if obs.mode >= 2 and obs.parcel_has_nid(r_i, p_i) and defs == 1:
-            return base + 350.0
-        if s_prob > 0.15 and (tot_def - 1) < seuil_e <= tot_def:
-            return base + 360.0 * min(1.5, s_prob)
-        if tot_def - 1 >= seuil_e:
-            return base - 190.0
-    return base
+    return score_target_b2.held_score(obs, cfg, belief, cur_spot)
 
 
 def _resolve_step2_b3(
@@ -782,6 +732,50 @@ def _resolve_step2_b3(
                     check_legal=False,
                     telemetry=telemetry,
                 )
+
+    # 5. Repli propre des pions restés orphelins (1/2 Furtivité/Lisière ou pari Gardien Mode 2 incomplet)
+    for s in range(n):
+        if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
+            continue
+        cur_sp = _current_def2_target(state, s)
+        if cur_sp is None:
+            continue
+        obs_s = state.get_observation(s)
+        need_retreat = False
+        if cur_sp[0] == "FURTIVITE":
+            _, l_o, p_o, rv_o = cur_sp
+            need_retreat = obs_s.furtivite_rive_defs(int(l_o), int(p_o), int(rv_o)) == 1
+        elif cur_sp[0] == "LISIERE" and obs_s.mode >= 2:
+            _, sl_o = cur_sp
+            _, st_lo, nb_co = obs_s.lisiere_tile_info(int(sl_o))
+            need_retreat = st_lo == LISIERE_UNCONSTRUCTED and nb_co == 1
+        elif cur_sp[0] == "GARDIEN_PARI" and cfg.mode == 2:
+            need_retreat = not (obs_s.tour < 8 and obs_s.total_gardien_pari_defenders() == n)
+        if not need_retreat:
+            continue
+        viable = tuple(
+            t
+            for t in list_legal_targets(state, s, is_first_defender=False, exclude_own_def2=True)
+            if t[0] == "FORET"
+            or (
+                t[0] == "FURTIVITE"
+                and obs_s.furtivite_rive_defs(int(t[1]), int(t[2]), int(t[3])) == 1
+            )
+            or (
+                t[0] == "LISIERE"
+                and obs_s.mode >= 2
+                and obs_s.lisiere_tile_info(int(t[1]))[1] == LISIERE_UNCONSTRUCTED
+                and obs_s.lisiere_tile_info(int(t[1]))[2] == 1
+            )
+        )
+        if viable:
+            bel_s = build_belief_summary(obs_s, cfg)
+            fb_t, _ = _pick_best_b2_target(
+                obs_s, cfg, bel_s, viable, is_first=False, salt_base=253
+            )
+            apply_step2_def2(
+                state, s, ("DEPLACER_REFLEXION", fb_t), check_legal=False, telemetry=telemetry
+            )
 
     finish_step2_to_3_1(state, telemetry=telemetry)
 

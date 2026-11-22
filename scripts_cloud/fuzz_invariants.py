@@ -94,8 +94,14 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2]
             if mode == 2
             else "UNIFORM_MAX_2",
-            reve_advance_mode=("SAUT", "PAS_A_PAS", "SAUT_MAX_1_PAR_TOUR")[game_idx % 3],
+            reve_advance_mode="SAUT",
             gardien_4_trigger_mode="DISTINCT_OPEN_1",
+            reve_5_trigger_mode=("PASSIF", "ACTIF")[(game_idx // 3) % 2]
+            if mode == 2
+            else "PASSIF",
+            reve_advance_cost_mode=("1DEF", "2DEF")[(game_idx // 5) % 2]
+            if mode == 2
+            else "1DEF",
             tile_profiles=(
                 (
                     ("SLOT_BUG_CERVEAU", "B"),

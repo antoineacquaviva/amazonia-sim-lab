@@ -220,6 +220,9 @@ def _bug_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
         choice = str(ctx["choice"])
         seat, case_num = ctx["payload"]
         s_int, c_int = int(seat), int(case_num)
+        trk_b = _get_active_telemetry()
+        if trk_b is not None:
+            trk_b.on_bug_3_2_decision(choice)
         if choice in ("M_MOINS_1", "M_PLUS_1"):
             bugs = state.get_bugs_at_case(c_int)
             if bugs >= 1:
@@ -232,10 +235,9 @@ def _bug_b_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
                 # Partition stricte 3.2 : cette carte Machine consomme son déclencheur sur 6. Insecte
                 state.mark_seat_deviated_by_bug_this_turn(s_int)
                 state.light_trigger(6)
-                trk = _get_active_telemetry()
-                if trk is not None:
-                    trk.on_trigger_lit(6)
-                    trk.on_defense_bug_deviation(1)
+                if trk_b is not None:
+                    trk_b.on_trigger_lit(6)
+                    trk_b.on_defense_bug_deviation(1)
                 sweep_gardiens(state)
         _bug_b_step_queue(state, s_int + 1)
     return None
@@ -292,6 +294,7 @@ def _sweep_gardiens_from(
     repasses_count: int,
     in_combat: bool,
     opened_total: int,
+    opened_in_later_pass: int = 0,
 ) -> int:
     while True:
         for case_num in range(start_case, TRACK_LEN + 1):
@@ -300,6 +303,8 @@ def _sweep_gardiens_from(
                 if g_num > 0 and state.count_gardien_pari_defenders_at_case(case_num) >= 1:
                     state.clear_trigger(case_num)
                     opened_total += 1
+                    if repasses_count >= 1:
+                        opened_in_later_pass += 1
                     opened_in_pass = True
                     resume_frame = (
                         "RESUME_SWEEP_GARDIENS",
@@ -308,6 +313,7 @@ def _sweep_gardiens_from(
                         repasses_count,
                         1 if in_combat else 0,
                         opened_total,
+                        opened_in_later_pass,
                     )
                     state._continuation.insert(0, resume_frame)
                     prim_partage_info_etat_gardien(
@@ -331,6 +337,7 @@ def _sweep_gardiens_from(
             repasses=repasses_count,
             opened=opened_total,
             in_combat=in_combat,
+            opened_in_later_pass=opened_in_later_pass,
         )
     return opened_total
 
@@ -645,6 +652,19 @@ def apply_step2_def1(
         _apply_defender_target(state, seat, 0, target, FACE_DEFINITIF)
         if telemetry is not None:
             telemetry.record_player_decision(state, seat)
+        trk = _get_active_telemetry()
+        if trk is not None:
+            t_kind = str(target[0])
+            trk.on_step2_def1_placed(t_kind)
+            if t_kind in ("FORET", "FURTIVITE", "LISIERE"):
+                rays_loc, lis_loc, slots_loc = _DEF1_LOCAL_RANGES[(state.cfg.n_players, seat)]
+                out_of_local = (
+                    (t_kind == "FORET" and int(target[1]) not in rays_loc)
+                    or (t_kind == "FURTIVITE" and int(target[1]) not in lis_loc)
+                    or (t_kind == "LISIERE" and int(target[1]) not in slots_loc)
+                )
+                if out_of_local and state.cfg.mode <= 2:
+                    trk.ok_def1_global_fallback += 1
     finally:
         if telemetry is not None:
             _set_active_telemetry(prev_trk)
@@ -689,7 +709,12 @@ def apply_step2_def2(
         _apply_defender_target(state, seat, 1, target, face)
         if telemetry is not None:
             telemetry.record_player_decision(state, seat)
-        return prev_spot != target
+        moved = prev_spot != target
+        if moved and prev_spot is not None:
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_step2_revision_moved()
+        return moved
     finally:
         if telemetry is not None:
             _set_active_telemetry(prev_trk)
@@ -707,10 +732,12 @@ def lock_all_def2_in_place(state: GameState) -> None:
     if flipped > 0:
         _record_phys_ops(state, flipped)
 
-    if not state.step2_locked and state.is_eveil_attempt_eligible():
+    if not state.step2_locked:
         trk = _get_active_telemetry()
         if trk is not None:
-            trk.on_reveil_attempt(state)
+            trk.on_step2_locked_summary(state)
+            if state.is_eveil_attempt_eligible():
+                trk.on_reveil_attempt(state)
 
     state.step2_locked = True
 
@@ -805,6 +832,9 @@ def _apply_builder_liberation(state: GameState, slot_idx: int, choice: tuple[int
         state.set_lisiere_tile_state(slot_idx, st, max(0, nb - 1))
         state.set_parcel_defenseurs(r, p_first, state.get_parcel_defenseurs(r, p_first) + 1)
     _record_phys_ops(state, 1)
+    trk = _get_active_telemetry()
+    if trk is not None and state.cfg.n_players == 3:
+        trk.ok_liberation_batisseur_3j += 1
 
 
 def rebind_step_3_2_hand(state: GameState, seat: int) -> None:
@@ -918,7 +948,11 @@ def compute_parade_seuil(
 
 def _handle_route_creation(state: GameState, ray: int, razed_p: int) -> None:
     """Transforme (ray, razed_p) en Route Forestière (0/0) et applique le repli A09."""
+    trk = _get_active_telemetry()
+    if trk is not None:
+        trk.ok_routes_created += 1
     ops = 0
+    ins_here = state.get_parcel_insectes(ray, razed_p)
     m_num, _ = state.get_parcel_nid(ray, razed_p)
     if m_num > 0:
         state.clear_nid(m_num)
@@ -926,8 +960,11 @@ def _handle_route_creation(state: GameState, ray: int, razed_p: int) -> None:
         l_slot = state.find_lisiere_slot_by_tile_id(f"M{m_num}")
         if l_slot is not None:
             state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, 0)
+        if trk is not None:
+            trk.ok_contact_nid_renvois += 1
+            if ins_here > 0:
+                trk.ok_contact_nid_insectes_perdus += ins_here
 
-    ins_here = state.get_parcel_insectes(ray, razed_p)
     if ins_here > 0:
         state.set_parcel_insectes(ray, razed_p, 0)
         ops += ins_here
@@ -955,18 +992,28 @@ def _handle_route_creation(state: GameState, ray: int, razed_p: int) -> None:
         if p_back is not None:
             state.set_machine_pos_status(ray, mt, p_back, st, pending_s)
             ops += 1
+            if trk is not None:
+                trk.ok_repli_bordure += 1
+                if p_back < razed_p - 1:
+                    trk.ok_pont_routier_jumps += 1
             apply_machine_nid_contact(state, ray, p_back)
         else:
             p_fwd = state.next_non_razed_towards_heart(ray, razed_p)
             if p_fwd is not None:
                 state.set_machine_pos_status(ray, mt, p_fwd, st, pending_s)
                 ops += 1
+                if trk is not None:
+                    trk.ok_repli_coeur_exception += 1
+                    if p_fwd > razed_p + 1:
+                        trk.ok_pont_routier_jumps += 1
                 apply_machine_nid_contact(state, ray, p_fwd)
             else:
                 r_tok, b_tok = state.get_machine_tokens(ray, mt)
                 state.set_machine_pos_status(ray, mt, 0, MACHINE_STATUS_RETIRED, False)
                 state.set_machine_tokens(ray, mt, 0, 0)
                 ops += 1 + r_tok + b_tok
+                if trk is not None:
+                    trk.ok_retrait_definitif_machine += 1
     if ops > 0:
         _record_phys_ops(state, ops)
 
@@ -1157,13 +1204,14 @@ def _resolve_machine_targets_from(
                 arbres_after -= cut
                 souches_after += cut
                 dmg_ops += cut
-            elif (
-                effective_ratissage
-                and state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE"
-                and souches_before > 0
-            ):
-                souches_after -= 1
-                dmg_ops += 1
+            elif effective_ratissage and souches_before > 0:
+                if trk is not None:
+                    trk.ok_abatteuse_ratissage_0_arbre += 1
+                if state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE":
+                    souches_after -= 1
+                    dmg_ops += 1
+                    if trk is not None:
+                        trk.ok_abatteuse_ratissage_souche += 1
         else:
             cut = min(1, arbres_before)
             arbres_after -= cut
@@ -1222,6 +1270,8 @@ def _resolve_machine_targets_from(
                 break
             p_next = state.next_non_razed_towards_heart(ray, cur_pos)
             if p_next is not None:
+                if trk is not None and p_next > cur_pos + 1:
+                    trk.ok_pont_routier_jumps += 1
                 prim_deplacement(
                     state,
                     "MACHINE",
@@ -1248,7 +1298,9 @@ def _resolve_machine_targets_from(
             _record_phys_ops(state, 1)
             gained_red = True
             if trk is not None:
-                trk.on_charge_gain(1)
+                trk.on_charge_gain(1, tour=state.tour)
+    if is_charge_atk and trk is not None:
+        trk.on_charge_activation_resolved(gained_red=gained_red, all_parried=all_parried)
 
     state.set_machine_turn_stats(ray, m_type, damaged_parcels, gained_red, True)
 
@@ -1274,6 +1326,9 @@ def resolve_single_machine_attack(
             return
 
         effective_ratissage = is_ratissage or st == MACHINE_STATUS_RATISSAGE
+        trk = _get_active_telemetry()
+        if effective_ratissage and trk is not None:
+            trk.ok_ratissage_activations += 1
 
         # 1. Lecture dynamique des cibles depuis la position réelle (en sautant toute Route)
         targets: list[tuple[str, int]] = []
@@ -1284,6 +1339,8 @@ def resolve_single_machine_attack(
             elif c_type == "DEVANT":
                 p_dev = state.next_non_razed_towards_heart(ray, pos)
                 if p_dev is not None:
+                    if trk is not None and p_dev > pos + 1:
+                        trk.ok_pont_routier_jumps += 1
                     targets.append((c_type, p_dev))
         if state.cfg.mode >= 3:
             cib_ctx: dict[str, Any] = {
@@ -1337,6 +1394,15 @@ def apply_repousse_finale(state: GameState) -> GameOver:
 
     if not state.repousse_finale_applied:
         trk = _get_active_telemetry()
+        if trk is not None and state.tour >= 8 and state.cfg.mode >= 2:
+            if state.is_sommeil_victory():
+                trk.ok_tour8_blocked_sommeil += 1
+            if (
+                state.cfg.nb_animaux_sauvages >= 1
+                and state.total_gardien_pari_engaged() == state.cfg.n_players
+                and state.total_gardien_pari_remaining() == 0
+            ):
+                trk.ok_tour8_blocked_eveil += 1
         arbres_before_repousse = state.total_arbres_plateau()
         if state.cfg.mode >= 3:
             for r in range(state.cfg.n_players):
@@ -1411,6 +1477,12 @@ def _transition_eligible_machines_to_ratissage(state: GameState, *, remove_from_
                     state.remove_machine_card_from_deck_if_present(machine_card_code(r, mt))
     if ops > 0:
         _record_phys_ops(state, ops)
+        trk = _get_active_telemetry()
+        if trk is not None:
+            if remove_from_deck:
+                trk.ok_ratissage_entries_1_1 += ops
+            else:
+                trk.ok_ratissage_entries_6_3 += ops
 
 
 def _list_insect_1cran_moves(
@@ -1571,10 +1643,12 @@ def _bind_hands_and_collect_reves_3_2(
     Partition stricte 3.2 (« 1 carte révélée = au plus 1 déclencheur ») :
     - 3. Sabotage : carte Sabotage révélée chez un joueur ;
     - 6. Insecte : sinon, dé dévié par un Bug en 3.2 (déjà allumé dans `_bug_b_handler`) ;
-    - 5. Rêve : sinon, dé retenu M d'une carte Machine pointant sur un rang occupé par une tuile Rêve
-      (quel que soit le choix BLOQUER ou AVANCER, ou même sans Défenseur sur le Rêve).
+    - 5. Rêve :
+      * mode PASSIF : dé retenu M d'une carte Machine non déviée pointant sur un rang occupé par un Rêve ;
+      * mode ACTIF : allumé uniquement dans `_apply_reve_choice_3_2` lorsqu'un Rêve portant >= 1 Défenseur s'active réellement.
     """
     n = state.cfg.n_players
+    passif_trig5 = state.cfg.reve_5_trigger_mode == "PASSIF"
     initial_track = [state.get_tactique_at_rank(i) for i in range(TRACK_LEN)]
     seats_by_rank: list[list[tuple[int, int, int, int, int]]] = [[] for _ in range(TRACK_LEN)]
     reveal_triggers: list[int] = []
@@ -1586,8 +1660,10 @@ def _bind_hands_and_collect_reves_3_2(
             sabotages_revealed += 1
         elif 1 <= card <= 12 and 1 <= lec_m <= 6:
             seats_by_rank[lec_m - 1].append((s, card, d1, d2, lec_m))
-            if (not state.was_seat_deviated_by_bug_this_turn(s)) and is_reve_code(
-                initial_track[lec_m - 1]
+            if (
+                passif_trig5
+                and (not state.was_seat_deviated_by_bug_this_turn(s))
+                and is_reve_code(initial_track[lec_m - 1])
             ):
                 reveal_triggers.append(5)
 
@@ -1638,13 +1714,23 @@ def _apply_reve_choice_3_2(
     choice: str,
 ) -> None:
     """Applique le choix exclusif BLOQUER ou AVANCER du Peuple Onirique sur un Rêve actif en 3.2."""
+    act_mode = state.cfg.reve_activation_mode
+    req_adv_defs = state.cfg.required_defenders_for_reve_advance()
+    n_def = state.count_reve_activation_defenders_at_case(case_1_6)
+    cur_pos_check = state.find_tactique_rank(code_m)
+    dest_check = (
+        state.get_reve_advance_dest_rank(cur_pos_check, check_turn_cap=True)
+        if cur_pos_check is not None
+        else None
+    )
+    dual_opts = (dest_check is not None) and (n_def >= req_adv_defs)
+
     trk = _get_active_telemetry()
     if trk is not None:
-        trk.on_reve_choice(choice)
+        trk.on_reve_choice(choice, dual_options=dual_opts)
 
-    act_mode = state.cfg.reve_activation_mode
-    n_def = state.count_reve_activation_defenders_at_case(case_1_6)
     reve_open_items: list[tuple[int, int, bool, str]] = []
+    reve_did_activate = False
 
     if choice == "BLOQUER":
         if act_mode == "1_DEF_1_MACHINE":
@@ -1671,6 +1757,7 @@ def _apply_reve_choice_3_2(
         n_cancel = len(cancelled_seats)
         n_bypass = len(entries) - n_cancel
         if n_cancel > 0:
+            reve_did_activate = True
             if act_mode == "1_DEF_1_MACHINE":
                 consumed_reves = state.consume_reve_activation_defenders(case_1_6, n_cancel)
             elif act_mode == "1_DEF_ALL_RANK":
@@ -1695,17 +1782,19 @@ def _apply_reve_choice_3_2(
                 reve_open_items.append((code_m, r_num, False, "BLOQUER"))
     else:
         assert choice == "AVANCER", f"Choix de Rêve 3.2 invalide : {choice!r}"
-        cur_pos_check = state.find_tactique_rank(code_m)
-        assert cur_pos_check is not None and (
-            state.get_reve_advance_dest_rank(cur_pos_check, check_turn_cap=True) is not None
+        assert (
+            cur_pos_check is not None
+            and dest_check is not None
+            and n_def >= req_adv_defs
         ), "AVANCER interdit pour ce Rêve selon la variante active"
+        reve_did_activate = True
         state.increment_reve_advances_this_turn()
 
-        # AVANCER : 1 seul Défenseur suffit, 0 machine annulée (toutes exécutent la Tactique dessous),
-        # pouvoir du Rêve actif et avancée (saut ou pas-à-pas) vers la destination à gauche.
+        # AVANCER : consomme `req_adv_defs` Défenseur(s), 0 machine annulée (toutes exécutent la Tactique dessous),
+        # pouvoir du Rêve actif et saut vers la première case libre à gauche.
         for s, card, d1, d2, lec_m in entries:
             state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
-        consumed_reves = state.consume_reve_activation_defenders(case_1_6, 1)
+        consumed_reves = state.consume_reve_activation_defenders(case_1_6, req_adv_defs)
         if consumed_reves > 0:
             _record_phys_ops(state, consumed_reves)
         if trk is not None:
@@ -1719,15 +1808,25 @@ def _apply_reve_choice_3_2(
             cur_pos_r = state.find_tactique_rank(code_m)
             if cur_pos_r is not None and cur_pos_r > 0:
                 prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
-            sweep_gardiens(state)
         else:
             for idx_op in range(open_count):
                 reve_open_items.append(
                     (code_m, r_num, idx_op == open_count - 1, "AVANCER")
                 )
 
+    if (
+        state.cfg.reve_5_trigger_mode == "ACTIF"
+        and reve_did_activate
+        and any(not state.was_seat_deviated_by_bug_this_turn(e[0]) for e in entries)
+    ):
+        state.light_trigger(5)
+        if trk is not None:
+            trk.on_trigger_lit(5)
+
     if reve_open_items:
         state._continuation.insert(0, ("STEP_3_2_REVE_QUEUE", tuple(reve_open_items), 0))
+    else:
+        sweep_gardiens(state)
 
 
 def _run_step_3_2(state: GameState) -> None:
@@ -1775,7 +1874,7 @@ def _execute_furtivite_4_1_action(
         prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=False)
     trk = _get_active_telemetry()
     if trk is not None and cell_key >= 0:
-        trk.on_furtivite_rive_executed(cell_key)
+        trk.on_furtivite_rive_executed(cell_key, action_kind)
     if state.cfg.mode >= 3:
         dispatch_hook(
             state,
@@ -1796,11 +1895,19 @@ def _resolve_single_furtivite_rive_4_1(
     state: GameState, l_idx: int, p: int, rive: int, cell_key: int
 ) -> None:
     """Résout une rive (0 ou 1) d'une case Furtivité (A1 : uniquement si binôme complet de 2 Défenseurs)."""
-    if state.get_furtivite_nb_def_rive(l_idx, p, rive) != 2:
+    nb_def = state.get_furtivite_nb_def_rive(l_idx, p, rive)
+    if nb_def != 2:
+        if nb_def == 1:
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_furtivite_orphan_pawn(1)
         return
 
     t_ray = state.lisiere_ray_for_rive(l_idx, rive)
     if state.is_route_forestiere(t_ray, p):
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.on_furtivite_failed_binome(1)
         return
 
     if state.cfg.mode <= 2:
@@ -1810,14 +1917,18 @@ def _resolve_single_furtivite_rive_4_1(
             if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
                 prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=False)
                 if trk is not None:
-                    trk.on_furtivite_rive_executed(cell_key)
+                    trk.on_furtivite_rive_executed(cell_key, "PIEGE")
                 sweep_gardiens(state)
+            elif trk is not None:
+                trk.on_furtivite_failed_binome(1)
         else:
             if not any(is_machine_active_this_turn(state, t_ray, mt) for mt in present_m_fast):
                 prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=False)
                 if trk is not None:
-                    trk.on_furtivite_rive_executed(cell_key)
+                    trk.on_furtivite_rive_executed(cell_key, "SABOTAGE")
                 sweep_gardiens(state)
+            elif trk is not None:
+                trk.on_furtivite_failed_binome(1)
         return
 
     ctx_4_1: dict[str, Any] = {
@@ -1843,6 +1954,10 @@ def _resolve_single_furtivite_rive_4_1(
     if not present_m:
         if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
             _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", cell_key)
+        else:
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_furtivite_failed_binome(1)
         return
 
     can_piege = (
@@ -1874,6 +1989,10 @@ def _resolve_single_furtivite_rive_4_1(
         _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", cell_key)
     elif can_sabotage:
         _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "SABOTAGE", cell_key)
+    else:
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.on_furtivite_failed_binome(1)
 
 
 def _resolve_single_furtivite_cell_4_1(state: GameState, l_idx: int, p: int) -> None:
@@ -1951,9 +2070,15 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
         return None
 
     if tag == "RESUME_SWEEP_GARDIENS":
-        _, next_case, opened_in_pass_i, repasses_cnt, in_combat_i, opened_tot = (
-            state._continuation.pop(0)
-        )
+        (
+            _,
+            next_case,
+            opened_in_pass_i,
+            repasses_cnt,
+            in_combat_i,
+            opened_tot,
+            opened_later,
+        ) = state._continuation.pop(0)
         _sweep_gardiens_from(
             state,
             int(next_case),
@@ -1961,6 +2086,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             int(repasses_cnt),
             bool(in_combat_i),
             int(opened_tot),
+            int(opened_later),
         )
         return None
 
@@ -2028,12 +2154,13 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                 if cur_pos_r is not None
                 else None
             )
-            can_advance = dest_r is not None
+            n_def = state.count_reve_activation_defenders_at_case(int(case_1_6))
+            req_adv_defs = state.cfg.required_defenders_for_reve_advance()
+            can_advance = (dest_r is not None) and (n_def >= req_adv_defs)
             opts = ("BLOQUER", "AVANCER") if can_advance else ("BLOQUER",)
             slot_id = f"R{int(r_num)}"
             _, orig_peuple, _ = SYNERGY_META[slot_id]
             gov = _governor_for_peuple(state, orig_peuple)
-            n_def = state.count_reve_activation_defenders_at_case(int(case_1_6))
             req = DecisionRequest(
                 decideur=gov,
                 decision_type=DEC_CHOIX_REVE_3_2,
@@ -2043,6 +2170,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                     "r_num": int(r_num),
                     "slot_id": slot_id,
                     "n_defenders": n_def,
+                    "required_advance_defenders": req_adv_defs,
                     "n_machines": len(entries),
                     "machine_seats": tuple(int(e[0]) for e in entries),
                     "can_advance": bool(can_advance),
@@ -2435,6 +2563,7 @@ def _resolve_gardien_bets_5_3(state: GameState) -> None:
     bets_won = 0
     bets_lost = 0
     bouclier_saves = 0
+    face2_upgrades = 0
     for c_num in range(1, TRACK_LEN + 1):
         rem = state.count_gardien_pari_defenders_at_case(c_num)
         cons = state.count_gardien_pari_consumed_at_case(c_num)
@@ -2459,6 +2588,7 @@ def _resolve_gardien_bets_5_3(state: GameState) -> None:
                 if prof is not None and (slot_id, prof) in DOUBLE_FACE_UPGRADE_GARDIENS:
                     state.set_gardien_at_case(c_num, g_num, 2)
                     _record_phys_ops(state, 1)
+                    face2_upgrades += 1
 
     trk = _get_active_telemetry()
     if trk is not None:
@@ -2466,6 +2596,8 @@ def _resolve_gardien_bets_5_3(state: GameState) -> None:
             trk.on_gardien_bets_resolved(state, bets_won=bets_won, bets_lost=bets_lost)
         if bouclier_saves > 0:
             trk.on_bouclier_lisiere_save(bouclier_saves)
+        if face2_upgrades > 0:
+            trk.ok_gardien_face2_upgrades += face2_upgrades
 
 
 def _finish_step_5_3_traps_and_end_check(state: GameState) -> None:
@@ -2573,14 +2705,21 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
                 best_trees = tr
                 start_seat = s
         dealt = 0
+        shortages = 0
         for off in range(n):
             s = (start_seat + off) % n
             c = state.draw_next_machine_card()
             state.set_player_hand(s, c, 0, 0, 0, 0)
             if c != CARD_NONE:
                 dealt += 1
+            else:
+                shortages += 1
         if dealt > 0:
             _record_phys_ops(state, dealt)
+        if shortages > 0:
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.ok_penurie_cartes_machine += shortages
         _transition_step(state, STEP_1_3_DICE)
         return None
 
@@ -3038,11 +3177,15 @@ def apply_choice(
 
         if tag == "APPLY_CONSTRUCT_ORDER":
             state._continuation.pop(0)
+            if trk is not None and len(req.options) >= 2:
+                trk.dil_ordre_constr_3_1 += 1
             state._continuation.insert(0, ("CONSTRUCT_SLOT", int(choice)))
             return
 
         if tag == "APPLY_GARDIEN_CASE_3_1":
             _, slot_idx, g_num = state._continuation.pop(0)
+            if trk is not None and len(req.options) >= 2:
+                trk.on_gardien_case_chosen(int(choice))
             _, nb = state.get_lisiere_tile_state(int(slot_idx))
             state.set_gardien_at_case(int(choice), int(g_num), 1)
             state.set_lisiere_tile_state(int(slot_idx), LISIERE_CONSTRUCTED, nb)
@@ -3063,6 +3206,8 @@ def apply_choice(
 
         if tag == "APPLY_NID_4_2":
             state._continuation.pop(0)
+            if trk is not None and len(req.options) >= 2:
+                trk.dil_ordre_nid_4_2 += 1
             _resolve_nid_block(state, int(choice))
             return
 
@@ -3070,6 +3215,8 @@ def apply_choice(
             _, src = state._continuation.pop(0)
             loc_type, idx_a, src_p = src
             dst_kind = choice[0]
+            if trk is not None and len(req.options) >= 2:
+                trk.on_migration_decision(str(dst_kind))
             new_wheel_src: tuple[str, int, int] | None = None
             if dst_kind != "RESTER":
                 src_kwargs: dict[str, Any] = (
@@ -3182,12 +3329,16 @@ def apply_choice(
 
         if tag == "APPLY_TACTIQUE_5_1":
             _, t_code = state._continuation.pop(0)
+            if trk is not None and len(req.options) >= 2:
+                trk.dil_ordre_att_5_1 += 1
             rm, mt = choice
             _resolve_tactique_5_1_machine(state, int(rm), int(mt), int(t_code))
             return
 
         if tag == "APPLY_RATISSAGE_5_2":
             state._continuation.pop(0)
+            if trk is not None and len(req.options) >= 2:
+                trk.dil_ordre_rat_5_2 += 1
             rm, mt = choice
             resolve_single_machine_attack(
                 state, int(rm), int(mt), RATISSAGE_TACTIQUE_SPEC, is_ratissage=True

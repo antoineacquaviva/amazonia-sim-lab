@@ -436,9 +436,10 @@ def prim_creation_entite(
 
     if entity_type == "SABOTAGE":
         state.add_permanent_sabotage(count=count, light_case_3=light_trigger)
-        if light_trigger:
-            trk = _get_active_telemetry()
-            if trk is not None:
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.ok_sabotage_acquired += count
+            if light_trigger:
                 trk.on_trigger_lit(3)
         _record_phys_ops(state, count)
         return
@@ -477,6 +478,10 @@ def apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool:
         state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, 0)
     ins_before = state.get_parcel_insectes(ray, p)
     state.set_parcel_insectes(ray, p, 0)
+    trk = _get_active_telemetry()
+    if trk is not None:
+        trk.ok_contact_nid_renvois += 1
+        trk.ok_contact_nid_insectes_perdus += ins_before
     _record_phys_ops(state, 1 + ins_before)
     return True
 
@@ -697,6 +702,10 @@ def prim_partage_info_etat_gardien(
             first_open = not state.has_gardien_opened_this_turn(case_1_6)
             state.mark_gardien_opened_this_turn(case_1_6)
             should_light_4 = first_open
+        else:
+            trk_c4 = _get_active_telemetry()
+            if trk_c4 is not None:
+                trk_c4.ok_cascade_case4_openings += 1
 
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
         if should_light_4:
@@ -742,6 +751,9 @@ def prim_partage_info_etat_gardien(
                     )
                 )
                 state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, min(2, rem_tracked))
+        trk_ret = _get_active_telemetry()
+        if trk_ret is not None:
+            trk_ret.ok_gardien_return_lisiere += 1
         _record_phys_ops(state, 1)
         return True
 

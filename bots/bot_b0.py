@@ -242,11 +242,7 @@ class BotB0:
                     dest_ok = (
                         (int(dest_case_raw) <= total_r)
                         if isinstance(dest_case_raw, int)
-                        else (
-                            (case_c - 1 <= total_r)
-                            if cfg.reve_advance_mode == "PAS_A_PAS"
-                            else True
-                        )
+                        else True
                     )
                     if reves_on == total_r and gaps == 1 and case_c > total_r and dest_ok:
                         return "AVANCER"

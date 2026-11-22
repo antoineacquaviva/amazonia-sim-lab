@@ -390,7 +390,7 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
     assert len(plan["profile_variants"]) == 1
     assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {"DISTINCT_OPEN_1"}
-    assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"EXCLUSIVE_CHOICE"}
+    assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"SAUT"}
     assert {v["gardien_bet_cap_policy"] for v in plan["profile_variants"]} == {"UNIFORM_MAX_2"}
 
     # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs reveil_anatomy & v6.0
