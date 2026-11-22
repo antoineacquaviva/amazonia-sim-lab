@@ -45,9 +45,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v6_1_reve_5_trigger_locked_actif_and_partition() -> None:
-    """Vérifie REVE_TRIG=ACTIF figé ainsi que la partition stricte 6. Insecte > 5. Rêve."""
+    """Vérifie REVE_TRIG=ACTIF & CHARGE_GAIN=FRAPPE_NON_PAREE figés ainsi que la partition stricte 6. Insecte > 5. Rêve."""
     assert REVE_5_TRIGGER_MODES == ("ACTIF",)
-    assert CHARGE_GAIN_MODES == ("DEGAT_EFFECTIF", "FRAPPE_NON_PAREE")
+    assert CHARGE_GAIN_MODES == ("FRAPPE_NON_PAREE",)
 
     for bad_trig in ("PASSIF", "INVALID"):
         with pytest.raises(AssertionError, match="reve_5_trigger_mode"):
@@ -166,7 +166,7 @@ def test_v6_1_furtivite_piege_and_sabotage_active_in_b2_b1_and_b3() -> None:
     assert trk_b3.summary().mem_debt_score == 0
     obs_b3 = st_b3.get_observation(0)
     assert obs_b3.reve_5_trigger_mode == "ACTIF"
-    assert obs_b3.charge_gain_mode == "DEGAT_EFFECTIF"
+    assert obs_b3.charge_gain_mode == "FRAPPE_NON_PAREE"
 
 
 def test_v6_1_macro_and_micro_forks_digest_coverage(
@@ -180,13 +180,10 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
     plan = resolve_manifest_plan(manifest)
 
     assert plan["chassis_ids"] == (24,)
-    assert len(plan["profile_variants"]) == 2
-    assert {v["variant_id"] for v in plan["profile_variants"]} == {
-        "CHARGE=DEGAT_EFFECTIF",
-        "CHARGE=FRAPPE_NON_PAREE",
-    }
-    assert plan["total_configurations"] == 24
-    assert plan["total_games"] == 13_680
+    assert len(plan["profile_variants"]) == 1
+    assert {v["variant_id"] for v in plan["profile_variants"]} == {"BASE"}
+    assert plan["total_configurations"] == 12
+    assert plan["total_games"] == 6_840
 
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_audit_socle_v6_1"
@@ -194,7 +191,7 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
     micro_file = tmp_path / "micro_audit_socle_v6_1.json"
     micro_file.write_text(json.dumps(micro_manifest), encoding="utf-8")
     micro_plan = resolve_manifest_plan(micro_manifest)
-    assert micro_plan["total_games"] == 72
+    assert micro_plan["total_games"] == 36
 
     shards_dir = tmp_path / "shards"
     rc = run_campaign_manifest(
@@ -224,17 +221,17 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
         job_wall_sec=0.8,
     )
 
-    assert digest["totals"]["total_games"] == 72
+    assert digest["totals"]["total_games"] == 36
     assert "game_cvar20_ratio" in digest["totals"]
     con_pq = duckdb.connect(":memory:")
     pq_tot_row = con_pq.execute(
         f"SELECT CAST(SUM(n_games) AS INTEGER) FROM read_parquet('{parquet_path.as_posix()}')"
     ).fetchone()
-    assert pq_tot_row is not None and int(pq_tot_row[0]) == 72
+    assert pq_tot_row is not None and int(pq_tot_row[0]) == 36
     con_pq.close()
 
     acc = digest["acceptance_v6"]
-    assert len(acc["bot_hierarchy_and_cognition"]) == 2
+    assert len(acc["bot_hierarchy_and_cognition"]) == 1
     assert all(h["zero_mem_debt_all_bots"] is True for h in acc["bot_hierarchy_and_cognition"])
     for eq in acc["equity_by_bot_x_variant"]:
         assert all("game_cvar20_ratio" in r for r in eq["by_n_players"])
@@ -267,7 +264,7 @@ def test_v6_1_macro_and_micro_forks_digest_coverage(
     assert p1["invariants_and_fuzzing"]["zero_mem_debt_all_bots"] is True
     assert p1["autonomous_piege_scope"]["configured_piege_scope_modes"] == ["SINGLE_STRIKE"]
     p2 = cc_blk["phase2_displacement_targets_b2_by_variant"]
-    assert set(p2.keys()) == {"CHARGE=DEGAT_EFFECTIF", "CHARGE=FRAPPE_NON_PAREE"}
+    assert set(p2.keys()) == {"BASE"}
     for vid_k, v_blk in p2.items():
         assert v_blk["n_games_ref_bot"] > 0, vid_k
         for sec in (

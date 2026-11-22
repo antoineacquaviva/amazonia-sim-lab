@@ -450,7 +450,8 @@ def build_bundle() -> None:
             "acte_2_face": "FACE_B",
             "acte_2_assaut_cases": [1, 2, 3],
             "acte_2_charge_cases": [4, 5, 6],
-            "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance max/activation selon CHARGE_GAIN (DEGAT_EFFECTIF ou FRAPPE_NON_PAREE)",
+            "charge_gain_mode": "FRAPPE_NON_PAREE",
+            "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance max/activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (hors attaque Devant dans le vide depuis la dernière parcelle)",
             "mode_assaut": "tous les jetons Puissance comptent au seuil ; 0 jeton Puissance gagné",
         },
         "machine_damage_rules": {

@@ -402,7 +402,7 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
 
 
 def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
-    """Manifeste validation_socle_v6_1 (13 680 parties, B0/B1/B2, P4_2233 unique, duel CHARGE_GAIN) + reveil_anatomy."""
+    """Manifeste validation_socle_v6_1 (6 840 parties, B0/B1/B2, P4_2233 unique, FRAPPE_NON_PAREE gelé) + reveil_anatomy."""
     # Le manifeste historique v6.0 (EXCLUSIVE_CHOICE) est proprement rejeté sous v6.1
     legacy_v60_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_0.json"
     assert legacy_v60_path.is_file()
@@ -418,17 +418,14 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
     assert plan["chassis_ids"] == (24,)
-    assert plan["total_games"] == 13_680
+    assert plan["total_games"] == 6_840
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert len(plan["profile_variants"]) == 2
+    assert len(plan["profile_variants"]) == 1
     assert {v["gardien_4_trigger_mode"] for v in plan["profile_variants"]} == {"DISTINCT_OPEN_1"}
     assert {v["reve_advance_mode"] for v in plan["profile_variants"]} == {"CLEAR_RANK_ONLY"}
     assert {v["reve_5_trigger_mode"] for v in plan["profile_variants"]} == {"ACTIF"}
-    assert {v["charge_gain_mode"] for v in plan["profile_variants"]} == {
-        "DEGAT_EFFECTIF",
-        "FRAPPE_NON_PAREE",
-    }
+    assert {v["charge_gain_mode"] for v in plan["profile_variants"]} == {"FRAPPE_NON_PAREE"}
     assert {v["gardien_bet_cap_policy"] for v in plan["profile_variants"]} == {"UNIFORM_MAX_2"}
 
     # Micro-smoke B2 + agrégateur DuckDB vérifiant tous les champs reveil_anatomy & v6.1
@@ -438,7 +435,7 @@ def test_validation_socle_v5_5_manifest_5760_and_digest_schema() -> None:
     mini_manifest["campaign_name"] = "test_validation_socle_v6_1_mini"
     mini_manifest["player_counts"] = [4]
     mini_manifest["games_per_configuration"] = 2
-    mini_manifest["charge_gain_modes"] = ["DEGAT_EFFECTIF"]
+    mini_manifest["charge_gain_mode"] = "FRAPPE_NON_PAREE"
     mini_plan = resolve_manifest_plan(mini_manifest)
     rows = [_execute_manifest_unit(u) for u in mini_plan["units"][:4]]
     assert all("count_bouclier_lisiere_saves" in r for r in rows)

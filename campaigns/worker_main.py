@@ -1509,7 +1509,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_cg_modes = manifest.get("charge_gain_modes", manifest.get("charge_gain_mode"))
     if raw_cg_modes is None:
-        cg_modes: list[str] = ["DEGAT_EFFECTIF"]
+        cg_modes: list[str] = ["FRAPPE_NON_PAREE"]
         explicit_cg_sweep = False
     elif isinstance(raw_cg_modes, str):
         cg_modes = [raw_cg_modes.strip().upper()]
@@ -1784,7 +1784,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     reve_advance_mode = str(unit.get("reve_advance_mode", "CLEAR_RANK_ONLY"))
     gardien_4_trigger_mode = str(unit.get("gardien_4_trigger_mode", "DISTINCT_OPEN_1"))
     reve_5_trigger_mode = str(unit.get("reve_5_trigger_mode", "ACTIF"))
-    charge_gain_mode = str(unit.get("charge_gain_mode", "DEGAT_EFFECTIF"))
+    charge_gain_mode = str(unit.get("charge_gain_mode", "FRAPPE_NON_PAREE"))
     piege_scope_mode = str(unit.get("piege_scope_mode", "SINGLE_STRIKE"))
     is_micro_forks = bool(unit.get("micro_forks", False))
     fork_n_sel = int(unit.get("fork_selection_rollouts", 3))

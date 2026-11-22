@@ -526,7 +526,7 @@ assert _Layout._cursor <= STATE_BUF_SIZE - MIN_FREE_RESERVE_BYTES, (
 
 REVE_ADVANCE_MODES: tuple[str, ...] = ("CLEAR_RANK_ONLY",)
 REVE_5_TRIGGER_MODES: tuple[str, ...] = ("ACTIF",)
-CHARGE_GAIN_MODES: tuple[str, ...] = ("DEGAT_EFFECTIF", "FRAPPE_NON_PAREE")
+CHARGE_GAIN_MODES: tuple[str, ...] = ("FRAPPE_NON_PAREE",)
 PIEGE_SCOPE_MODES: tuple[str, ...] = ("SINGLE_STRIKE",)
 
 
@@ -561,15 +561,14 @@ class GameConfig:
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres consolidés v6.1 : Rêves bloquants uniquement dans le socle, REVE_TRIG=ACTIF figé,
-    # Plafond Pari Gardiens UNIFORM_MAX_2, 4. Gardien DISTINCT_OPEN_1 & Piège autonome SINGLE_STRIKE
+    # Paramètres consolidés v6.1 gelés : Rêves bloquants uniquement dans le socle, REVE_TRIG=ACTIF,
+    # Pari Gardiens UNIFORM_MAX_2, 4. Gardien DISTINCT_OPEN_1, Charge FRAPPE_NON_PAREE & Piège SINGLE_STRIKE
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
     reve_advance_mode: str = "CLEAR_RANK_ONLY"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
     reve_5_trigger_mode: str = "ACTIF"
-    # Commutateur de duel v6.1 sur le gain de Puissance en Charge & portée unique Piège SINGLE_STRIKE
-    charge_gain_mode: str = "DEGAT_EFFECTIF"
+    charge_gain_mode: str = "FRAPPE_NON_PAREE"
     piege_scope_mode: str = "SINGLE_STRIKE"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
@@ -625,7 +624,7 @@ class GameConfig:
             f"reve_5_trigger_mode invalide (verrouillé sur ACTIF en v6.1) : {self.reve_5_trigger_mode}"
         )
         assert self.charge_gain_mode in CHARGE_GAIN_MODES, (
-            f"charge_gain_mode invalide (attendu DEGAT_EFFECTIF ou FRAPPE_NON_PAREE) : {self.charge_gain_mode}"
+            f"charge_gain_mode invalide (verrouillé sur FRAPPE_NON_PAREE en v6.1) : {self.charge_gain_mode}"
         )
         assert self.piege_scope_mode in PIEGE_SCOPE_MODES, (
             f"piege_scope_mode invalide (verrouillé sur SINGLE_STRIKE en v6.1) : {self.piege_scope_mode}"
@@ -688,7 +687,7 @@ class GameConfig:
         reve_advance_mode: str = "CLEAR_RANK_ONLY",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
         reve_5_trigger_mode: str = "ACTIF",
-        charge_gain_mode: str = "DEGAT_EFFECTIF",
+        charge_gain_mode: str = "FRAPPE_NON_PAREE",
         piege_scope_mode: str = "SINGLE_STRIKE",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:

@@ -454,94 +454,91 @@ def test_v6_1_furtivite_ratissage_plus_card_and_independence_from_bug_and_reve()
 
 
 # ---------------------------------------------------------------------------
-# 4. Commutateur CHARGE_GAIN (DEGAT_EFFECTIF vs FRAPPE_NON_PAREE) & T3/T6 En avançant
+# 4. Gain Charge gelé sur FRAPPE_NON_PAREE & cas limites T3/T6 En avançant
 # ---------------------------------------------------------------------------
 
 
-def test_v6_1_charge_gain_degat_effectif_vs_frappe_non_paree_and_t3_t6_edge_cases() -> None:
-    cfg_deg = GameConfig(
-        n_players=4,
-        mode=2,
-        peuples=("M", "R", "O", "I"),
-        charge_gain_mode="DEGAT_EFFECTIF",
-        exp_seed=9401,
-    )
+def test_v6_1_charge_gain_frozen_frappe_non_paree_and_t3_t6_edge_cases() -> None:
+    # DEGAT_EFFECTIF est définitivement rejeté dans le socle gelé v6.1
+    with pytest.raises(AssertionError, match="charge_gain_mode"):
+        GameConfig(
+            n_players=4,
+            mode=2,
+            peuples=("M", "R", "O", "I"),
+            charge_gain_mode="DEGAT_EFFECTIF",
+            exp_seed=9401,
+        )
+
     cfg_fnp = GameConfig(
         n_players=4,
         mode=2,
         peuples=("M", "R", "O", "I"),
-        charge_gain_mode="FRAPPE_NON_PAREE",
         exp_seed=9401,
     )
+    assert cfg_fnp.charge_gain_mode == "FRAPPE_NON_PAREE"
 
     # 1) Abatteuse en Charge sur parcelle réelle (0 Arbre, 2 Souches) non parée :
-    #    - DEGAT_EFFECTIF : 0 dégât -> 0 jeton
-    #    - FRAPPE_NON_PAREE : 1 frappe réelle non parée -> +1 jeton !
-    for cfg_cur, expected_red in ((cfg_deg, 0), (cfg_fnp, 1)):
-        st = GameState(cfg_cur)
-        st.tour = 1  # T1 = Charge
-        st.set_parcel_arbres_souches(0, 1, 0, 2)
-        st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
-        resolve_single_machine_attack(st, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
-        assert st.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == expected_red
+    #    FRAPPE_NON_PAREE : 1 frappe réelle non parée -> +1 jeton !
+    st = GameState(cfg_fnp)
+    st.tour = 1  # T1 = Charge
+    st.set_parcel_arbres_souches(0, 1, 0, 2)
+    st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+    resolve_single_machine_attack(st, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
+    assert st.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 1
 
     # 2) Garde-fou strict hors-plateau : Devant (T2 en Acte 1 / T5 en Acte 2) lancé depuis last_p (p=4) ->
-    #    JAMAIS de jeton, ni sous DEGAT_EFFECTIF ni sous FRAPPE_NON_PAREE !
-    for cfg_cur in (cfg_deg, cfg_fnp):
-        for tour_cur, tac_idx in ((2, 2), (6, 5)):
-            st_off = GameState(cfg_cur)
-            st_off.tour = tour_cur
-            st_off.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
-            trk_off = TelemetryTracker()
-            resolve_single_machine_attack(
-                st_off, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[tac_idx], telemetry=trk_off
-            )
-            assert st_off.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 0
-            assert trk_off.summary().charge_gains == 0
+    #    JAMAIS de jeton !
+    for tour_cur, tac_idx in ((2, 2), (6, 5)):
+        st_off = GameState(cfg_fnp)
+        st_off.tour = tour_cur
+        st_off.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
+        trk_off = TelemetryTracker()
+        resolve_single_machine_attack(
+            st_off, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[tac_idx], telemetry=trk_off
+        )
+        assert st_off.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 0
+        assert trk_off.summary().charge_gains == 0
 
     # 3) T3 / T6 (En avançant en Charge) :
     #    3a) Depuis p=1 avec Route en p=2 et Nid + Insectes en p=3 :
     #        frappe SUR_PLACE (0,1), saute le Pont routier (0,2) pour frapper DEVANT (0,3),
     #        avance sur (0,3) en déclenchant Contact Machine-Nid, et plafonne le gain à +1 jeton !
-    for cfg_cur in (cfg_deg, cfg_fnp):
-        st_adv = GameState(cfg_cur)
-        st_adv.tour = 1  # T3 = Charge
-        st_adv.set_parcel_arbres_souches(0, 2, 0, 0)  # Pont routier en p=2
-        st_adv.set_parcel_nid(0, 3, 1, active_ce_tour=False)
-        st_adv.set_parcel_insectes(0, 3, 1)  # Seuil p=3 sous T3 = 3 - 1 = 2 > 1 Insecte -> non paré !
-        st_adv.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
-        trk_adv = TelemetryTracker()
-        resolve_single_machine_attack(
-            st_adv, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3], telemetry=trk_adv
-        )
-        assert st_adv.get_parcel_arbres(0, 1) == 0  # Frappe SUR_PLACE
-        assert st_adv.get_parcel_arbres(0, 3) == 0  # Frappe DEVANT à travers le Pont routier (coupe tous les Arbres)
-        assert st_adv.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 3  # Avancée en p=3
-        assert st_adv.get_parcel_nid(0, 3)[0] == 0  # Contact Machine-Nid !
-        assert st_adv.get_parcel_insectes(0, 3) == 0
-        assert st_adv.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 1  # Plafonné à +1 !
-        assert trk_adv.summary().charge_gains == 1
+    st_adv = GameState(cfg_fnp)
+    st_adv.tour = 1  # T3 = Charge
+    st_adv.set_parcel_arbres_souches(0, 2, 0, 0)  # Pont routier en p=2
+    st_adv.set_parcel_nid(0, 3, 1, active_ce_tour=False)
+    st_adv.set_parcel_insectes(0, 3, 1)  # Seuil p=3 sous T3 = 3 - 1 = 2 > 1 Insecte -> non paré !
+    st_adv.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+    trk_adv = TelemetryTracker()
+    resolve_single_machine_attack(
+        st_adv, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3], telemetry=trk_adv
+    )
+    assert st_adv.get_parcel_arbres(0, 1) == 0  # Frappe SUR_PLACE
+    assert st_adv.get_parcel_arbres(0, 3) == 0  # Frappe DEVANT à travers le Pont routier (coupe tous les Arbres)
+    assert st_adv.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 3  # Avancée en p=3
+    assert st_adv.get_parcel_nid(0, 3)[0] == 0  # Contact Machine-Nid !
+    assert st_adv.get_parcel_insectes(0, 3) == 0
+    assert st_adv.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 1  # Plafonné à +1 !
+    assert trk_adv.summary().charge_gains == 1
 
     #    3b) T6 (Charge en Acte 2, Tour 5) depuis la dernière parcelle p=4 (0 Arbre, 2 Souches) :
     #        SUR_PLACE cible p=4 (réelle), DEVANT hors-plateau ignorée :
-    #        - si p=4 porte un Piège autonome -> 0 jeton sous les 2 modes ;
-    #        - si p=4 n'est pas parée -> 0 jeton sous DEGAT_EFFECTIF, +1 jeton sous FRAPPE_NON_PAREE !
-    for cfg_cur in (cfg_deg, cfg_fnp):
-        st_p4_trap = GameState(cfg_cur)
-        st_p4_trap.tour = 5  # Acte 2 : T6 = Charge
-        st_p4_trap.set_parcel_arbres_souches(0, 4, 0, 2)
-        st_p4_trap.set_parcel_piege(0, 4, PIEGE_ACTIF)
-        st_p4_trap.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
-        resolve_single_machine_attack(st_p4_trap, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[6])
-        assert st_p4_trap.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 0
+    #        - si p=4 porte un Piège autonome -> 0 jeton ;
+    #        - si p=4 n'est pas parée -> +1 jeton sous FRAPPE_NON_PAREE !
+    st_p4_trap = GameState(cfg_fnp)
+    st_p4_trap.tour = 5  # Acte 2 : T6 = Charge
+    st_p4_trap.set_parcel_arbres_souches(0, 4, 0, 2)
+    st_p4_trap.set_parcel_piege(0, 4, PIEGE_ACTIF)
+    st_p4_trap.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
+    resolve_single_machine_attack(st_p4_trap, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[6])
+    assert st_p4_trap.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 0
 
-    for cfg_cur, exp_tok in ((cfg_deg, 0), (cfg_fnp, 1)):
-        st_p4_hit = GameState(cfg_cur)
-        st_p4_hit.tour = 5  # Acte 2 : T6 = Charge
-        st_p4_hit.set_parcel_arbres_souches(0, 4, 0, 2)
-        st_p4_hit.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
-        resolve_single_machine_attack(st_p4_hit, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[6])
-        assert st_p4_hit.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == exp_tok
+    st_p4_hit = GameState(cfg_fnp)
+    st_p4_hit.tour = 5  # Acte 2 : T6 = Charge
+    st_p4_hit.set_parcel_arbres_souches(0, 4, 0, 2)
+    st_p4_hit.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
+    resolve_single_machine_attack(st_p4_hit, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[6])
+    assert st_p4_hit.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -589,7 +586,7 @@ def test_v6_1_causal_forks_manifest_and_deterministic_replays(
         cfg, target_tour=2, is_b2=True, n_selection_rollouts=2, n_eval_rollouts=2
     )
     assert cf.has_2_1_anchor is True
-    assert cf.has_charge_gain_fork is True
+    assert cf.has_charge_gain_fork is False
     assert cf.mf_2_2 is not None
     assert cf.total_rollouts > 0
 
@@ -648,8 +645,6 @@ def test_v6_1_causal_forks_manifest_and_deterministic_replays(
         "anchors_furt_rive_sabotage",
         "anchors_4_1_pose_piege",
         "anchors_5_3_eveil",
-        "anchors_charge_gain_frappe_vs_degat",
-        "mean_delta_v_charge_frappe_minus_degat",
     ):
         assert fk in fb["causal_v6_1"]
     assert len(fb["by_n_players"]) == 2

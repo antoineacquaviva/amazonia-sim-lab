@@ -1,7 +1,7 @@
 {
   "campaign_name": "validation_socle_v6_1",
   "baseline_comparison_digest": "data/digests/digest_audit_exhaustif_socle_v6_0.json",
-  "description": "Campagne Macro officielle du socle scellé v6.1 (schema_version 6.1.0-alpha) en Mode 2 à tuiles neutres sur P4_2233 + départ décalé canonique (chassis_id = 24, config_index_192 = 5 : Bulldozer p=1, Abatteuse p=2) : Abatteuse coupe tous les Arbres debout et ne touche jamais aux Souches, Pièges autonomes SINGLE_STRIKE défaussés aussitôt après 1 frappe, Rêves ouverts en 2.1 et recentrés sur le blocage pur (CLEAR_RANK_ONLY, REVE_TRIG=ACTIF), Furtivité « Chaud vs Calme » par rayon, et duel 1x2 CHARGE_GAIN in {DEGAT_EFFECTIF, FRAPPE_NON_PAREE} sur B0 Réflexe / B1 / B2 et N=3..6 (570 parties/config = PPCM exact des 19/15/6/1 tables A>=1, soit 13 680 parties).",
+  "description": "Campagne Macro officielle du socle gelé v6.1 (schema_version 6.1.0-alpha) en Mode 2 à tuiles neutres sur P4_2233 + départ décalé canonique (chassis_id = 24, config_index_192 = 5 : Bulldozer p=1, Abatteuse p=2) : Abatteuse coupe tous les Arbres debout et ne touche jamais aux Souches, Pièges autonomes SINGLE_STRIKE défaussés aussitôt après 1 frappe, gain Charge gelé sur FRAPPE_NON_PAREE, Rêves ouverts en 2.1 et recentrés sur le blocage pur (CLEAR_RANK_ONLY, REVE_TRIG=ACTIF), Furtivité « Chaud vs Calme » par rayon, sur B0 Réflexe / B1 / B2 et N=3..6 (570 parties/config = PPCM exact des 19/15/6/1 tables A>=1, soit 6 840 parties).",
   "mode": 2,
   "bots": ["B0", "B1", "B2"],
   "k_max": 3,
@@ -16,10 +16,7 @@
   "gardien_bet_cap_policy": "UNIFORM_MAX_2",
   "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
   "piege_scope_mode": "SINGLE_STRIKE",
-  "charge_gain_modes": [
-    "DEGAT_EFFECTIF",
-    "FRAPPE_NON_PAREE"
-  ],
+  "charge_gain_mode": "FRAPPE_NON_PAREE",
   "base_instance": {
     "config_index_192": 5,
     "bundle_id": "STANDARD_A",

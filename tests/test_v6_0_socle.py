@@ -327,8 +327,8 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
     assert plan["bots"] == ("B0", "B1", "B2")
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
     assert plan["chassis_ids"] == (24,)
-    assert plan["total_configurations"] == 24
-    assert plan["total_games"] == 13_680
+    assert plan["total_configurations"] == 12
+    assert plan["total_games"] == 6_840
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
     assert len({u["peuples"] for u in plan["units"]}) == 41
 

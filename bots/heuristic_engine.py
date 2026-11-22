@@ -858,11 +858,7 @@ def _is_own_hand_covered(obs: PlayerObservation, cfg: GameConfig) -> bool:
             - bleus
             + spec.mod_seuil,
         )
-        can_hurt = (
-            True
-            if (is_chg and cfg.charge_gain_mode == "FRAPPE_NON_PAREE")
-            else (obs.parcel_arbres(r_m, tp) >= 1 or mt_m == MACHINE_BULLDOZER)
-        )
+        can_hurt = is_chg or obs.parcel_arbres(r_m, tp) >= 1 or mt_m == MACHINE_BULLDOZER
         if tot_d < seuil_tp and can_hurt:
             return False
     return True
@@ -952,17 +948,12 @@ def _score_reve_activation(
                 saved_v += 25.0 + 55.0 * min(ins_tp, manque_d)
             else:
                 arbres = obs.parcel_arbres(ray, tp)
-                souches = obs.parcel_souches(ray, tp)
+                would_gain_charge = True
                 if m_type == MACHINE_ABATTEUSE:
                     trees_lost = arbres
-                    if trees_lost > 0 or cfg.charge_gain_mode == "FRAPPE_NON_PAREE":
-                        would_gain_charge = True
                     saved_v += trees_lost * 270.0 + (85.0 if seuil_tp >= 2 else 25.0)
                 else:
                     trees_lost = min(1, arbres)
-                    stumps_lost = souches + trees_lost
-                    if trees_lost > 0 or stumps_lost > 0 or cfg.charge_gain_mode == "FRAPPE_NON_PAREE":
-                        would_gain_charge = True
                     route_pen = 225.0 if arbres <= 1 else 0.0
                     saved_v += trees_lost * 270.0 + route_pen + (85.0 if seuil_tp >= 2 else 30.0)
 
@@ -1247,12 +1238,7 @@ def score_target_b1(
             reach_mult = 1.0 if gap <= 1.25 else (0.58 if gap <= 2.25 else 0.25)
             tree_weight = 1.10 if arbres >= 2 else (0.95 if arbres == 1 else 0.35)
             urgency = 600.0 * min(1.6, s_prob) * reach_mult * tree_weight
-            can_gain_chg = (
-                True
-                if cfg.charge_gain_mode == "FRAPPE_NON_PAREE"
-                else (arbres >= 1 or belief.parcel_bulldo_prob[idx] > 0.15)
-            )
-            if c_prob > 0.08 and gap <= 1.25 and can_gain_chg:
+            if c_prob > 0.08 and gap <= 1.25:
                 urgency += min(1.2, c_prob) * (75.0 if obs.tour <= 4 else 30.0)
             if arbres <= 1 and (belief.parcel_bulldo_prob[idx] > 0.15 or souches == 0):
                 urgency += 150.0 * min(1.2, s_prob)
@@ -1431,12 +1417,7 @@ def _score_target_b2_core(
         trig_1_v = trig_vals[0]  # 1. Parade (Défenseurs seuls)
         trig_6_v = trig_vals[5]  # 6. Insecte (Parade avec dépense d'Insecte uniquement en 5.1)
 
-        # Charge denial : sous FRAPPE_NON_PAREE, toute frappe non parée sur parcelle non-Route gagne +1 Puissance !
-        can_inflict_damage = (
-            True
-            if cfg.charge_gain_mode == "FRAPPE_NON_PAREE"
-            else ((arbres >= 1) or (souches >= 1 and belief.parcel_bulldo_prob[idx] > 0.10))
-        )
+        # Charge denial : sous FRAPPE_NON_PAREE (gelé v6.1), toute frappe non parée sur parcelle non-Route gagne +1 Puissance !
         if obs.tour <= 2:
             charge_unit_v = 250.0
         elif obs.tour <= 4:
@@ -1447,9 +1428,7 @@ def _score_target_b2_core(
             charge_unit_v = 35.0
         else:
             charge_unit_v = 0.0
-        charge_denial = (
-            min(1.40, c_prob) * charge_unit_v if (c_prob > 0.05 and can_inflict_damage) else 0.0
-        )
+        charge_denial = min(1.40, c_prob) * charge_unit_v if c_prob > 0.05 else 0.0
 
         # 1. Activation d'un Nid en 4.2 : produit +1/+2 Insectes + pouvoir du Nid (n'allume jamais 6. Insecte)
         if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
@@ -1479,17 +1458,13 @@ def _score_target_b2_core(
                 )
                 if gap <= 1.25:
                     # 1 Défenseur boucle immédiatement la parade !
-                    cheap_act1_b = (
-                        55.0 if (obs.tour <= 4 and c_prob > 0.12 and can_inflict_damage) else 0.0
-                    )
+                    cheap_act1_b = 55.0 if (obs.tour <= 4 and c_prob > 0.12) else 0.0
                     score += full_parade_v + cheap_act1_b + own_ray_b + (45.0 if is_held else 0.0)
                 elif gap <= 2.25:
                     if is_held:
                         score += (0.48 if s_prob >= 0.85 else 0.34) * full_parade_v + own_ray_b
                     elif s_prob >= 0.85:
-                        cheap_act1_b = (
-                            65.0 if (obs.tour <= 4 and c_prob > 0.12 and can_inflict_damage) else 0.0
-                        )
+                        cheap_act1_b = 65.0 if (obs.tour <= 4 and c_prob > 0.12) else 0.0
                         score += 0.62 * full_parade_v + cheap_act1_b + own_ray_b
                     else:
                         score += 0.40 * full_parade_v + own_ray_b
@@ -2338,16 +2313,15 @@ def _choose_pose_piege_4_1_policy(
                     rem_arb = 0
                     rem_sch += cut
                     sc += cut * 285.0 + 60.0
-                    if is_chg_h and (cut > 0 or cfg.charge_gain_mode == "FRAPPE_NON_PAREE"):
+                    if is_chg_h:
                         sc += 210.0 if obs.tour <= 4 else 90.0
                 else:
                     cut = min(1, rem_arb)
                     r_route = 240.0 if (rem_arb <= 1) else 0.0
-                    had_dmg = cut > 0 or rem_sch > 0
                     rem_arb = max(0, rem_arb - cut)
                     rem_sch = 0
                     sc += cut * 285.0 + r_route + 85.0
-                    if is_chg_h and (had_dmg or cfg.charge_gain_mode == "FRAPPE_NON_PAREE"):
+                    if is_chg_h:
                         sc += 210.0 if obs.tour <= 4 else 90.0
             if is_b2 and obs.gardien_present_at_case(2):
                 sc += 45.0

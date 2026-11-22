@@ -1281,16 +1281,11 @@ def _resolve_machine_targets_from(
                     dst_p=p_next,
                 )
 
-    # 4. Mode CHARGE (v6.1) : +1 jeton Puissance max par activation selon `charge_gain_mode` :
-    #    - DEGAT_EFFECTIF : >= 1 parcelle réellement endommagée ;
-    #    - FRAPPE_NON_PAREE : >= 1 frappe exécutée sur une parcelle réelle non-Route ni parée ni piégée
-    #      (une attaque Devant hors-plateau depuis la dernière parcelle ne fait jamais gagner de jeton).
+    # 4. Mode CHARGE (v6.1 gelé sur FRAPPE_NON_PAREE) : +1 jeton Puissance max par activation dès
+    #    qu'au moins 1 frappe est exécutée sur une parcelle réelle non-Route sans être parée ni piégée
+    #    (garde-fou hors-plateau : une attaque Devant depuis la dernière parcelle ne fait jamais gagner de jeton).
     cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
-    qualifies_charge_gain = (
-        (damaged_parcels >= 1)
-        if state.cfg.charge_gain_mode == "DEGAT_EFFECTIF"
-        else (executed_strikes >= 1 and unparried_real_strikes >= 1)
-    )
+    qualifies_charge_gain = executed_strikes >= 1 and unparried_real_strikes >= 1
     gained_red = False
     if (
         is_charge_atk

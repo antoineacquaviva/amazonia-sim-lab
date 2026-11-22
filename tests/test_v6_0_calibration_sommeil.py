@@ -49,7 +49,7 @@ def test_v6_1_reve_advance_mode_locked_to_clear_rank_only() -> None:
 def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Valide validation_socle_v6_1.json (P4_2233 + duel CHARGE_GAIN) et by_variant_x_bot_x_n_players."""
+    """Valide validation_socle_v6_1.json (P4_2233 + FRAPPE_NON_PAREE gelé) et by_variant_x_bot_x_n_players."""
     import campaigns.digest_builder as db_mod
 
     manifest_path = ROOT / "campaigns" / "manifests" / "validation_socle_v6_1.json"
@@ -70,10 +70,16 @@ def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     with pytest.raises(ValueError, match="reve_advance_mode"):
         resolve_manifest_plan(bad_manifest)
 
+    bad_charge_manifest = dict(manifest)
+    bad_charge_manifest["charge_gain_modes"] = ["DEGAT_EFFECTIF"]
+    with pytest.raises(ValueError, match="charge_gain_mode"):
+        resolve_manifest_plan(bad_charge_manifest)
+
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_cross_v6_1"
     micro_manifest["player_counts"] = [3, 6]
     micro_manifest["games_per_configuration"] = 2
+    micro_manifest["gardien_bet_cap_policies"] = ["UNIFORM_MAX_2", "MAX_2_RES_MAX_1"]
 
     micro_file = tmp_path / "micro_cross_v6_1.json"
     micro_file.write_text(json.dumps(micro_manifest), encoding="utf-8")
@@ -113,7 +119,7 @@ def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     combos = {(r["variant_id"], r["bot"], r["n_players"]) for r in cross_rows}
     assert combos == {
         (v, b, n)
-        for v in ("CHARGE=DEGAT_EFFECTIF", "CHARGE=FRAPPE_NON_PAREE")
+        for v in ("CAP=UNIFORM_MAX_2", "CAP=MAX_2_RES_MAX_1")
         for b in ("B0", "B1", "B2")
         for n in (3, 6)
     }

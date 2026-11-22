@@ -83,7 +83,7 @@ zéro `import random`, zéro état global mutable).
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
 - `REVE_ADVANCE_MODES: tuple[str, ...] = ('CLEAR_RANK_ONLY',)`
 - `REVE_5_TRIGGER_MODES: tuple[str, ...] = ('ACTIF',)`
-- `CHARGE_GAIN_MODES: tuple[str, ...] = ('DEGAT_EFFECTIF', 'FRAPPE_NON_PAREE')`
+- `CHARGE_GAIN_MODES: tuple[str, ...] = ('FRAPPE_NON_PAREE',)`
 - `PIEGE_SCOPE_MODES: tuple[str, ...] = ('SINGLE_STRIKE',)`
 
 ### Fonctions publiques
@@ -150,7 +150,7 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis).
 - `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='CLEAR_RANK_ONLY', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', reve_5_trigger_mode: str='ACTIF', charge_gain_mode: str='DEGAT_EFFECTIF', piege_scope_mode: str='SINGLE_STRIKE', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.1 à partir d'un index 0..191.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='CLEAR_RANK_ONLY', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', reve_5_trigger_mode: str='ACTIF', charge_gain_mode: str='FRAPPE_NON_PAREE', piege_scope_mode: str='SINGLE_STRIKE', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.1 à partir d'un index 0..191.
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).

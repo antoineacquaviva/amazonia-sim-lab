@@ -14,8 +14,6 @@ from bots.belief_and_ticks import (
 from bots.heuristic_engine import (
     choose_b1,
     choose_b2,
-    play_game_b1,
-    play_game_b2,
     score_target_b1,
     score_target_b2,
 )
@@ -36,7 +34,6 @@ from engine.state import (
     GameState,
     is_reve_code,
 )
-from engine.telemetry import TelemetryTracker
 
 __all__ = (
     "MANDATORY_6_CIRCLES",
@@ -595,34 +592,8 @@ def sequential_halving_select(
 
 # ---------------------------------------------------------------------------
 # Batterie contrefactuelle multi-étapes v6.1
-# (2.1 / 2.2 / Rive Piège / Rive Sabotage / 4.1 Pose Piège / 5.3 Éveil / Charge Gain)
+# (2.1 / 2.2 / Rive Piège / Rive Sabotage / 4.1 Pose Piège / 5.3 Éveil)
 # ---------------------------------------------------------------------------
-
-
-def _clone_cfg_with_charge_gain(cfg: GameConfig, charge_gain_mode: str) -> GameConfig:
-    return GameConfig(
-        n_players=cfg.n_players,
-        mode=cfg.mode,
-        peuples=cfg.peuples,
-        exp_seed=cfg.exp_seed,
-        rep_id=cfg.rep_id,
-        coordonnateur_initial=cfg.coordonnateur_initial,
-        max_revision_passes=cfg.max_revision_passes,
-        profil_piste=cfg.profil_piste,
-        regle_ouverture_reve_multiple=cfg.regle_ouverture_reve_multiple,
-        offset_seuil_parade=cfg.offset_seuil_parade,
-        placement_initial_machines=cfg.placement_initial_machines,
-        role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
-        synergie_binome_machines=cfg.synergie_binome_machines,
-        reve_activation_mode=cfg.reve_activation_mode,
-        gardien_bet_cap_policy=cfg.gardien_bet_cap_policy,
-        reve_advance_mode=cfg.reve_advance_mode,
-        gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
-        reve_5_trigger_mode=cfg.reve_5_trigger_mode,
-        charge_gain_mode=charge_gain_mode,
-        piege_scope_mode=cfg.piege_scope_mode,
-        tile_profiles=cfg.tile_profiles,
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -965,32 +936,6 @@ def run_v6_1_causal_forks_on_config(
 
         apply_choice(state, chooser(state, out))
 
-    # 4. Fork apparié plein-match CRN : CHARGE_GAIN FRAPPE_NON_PAREE vs DEGAT_EFFECTIF
-    cfg_frappe = _clone_cfg_with_charge_gain(cfg, "FRAPPE_NON_PAREE")
-    cfg_degat = _clone_cfg_with_charge_gain(cfg, "DEGAT_EFFECTIF")
-    trk_f = TelemetryTracker()
-    trk_d = TelemetryTracker()
-    if is_b2:
-        res_f = play_game_b2(
-            GameState(cfg_frappe), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_f
-        )
-        res_d = play_game_b2(
-            GameState(cfg_degat), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_d
-        )
-    else:
-        res_f = play_game_b1(
-            GameState(cfg_frappe), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_f
-        )
-        res_d = play_game_b1(
-            GameState(cfg_degat), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_d
-        )
-    rollouts += 2
-    dv_chg = float(res_f.ratio_arbres) - float(res_d.ratio_arbres)
-    dtok_chg = (
-        float(trk_f.summary().power_tokens_end_act1 - trk_d.summary().power_tokens_end_act1)
-        / (2.0 * cfg.n_players)
-    )
-
     return CausalForksSummary(
         mf_2_2=mf_rec,
         has_2_1_anchor=has_2_1,
@@ -1006,8 +951,8 @@ def run_v6_1_causal_forks_on_config(
         delta_v_furt_rive_piege=dv_furt_rp,
         has_furt_rive_sabotage_fork=has_furt_rs,
         delta_v_furt_rive_sabotage=dv_furt_rs,
-        has_charge_gain_fork=True,
-        delta_v_charge_frappe_minus_degat=dv_chg,
-        delta_tokens_act1_frappe_minus_degat=dtok_chg,
+        has_charge_gain_fork=False,
+        delta_v_charge_frappe_minus_degat=0.0,
+        delta_tokens_act1_frappe_minus_degat=0.0,
     )
 
