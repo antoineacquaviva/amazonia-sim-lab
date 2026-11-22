@@ -1002,12 +1002,13 @@
     }
 
     const DIGEST_GEMINI_PROMPT_PREFIX = [
-      "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :",
+      "Voici le bilan de campagne Amazonia : Dernier Rempart (règles cœur actives, tuiles testées et statistiques comme référence factuelle) :",
       "",
       "Consignes de restitution pour l'auteur :",
-      "- Rédige ton rapport en français naturel, clair et fluide, directement adressé à l'auteur du jeu.",
-      "- Zéro code interne, zéro nom de variable, zéro identifiant de variante, zéro numéro de règle ou d'étape, zéro jargon statistique brut : traduis systématiquement chaque notion en langage concret de jeu de société (par exemple : joueurs débutants / intermédiaires / aguerris plutôt que les noms de bots ; les 20 % pires parties plutôt que le sigle statistique ; description claire de chaque variante testée).",
-      "- Structure le rapport en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations à table de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.",
+      "- Continuité de la discussion avant tout : si une conversation est déjà en cours, réponds d'abord dans sa continuité directe (en reliant ces résultats aux hypothèses, intentions et arbitrages déjà discutés et à la question précise du message). N'utilise le bilan complet en 4 temps que si la discussion vient de démarrer ou si l'auteur demande un bilan global.",
+      "- Fiabilité factuelle : pour les chiffres et les règles actives, ne rien inventer et s'appuyer uniquement sur les données de ce bilan.",
+      "- Français naturel et zéro jargon : rédige en français clair pour l'auteur du jeu, sans code interne, nom de variable, identifiant de variante, numéro de règle/d'étape ni sigle statistique brut (traduis systématiquement chaque notion en langage concret de jeu de société).",
+      "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.",
       "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
     ].join('\n');
     let copyDigestFeedbackTimer = null;

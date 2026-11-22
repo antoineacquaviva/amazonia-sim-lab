@@ -437,11 +437,11 @@ setImmediate(() => {
       throw new Error('Attendu 1 écriture presse-papiers, obtenu ' + clipboardWrites.length);
     }
     const copied = clipboardWrites[0];
-    const expectedPrefix = "Analyse ce bilan de campagne Amazonia : Dernier Rempart en t'appuyant exclusivement sur les règles cœur actives, les tuiles testées et les statistiques du digest ci-dessous :";
+    const expectedPrefix = "Voici le bilan de campagne Amazonia : Dernier Rempart (règles cœur actives, tuiles testées et statistiques comme référence factuelle) :";
     if (!copied.startsWith(expectedPrefix)) {
       throw new Error('Amorce attendue absente au début du texte copié');
     }
-    if (!copied.includes("Consignes de restitution pour l'auteur :") || !copied.includes("Zéro code interne")) {
+    if (!copied.includes("Consignes de restitution pour l'auteur :") || !copied.includes("Continuité de la discussion avant tout")) {
       throw new Error('Consignes de restitution auteur absentes du texte copié');
     }
     if (!copied.includes('"active_core_rules"') || !copied.includes('"tested_tiles_rules"') || !copied.includes('"tile_metrics"')) {

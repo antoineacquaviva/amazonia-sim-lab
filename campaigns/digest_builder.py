@@ -56,14 +56,23 @@ GEMINI_EDITORIAL_HEADER: str = (
 
 GEMINI_EDITORIAL_STYLE_INSTRUCTIONS: str = (
     "Consignes de restitution pour l'auteur :\n"
-    "- Rédige ton rapport en français naturel, clair et fluide, directement adressé à l'auteur du jeu.\n"
-    "- Zéro code interne, zéro nom de variable, zéro identifiant de variante, zéro numéro de règle ou d'étape, zéro jargon statistique brut : traduis systématiquement chaque notion en langage concret de jeu de société (par exemple : joueurs débutants / intermédiaires / aguerris plutôt que les noms de bots ; les 20 % pires parties plutôt que le sigle statistique ; description claire de chaque variante testée).\n"
-    "- Structure le rapport en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations à table de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.\n"
+    "- Continuité de la discussion avant tout : si une conversation est déjà en cours, réponds d'abord dans sa continuité directe (en reliant les résultats aux hypothèses, intentions et arbitrages déjà discutés et à la question précise du message). N'utilise le bilan complet en 4 temps que si la discussion vient de démarrer ou si l'auteur demande un bilan global.\n"
+    "- Fiabilité factuelle : pour les chiffres et les règles actives, ne rien inventer et s'appuyer uniquement sur les données de ce bilan.\n"
+    "- Français naturel et zéro jargon : rédige en français clair pour l'auteur du jeu, sans code interne, nom de variable, identifiant de variante, numéro de règle/d'étape ni sigle statistique brut (traduis systématiquement chaque notion en langage concret de jeu de société).\n"
+    "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.\n"
     "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
 )
 
 AUTHOR_REPORTING_INSTRUCTIONS: dict[str, Any] = {
     "public": "Auteur du jeu (restitution éditoriale en français courant)",
+    "continuite_discussion": (
+        "Répondre en priorité dans la continuité de la discussion en cours (question posée, "
+        "hypothèses et arbitrages déjà évoqués) ; utiliser le bilan comme preuve chiffrée "
+        "sans repartir d'une feuille blanche."
+    ),
+    "fiabilite_factuelle": (
+        "Pour les règles actives et les statistiques, ne rien inventer et se fier uniquement aux données de ce bilan."
+    ),
     "interdits": (
         "Aucun code interne, nom de variable, identifiant de variante, numéro d'étape/règle "
         "ni sigle statistique brut dans le corps du rapport."
@@ -72,7 +81,7 @@ AUTHOR_REPORTING_INSTRUCTIONS: dict[str, Any] = {
         "Traduire chaque indicateur et variante en langage concret de jeu de société "
         "(ex. joueurs débutants/intermédiaires/aguerris, pires 20 % de parties, description claire des règles testées)."
     ),
-    "structure_attendue": [
+    "structure_bilan_global": [
         "1. Hauteur de vue (lien avec les travaux en cours et les intentions d'auteur)",
         "2. Chiffres clés (essentiels, lisibles et contextualisés)",
         "3. Constats majeurs (forces, fragilités, sensations de 3 à 6 joueurs)",
