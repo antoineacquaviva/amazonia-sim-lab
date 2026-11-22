@@ -347,11 +347,11 @@ def test_chronology_witness_3_1_reve_cancels_3_2_machine_and_enables_4_1_furtivi
         for s in (1, 2, 3):
             st.set_player_hand(s, 0, 1, 1, 1, 0)
 
-        # Abatteuse rayon 0 en parcelle p=4 + 2 Défenseurs en Furtivité (lisière 0, p=4, rive 0 -> rayon 0)
+        # Abatteuse rayon 0 en parcelle p=4 + 2 Défenseurs sur la Rive Sabotage du rayon 0 (rive=1)
         st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
         st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=1, bleus=0)
-        st.enter_furtivite(0, 0, 0, 4, 0, FACE_DEFINITIF)
-        st.enter_furtivite(0, 1, 0, 4, 0, FACE_DEFINITIF)
+        st.place_defender_furtivite(0, 0, 0, 1, FACE_DEFINITIF)
+        st.place_defender_furtivite(2, 1, 0, 1, FACE_DEFINITIF)
 
         # Exécute tout le reste du Tour 1 (3.1 -> 3.2 -> 4.1 -> 5.1 -> 6.x) jusqu'au Tour 2
         for _ in range(16):
@@ -369,13 +369,13 @@ def test_chronology_witness_3_1_reve_cancels_3_2_machine_and_enables_4_1_furtivi
     sab_with, arbres_with, track_with = _run_twin(build_reve_in_3_1=True)
     sab_without, arbres_without, track_without = _run_twin(build_reve_in_3_1=False)
 
-    # Avec Rêve bâti en 3.1 et activé : posé en case 6, annule l'Abatteuse en 3.2 (et s'ouvre -> glisse en case 5),
-    # déclenche le Sabotage en Furtivité 4.1 (+1 carte Sabotage permanente) et préserve les 3 arbres en 5.1 !
+    # En v6.1 : le Rêve activé en 3.2 annule l'Abatteuse et préserve les 3 arbres en 5.1,
+    # tandis que le garde-fou d'indépendance 4.1 maintient m(0) == 1 (carte révélée), donc 0 Sabotage !
     assert any(code >= TILE_R_BASE for code in track_with)
-    assert sab_with == 1
+    assert sab_with == 0
     assert arbres_with == 3
 
-    # Sans Rêve bâti en 3.1 : aucun Rêve en piste, machine active en 3.2 -> 0 Sabotage en 4.1 et coupe en 5.1 !
+    # Sans Rêve : aucun Rêve en piste, machine active en 3.2 -> 0 Sabotage en 4.1 et coupe en 5.1 !
     assert not any(code >= TILE_R_BASE for code in track_without)
     assert sab_without == 0
     assert arbres_without < arbres_with

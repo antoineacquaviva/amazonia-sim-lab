@@ -222,44 +222,46 @@ def test_04_sabotage_drawn_in_step1_rolls_zero_dice_and_loses_activation() -> No
 
 
 # ---------------------------------------------------------------------------
-# Test 5 : Furtivité libre A1 à 4 emplacements (2 rives indépendantes, zéro glissement)
+# Test 5 : Furtivité v6.1 par rayon (2 rives indépendantes Piège/Sabotage, zéro glissement)
 # ---------------------------------------------------------------------------
 def test_05_furtivite_4_twin_slots_pull_vs_in_place_flip() -> None:
     cfg = GameConfig(n_players=4, mode=1, exp_seed=55)
     state = GameState(cfg)
 
-    # Siège 0 pose son 1er Défenseur sur lisière 0, p=2, rive 0 (slot 0, face définitif)
-    state.enter_furtivite(seat=0, def_idx=0, lisiere=0, p=2, rive=0, face=FACE_DEFINITIF)
-    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, 0, 0)
-    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 1
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 0
+    # Siège 0 pose son 1er Défenseur sur rayon 0, rive 0 (Rive Piège, slot 0, face définitif)
+    state.place_defender_furtivite(seat=0, def_idx=0, ray=0, rive=0, face=FACE_DEFINITIF)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, 0, 0)
+    assert state.get_furtivite_nb_def_rive(0, 1, 0) == 1
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 0
 
-    # v6.0 Furtivité libre A1 : siège 1 pose sur rive 1 sans déplacer ni tirer siège 0 !
-    state.enter_furtivite(seat=1, def_idx=1, lisiere=0, p=2, rive=1, face=FACE_REFLEXION)
-    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, FACE_REFLEXION, 0)
-    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 1
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 1
+    # v6.1 : siège 1 pose sur rive 1 (Rive Sabotage) sans déplacer ni tirer siège 0 !
+    state.place_defender_furtivite(seat=1, def_idx=1, ray=0, rive=1, face=FACE_REFLEXION)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, FACE_REFLEXION, 0)
+    assert state.get_furtivite_nb_def_rive(0, 1, 0) == 1
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 1
 
     # Retourner réflexion -> définitif sur place ne déplace aucun pion
     state.flip_defender2_to_definitif_in_place(seat=1)
-    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, FACE_DEFINITIF, 0)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, FACE_DEFINITIF, 0)
     assert state.is_player_def2_definitif(1) is True
 
     # Les deux rives ont encore 1 place libre chacune ; un 3e Défenseur peut compléter la rive 1
     legal_s2 = list_legal_targets(state, seat=2, is_first_defender=False)
-    assert ("FURTIVITE", 0, 2, 0) in legal_s2
-    assert ("FURTIVITE", 0, 2, 1) in legal_s2
-    state.enter_furtivite(seat=2, def_idx=1, lisiere=0, p=2, rive=1, face=FACE_DEFINITIF)
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 2
+    assert ("FURTIVITE", 0, 0) in legal_s2
+    assert ("FURTIVITE", 0, 1) in legal_s2
+    state.place_defender_furtivite(seat=2, def_idx=1, ray=0, rive=1, face=FACE_DEFINITIF)
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 2
     legal_s3 = list_legal_targets(state, seat=3, is_first_defender=False)
-    assert ("FURTIVITE", 0, 2, 0) in legal_s3
-    assert ("FURTIVITE", 0, 2, 1) not in legal_s3
+    assert ("FURTIVITE", 0, 0) in legal_s3
+    assert ("FURTIVITE", 0, 1) not in legal_s3
 
 
 # ---------------------------------------------------------------------------
-# Test 6 : Saut des Routes sur un rayon vs blocage latéral Furtivité
+# Test 6 : Saut des Routes sur un rayon & fermeture Furtivité sur rayon intégralement rasé
 # ---------------------------------------------------------------------------
 def test_06_route_bridge_radial_jump_and_lateral_blocking() -> None:
+    from engine.state import MACHINE_STATUS_RETIRED
+
     cfg = GameConfig(n_players=4, mode=1, exp_seed=66)
     state = GameState(cfg)
 
@@ -273,47 +275,56 @@ def test_06_route_bridge_radial_jump_and_lateral_blocking() -> None:
 
     # Vérifier la frappe T3 (SUR_PLACE + DEVANT + avancée 1) d'une Abatteuse en p=1
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
-    arbres_p3_before = state.get_parcel_arbres(0, 3)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3])
-    assert state.get_parcel_arbres(0, 3) == arbres_p3_before - 2
+    assert state.get_parcel_arbres(0, 3) == 0  # Abatteuse v6.1 coupe tous les Arbres de la parcelle
     pos_after, _, _ = state.get_machine_pos_status(0, MACHINE_ABATTEUSE)
     assert pos_after == 3  # A sauté la Route en p=2 !
 
-    # Latéralement : rive 0 de lisière 0 à p=2 fait face à la Route (0, 2) -> interdite !
-    # Tandis que la rive 1 de lisière 0 à p=2 fait face à (1, 2) intacte -> autorisée !
+    # Tant que le rayon 0 n'est pas 100 % rasé, sa Furtivité reste ouverte ; la Route (0, 2) est interdite
     legal_0 = list_legal_targets(state, seat=0, is_first_defender=True)
     assert ("FORET", 0, 2) not in legal_0
-    assert ("FURTIVITE", 0, 2, 0) not in legal_0
-    assert ("FURTIVITE", 0, 2, 1) in legal_0
+    assert ("FURTIVITE", 0, 0) in legal_0
+    assert ("FURTIVITE", 0, 1) in legal_0
     assert ("LISIERE", 0) not in legal_0  # Mode 1 : G/R/M interdit
+
+    # Dès que le rayon 0 est intégralement transformé en Routes (2 machines retirées), sa Furtivité est fermée
+    for p in range(1, cfg.p_max + 1):
+        state.set_parcel_arbres_souches(0, p, 0, 0)
+    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 0, MACHINE_STATUS_RETIRED)
+    state.set_machine_pos_status(0, MACHINE_BULLDOZER, 0, MACHINE_STATUS_RETIRED)
+    legal_0_razed = list_legal_targets(state, seat=0, is_first_defender=True)
+    assert ("FURTIVITE", 0, 0) not in legal_0_razed
+    assert ("FURTIVITE", 0, 1) not in legal_0_razed
+    assert ("FURTIVITE", 1, 0) in legal_0_razed
 
 
 # ---------------------------------------------------------------------------
-# Test 7 : Chaîne Piège Embuscade (Déf >= 1 vs 0) puis Parade classique immédiate
+# Test 7 : Chaîne Piège autonome SINGLE_STRIKE (même avec Déf == 0) puis Parade classique immédiate
 # ---------------------------------------------------------------------------
 def test_07_trap_ambush_vs_inert_and_classic_parade_immediate_discard() -> None:
     cfg = GameConfig(n_players=4, mode=1, exp_seed=77)
     state = GameState(cfg)
 
-    # Cas A : Piège INERTE si Défense == 0 -> l'Abatteuse T1 coupe 2 Arbres et le Piège ne pare pas
+    # Cas A (v6.1) : Piège AUTONOME sur (0, 1) avec 0 Défenseur et 0 Insecte -> pare et est défaussé aussitôt !
+    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_parcel_piege(0, 1, PIEGE_ACTIF)
     state.set_parcel_defenseurs(0, 1, 0)
     state.set_parcel_insectes(0, 1, 0)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
-    assert state.get_parcel_arbres(0, 1) == 0
-    assert state.get_parcel_souches(0, 1) == 2
-    assert state.get_parcel_piege(0, 1) == PIEGE_ACTIF  # Non déclenché !
+    assert state.get_parcel_arbres(0, 1) == 2  # Intact !
+    assert state.get_parcel_souches(0, 1) == 0
+    assert state.get_parcel_piege(0, 1) == PIEGE_AUCUN
 
-    # Cas B : Piège ARMÉ sur (1, 3) avec 0 Défenseur mais 1 Insecte (Défense totale = 1 >= 1)
-    # Machine avec 3 jetons rouges en ASSAUT T4 (Seuil = 3 + 3 = 6), mais Embuscade pare sans défausser l'Insecte !
+    # Cas B : Piège autonome sur (1, 3) avec 0 Défenseur et 1 Insecte face à ASSAUT T4 (+3 rouges -> Seuil 6)
+    # Le Piège pare sans défausser l'Insecte puis est défaussé aussitôt !
     state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(1, MACHINE_ABATTEUSE, 3, 0)
     state.set_parcel_piege(1, 3, PIEGE_ACTIF)
     state.set_parcel_insectes(1, 3, 1)
     resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4])
     assert state.get_parcel_arbres(1, 3) == 3  # Intact !
-    assert state.get_parcel_insectes(1, 3) == 1  # Épargné par l'Embuscade !
-    assert state.get_parcel_piege(1, 3) == PIEGE_DECLENCHE
+    assert state.get_parcel_insectes(1, 3) == 1  # Épargné par le Piège autonome !
+    assert state.get_parcel_piege(1, 3) == PIEGE_AUCUN
 
     # Cas C : Parade classique sans Piège sur (2, 3) en ASSAUT T4 [Seuil imprimé = 3, +1 Rouge -> Seuil = 4]
     # 1 Défenseur + 5 Insectes -> pare en défaussant immédiatement (4 - 1) = 3 Insectes !
@@ -375,15 +386,16 @@ def test_09_machine_nid_contact_returns_nid_reconstructible_and_clears_insects()
     state.set_parcel_defenseurs(0, 2, 2)
     state.set_parcel_piege(0, 2, PIEGE_ACTIF)
 
-    # Abatteuse en p=1 avance en p=2 sur T3 (même si ses frappes sont parées par le Piège !)
+    # Abatteuse en p=1 avance en p=2 sur T3 (le Piège pare la frappe DEVANT puis est défaussé aussitôt)
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3])
 
     assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 2
+    assert state.get_parcel_arbres(0, 2) == 2  # Arbres protégés par le Piège autonome !
     assert state.get_parcel_nid(0, 2) == (0, False)
     assert state.get_parcel_insectes(0, 2) == 0  # Insectes défaussés au contact !
     assert state.get_parcel_defenseurs(0, 2) == 2  # Défenseurs préservés !
-    assert state.get_parcel_piege(0, 2) in (PIEGE_ACTIF, PIEGE_DECLENCHE)  # Piège préservé !
+    assert state.get_parcel_piege(0, 2) == PIEGE_AUCUN  # Défaussé aussitôt (SINGLE_STRIKE) !
     assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_UNCONSTRUCTED, 0)  # Reconstructible !
 
 
@@ -428,7 +440,7 @@ def test_11_ratissage_autonomy_when_t1_ejected_vs_learning_when_present() -> Non
     _ = step_until_decision(s_rat)
 
     # L'attaque autonome du Ratissage a bien eu lieu en 5.2 avec +1 puissance imprimée
-    assert s_rat.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre
+    assert s_rat.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
     assert s_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
     assert s_rat.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
     # Piste T1..T6 inchangée (aucun Apprentissage ni glissement en Étape 6)
@@ -685,6 +697,7 @@ def test_17_transient_modifiers_384b_and_6_2_reset() -> None:
     assert not state.is_route_forestiere(1, 2)
 
     # Auto-Parade once (ex: G11 A Face 2) avec >= 2 Défenseurs
+    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_parcel_defenseurs(2, 1, 2)
     state.set_parcel_flag_turn(2, 1, PFLAG_AUTO_PARADE_ONCE, True)
     state.set_machine_tokens(2, MACHINE_ABATTEUSE, 5, 0)

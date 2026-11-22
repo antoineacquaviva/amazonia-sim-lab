@@ -19,7 +19,7 @@ def test_spec_bundle_structure_and_counts() -> None:
     assert BUNDLE_PATH.exists(), "data/spec_bundle_v6_0.json manquant"
     bundle = json.loads(BUNDLE_PATH.read_text(encoding="utf-8"))
 
-    assert bundle["meta"]["schema_version"] == "6.0.0-alpha"
+    assert bundle["meta"]["schema_version"] == "6.1.0-alpha"
     assert len(bundle["chassis_axes"]) == 6
     assert [t["id"] for t in bundle["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert bundle["machine_deck_rules"]["sabotage_dilution_permanente"] is True

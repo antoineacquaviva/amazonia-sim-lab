@@ -8,7 +8,6 @@ from engine.primitives import (
     CAUSE_REVE_RANG_1,
     CAUSE_REVEIL_GARDIENS,
     CAUSE_TOUR_8,
-    DEC_EFFET_TUILE,
     HOOK_1_3_LECTURE_DE,
     HOOK_2_1_DEBUT,
     HOOK_2_1_PORTEE_DEF1,
@@ -61,6 +60,8 @@ from engine.state import (
     FACE_REFLEXION,
     FAMILLE_GARDIEN,
     FAMILLE_REVE,
+    FURT_RIVE_PIEGE,
+    FURT_RIVE_SABOTAGE,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
@@ -111,7 +112,6 @@ from engine.state import (
 
 __all__ = (
     "DEC_CHOIX_CASE_GARDIEN",
-    "DEC_CHOIX_REVE_3_2",
     "DEC_COLONIE_A_OPEN",
     "DEC_LIBERATION_BATISSEUR_3_1",
     "DEC_MIGRATION_INSECTE_4_3",
@@ -122,6 +122,7 @@ __all__ = (
     "DEC_PLACEMENT_NID_3_1",
     "DEC_POSE_DEFENSEUR_1",
     "DEC_POSE_DEFENSEUR_2",
+    "DEC_POSE_PIEGE_FURTIVITE_4_1",
     "DEC_RETRAIT_APPRENTISSAGE_6_1",
     "DEC_REVISION_DEFENSEUR_2",
     "advance_step2_to_2_2",
@@ -149,7 +150,7 @@ DEC_POSE_DEFENSEUR_2: str = "POSE_DEFENSEUR_2"
 DEC_REVISION_DEFENSEUR_2: str = "REVISION_DEFENSEUR_2"
 DEC_ORDRE_CONSTRUCTION_3_1: str = "ORDRE_CONSTRUCTION_3_1"
 DEC_CHOIX_CASE_GARDIEN: str = "CHOIX_CASE_GARDIEN"
-DEC_CHOIX_REVE_3_2: str = "CHOIX_REVE_3_2"
+DEC_POSE_PIEGE_FURTIVITE_4_1: str = "POSE_PIEGE_FURTIVITE_4_1"
 DEC_LIBERATION_BATISSEUR_3_1: str = "LIBERATION_BATISSEUR_3_1"
 DEC_PLACEMENT_NID_3_1: str = "PLACEMENT_NID_3_1"
 DEC_ORDRE_NID_4_2: str = "ORDRE_NID_4_2"
@@ -375,9 +376,9 @@ def _governor_for_peuple(state: GameState, peuple_code: str) -> int:
 _FORET_TARGETS: tuple[tuple[tuple[str, int, int], ...], ...] = tuple(
     tuple(("FORET", r, p) for p in range(MAX_P + 1)) for r in range(MAX_N)
 )
-_FURT_TARGETS: tuple[tuple[tuple[tuple[str, int, int, int], tuple[str, int, int, int]], ...], ...] = tuple(
-    tuple((("FURTIVITE", l_idx, p, 0), ("FURTIVITE", l_idx, p, 1)) for p in range(MAX_P + 1))
-    for l_idx in range(MAX_N)
+_FURT_TARGETS: tuple[tuple[tuple[str, int, int], tuple[str, int, int]], ...] = tuple(
+    (("FURTIVITE", r_idx, FURT_RIVE_PIEGE), ("FURTIVITE", r_idx, FURT_RIVE_SABOTAGE))
+    for r_idx in range(MAX_N)
 )
 _LIS_TARGETS: tuple[tuple[str, int], ...] = tuple(
     ("LISIERE", slot_idx) for slot_idx in range(NUM_SYNERGY_SLOTS)
@@ -390,7 +391,7 @@ _REVE_ACTIVATION_TARGETS: tuple[tuple[str, int], ...] = tuple(
 )
 _ALL_CANONICAL_TARGETS: tuple[tuple[Any, ...], ...] = (
     tuple(t for row in _FORET_TARGETS for t in row[1:])
-    + tuple(t for row in _FURT_TARGETS for pair in row[1:] for t in pair)
+    + tuple(t for pair in _FURT_TARGETS for t in pair)
     + _LIS_TARGETS
     + _GARDIEN_PARI_TARGETS[1:]
     + _REVE_ACTIVATION_TARGETS[1:]
@@ -430,7 +431,7 @@ def _current_def_canonical_spot(state: GameState, seat: int, def_idx: int) -> tu
     if kind == "FORET":
         return _FORET_TARGETS[a][b]
     if kind == "FURTIVITE":
-        return _FURT_TARGETS[a][b][c // 2]
+        return _FURT_TARGETS[a][c // 2]
     if kind == "LISIERE":
         return _LIS_TARGETS[a]
     if kind == "GARDIEN_PARI":
@@ -460,39 +461,23 @@ def _list_legal_targets_impl(
         use_global = use_global or bool(portee_ctx.get("global_range"))
         extra_targets = tuple(portee_ctx.get("extra_targets", ()))
 
+    all_rays = _RAYS_BY_N[n]
     if not use_global:
-        rays, lisieres, lis_slots = _DEF1_LOCAL_RANGES[(n, seat)]
+        rays, _, lis_slots = _DEF1_LOCAL_RANGES[(n, seat)]
     else:
-        rays = _RAYS_BY_N[n]
-        lisieres = rays
+        rays = all_rays
         lis_slots = _LIS_SLOTS_BY_N[n]
 
     targets: list[tuple[Any, ...]] = []
 
-    # 1. Parcelles Forêt non rasées
+    # 1. Parcelles Forêt non rasées (rayon local en 2.1, tous les rayons en 2.2)
     for r in rays:
         f_row = _FORET_TARGETS[r]
         for p in range(1, p_max + 1):
             if not state.is_route_forestiere(r, p):
                 targets.append(f_row[p])
 
-    # 2. Cases Furtivité libre A1 (chaque rive 0/1 indépendante : < 2 Défenseurs sur la rive, pas face à une Route)
-    for l_idx in lisieres:
-        fu_row = _FURT_TARGETS[l_idx]
-        r1 = (l_idx + 1) % n
-        pair_rays = (l_idx, r1)
-        for p in range(1, p_max + 1):
-            pair = fu_row[p]
-            for rv in (0, 1):
-                if state.is_route_forestiere(pair_rays[rv], p):
-                    continue
-                d_rv = state.get_furtivite_nb_def_rive(l_idx, p, rv)
-                if own_spot == pair[rv]:
-                    d_rv -= 1
-                if d_rv < 2:
-                    targets.append(pair[rv])
-
-    # 3. Tuiles de Synergie en lisière (interdites en Mode 1, non construites et < 2 bâtisseurs)
+    # 2. Tuiles de Synergie en lisière (interdites en Mode 1, non construites et < 2 bâtisseurs)
     if state.cfg.mode >= 2:
         for slot_idx in lis_slots:
             st, nb = state.get_lisiere_tile_state(slot_idx)
@@ -502,7 +487,33 @@ def _list_legal_targets_impl(
             if st == LISIERE_UNCONSTRUCTED and nb < 2:
                 targets.append(cand_l)
 
-    # 4. Pari d'activation des Gardiens (Défenseur en 2.2, Mode >= 2, >= 1 Animal Sauvage, plafond v5.4.5)
+    # Repli anti-blocage si le territoire local (Forêt + Lisière) d'un siège en 2.1 est 100 % rasé/plein :
+    # étend la portée Forêt + Lisière à toute la table sans jamais exposer GARDIEN_PARI au 1er Défenseur.
+    if not targets and not use_global:
+        for r in all_rays:
+            f_row = _FORET_TARGETS[r]
+            for p in range(1, p_max + 1):
+                if not state.is_route_forestiere(r, p):
+                    targets.append(f_row[p])
+        if state.cfg.mode >= 2:
+            for slot_idx in _LIS_SLOTS_BY_N[n]:
+                st, nb = state.get_lisiere_tile_state(slot_idx)
+                if st == LISIERE_UNCONSTRUCTED and nb < 2:
+                    targets.append(_LIS_TARGETS[slot_idx])
+
+    # 3. Furtivité v6.1 (« Chaud vs Calme » au pied de chaque rayon non intégralement rasé, libre en 2.1 et 2.2)
+    for r_idx in all_rays:
+        if not state.is_ray_furtivite_open(r_idx):
+            continue
+        pair = _FURT_TARGETS[r_idx]
+        for rv in (FURT_RIVE_PIEGE, FURT_RIVE_SABOTAGE):
+            d_rv = state.get_furtivite_nb_def_rive(r_idx, 1, rv)
+            if own_spot == pair[rv]:
+                d_rv -= 1
+            if d_rv < 2:
+                targets.append(pair[rv])
+
+    # 4. Pari d'activation des Gardiens (réservé au 2e Défenseur en 2.2, Mode >= 2, >= 1 Animal Sauvage)
     if not is_first_defender and state.cfg.mode >= 2 and state.cfg.nb_animaux_sauvages >= 1:
         for c_num in range(1, TRACK_LEN + 1):
             g_num, _ = state.get_gardien_at_case(c_num)
@@ -516,8 +527,8 @@ def _list_legal_targets_impl(
                 continue
             targets.append(cand_pari)
 
-    # 5. Activation de Rêve sur la piste fixe (2e Défenseur uniquement, Mode >= 2)
-    if not is_first_defender and state.cfg.mode >= 2:
+    # 5. Activation de Rêve sur la Réglette (ouverte en 2.1 ET en 2.2 en v6.1, Mode >= 2)
+    if state.cfg.mode >= 2:
         for c_num in range(1, TRACK_LEN + 1):
             if is_reve_code(state.get_tactique_at_rank(c_num - 1)):
                 targets.append(_REVE_ACTIVATION_TARGETS[c_num])
@@ -526,18 +537,6 @@ def _list_legal_targets_impl(
         for ext_t in extra_targets:
             if ext_t not in targets:
                 targets.append(ext_t)
-
-    # Repli exceptionnel si 100 % du territoire local d'un siège est intégralement rasé/plein :
-    # étend uniquement la portée géographique (Forêt / Furtivité / Lisière globales) sans jamais
-    # exposer GARDIEN_PARI ni REVE_ACTIVATION au 1er Défenseur.
-    if not targets and not use_global:
-        return _list_legal_targets_impl(
-            state,
-            seat,
-            is_first_defender=is_first_defender,
-            exclude_own_def2=False,
-            force_global=True,
-        )
 
     return tuple(targets)
 
@@ -549,7 +548,7 @@ def list_legal_targets(
     is_first_defender: bool,
     exclude_own_def2: bool = False,
 ) -> tuple[tuple[Any, ...], ...]:
-    """Énumère toutes les poses légales (anti-blocage v5.3) pour un Défenseur de `seat`."""
+    """Énumère toutes les poses légales (anti-blocage v6.1) pour un Défenseur de `seat`."""
     return _list_legal_targets_impl(
         state,
         seat,
@@ -567,8 +566,12 @@ def _apply_defender_target(
         state.place_defender_foret(seat, def_idx, int(r), int(p), face)
         _record_phys_ops(state, 1)
     elif kind == "FURTIVITE":
-        _, l_idx, p, rive = target
-        state.enter_furtivite(seat, def_idx, int(l_idx), int(p), int(rive), face)
+        if len(target) == 3:
+            _, ray_idx, rive = target
+            state.place_defender_furtivite(seat, def_idx, int(ray_idx), int(rive), face)
+        else:
+            _, l_idx, p, rive = target
+            state.enter_furtivite(seat, def_idx, int(l_idx), int(p), int(rive), face)
         _record_phys_ops(state, 1)
     elif kind == "LISIERE":
         _, slot_idx = target
@@ -580,9 +583,8 @@ def _apply_defender_target(
         state.place_defender_gardien_pari(seat, int(case_c), face)
         _record_phys_ops(state, 1)
     elif kind == "REVE_ACTIVATION":
-        assert def_idx == 1, "Seul le 2e Défenseur peut cibler REVE_ACTIVATION"
         _, case_c = target
-        state.place_defender_reve_activation(seat, int(case_c), face)
+        state.place_defender_reve_activation(seat, int(case_c), face, def_idx=def_idx)
         _record_phys_ops(state, 1)
     elif kind == "PASSER_IMPASSE":
         state.mark_defender_impasse(seat, def_idx, face)
@@ -656,11 +658,10 @@ def apply_step2_def1(
         if trk is not None:
             t_kind = str(target[0])
             trk.on_step2_def1_placed(t_kind)
-            if t_kind in ("FORET", "FURTIVITE", "LISIERE"):
-                rays_loc, lis_loc, slots_loc = _DEF1_LOCAL_RANGES[(state.cfg.n_players, seat)]
+            if t_kind in ("FORET", "LISIERE"):
+                rays_loc, _, slots_loc = _DEF1_LOCAL_RANGES[(state.cfg.n_players, seat)]
                 out_of_local = (
                     (t_kind == "FORET" and int(target[1]) not in rays_loc)
-                    or (t_kind == "FURTIVITE" and int(target[1]) not in lis_loc)
                     or (t_kind == "LISIERE" and int(target[1]) not in slots_loc)
                 )
                 if out_of_local and state.cfg.mode <= 2:
@@ -1113,12 +1114,14 @@ def _resolve_machine_targets_from(
         def_non_ins = int(def_ctx["def_points"]) + int(def_ctx["remote_support"])
         total_def = def_non_ins + int(def_ctx["ins_points"])
 
-        # Maillon 3 : Piège Embuscade (armé dès que Défense totale >= 1) -> allume 2. Piégeage uniquement
+        # Maillon 3 : Piège autonome v6.1 (SINGLE_STRIKE figé, sans Embuscade)
+        # Pare exactement 1 frappe puis est défaussé aussitôt -> allume uniquement 2. Piégeage
         piege_st = state.get_parcel_piege(ray, target_p)
-        if piege_st in (PIEGE_ACTIF, PIEGE_DECLENCHE) and total_def >= 1:
-            if piege_st == PIEGE_ACTIF:
-                _record_phys_ops(state, 1)
-            state.set_parcel_piege(ray, target_p, PIEGE_DECLENCHE)
+        if piege_st == PIEGE_ACTIF:
+            _record_phys_ops(state, 1)
+            if trk is not None:
+                trk.ok_pieges_triggered += 1
+            state.set_parcel_piege(ray, target_p, PIEGE_AUCUN)
             state.light_trigger(2)
             if trk is not None:
                 trk.on_trigger_lit(2)
@@ -1200,18 +1203,14 @@ def _resolve_machine_targets_from(
 
         if m_type == MACHINE_ABATTEUSE:
             if arbres_before > 0:
-                cut = min(2, arbres_before)
-                arbres_after -= cut
+                # v6.1 : l'Abatteuse coupe TOUS les Arbres debout de la parcelle (en Souches)
+                cut = arbres_before
+                arbres_after = 0
                 souches_after += cut
                 dmg_ops += cut
-            elif effective_ratissage and souches_before > 0:
-                if trk is not None:
-                    trk.ok_abatteuse_ratissage_0_arbre += 1
-                if state.cfg.role_abatteuse_fin_de_piste == "ARRACHE_1_SOUCHE_SI_SANS_ARBRE":
-                    souches_after -= 1
-                    dmg_ops += 1
-                    if trk is not None:
-                        trk.ok_abatteuse_ratissage_souche += 1
+            elif effective_ratissage and souches_before > 0 and trk is not None:
+                # v6.1 : l'Abatteuse ne touche jamais aux Souches (micro-règle souche supprimée)
+                trk.ok_abatteuse_ratissage_0_arbre += 1
         else:
             cut = min(1, arbres_before)
             arbres_after -= cut
@@ -1241,6 +1240,7 @@ def _resolve_machine_targets_from(
             _handle_route_creation(state, ray, target_p)
 
     all_parried = executed_strikes > 0 and parried_strikes == executed_strikes
+    unparried_real_strikes = max(0, executed_strikes - parried_strikes)
     is_charge_atk = (not effective_ratissage) and is_tactique_charge(tactique.code, state.tour)
     fin_ctx: dict[str, Any] = {
         "ray": ray,
@@ -1281,13 +1281,20 @@ def _resolve_machine_targets_from(
                     dst_p=p_next,
                 )
 
-    # 4. Mode CHARGE (v6.0) : +1 jeton Puissance si >= 1 dégât effectif (plafonné à +1 par activation),
-    #    jamais en mode ASSAUT ni en Ratissage permanent.
+    # 4. Mode CHARGE (v6.1) : +1 jeton Puissance max par activation selon `charge_gain_mode` :
+    #    - DEGAT_EFFECTIF : >= 1 parcelle réellement endommagée ;
+    #    - FRAPPE_NON_PAREE : >= 1 frappe exécutée sur une parcelle réelle non-Route ni parée ni piégée
+    #      (une attaque Devant hors-plateau depuis la dernière parcelle ne fait jamais gagner de jeton).
     cur_pos, cur_st, _ = state.get_machine_pos_status(ray, m_type)
+    qualifies_charge_gain = (
+        (damaged_parcels >= 1)
+        if state.cfg.charge_gain_mode == "DEGAT_EFFECTIF"
+        else (executed_strikes >= 1 and unparried_real_strikes >= 1)
+    )
     gained_red = False
     if (
         is_charge_atk
-        and damaged_parcels >= 1
+        and qualifies_charge_gain
         and bool(fin_ctx["allow_red_gain"])
         and cur_st != MACHINE_STATUS_RETIRED
         and cur_pos > 0
@@ -1488,8 +1495,7 @@ def _transition_eligible_machines_to_ratissage(state: GameState, *, remove_from_
 def _list_insect_1cran_moves(
     state: GameState, src: tuple[str, int, int]
 ) -> tuple[tuple[Any, ...], ...]:
-    """Options de migration à 0 ou 1 cran pour un Insecte situé sur `src`."""
-    n = state.cfg.n_players
+    """Options de migration à 0 ou 1 cran pour un Insecte situé sur `src` (v6.1 : hors Furtivité)."""
     loc_type, idx_a, p = src
     opts: list[tuple[Any, ...]] = [("RESTER",)]
 
@@ -1505,14 +1511,6 @@ def _list_insect_1cran_moves(
         if p_back is not None:
             opts.append(("FORET", r, p_back))
 
-        right_l = r
-        left_l = (r - 1) % n
-        for l_adj in (right_l, left_l):
-            if state.get_furtivite_insectes(l_adj, p) < 15:
-                cand = ("FURTIVITE", l_adj, p)
-                if cand not in opts:
-                    opts.append(cand)
-
         if state.cfg.mode >= 2 and p == state.last_non_razed_parcel(r):
             for c in range(1, TRACK_LEN + 1):
                 opts.append(("BUG", c))
@@ -1522,12 +1520,9 @@ def _list_insect_1cran_moves(
         l_idx = idx_a
         if state.get_furtivite_insectes(l_idx, p) == 0:
             return (("RESTER",),)
-        for rive in (0, 1):
-            adj_ray = state.lisiere_ray_for_rive(l_idx, rive)
-            if not state.is_route_forestiere(adj_ray, p):
-                cand_f = ("FORET", adj_ray, p)
-                if cand_f not in opts:
-                    opts.append(cand_f)
+        p_first = state.first_non_razed_from_border(l_idx)
+        if p_first is not None:
+            opts.append(("FORET", l_idx, p_first))
 
     if state.cfg.mode >= 3:
         dispatch_hook(state, HOOK_4_3_MIGRATION_DESTS, {"src": src, "opts": opts})
@@ -1622,7 +1617,7 @@ def _eligible_ratissage_machines(state: GameState) -> list[tuple[int, int]]:
 
 
 def _machine_threat_key_3_2(state: GameState, seat: int, card: int) -> tuple[int, int, int, int, int]:
-    """Clé de priorité décroissante de menace pour l'annulation sur choix BLOQUER."""
+    """Clé de priorité décroissante de menace pour l'annulation par un Rêve en 3.2."""
     ray = (card - 1) // 2
     m_type = (card - 1) % 2
     pos, st, _ = state.get_machine_pos_status(ray, m_type)
@@ -1632,23 +1627,25 @@ def _machine_threat_key_3_2(state: GameState, seat: int, card: int) -> tuple[int
     return (active, is_rat, eff_red, pos, -seat)
 
 
-def _bind_hands_and_collect_reves_3_2(
+def _bind_hands_and_resolve_reves_3_2(
     state: GameState,
 ) -> tuple[
-    tuple[tuple[int, int, int, tuple[tuple[int, int, int, int, int], ...]], ...],
+    tuple[tuple[int, int, bool, str], ...],
     tuple[int, ...],
 ]:
-    """Lie les mains révélées en 3.2, collecte les Rêves en attente de choix BLOQUER/AVANCER et les déclencheurs.
+    """Lie les mains révélées en 3.2, résout le blocage automatique des Rêves défendus et collecte les déclencheurs.
 
-    Partition stricte 3.2 (« 1 carte révélée = au plus 1 déclencheur ») :
-    - 3. Sabotage : carte Sabotage révélée chez un joueur ;
-    - 6. Insecte : sinon, dé dévié par un Bug en 3.2 (déjà allumé dans `_bug_b_handler`) ;
-    - 5. Rêve :
-      * mode PASSIF : dé retenu M d'une carte Machine non déviée pointant sur un rang occupé par un Rêve ;
-      * mode ACTIF : allumé uniquement dans `_apply_reve_choice_3_2` lorsqu'un Rêve portant >= 1 Défenseur s'active réellement.
+    Socle v6.1 :
+    - Pas de choix AVANCER ni de déplacement des Rêves en 3.2 (CLEAR_RANK_ONLY).
+    - Tout Rêve portant >= 1 Défenseur et visé par >= 1 machine annule 1 machine par Défenseur
+      (en priorisant la plus menaçante) ; les machines restantes exécutent la Tactique imprimée dessous.
+    - Partition stricte 3.2 (« 1 carte révélée = au plus 1 déclencheur ») :
+      * 3. Sabotage : carte Sabotage révélée chez un joueur ;
+      * 6. Insecte : sinon, dé dévié par un Bug en 3.2 (déjà allumé dans `_bug_b_handler`) ;
+      * 5. Rêve (`REVE_TRIG=ACTIF` figé) : allumé uniquement lorsqu'un Rêve portant >= 1 Défenseur
+        annule réellement >= 1 machine ET qu'au moins 1 carte présente sur ce rang n'a pas été déviée par un Bug.
     """
     n = state.cfg.n_players
-    passif_trig5 = state.cfg.reve_5_trigger_mode == "PASSIF"
     initial_track = [state.get_tactique_at_rank(i) for i in range(TRACK_LEN)]
     seats_by_rank: list[list[tuple[int, int, int, int, int]]] = [[] for _ in range(TRACK_LEN)]
     reveal_triggers: list[int] = []
@@ -1660,20 +1657,12 @@ def _bind_hands_and_collect_reves_3_2(
             sabotages_revealed += 1
         elif 1 <= card <= 12 and 1 <= lec_m <= 6:
             seats_by_rank[lec_m - 1].append((s, card, d1, d2, lec_m))
-            if (
-                passif_trig5
-                and (not state.was_seat_deviated_by_bug_this_turn(s))
-                and is_reve_code(initial_track[lec_m - 1])
-            ):
-                reveal_triggers.append(5)
 
     act_mode = state.cfg.reve_activation_mode
     trk = _get_active_telemetry()
     if trk is not None and sabotages_revealed > 0:
         trk.on_defense_sabotage_revele(sabotages_revealed)
-    reve_choices_q: list[
-        tuple[int, int, int, tuple[tuple[int, int, int, int, int], ...]]
-    ] = []
+    reve_open_items: list[tuple[int, int, bool, str]] = []
 
     for r_idx in range(TRACK_LEN):
         entries = seats_by_rank[r_idx]
@@ -1682,7 +1671,6 @@ def _bind_hands_and_collect_reves_3_2(
         case_1_6 = r_idx + 1
         code_m = initial_track[r_idx]
         if not is_reve_code(code_m):
-            # Piste fixe : la Tactique imprimée T{case_1_6} s'applique toujours
             for s, card, d1, d2, lec_m in entries:
                 state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
             continue
@@ -1691,48 +1679,17 @@ def _bind_hands_and_collect_reves_3_2(
         n_def = state.count_reve_activation_defenders_at_case(case_1_6)
         min_needed = 2 if act_mode == "BINOME_ALL_RANK" else 1
         if n_def < min_needed:
-            # Rêve inactif : toutes les machines exécutent la Tactique imprimée dessous
+            # Rêve inerte : toutes les machines exécutent la Tactique imprimée dessous, 0 déclencheur
             for s, card, d1, d2, lec_m in entries:
                 state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
             if trk is not None:
                 trk.on_machines_bypassed_inactive_reve(len(entries))
             continue
 
-        # Rêve actif (>= 1 Défenseur et >= 1 machine sur le rang) -> choix exclusif BLOQUER / AVANCER
         r_num = code_m - TILE_R_BASE
-        reve_choices_q.append((case_1_6, code_m, r_num, tuple(entries)))
+        if trk is not None:
+            trk.on_reve_choice("BLOQUER", dual_options=False)
 
-    return tuple(reve_choices_q), tuple(reveal_triggers)
-
-
-def _apply_reve_choice_3_2(
-    state: GameState,
-    case_1_6: int,
-    code_m: int,
-    r_num: int,
-    entries: tuple[tuple[int, int, int, int, int], ...],
-    choice: str,
-) -> None:
-    """Applique le choix exclusif BLOQUER ou AVANCER du Peuple Onirique sur un Rêve actif en 3.2."""
-    act_mode = state.cfg.reve_activation_mode
-    req_adv_defs = state.cfg.required_defenders_for_reve_advance()
-    n_def = state.count_reve_activation_defenders_at_case(case_1_6)
-    cur_pos_check = state.find_tactique_rank(code_m)
-    dest_check = (
-        state.get_reve_advance_dest_rank(cur_pos_check, check_turn_cap=True)
-        if cur_pos_check is not None
-        else None
-    )
-    dual_opts = (dest_check is not None) and (n_def >= req_adv_defs)
-
-    trk = _get_active_telemetry()
-    if trk is not None:
-        trk.on_reve_choice(choice, dual_options=dual_opts)
-
-    reve_open_items: list[tuple[int, int, bool, str]] = []
-    reve_did_activate = False
-
-    if choice == "BLOQUER":
         if act_mode == "1_DEF_1_MACHINE":
             if n_def >= len(entries):
                 cancelled_seats = {e[0] for e in entries}
@@ -1757,7 +1714,6 @@ def _apply_reve_choice_3_2(
         n_cancel = len(cancelled_seats)
         n_bypass = len(entries) - n_cancel
         if n_cancel > 0:
-            reve_did_activate = True
             if act_mode == "1_DEF_1_MACHINE":
                 consumed_reves = state.consume_reve_activation_defenders(case_1_6, n_cancel)
             elif act_mode == "1_DEF_ALL_RANK":
@@ -1767,66 +1723,29 @@ def _apply_reve_choice_3_2(
             if consumed_reves > 0:
                 _record_phys_ops(state, consumed_reves)
 
+            if any(not state.was_seat_deviated_by_bug_this_turn(e[0]) for e in entries):
+                reveal_triggers.append(5)
+
+            if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
+                open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
+            else:
+                open_count = n_cancel
+            if state.cfg.mode <= 2:
+                if open_count >= 1:
+                    state.mark_reve_opened_this_turn(r_num)
+                    if trk is not None:
+                        trk.on_reve_activated(open_count)
+            else:
+                for _ in range(open_count):
+                    reve_open_items.append((code_m, r_num, False, "BLOQUER"))
+
         if trk is not None:
             if n_cancel > 0:
                 trk.on_machines_cancelled_by_reve(n_cancel)
             if n_bypass > 0:
                 trk.on_machines_bypassed_inactive_reve(n_bypass)
 
-        if n_cancel >= 1:
-            if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
-                open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
-            else:
-                open_count = n_cancel
-            for _ in range(open_count):
-                reve_open_items.append((code_m, r_num, False, "BLOQUER"))
-    else:
-        assert choice == "AVANCER", f"Choix de Rêve 3.2 invalide : {choice!r}"
-        assert (
-            cur_pos_check is not None
-            and dest_check is not None
-            and n_def >= req_adv_defs
-        ), "AVANCER interdit pour ce Rêve selon la variante active"
-        reve_did_activate = True
-        state.increment_reve_advances_this_turn()
-
-        # AVANCER : consomme `req_adv_defs` Défenseur(s), 0 machine annulée (toutes exécutent la Tactique dessous),
-        # pouvoir du Rêve actif et saut vers la première case libre à gauche.
-        for s, card, d1, d2, lec_m in entries:
-            state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
-        consumed_reves = state.consume_reve_activation_defenders(case_1_6, req_adv_defs)
-        if consumed_reves > 0:
-            _record_phys_ops(state, consumed_reves)
-        if trk is not None:
-            trk.on_machines_bypassed_inactive_reve(len(entries))
-        if state.cfg.regle_ouverture_reve_multiple == "UNIQUE_PAR_TOUR":
-            open_count = 0 if state.has_reve_opened_this_turn(r_num) else 1
-        else:
-            open_count = len(entries)
-        if open_count <= 0:
-            # Même si déjà ouvert ce tour, l'avancée s'effectue une fois
-            cur_pos_r = state.find_tactique_rank(code_m)
-            if cur_pos_r is not None and cur_pos_r > 0:
-                prim_permutation_piste(state, "ADVANCE_REVE_LEFT", rank_a=cur_pos_r)
-        else:
-            for idx_op in range(open_count):
-                reve_open_items.append(
-                    (code_m, r_num, idx_op == open_count - 1, "AVANCER")
-                )
-
-    if (
-        state.cfg.reve_5_trigger_mode == "ACTIF"
-        and reve_did_activate
-        and any(not state.was_seat_deviated_by_bug_this_turn(e[0]) for e in entries)
-    ):
-        state.light_trigger(5)
-        if trk is not None:
-            trk.on_trigger_lit(5)
-
-    if reve_open_items:
-        state._continuation.insert(0, ("STEP_3_2_REVE_QUEUE", tuple(reve_open_items), 0))
-    else:
-        sweep_gardiens(state)
+    return tuple(reve_open_items), tuple(reveal_triggers)
 
 
 def _run_step_3_2(state: GameState) -> None:
@@ -1837,20 +1756,14 @@ def _run_step_3_2(state: GameState) -> None:
         and any(state.get_bugs_at_case(c) > 0 for c in range(1, TRACK_LEN + 1))
     )
     if state.cfg.mode <= 2 and not has_bug_b_work:
-        reve_choices_q, reveal_triggers = _bind_hands_and_collect_reves_3_2(state)
-        if not reve_choices_q:
-            trk = _get_active_telemetry()
-            for trig_c in reveal_triggers:
-                state.light_trigger(trig_c)
-                if trk is not None:
-                    trk.on_trigger_lit(trig_c)
-                sweep_gardiens(state)
-            _transition_step(state, STEP_4_1_FURTIVITE)
-            return
-        state._continuation.insert(0, ("STEP_3_2_POST",))
-        state._continuation.insert(0, ("STEP_3_2_REVE_CHOICE_QUEUE", reve_choices_q, 0))
-        if reveal_triggers:
-            state._continuation.insert(0, ("STEP_3_2_REVEAL_TRIGGERS", reveal_triggers, 0))
+        _, reveal_triggers = _bind_hands_and_resolve_reves_3_2(state)
+        trk = _get_active_telemetry()
+        for trig_c in reveal_triggers:
+            state.light_trigger(trig_c)
+            if trk is not None:
+                trk.on_trigger_lit(trig_c)
+            sweep_gardiens(state)
+        _transition_step(state, STEP_4_1_FURTIVITE)
         return
 
     state._continuation.insert(0, ("STEP_3_2_BIND",))
@@ -1859,18 +1772,17 @@ def _run_step_3_2(state: GameState) -> None:
 
 def _execute_furtivite_4_1_action(
     state: GameState,
-    l_idx: int,
+    ray: int,
     p: int,
     rive: int,
-    t_ray: int,
     action_kind: str,
     cell_key: int = -1,
 ) -> None:
     if action_kind == "PIEGE":
-        # v5.4.6+ : 2. Piégeage ne s'allume pas à la pose en 4.1 (uniquement sur frappe bloquée en 5.1/5.2)
-        prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=False)
+        # 2. Piégeage ne s'allume pas à la pose en 4.1 (uniquement sur frappe bloquée en 5.1/5.2)
+        prim_creation_entite(state, "PIEGE", ray=ray, p=p, light_trigger=False)
     else:
-        # v5.4.6+ : 3. Sabotage ne s'allume pas à l'acquisition en 4.1 (uniquement à la révélation en 3.2)
+        # 3. Sabotage ne s'allume pas à l'acquisition en 4.1 (uniquement à la révélation en 3.2)
         prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=False)
     trk = _get_active_telemetry()
     if trk is not None and cell_key >= 0:
@@ -1880,7 +1792,7 @@ def _execute_furtivite_4_1_action(
             state,
             HOOK_4_1_FURTIVITE,
             {
-                "lisiere": l_idx,
+                "ray": ray,
                 "p": p,
                 "rive": rive,
                 "phase": "POST",
@@ -1891,137 +1803,83 @@ def _execute_furtivite_4_1_action(
     sweep_gardiens(state)
 
 
-def _resolve_single_furtivite_rive_4_1(
-    state: GameState, l_idx: int, p: int, rive: int, cell_key: int
-) -> None:
-    """Résout une rive (0 ou 1) d'une case Furtivité (A1 : uniquement si binôme complet de 2 Défenseurs)."""
-    nb_def = state.get_furtivite_nb_def_rive(l_idx, p, rive)
-    if nb_def != 2:
-        if nb_def == 1:
-            trk = _get_active_telemetry()
-            if trk is not None:
-                trk.on_furtivite_orphan_pawn(1)
-        return
-
-    t_ray = state.lisiere_ray_for_rive(l_idx, rive)
-    if state.is_route_forestiere(t_ray, p):
-        trk = _get_active_telemetry()
-        if trk is not None:
-            trk.on_furtivite_failed_binome(1)
-        return
-
-    if state.cfg.mode <= 2:
-        present_m_fast = state.machines_on_parcel(t_ray, p)
-        trk = _get_active_telemetry()
-        if not present_m_fast:
-            if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
-                prim_creation_entite(state, "PIEGE", ray=t_ray, p=p, light_trigger=False)
-                if trk is not None:
-                    trk.on_furtivite_rive_executed(cell_key, "PIEGE")
-                sweep_gardiens(state)
-            elif trk is not None:
-                trk.on_furtivite_failed_binome(1)
-        else:
-            if not any(is_machine_active_this_turn(state, t_ray, mt) for mt in present_m_fast):
-                prim_creation_entite(state, "SABOTAGE", count=1, light_trigger=False)
-                if trk is not None:
-                    trk.on_furtivite_rive_executed(cell_key, "SABOTAGE")
-                sweep_gardiens(state)
-            elif trk is not None:
-                trk.on_furtivite_failed_binome(1)
-        return
-
-    ctx_4_1: dict[str, Any] = {
-        "lisiere": l_idx,
-        "p": p,
-        "rive": rive,
-        "phase": "PRE",
-        "handled": False,
-        "allow_piege_under_machine": False,
-        "allow_sabotage_active": False,
-        "keep_insect": False,
-        "decideur_piege": state.coordonnateur,
-    }
-    dispatch_hook(state, HOOK_4_1_FURTIVITE, ctx_4_1)
-    if ctx_4_1.get("handled"):
-        trk = _get_active_telemetry()
-        if trk is not None:
-            trk.on_furtivite_rive_executed(cell_key)
-        sweep_gardiens(state)
-        return
-
-    present_m = state.machines_on_parcel(t_ray, p)
-    if not present_m:
-        if state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN:
-            _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", cell_key)
-        else:
-            trk = _get_active_telemetry()
-            if trk is not None:
-                trk.on_furtivite_failed_binome(1)
-        return
-
-    can_piege = (
-        bool(ctx_4_1.get("allow_piege_under_machine"))
-        and state.get_parcel_piege(t_ray, p) == PIEGE_AUCUN
-    )
-    can_sabotage = bool(ctx_4_1.get("allow_sabotage_active")) or not any(
-        is_machine_active_this_turn(state, t_ray, mt) for mt in present_m
-    )
-    if can_piege and can_sabotage:
-        dec = int(ctx_4_1.get("decideur_piege", state.coordonnateur))
-        req = DecisionRequest(
-            decideur=dec if 0 <= dec < state.cfg.n_players else state.coordonnateur,
-            decision_type=DEC_EFFET_TUILE,
-            options=("PIEGE", "SABOTAGE"),
-            context={
-                "slot_id": "G7",
-                "profile": "B",
-                "effect_kind": "FURTIVITE_PIEGE_OU_SABOTAGE",
-                "ray": t_ray,
-                "p": p,
-            },
-        )
-        state._continuation.insert(
-            0, ("APPLY_FURTIVITE_4_1", l_idx, p, rive, t_ray, cell_key)
-        )
-        state._continuation.insert(0, ("WAIT_DECISION", req))
-    elif can_piege:
-        _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "PIEGE", cell_key)
-    elif can_sabotage:
-        _execute_furtivite_4_1_action(state, l_idx, p, rive, t_ray, "SABOTAGE", cell_key)
-    else:
-        trk = _get_active_telemetry()
-        if trk is not None:
-            trk.on_furtivite_failed_binome(1)
-
-
-def _resolve_single_furtivite_cell_4_1(state: GameState, l_idx: int, p: int) -> None:
-    """Résout les deux rives (0 puis 1) d'une case Furtivité (A1 : 1 ou 2 binômes complets)."""
-    cell_key = l_idx * MAX_P + (p - 1)
-    _resolve_single_furtivite_rive_4_1(state, l_idx, p, 0, cell_key)
-    _resolve_single_furtivite_rive_4_1(state, l_idx, p, 1, cell_key)
-
-
 def _run_step_4_1_from(state: GameState, start_slot_idx: int) -> None:
+    """Résout la Furtivité v6.1 (« Chaud vs Calme » par rayon `r` : Rive Piège `m(r)==2`, Rive Sabotage `m(r)==0`)."""
     n = state.cfg.n_players
     p_max = state.cfg.p_max
-    total_rives = 2 * n * p_max
+    total_rives = 2 * n
+    trk = _get_active_telemetry()
+
     for slot_idx in range(start_slot_idx, total_rives):
-        flat_idx = slot_idx // 2
+        off = slot_idx // 2
         rive = slot_idx & 1
-        off = flat_idx // p_max
-        p = (flat_idx % p_max) + 1
-        l_idx = (state.coordonnateur + off) % n
-        cell_key = l_idx * MAX_P + (p - 1)
+        ray = (state.coordonnateur + off) % n
+        cell_key = ray
+        nb_def = state.get_furtivite_nb_def_rive(ray, 1, rive)
+        if nb_def != 2:
+            if nb_def == 1 and trk is not None:
+                trk.on_furtivite_orphan_pawn(1)
+            continue
+
+        m_r = state.count_mobilized_machines_for_ray(ray)
+        if rive == FURT_RIVE_PIEGE:
+            if m_r != 2:
+                if trk is not None:
+                    trk.on_furtivite_failed_binome(1, rive="PIEGE")
+                continue
+
+            valid_parcels = tuple(
+                p
+                for p in range(1, p_max + 1)
+                if not state.is_route_forestiere(ray, p)
+                and state.get_parcel_piege(ray, p) == PIEGE_AUCUN
+            )
+            if not valid_parcels:
+                if trk is not None:
+                    trk.on_furtivite_failed_binome(1, rive="PIEGE")
+                continue
+
+            if len(valid_parcels) == 1:
+                resume_frame = ("RESUME_STEP_4_1", slot_idx + 1)
+                if state.cfg.mode >= 3:
+                    state._continuation.insert(0, resume_frame)
+                _execute_furtivite_4_1_action(
+                    state, ray, valid_parcels[0], rive, "PIEGE", cell_key
+                )
+                if state.cfg.mode >= 3:
+                    if state._continuation and state._continuation[0] == resume_frame:
+                        state._continuation.pop(0)
+                    else:
+                        return
+                continue
+
+            req = DecisionRequest(
+                decideur=ray,
+                decision_type=DEC_POSE_PIEGE_FURTIVITE_4_1,
+                options=valid_parcels,
+                context={"ray": ray, "tour": state.tour},
+            )
+            state._continuation.insert(0, ("RESUME_STEP_4_1", slot_idx + 1))
+            state._continuation.insert(0, ("APPLY_PIEGE_FURTIVITE_4_1", ray, rive, cell_key))
+            state._continuation.insert(0, ("WAIT_DECISION", req))
+            return
+
+        # Rive Sabotage (rive == FURT_RIVE_SABOTAGE) : pari gagné ssi m(ray) == 0
+        if m_r != 0:
+            if trk is not None:
+                trk.on_furtivite_failed_binome(1, rive="SABOTAGE")
+            continue
+
         resume_frame = ("RESUME_STEP_4_1", slot_idx + 1)
         if state.cfg.mode >= 3:
             state._continuation.insert(0, resume_frame)
-        _resolve_single_furtivite_rive_4_1(state, l_idx, p, rive, cell_key)
+        _execute_furtivite_4_1_action(state, ray, 1, rive, "SABOTAGE", cell_key)
         if state.cfg.mode >= 3:
             if state._continuation and state._continuation[0] == resume_frame:
                 state._continuation.pop(0)
             else:
                 return
+
     _transition_step(state, STEP_4_2_NIDS)
 
 
@@ -2117,10 +1975,10 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
 
     if tag == "STEP_3_2_BIND":
         state._continuation.pop(0)
-        reve_choices_q, reveal_triggers = _bind_hands_and_collect_reves_3_2(state)
+        reve_open_items, reveal_triggers = _bind_hands_and_resolve_reves_3_2(state)
         state._continuation.insert(0, ("STEP_3_2_POST",))
-        if reve_choices_q:
-            state._continuation.insert(0, ("STEP_3_2_REVE_CHOICE_QUEUE", reve_choices_q, 0))
+        if reve_open_items:
+            state._continuation.insert(0, ("STEP_3_2_REVE_QUEUE", reve_open_items, 0))
         if reveal_triggers:
             state._continuation.insert(0, ("STEP_3_2_REVEAL_TRIGGERS", reveal_triggers, 0))
         return None
@@ -2138,52 +1996,6 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
             if trk is not None:
                 trk.on_trigger_lit(trig_c)
             sweep_gardiens(state)
-        return None
-
-    if tag == "STEP_3_2_REVE_CHOICE_QUEUE":
-        _, reve_choices_q, cur_idx = state._continuation.pop(0)
-        if cur_idx < len(reve_choices_q):
-            case_1_6, code_m, r_num, entries = reve_choices_q[cur_idx]
-            if cur_idx + 1 < len(reve_choices_q):
-                state._continuation.insert(
-                    0, ("STEP_3_2_REVE_CHOICE_QUEUE", reve_choices_q, cur_idx + 1)
-                )
-            cur_pos_r = state.find_tactique_rank(int(code_m))
-            dest_r = (
-                state.get_reve_advance_dest_rank(cur_pos_r, check_turn_cap=True)
-                if cur_pos_r is not None
-                else None
-            )
-            n_def = state.count_reve_activation_defenders_at_case(int(case_1_6))
-            req_adv_defs = state.cfg.required_defenders_for_reve_advance()
-            can_advance = (dest_r is not None) and (n_def >= req_adv_defs)
-            opts = ("BLOQUER", "AVANCER") if can_advance else ("BLOQUER",)
-            slot_id = f"R{int(r_num)}"
-            _, orig_peuple, _ = SYNERGY_META[slot_id]
-            gov = _governor_for_peuple(state, orig_peuple)
-            req = DecisionRequest(
-                decideur=gov,
-                decision_type=DEC_CHOIX_REVE_3_2,
-                options=opts,
-                context={
-                    "case": int(case_1_6),
-                    "r_num": int(r_num),
-                    "slot_id": slot_id,
-                    "n_defenders": n_def,
-                    "required_advance_defenders": req_adv_defs,
-                    "n_machines": len(entries),
-                    "machine_seats": tuple(int(e[0]) for e in entries),
-                    "can_advance": bool(can_advance),
-                    "dest_case": (dest_r + 1) if dest_r is not None else None,
-                    "tour": state.tour,
-                },
-            )
-            state._continuation.insert(
-                0,
-                ("APPLY_CHOIX_REVE_3_2", int(case_1_6), int(code_m), int(r_num), entries),
-            )
-            state._continuation.insert(0, ("WAIT_DECISION", req))
-            return req
         return None
 
     if tag == "STEP_3_2_REVE_QUEUE":
@@ -2691,7 +2503,7 @@ def _advance_main_step(state: GameState) -> DecisionRequest | GameOver | None:
         return apply_repousse_finale(state)
 
     if step == STEP_1_1_RATISSAGE:
-        _transition_eligible_machines_to_ratissage(state, remove_from_deck=True)
+        # v6.1 : seul 6.3 fait basculer les machines en Ratissage (test redondant 1.1 supprimé)
         _transition_step(state, STEP_1_2_DEAL)
         return None
 
@@ -3302,27 +3114,14 @@ def apply_choice(
                     sweep_gardiens(state)
             return
 
-        if tag == "APPLY_CHOIX_REVE_3_2":
-            _, case_1_6, code_m, r_num, entries = state._continuation.pop(0)
-            _apply_reve_choice_3_2(
-                state,
-                int(case_1_6),
-                int(code_m),
-                int(r_num),
-                entries,
-                str(choice),
-            )
-            return
-
-        if tag == "APPLY_FURTIVITE_4_1":
-            _, l_i, p_i, rive_i, t_ray_i, cell_key_i = state._continuation.pop(0)
+        if tag == "APPLY_PIEGE_FURTIVITE_4_1":
+            _, ray_i, rive_i, cell_key_i = state._continuation.pop(0)
             _execute_furtivite_4_1_action(
                 state,
-                int(l_i),
-                int(p_i),
+                int(ray_i),
+                int(choice),
                 int(rive_i),
-                int(t_ray_i),
-                str(choice),
+                "PIEGE",
                 int(cell_key_i),
             )
             return

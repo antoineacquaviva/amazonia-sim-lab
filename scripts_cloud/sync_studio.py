@@ -71,7 +71,7 @@ def sync_studio() -> dict[str, object]:
         print(f"Locked {filename} ({len(raw_bytes)} bytes, sha256={sha256[:12]}...)")
 
     lock_payload: dict[str, object] = {
-        "studio_version": "v6.0",
+        "studio_version": "v6.1",
         "files": lock_entries,
     }
     LOCK_FILE.write_text(

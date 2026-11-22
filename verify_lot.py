@@ -350,7 +350,7 @@ def verify_studio_coherence() -> None:
     if errors:
         raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Socle v6.0 Studio (docs/data/ <-> simulateur : "
+        f"[4/8] Cohérence Socle v6.1 Studio (docs/data/ <-> simulateur : "
         f"spec_formelle, {len(TOPOLOGIES_DOTATION)} topologies, "
         f"{len(engine_axes)} axes châssis, 6 tactiques) : OK"
     )

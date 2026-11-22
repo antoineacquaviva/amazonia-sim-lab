@@ -12,6 +12,7 @@ __all__ = (
     "BUF_CAPACITY",
     "CARD_NONE",
     "CARD_SABOTAGE",
+    "CHARGE_GAIN_MODES",
     "CHASSIS_AXES_OPTIONS",
     "DECK_SLOTS_CAPACITY",
     "DOUBLE_FACE_UPGRADE_GARDIENS",
@@ -20,6 +21,8 @@ __all__ = (
     "FAMILLE_CROISSANCE",
     "FAMILLE_GARDIEN",
     "FAMILLE_REVE",
+    "FURT_RIVE_PIEGE",
+    "FURT_RIVE_SABOTAGE",
     "LISIERE_ABSENT",
     "LISIERE_CONSTRUCTED",
     "LISIERE_EJECTED",
@@ -43,9 +46,9 @@ __all__ = (
     "PIEGE_ACTIF",
     "PIEGE_AUCUN",
     "PIEGE_DECLENCHE",
+    "PIEGE_SCOPE_MODES",
     "RATISSAGE_TACTIQUE_SPEC",
     "REVE_5_TRIGGER_MODES",
-    "REVE_ADVANCE_COST_MODES",
     "REVE_ADVANCE_MODES",
     "STATE_BUF_SIZE",
     "STEP_1_1_RATISSAGE",
@@ -126,10 +129,12 @@ PIEGE_AUCUN: int = 0
 PIEGE_ACTIF: int = 1
 PIEGE_DECLENCHE: int = 2
 
-# Faces des Défenseurs (notamment sur les 4 emplacements jumeaux de Furtivité)
+# Faces des Défenseurs et rives de Furtivité par rayon (Rive 0 = Piège, Rive 1 = Sabotage)
 FACE_VIDE: int = 0
 FACE_REFLEXION: int = 1
 FACE_DEFINITIF: int = 2
+FURT_RIVE_PIEGE: int = 0
+FURT_RIVE_SABOTAGE: int = 1
 
 # États des tuiles de Synergie en lisière
 LISIERE_ABSENT: int = 0
@@ -519,13 +524,10 @@ assert _Layout._cursor <= STATE_BUF_SIZE - MIN_FREE_RESERVE_BYTES, (
     f"(réserve < {MIN_FREE_RESERVE_BYTES})"
 )
 
-REVE_ADVANCE_MODES: tuple[str, ...] = ("SAUT",)
-_VALID_REVE_ADVANCE_MODES: tuple[str, ...] = (
-    *REVE_ADVANCE_MODES,
-    "EXCLUSIVE_CHOICE",
-)
-REVE_5_TRIGGER_MODES: tuple[str, ...] = ("PASSIF", "ACTIF")
-REVE_ADVANCE_COST_MODES: tuple[str, ...] = ("1DEF", "2DEF", "ONIRIQUE_COUNT")
+REVE_ADVANCE_MODES: tuple[str, ...] = ("CLEAR_RANK_ONLY",)
+REVE_5_TRIGGER_MODES: tuple[str, ...] = ("ACTIF",)
+CHARGE_GAIN_MODES: tuple[str, ...] = ("DEGAT_EFFECTIF", "FRAPPE_NON_PAREE")
+PIEGE_SCOPE_MODES: tuple[str, ...] = ("SINGLE_STRIKE",)
 
 
 def get_layout_report() -> dict[str, Any]:
@@ -541,7 +543,7 @@ def get_layout_report() -> dict[str, Any]:
 
 @dataclass(frozen=True, slots=True)
 class GameConfig:
-    """Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2)."""
+    """Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis)."""
 
     n_players: int = 4
     mode: int = 1
@@ -551,22 +553,24 @@ class GameConfig:
     coordonnateur_initial: int = 0
     max_revision_passes: int = 4
 
-    # 6 axes du châssis v5.5
+    # 6 axes du châssis (canonique v6.1 : chassis_id=24 -> P4_2233 + BULLDOZER_P1_ABATTEUSE_P2)
     profil_piste: str = "P4_2233"
     regle_ouverture_reve_multiple: str = "UNIQUE_PAR_TOUR"
     offset_seuil_parade: int = 0
-    placement_initial_machines: str = "MEME_PARCELLE_P1"
+    placement_initial_machines: str = "BULLDOZER_P1_ABATTEUSE_P2"
     role_abatteuse_fin_de_piste: str = "STANDARD_COUPE_ARBRE"
     synergie_binome_machines: str = "INDIVIDUELLE"
 
-    # Paramètres consolidés v6.0 : Activation Rêves, Plafond Pari Gardiens, Avancée SAUT & 4. Gardien
+    # Paramètres consolidés v6.1 : Rêves bloquants uniquement dans le socle, REVE_TRIG=ACTIF figé,
+    # Plafond Pari Gardiens UNIFORM_MAX_2, 4. Gardien DISTINCT_OPEN_1 & Piège autonome SINGLE_STRIKE
     reve_activation_mode: str = "1_DEF_1_MACHINE"
     gardien_bet_cap_policy: str = "UNIFORM_MAX_2"
-    reve_advance_mode: str = "SAUT"
+    reve_advance_mode: str = "CLEAR_RANK_ONLY"
     gardien_4_trigger_mode: str = "DISTINCT_OPEN_1"
-    # Commutateurs candidats d'audit v6.0 (5. Rêve PASSIF/ACTIF & Coût AVANCER 1DEF/2DEF)
-    reve_5_trigger_mode: str = "PASSIF"
-    reve_advance_cost_mode: str = "1DEF"
+    reve_5_trigger_mode: str = "ACTIF"
+    # Commutateur de duel v6.1 sur le gain de Puissance en Charge & portée unique Piège SINGLE_STRIKE
+    charge_gain_mode: str = "DEGAT_EFFECTIF"
+    piege_scope_mode: str = "SINGLE_STRIKE"
 
     # Sélections de profils optionnelles (Mode 2 slots Insectes / Mode 3-4) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
@@ -611,18 +615,20 @@ class GameConfig:
         assert self.gardien_bet_cap_policy in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1"), (
             f"gardien_bet_cap_policy invalide : {self.gardien_bet_cap_policy}"
         )
-        assert self.reve_advance_mode in _VALID_REVE_ADVANCE_MODES, (
-            f"reve_advance_mode invalide (figé sur SAUT ou alias EXCLUSIVE_CHOICE ; "
-            f"PAS_A_PAS, SAUT_MAX_1_PAR_TOUR et CLEAR_RANK_ONLY supprimés) : {self.reve_advance_mode}"
+        assert self.reve_advance_mode in REVE_ADVANCE_MODES, (
+            f"reve_advance_mode invalide (figé sur CLEAR_RANK_ONLY en v6.1) : {self.reve_advance_mode}"
         )
         assert self.gardien_4_trigger_mode == "DISTINCT_OPEN_1", (
             f"gardien_4_trigger_mode invalide (verrouillé sur DISTINCT_OPEN_1) : {self.gardien_4_trigger_mode}"
         )
         assert self.reve_5_trigger_mode in REVE_5_TRIGGER_MODES, (
-            f"reve_5_trigger_mode invalide (attendu PASSIF ou ACTIF) : {self.reve_5_trigger_mode}"
+            f"reve_5_trigger_mode invalide (verrouillé sur ACTIF en v6.1) : {self.reve_5_trigger_mode}"
         )
-        assert self.reve_advance_cost_mode in REVE_ADVANCE_COST_MODES, (
-            f"reve_advance_cost_mode invalide (attendu 1DEF, 2DEF ou ONIRIQUE_COUNT) : {self.reve_advance_cost_mode}"
+        assert self.charge_gain_mode in CHARGE_GAIN_MODES, (
+            f"charge_gain_mode invalide (attendu DEGAT_EFFECTIF ou FRAPPE_NON_PAREE) : {self.charge_gain_mode}"
+        )
+        assert self.piege_scope_mode in PIEGE_SCOPE_MODES, (
+            f"piege_scope_mode invalide (verrouillé sur SINGLE_STRIKE en v6.1) : {self.piege_scope_mode}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -679,13 +685,14 @@ class GameConfig:
         max_revision_passes: int = 4,
         reve_activation_mode: str = "1_DEF_1_MACHINE",
         gardien_bet_cap_policy: str = "UNIFORM_MAX_2",
-        reve_advance_mode: str = "SAUT",
+        reve_advance_mode: str = "CLEAR_RANK_ONLY",
         gardien_4_trigger_mode: str = "DISTINCT_OPEN_1",
-        reve_5_trigger_mode: str = "PASSIF",
-        reve_advance_cost_mode: str = "1DEF",
+        reve_5_trigger_mode: str = "ACTIF",
+        charge_gain_mode: str = "DEGAT_EFFECTIF",
+        piege_scope_mode: str = "SINGLE_STRIKE",
         tile_profiles: tuple[tuple[str, str], ...] = (),
     ) -> GameConfig:
-        """Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191."""
+        """Construit l'une des 192 configurations de châssis v6.1 à partir d'un index 0..191."""
         assert 0 <= chassis_idx < NUM_CHASSIS
         kwargs: dict[str, Any] = {
             "n_players": n_players,
@@ -700,19 +707,12 @@ class GameConfig:
             "reve_advance_mode": reve_advance_mode,
             "gardien_4_trigger_mode": gardien_4_trigger_mode,
             "reve_5_trigger_mode": reve_5_trigger_mode,
-            "reve_advance_cost_mode": reve_advance_cost_mode,
+            "charge_gain_mode": charge_gain_mode,
+            "piege_scope_mode": piege_scope_mode,
             "tile_profiles": tile_profiles,
         }
         kwargs.update(decode_chassis_index(chassis_idx))
         return cls(**kwargs)
-
-    def required_defenders_for_reve_advance(self) -> int:
-        """Nombre minimal de Défenseurs requis sur un Rêve pour choisir AVANCER en 3.2."""
-        if self.reve_advance_cost_mode == "2DEF":
-            return 2
-        if self.reve_advance_cost_mode == "ONIRIQUE_COUNT":
-            return max(1, int(self.nb_peuples_oniriques))
-        return 1
 
     def gardien_bet_cap_for_case(self, case_1_6: int) -> int:
         """Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2)."""
@@ -886,8 +886,12 @@ class PlayerObservation:
         return self._cfg.reve_5_trigger_mode
 
     @property
-    def reve_advance_cost_mode(self) -> str:
-        return self._cfg.reve_advance_cost_mode
+    def charge_gain_mode(self) -> str:
+        return self._cfg.charge_gain_mode
+
+    @property
+    def piege_scope_mode(self) -> str:
+        return self._cfg.piege_scope_mode
 
     @property
     def nb_peuples_oniriques(self) -> int:
@@ -1144,6 +1148,82 @@ class PlayerObservation:
             return (1 if (sb & 3) else 0) + (1 if ((sb >> 2) & 3) else 0)
         return (1 if ((sb >> 4) & 3) else 0) + (1 if ((sb >> 6) & 3) else 0)
 
+    def is_ray_furtivite_open(self, ray: int) -> bool:
+        """Vrai si la piste de forêt `ray` n'est pas intégralement rasée (au moins 1 parcelle non-Route et >= 1 machine non retirée)."""
+        has_non_route = False
+        for p in range(1, self._cfg.p_max + 1):
+            if not self.is_route(ray, p):
+                has_non_route = True
+                break
+        if not has_non_route:
+            return False
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            _, st = self.machine_pos_status(ray, mt)
+            if st != MACHINE_STATUS_RETIRED:
+                return True
+        return False
+
+    def furtivite_ray_rive_defs(self, ray: int, rive: int) -> int:
+        """Nombre de Défenseurs (0..2) sur la rive `rive` (0=Piège, 1=Sabotage) au pied du rayon `ray`."""
+        return self.furtivite_rive_defs(ray, 1, rive)
+
+    def furtivite_ray_rive_split(self, ray: int, rive: int) -> tuple[int, int]:
+        """Retourne `(nb_reflexion, nb_definitif)` sur la rive `rive` au pied du rayon `ray`."""
+        idx = ray * MAX_P
+        sb = self._snap[_Mem.FURTIVITE_SLOTS + idx]
+        s_a = (sb & 3) if rive == 0 else ((sb >> 4) & 3)
+        s_b = ((sb >> 2) & 3) if rive == 0 else ((sb >> 6) & 3)
+        n_ref = (1 if s_a == FACE_REFLEXION else 0) + (1 if s_b == FACE_REFLEXION else 0)
+        n_def = (1 if s_a == FACE_DEFINITIF else 0) + (1 if s_b == FACE_DEFINITIF else 0)
+        return n_ref, n_def
+
+    def furtivite_ray_def1_rive_count(self, ray: int, rive: int) -> int:
+        """Nombre de 1ers Défenseurs (2.1, publics) posés sur la rive `rive` au pied du rayon `ray`."""
+        base_raw = _LOC_FURT_BASE + (ray * MAX_P) * 4 + rive * 2
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2]
+            if raw == base_raw or raw == base_raw + 1:
+                cnt += 1
+        return cnt
+
+    def player_def1_furtivite_target(self, seat: int) -> tuple[int, int] | None:
+        """Retourne `(ray, rive)` si le 1er Défenseur de `seat` est en Furtivité, sinon None."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2]
+        if _LOC_FURT_BASE <= raw < _LOC_LISIERE_BASE:
+            rel = raw - _LOC_FURT_BASE
+            cell_idx, slot_0_3 = rel // 4, rel % 4
+            return cell_idx // MAX_P, slot_0_3 // 2
+        return None
+
+    def player_def2_furtivite_target(self, seat: int) -> tuple[int, int] | None:
+        """Retourne `(ray, rive)` si le 2e Défenseur de `seat` est en Furtivité, sinon None."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
+        if _LOC_FURT_BASE <= raw < _LOC_LISIERE_BASE:
+            rel = raw - _LOC_FURT_BASE
+            cell_idx, slot_0_3 = rel // 4, rel % 4
+            return cell_idx // MAX_P, slot_0_3 // 2
+        return None
+
+    def mobilized_machines_for_ray(self, ray: int) -> int:
+        """Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : cartes Machine révélées du rayon + Ratissages."""
+        assert self.paravents_ouverts, "mobilized_machines_for_ray requiert paravents_ouverts"
+        cnt = 0
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st = self.machine_pos_status(ray, mt)
+            if st == MACHINE_STATUS_RETIRED or pos == 0:
+                continue
+            if st == MACHINE_STATUS_RATISSAGE:
+                cnt += 1
+                continue
+            target_c = machine_card_code(ray, mt)
+            for s in range(self._cfg.n_players):
+                if self.hand_of(s).card == target_c:
+                    cnt += 1
+                    break
+        return cnt
+
     def lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]:
         """Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`."""
         lb = self._snap[_Mem.LISIERE_TILES + (slot_idx >> 1)]
@@ -1266,12 +1346,24 @@ class PlayerObservation:
         return (code - TILE_R_BASE) if is_reve_code(code) else 0
 
     def reve_activation_defenders(self, case_1_6: int) -> int:
-        """Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`."""
+        """Nombre de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur le Rêve en case `1..6`."""
         target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         buf = self._snap
         cnt = 0
         for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2] == target_raw:
+                cnt += 1
             if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
+                cnt += 1
+        return cnt
+
+    def reve_def1_count(self, case_1_6: int) -> int:
+        """Nombre de 1ers Défenseurs (2.1, fixes) posés sur le Rêve en case `1..6`."""
+        target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        buf = self._snap
+        cnt = 0
+        for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2] == target_raw:
                 cnt += 1
         return cnt
 
@@ -1281,24 +1373,29 @@ class PlayerObservation:
         buf = self._snap
         cnt = 0
         for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2] == target_raw:
+                cnt += 1
             if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
                 cnt += 1
         return cnt
 
     def total_reve_activation_defenders(self) -> int:
-        """Nombre total de Défenseurs actifs (non consommés) posés sur des Rêves."""
+        """Nombre total de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur des Rêves."""
         buf = self._snap
         cnt = 0
         lo = _LOC_REVE_ACTIVATION_BASE
         hi = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
         for s in range(self._cfg.n_players):
-            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
-            if lo <= raw < hi:
+            raw0 = buf[_Mem.PLAYER_DEF_LOC + s * 2]
+            if lo <= raw0 < hi:
+                cnt += 1
+            raw1 = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
+            if lo <= raw1 < hi:
                 cnt += 1
         return cnt
 
     def total_reve_activation_engaged(self) -> int:
-        """Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés)."""
+        """Nombre total de Défenseurs engagés en 2.1 ou 2.2 sur des Rêves (actifs + consommés)."""
         buf = self._snap
         cnt = 0
         lo1 = _LOC_REVE_ACTIVATION_BASE
@@ -1306,9 +1403,10 @@ class PlayerObservation:
         lo2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE
         hi2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
         for s in range(self._cfg.n_players):
-            raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1]
-            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
-                cnt += 1
+            for d in (0, 1):
+                raw = buf[_Mem.PLAYER_DEF_LOC + s * 2 + d]
+                if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                    cnt += 1
         return cnt
 
     def reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]:
@@ -1319,6 +1417,8 @@ class PlayerObservation:
         n_ref = 0
         n_def = 0
         for s in range(self._cfg.n_players):
+            if buf[_Mem.PLAYER_DEF_LOC + s * 2] == target_raw:
+                n_def += 1
             if buf[_Mem.PLAYER_DEF_LOC + s * 2 + 1] == target_raw:
                 if def_mask & (1 << s):
                     n_def += 1
@@ -1326,8 +1426,15 @@ class PlayerObservation:
                     n_ref += 1
         return n_ref, n_def
 
+    def player_def1_reve_case(self, seat: int) -> int:
+        """Retourne la case `1..6` ciblée sur un Rêve par le 1er Défenseur (`2.1`) de `seat`, ou 0."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2]
+        if _LOC_REVE_ACTIVATION_BASE <= raw < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
+            return (raw - _LOC_REVE_ACTIVATION_BASE) + 1
+        return 0
+
     def player_def2_reve_case(self, seat: int) -> int:
-        """Retourne la case `1..6` ciblée en activation Rêve par le Défenseur de `seat`, ou 0."""
+        """Retourne la case `1..6` ciblée sur un Rêve par le 2e Défenseur (`2.2`) de `seat`, ou 0."""
         raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
         if _LOC_REVE_ACTIVATION_BASE <= raw < _LOC_REVE_ACTIVATION_BASE + TRACK_LEN:
             return (raw - _LOC_REVE_ACTIVATION_BASE) + 1
@@ -1849,6 +1956,79 @@ class GameState:
         if def_idx == 1:
             self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
+    def is_ray_furtivite_open(self, ray: int) -> bool:
+        """Vrai si le rayon `ray` n'est pas intégralement rasé (>= 1 parcelle non-Route et >= 1 machine non retirée)."""
+        assert 0 <= ray < self.cfg.n_players
+        if self.first_non_razed_from_border(ray) is None:
+            return False
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            _, st, _ = self.get_machine_pos_status(ray, mt)
+            if st != MACHINE_STATUS_RETIRED:
+                return True
+        return False
+
+    def count_mobilized_machines_for_ray(self, ray: int) -> int:
+        """Retourne `m(ray)` en 4.1 (`0`, `1` ou `2`) : cartes Machine du rayon révélées en 3.2 + Ratissages actifs.
+
+        Indépendant de toute déviation d'Insecte (±1 en 3.2) et de toute annulation par un Rêve en 3.2.
+        """
+        assert 0 <= ray < self.cfg.n_players
+        cnt = 0
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st, _ = self.get_machine_pos_status(ray, mt)
+            if st == MACHINE_STATUS_RETIRED or pos == 0:
+                continue
+            if st == MACHINE_STATUS_RATISSAGE:
+                cnt += 1
+                continue
+            target_card = machine_card_code(ray, mt)
+            for s in range(self.cfg.n_players):
+                card, _, _, _, _ = self.get_player_hand(s)
+                if card == target_card:
+                    cnt += 1
+                    break
+        return cnt
+
+    def place_defender_furtivite(
+        self,
+        seat: int,
+        def_idx: int,
+        ray: int,
+        rive: int,
+        face: int,
+        preferred_twin: int = 0,
+    ) -> None:
+        """Pose librement un Défenseur en Furtivité au pied du rayon `ray` (`rive` 0=Piège, 1=Sabotage)."""
+        assert 0 <= ray < self.cfg.n_players
+        assert rive in (FURT_RIVE_PIEGE, FURT_RIVE_SABOTAGE)
+        assert preferred_twin in (0, 1)
+        assert face in (FACE_REFLEXION, FACE_DEFINITIF)
+        assert self.is_ray_furtivite_open(ray), (
+            "Zone de Furtivité fermée : piste intégralement transformée en Routes Forestières"
+        )
+
+        self.remove_player_defender(seat, def_idx)
+
+        assert self.get_furtivite_nb_def_rive(ray, 1, rive) < 2, (
+            "Rive Furtivité déjà pleine (2 Défenseurs)"
+        )
+
+        cell_idx = self._parcel_idx(ray, 1)
+        base_raw = _LOC_FURT_BASE + cell_idx * 4
+        slot_a = rive * 2 + preferred_twin
+        slot_b = rive * 2 + (1 - preferred_twin)
+        target_slot = (
+            slot_a
+            if self.get_furtivite_slot_face(ray, 1, slot_a) == FACE_VIDE
+            else slot_b
+        )
+        assert self.get_furtivite_slot_face(ray, 1, target_slot) == FACE_VIDE
+
+        self.set_furtivite_slot_face(ray, 1, target_slot, face)
+        self.set_player_def_loc_raw(seat, def_idx, base_raw + target_slot)
+        if def_idx == 1:
+            self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
+
     def enter_furtivite(
         self,
         seat: int,
@@ -1859,22 +2039,20 @@ class GameState:
         face: int,
         preferred_twin: int = 0,
     ) -> None:
-        """Pose librement un Défenseur sur l'un des 2 emplacements de `rive` (Furtivité libre A1, sans tirage)."""
+        """Compatibilité : délègue vers `place_defender_furtivite` lorsque `p == 1`."""
+        if p == 1:
+            self.place_defender_furtivite(
+                seat, def_idx, lisiere, rive, face, preferred_twin=preferred_twin
+            )
+            return
         assert rive in (0, 1)
         assert preferred_twin in (0, 1)
         assert face in (FACE_REFLEXION, FACE_DEFINITIF)
-        facing_ray = self.lisiere_ray_for_rive(lisiere, rive)
-        assert not self.is_route_forestiere(facing_ray, p), (
-            "Pose interdite sur une rive Furtivité face à une Route Forestière"
+        assert self.is_ray_furtivite_open(lisiere), (
+            "Zone de Furtivité fermée : piste intégralement transformée en Routes Forestières"
         )
-
-        # Retrait préalable si ce même pion était déjà sur le plateau (révision 2.2)
         self.remove_player_defender(seat, def_idx)
-
-        assert self.get_furtivite_nb_def_rive(lisiere, p, rive) < 2, (
-            "Rive Furtivité déjà pleine (2 Défenseurs)"
-        )
-
+        assert self.get_furtivite_nb_def_rive(lisiere, p, rive) < 2
         cell_idx = self._parcel_idx(lisiere, p)
         base_raw = _LOC_FURT_BASE + cell_idx * 4
         slot_a = rive * 2 + preferred_twin
@@ -1884,8 +2062,6 @@ class GameState:
             if self.get_furtivite_slot_face(lisiere, p, slot_a) == FACE_VIDE
             else slot_b
         )
-        assert self.get_furtivite_slot_face(lisiere, p, target_slot) == FACE_VIDE
-
         self.set_furtivite_slot_face(lisiere, p, target_slot, face)
         self.set_player_def_loc_raw(seat, def_idx, base_raw + target_slot)
         if def_idx == 1:
@@ -1999,13 +2175,14 @@ class GameState:
         return False
 
     def count_reve_activation_defenders_at_case(self, case_1_6: int) -> int:
-        """Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`."""
+        """Nombre de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur le Rêve en case `1..6`."""
         assert 1 <= case_1_6 <= TRACK_LEN
         target_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         cnt = 0
         for s in range(self.cfg.n_players):
-            if self.get_player_def_loc_raw(s, 1) == target_raw:
-                cnt += 1
+            for d in (0, 1):
+                if self.get_player_def_loc_raw(s, d) == target_raw:
+                    cnt += 1
         return cnt
 
     def count_reve_activation_consumed_at_case(self, case_1_6: int) -> int:
@@ -2014,19 +2191,21 @@ class GameState:
         target_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
         cnt = 0
         for s in range(self.cfg.n_players):
-            if self.get_player_def_loc_raw(s, 1) == target_raw:
-                cnt += 1
+            for d in (0, 1):
+                if self.get_player_def_loc_raw(s, d) == target_raw:
+                    cnt += 1
         return cnt
 
     def total_reve_activation_remaining(self) -> int:
-        """Nombre total de Défenseurs encore actifs (non consommés) sur des Rêves."""
+        """Nombre total de Défenseurs encore actifs (2.1 + 2.2, non consommés) sur des Rêves."""
         cnt = 0
         lo = _LOC_REVE_ACTIVATION_BASE
         hi = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
         for s in range(self.cfg.n_players):
-            raw = self.get_player_def_loc_raw(s, 1)
-            if lo <= raw < hi:
-                cnt += 1
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if lo <= raw < hi:
+                    cnt += 1
         return cnt
 
     def total_reve_activation_consumed(self) -> int:
@@ -2035,38 +2214,44 @@ class GameState:
         lo = _LOC_REVE_ACTIVATION_CONSUMED_BASE
         hi = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
         for s in range(self.cfg.n_players):
-            raw = self.get_player_def_loc_raw(s, 1)
-            if lo <= raw < hi:
-                cnt += 1
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if lo <= raw < hi:
+                    cnt += 1
         return cnt
 
     def total_reve_activation_engaged(self) -> int:
-        """Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés)."""
+        """Nombre total de Défenseurs engagés en 2.1 ou 2.2 sur des Rêves (actifs + consommés)."""
         cnt = 0
         lo1 = _LOC_REVE_ACTIVATION_BASE
         hi1 = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN
         lo2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE
         hi2 = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN
         for s in range(self.cfg.n_players):
-            raw = self.get_player_def_loc_raw(s, 1)
-            if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
-                cnt += 1
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if (lo1 <= raw < hi1) or (lo2 <= raw < hi2):
+                    cnt += 1
         return cnt
 
     def consume_reve_activation_defenders(self, case_1_6: int, count: int) -> int:
-        """Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (pari gagné)."""
+        """Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (2.1 d'abord puis 2.2)."""
         assert 1 <= case_1_6 <= TRACK_LEN
         if count <= 0:
             return 0
         src_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
         dst_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
         consumed = 0
-        for s in range(self.cfg.n_players):
-            if consumed >= count:
-                break
-            if self.get_player_def_loc_raw(s, 1) == src_raw:
-                self.set_player_def_loc_raw(s, 1, dst_raw)
-                consumed += 1
+        n = self.cfg.n_players
+        coord = self.coordonnateur
+        for d in (0, 1):
+            for off in range(n):
+                if consumed >= count:
+                    return consumed
+                s = (coord + off) % n
+                if self.get_player_def_loc_raw(s, d) == src_raw:
+                    self.set_player_def_loc_raw(s, d, dst_raw)
+                    consumed += 1
         return consumed
 
     def is_eveil_attempt_eligible(self) -> bool:
@@ -2085,17 +2270,21 @@ class GameState:
             return False
         return self.total_gardien_pari_remaining() == 0
 
-    def place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None:
-        """Engage le Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2."""
+    def place_defender_reve_activation(
+        self, seat: int, case_1_6: int, face: int, *, def_idx: int = 1
+    ) -> None:
+        """Engage un Défenseur (`def_idx` 0 en 2.1 ou 1 en 2.2) de `seat` sur un Rêve en case `1..6`."""
         assert self.cfg.mode >= 2, "Activation des Rêves interdite en Mode 1"
+        assert def_idx in (0, 1)
         assert 1 <= case_1_6 <= TRACK_LEN
         assert face in (FACE_REFLEXION, FACE_DEFINITIF)
         assert is_reve_code(self.get_tactique_at_rank(case_1_6 - 1)), (
             "Aucun Rêve présent sur cette case"
         )
-        self.remove_player_defender(seat, 1)
-        self.set_player_def_loc_raw(seat, 1, _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1))
-        self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
+        self.remove_player_defender(seat, def_idx)
+        self.set_player_def_loc_raw(seat, def_idx, _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1))
+        if def_idx == 1:
+            self.set_player_def2_definitif(seat, face == FACE_DEFINITIF)
 
     def mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None:
         """Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées."""

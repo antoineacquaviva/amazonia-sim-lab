@@ -1,0 +1,40 @@
+{
+  "campaign_name": "validation_socle_v6_1",
+  "baseline_comparison_digest": "data/digests/digest_audit_exhaustif_socle_v6_0.json",
+  "description": "Campagne Macro officielle du socle scellé v6.1 (schema_version 6.1.0-alpha) en Mode 2 à tuiles neutres sur P4_2233 + départ décalé canonique (chassis_id = 24, config_index_192 = 5 : Bulldozer p=1, Abatteuse p=2) : Abatteuse coupe tous les Arbres debout et ne touche jamais aux Souches, Pièges autonomes SINGLE_STRIKE défaussés aussitôt après 1 frappe, Rêves ouverts en 2.1 et recentrés sur le blocage pur (CLEAR_RANK_ONLY, REVE_TRIG=ACTIF), Furtivité « Chaud vs Calme » par rayon, et duel 1x2 CHARGE_GAIN in {DEGAT_EFFECTIF, FRAPPE_NON_PAREE} sur B0 Réflexe / B1 / B2 et N=3..6 (570 parties/config = PPCM exact des 19/15/6/1 tables A>=1, soit 13 680 parties).",
+  "mode": 2,
+  "bots": ["B0", "B1", "B2"],
+  "k_max": 3,
+  "seed": 20261201,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 570,
+  "reve_activation_mode": "1_DEF_1_MACHINE",
+  "reve_advance_mode": "CLEAR_RANK_ONLY",
+  "reve_5_trigger_mode": "ACTIF",
+  "gardien_bet_cap_policy": "UNIFORM_MAX_2",
+  "gardien_4_trigger_mode": "DISTINCT_OPEN_1",
+  "piege_scope_mode": "SINGLE_STRIKE",
+  "charge_gain_modes": [
+    "DEGAT_EFFECTIF",
+    "FRAPPE_NON_PAREE"
+  ],
+  "base_instance": {
+    "config_index_192": 5,
+    "bundle_id": "STANDARD_A",
+    "slots_insectes": {
+      "SLOT_BUG_CERVEAU": "B",
+      "SLOT_COLONISATION_GARDIENS": "B"
+    }
+  },
+  "chassis_plan": {
+    "varying_axes": [],
+    "fixed_axes": {
+      "Profil_Piste": "P4_2233",
+      "Placement_Initial_Machines": "BULLDOZER_P1_ABATTEUSE_P2",
+      "Role_Abatteuse_Fin_De_Piste": "STANDARD_COUPE_ARBRE"
+    }
+  },
+  "slot_profile_comparisons": {}
+}

@@ -102,7 +102,7 @@ def test_v5_5_all_30_active_tiles_and_4_migrations_registered() -> None:
     assert expected_migrations <= registered
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["schema_version"] == "6.0.0-alpha"
+    assert bundle["meta"]["schema_version"] == "6.1.0-alpha"
     assert len(bundle["catalogue_tuiles"]) == 32
     for slot_id, prof in expected_30:
         assert slot_id in bundle["catalogue_tuiles"]
@@ -351,10 +351,7 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     non_pass = [opt for opt in res.options if opt != "PASSER"]
     assert non_pass
     apply_choice(st_32, non_pass[0], telemetry=trk_32)
-    res_reve = step_until_decision(st_32, telemetry=trk_32)
-    # v6.0 : choix exclusif BLOQUER sur R1 (case 5) pour annuler la machine du siège 1
-    assert isinstance(res_reve, DecisionRequest) and res_reve.decision_type == "CHOIX_REVE_3_2"
-    apply_choice(st_32, "BLOQUER", telemetry=trk_32)
+    # v6.1 : blocage pur automatique (CLEAR_RANK_ONLY) sur R1 (case 5), stoppe à l'ancre 4.3
     _ = step_until_decision(st_32, telemetry=trk_32)
 
     ts_32 = trk_32.summary()
@@ -362,14 +359,14 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     assert ts_32.da_insecte_bug_deviation == 1
     assert ts_32.da_reve_annulation == 1
 
-    # B) 5.1 : Piège + Parade classique + Parade avec Insectes + 0 Repousse Finale de base (v6.0)
+    # B) 5.1 : Piège autonome + Parade classique + Parade avec Insectes + 0 Repousse Finale de base (v6.1)
     cfg_51 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"), exp_seed=5508)
     st_51 = GameState(cfg_51)
     # T1 attaque SUR_PLACE (mod_seuil=0) ; dotation P4 p=1 est 2 arbres -> seuil 2
-    # Siège 0 : Piège + 1 Défenseur (Défense >= 1 requise pour déclencher l'Embuscade, < seuil 2) sur (0,1)
+    # Siège 0 : Piège autonome sur (0,1)
     st_51.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_51.set_parcel_piege(0, 1, PIEGE_ACTIF)
-    st_51.set_parcel_defenseurs(0, 1, 1)
+    st_51.set_parcel_defenseurs(0, 1, 0)
     st_51.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 1, 6, 1, 1)
     # Siège 1 : Parade classique (2 Défenseurs seuls, 0 Insecte) sur (1,1)
     st_51.set_machine_pos_status(1, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
@@ -381,7 +378,7 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     st_51.set_parcel_insectes(2, 1, 1)
     st_51.set_player_hand(2, machine_card_code(2, MACHINE_ABATTEUSE), 1, 6, 1, 1)
     st_51.set_player_hand(3, 0, 0, 0, 0, 0)
-    # 1 Souche sur (3,1) -> 0 repousse automatique en v6.0
+    # 1 Souche sur (3,1) -> 0 repousse automatique en v6.1
     st_51.set_parcel_arbres_souches(3, 1, 1, 1)
     st_51.set_parcel_defenseurs(3, 1, 1)
 
@@ -399,7 +396,7 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     assert ts_51.da_parade_avec_insectes == 1
     assert ts_51.da_arbres_repousse_finale == 0
 
-    # Vérification isolée : 0 Repousse Finale automatique en v6.0
+    # Vérification isolée : 0 Repousse Finale automatique en v6.1
     st_rep = GameState(cfg_51)
     st_rep.set_parcel_arbres_souches(0, 1, 0, 2)
     st_rep.set_parcel_arbres_souches(1, 1, 1, 1)
@@ -420,12 +417,12 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     manifest_path = ROOT / "campaigns" / "manifests" / "baseline_mode4_v5_5.json"
     assert manifest_path.is_file(), "campaigns/manifests/baseline_mode4_v5_5.json manquant"
     raw_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    with pytest.raises(ValueError, match="EXCLUSIVE_CHOICE"):
-        resolve_manifest_plan(raw_manifest)
+    bad_manifest = dict(raw_manifest)
+    bad_manifest["reve_advance_mode"] = "EXCLUSIVE_CHOICE"
+    with pytest.raises(ValueError, match="CLEAR_RANK_ONLY"):
+        resolve_manifest_plan(bad_manifest)
 
-    manifest = dict(raw_manifest)
-    manifest["reve_advance_mode"] = "EXCLUSIVE_CHOICE"
-    plan = resolve_manifest_plan(manifest)
+    plan = resolve_manifest_plan(raw_manifest)
 
     assert plan["campaign_name"] == "baseline_mode4_v5_5"
     assert plan["mode"] == 4
@@ -434,7 +431,7 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
     assert plan["migration_policy"]["SLOT_BUG_CERVEAU"] == "B"
     assert plan["migration_policy"]["SLOT_COLONISATION_GARDIENS"] == "B"
-    assert plan["profile_variants"][0]["reve_advance_mode"] == "SAUT"
+    assert plan["profile_variants"][0]["reve_advance_mode"] == "CLEAR_RANK_ONLY"
     assert plan["include_full_tile_metrics"] is True
     # 3 bots * 4 N * 6 chassis * 1 profil = 72 configurations ; 72 * 120 = 8 640 parties
     assert plan["total_configurations"] == 72
@@ -508,7 +505,7 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
         job_wall_sec=1.0,
     )
     assert digest_path.exists() and prompt_path.exists() and parquet_path.exists()
-    assert digest["active_core_rules"]["version"] == "6.0.0-alpha"
+    assert digest["active_core_rules"]["version"] == "6.1.0-alpha"
     assert digest["totals"]["total_games"] == 3 * 2 * 20  # 120 parties
 
     # 1. Section defense_attribution complète + ventilation par bot (B0, B1, B2)

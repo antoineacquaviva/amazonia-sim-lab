@@ -63,10 +63,15 @@ DEFENSE_ATTRIBUTION_FIELDS: tuple[str, ...] = (
 OCKHAM_COUNT_FIELDS: tuple[str, ...] = (
     "ok_furt_rive_piege",
     "ok_furt_rive_sabotage",
+    "ok_furt_rive_piege_lost",
+    "ok_furt_rive_sabotage_lost",
     "ok_furt_orphan_pawns",
     "ok_furt_failed_binomes",
     "ok_furt_double_same_cell",
     "ok_furt_multi_rive_turns",
+    "ok_pieges_placed",
+    "ok_pieges_triggered",
+    "ok_piege_multi_strike_parries",
     "ok_pieges_unused_end",
     "ok_pont_routier_jumps",
     "ok_routes_created",
@@ -119,6 +124,7 @@ DILEMMA_CHOICE_FIELDS: tuple[str, ...] = (
     "dil_def1_foret",
     "dil_def1_lisiere",
     "dil_def1_furtivite",
+    "dil_def1_reve",
     "dil_def2_foret",
     "dil_def2_lisiere",
     "dil_def2_furtivite",
@@ -306,10 +312,15 @@ class TelemetrySummary(NamedTuple):
     # Instrumentation Rasoir d'Ockham (ok_*)
     ok_furt_rive_piege: int = 0
     ok_furt_rive_sabotage: int = 0
+    ok_furt_rive_piege_lost: int = 0
+    ok_furt_rive_sabotage_lost: int = 0
     ok_furt_orphan_pawns: int = 0
     ok_furt_failed_binomes: int = 0
     ok_furt_double_same_cell: int = 0
     ok_furt_multi_rive_turns: int = 0
+    ok_pieges_placed: int = 0
+    ok_pieges_triggered: int = 0
+    ok_piege_multi_strike_parries: int = 0
     ok_pieges_unused_end: int = 0
     ok_pont_routier_jumps: int = 0
     ok_routes_created: int = 0
@@ -360,6 +371,7 @@ class TelemetrySummary(NamedTuple):
     dil_def1_foret: int = 0
     dil_def1_lisiere: int = 0
     dil_def1_furtivite: int = 0
+    dil_def1_reve: int = 0
     dil_def2_foret: int = 0
     dil_def2_lisiere: int = 0
     dil_def2_furtivite: int = 0
@@ -509,10 +521,15 @@ class TelemetryTracker:
     # Instrumentation Rasoir d'Ockham (ok_*)
     ok_furt_rive_piege: int = 0
     ok_furt_rive_sabotage: int = 0
+    ok_furt_rive_piege_lost: int = 0
+    ok_furt_rive_sabotage_lost: int = 0
     ok_furt_orphan_pawns: int = 0
     ok_furt_failed_binomes: int = 0
     ok_furt_double_same_cell: int = 0
     ok_furt_multi_rive_turns: int = 0
+    ok_pieges_placed: int = 0
+    ok_pieges_triggered: int = 0
+    ok_piege_multi_strike_parries: int = 0
     ok_pieges_unused_end: int = 0
     ok_pont_routier_jumps: int = 0
     ok_routes_created: int = 0
@@ -563,6 +580,7 @@ class TelemetryTracker:
     dil_def1_foret: int = 0
     dil_def1_lisiere: int = 0
     dil_def1_furtivite: int = 0
+    dil_def1_reve: int = 0
     dil_def2_foret: int = 0
     dil_def2_lisiere: int = 0
     dil_def2_furtivite: int = 0
@@ -916,10 +934,14 @@ class TelemetryTracker:
         if count > 0:
             self.ok_furt_orphan_pawns += count
 
-    def on_furtivite_failed_binome(self, count: int = 1) -> None:
-        """Enregistre un binôme 2/2 en 4.1 n'exécutant rien (machine active en 3.2, déjà piégé ou Route)."""
+    def on_furtivite_failed_binome(self, count: int = 1, *, rive: str = "") -> None:
+        """Enregistre un binôme 2/2 en 4.1 perdant son pari (Rive Piège hors m(r)==2 ou Rive Sabotage hors m(r)==0)."""
         if count > 0:
             self.ok_furt_failed_binomes += count
+            if rive == "PIEGE":
+                self.ok_furt_rive_piege_lost += count
+            elif rive == "SABOTAGE":
+                self.ok_furt_rive_sabotage_lost += count
 
     def on_furtivite_step_end(self) -> None:
         """Clôture le suivi 1-rive / 2-rives de l'Étape 4.1 pour le tour courant."""
@@ -935,7 +957,7 @@ class TelemetryTracker:
         self._turn_furt_total_rives_exec = 0
 
     def on_reve_choice(self, choice: str, *, dual_options: bool = True) -> None:
-        """Enregistre le choix exclusif d'un Rêve activé en 3.2 ('BLOQUER' ou 'AVANCER')."""
+        """Enregistre le blocage d'un Rêve activé en 3.2."""
         if choice == "BLOQUER":
             self.reves_choice_block += 1
             if dual_options:
@@ -947,7 +969,7 @@ class TelemetryTracker:
             self.dil_reve_dual_advance += 1
 
     def on_charge_gain(self, count: int = 1, *, tour: int = 1) -> None:
-        """Enregistre un gain de jeton Puissance issu du mode CHARGE sur dégât effectif."""
+        """Enregistre un gain de jeton Puissance issu du mode CHARGE."""
         if count > 0:
             self.charge_gains += count
             if tour <= 4:
@@ -975,6 +997,8 @@ class TelemetryTracker:
             self.dil_def1_lisiere += 1
         elif target_kind == "FURTIVITE":
             self.dil_def1_furtivite += 1
+        elif target_kind == "REVE_ACTIVATION":
+            self.dil_def1_reve += 1
         elif target_kind == "PASSER_IMPASSE":
             self.ok_impasse_totale += 1
 
@@ -1352,10 +1376,15 @@ class TelemetryTracker:
             furtivite_2_rives_turns=self.furtivite_2_rives_turns,
             ok_furt_rive_piege=self.ok_furt_rive_piege,
             ok_furt_rive_sabotage=self.ok_furt_rive_sabotage,
+            ok_furt_rive_piege_lost=self.ok_furt_rive_piege_lost,
+            ok_furt_rive_sabotage_lost=self.ok_furt_rive_sabotage_lost,
             ok_furt_orphan_pawns=self.ok_furt_orphan_pawns,
             ok_furt_failed_binomes=self.ok_furt_failed_binomes,
             ok_furt_double_same_cell=self.ok_furt_double_same_cell,
             ok_furt_multi_rive_turns=self.ok_furt_multi_rive_turns,
+            ok_pieges_placed=self.ok_pieges_placed,
+            ok_pieges_triggered=self.ok_pieges_triggered,
+            ok_piege_multi_strike_parries=self.ok_piege_multi_strike_parries,
             ok_pieges_unused_end=self.ok_pieges_unused_end,
             ok_pont_routier_jumps=self.ok_pont_routier_jumps,
             ok_routes_created=self.ok_routes_created,
@@ -1405,6 +1434,7 @@ class TelemetryTracker:
             dil_def1_foret=self.dil_def1_foret,
             dil_def1_lisiere=self.dil_def1_lisiere,
             dil_def1_furtivite=self.dil_def1_furtivite,
+            dil_def1_reve=self.dil_def1_reve,
             dil_def2_foret=self.dil_def2_foret,
             dil_def2_lisiere=self.dil_def2_lisiere,
             dil_def2_furtivite=self.dil_def2_furtivite,

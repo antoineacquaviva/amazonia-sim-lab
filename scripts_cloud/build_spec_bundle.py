@@ -423,8 +423,8 @@ def build_bundle() -> None:
 
     bundle = {
         "meta": {
-            "schema_version": "6.0.0-alpha",
-            "source_studio_version": "v6.0",
+            "schema_version": "6.1.0-alpha",
+            "source_studio_version": "v6.1",
             "studio_sha256": studio_sha256,
             "total_emplacements": len(catalogue),
             "total_profils": sum(len(s["profils"]) for s in catalogue.values()),
@@ -450,14 +450,16 @@ def build_bundle() -> None:
             "acte_2_face": "FACE_B",
             "acte_2_assaut_cases": [1, 2, 3],
             "acte_2_charge_cases": [4, 5, 6],
-            "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance si >= 1 dégât effectif (plafonné à +1/activation)",
+            "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance max/activation selon CHARGE_GAIN (DEGAT_EFFECTIF ou FRAPPE_NON_PAREE)",
             "mode_assaut": "tous les jetons Puissance comptent au seuil ; 0 jeton Puissance gagné",
         },
         "machine_damage_rules": {
+            "placement_initial_canonique": "BULLDOZER_P1_ABATTEUSE_P2",
+            "piege_autonome_portee": "SINGLE_STRIKE",
             "ABATTEUSE": {
-                "arbres_coupes_max": 2,
+                "arbres_coupes_max": 3,
+                "coupe_tous_les_arbres": True,
                 "souches_retirees": 0,
-                "arrache_1_souche_si_sans_arbre_en_ratissage_option": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
             },
             "BULLDOZER": {
                 "arbres_coupes_max": 1,

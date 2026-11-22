@@ -1,6 +1,6 @@
 {
-  "schema_version": "6.0.0-alpha",
-  "description": "Garde-fous sémantiques, lexicaux et éditoriaux vérifiés automatiquement sur Amazonia Doc Studio v6.0 (Livret Joueur, Catalogue et rendu DOM headless) lors de chaque verify_lot.py.",
+  "schema_version": "6.1.0-alpha",
+  "description": "Garde-fous sémantiques, lexicaux et éditoriaux vérifiés automatiquement sur Amazonia Doc Studio v6.1 (Livret Joueur, Catalogue et rendu DOM headless) lors de chaque verify_lot.py.",
   "banned_in_livret": [
     "Une tuile Rêve occupe",
     "en Siège",
@@ -46,6 +46,7 @@
     "v5.4",
     "v5.3",
     "6.0.0-alpha",
+    "6.1.0-alpha",
     "Repousse Finale",
     "glisse aussitôt",
     "Tactique <code>T1</code>",
@@ -59,7 +60,15 @@
     "1_DEF_1_MACHINE",
     "MAX_2_RES_MAX_1",
     "JUMP_PUSH",
-    "FREE_SLOT_ONLY"
+    "FREE_SLOT_ONLY",
+    "Embuscade",
+    "REVE_TRIG",
+    "CHARGE_GAIN",
+    "DEGAT_EFFECTIF",
+    "FRAPPE_NON_PAREE",
+    "PIEGE_SCOPE",
+    "TURN_PARCEL",
+    "SINGLE_STRIKE"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",
@@ -96,6 +105,9 @@
         "Face A",
         "Face B",
         "2 rives indépendantes",
+        "Rive Piège",
+        "Rive Sabotage",
+        "Piège autonome",
         "Arbres encore debout",
         "/ 192"
       ]
@@ -106,9 +118,10 @@
         "Condition inactive dans cette partie (aucun Peuple Animal Sauvage autour de la table).",
         "Les <strong>4 tuiles Rêve</strong> de la partie",
         "cases 1 à 4",
-        "Bloquer",
-        "Avancer",
-        "saute directement vers la 1<sup>re</sup> case libre à sa gauche",
+        "annule 1 machine",
+        "Rive Piège",
+        "Rive Sabotage",
+        "Piège autonome",
         "Ratissage",
         "Assaut permanent",
         "Face A",
@@ -123,8 +136,10 @@
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
         "glissez 1 Défenseur sous la tuile",
-        "Bloquer",
-        "Avancer",
+        "annule 1 machine",
+        "Rive Piège",
+        "Rive Sabotage",
+        "Piège autonome",
         "Ratissage",
         "Assaut permanent"
       ]
@@ -136,7 +151,8 @@
         "cases 1 à 4",
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
-        "Pont routier",
+        "sautées comme un pont",
+        "Piège autonome",
         "Ratissage",
         "Assaut permanent",
         "Mode Charge",

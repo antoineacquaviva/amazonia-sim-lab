@@ -1,28 +1,28 @@
 // =========================================================================
-// data/livret_v6_0.js — Livret de Règles Joueur & Synthèse Cœur (Amazonia v6.0)
+// data/livret_v6_0.js — Livret de Règles Joueur & Synthèse Cœur (Amazonia v6.1)
 // =========================================================================
 
 const REGLES_COEUR_SYNTHESE = {
   "but_et_format": "Jeu coopératif asymétrique à communication muette (3 à 6 joueurs parmi Mammifères, Reptiles, Oiseaux, Humains, Entités Magiques, Insectes ; 8 tours maximum). Objectif commun : maximiser le nombre d'Arbres encore debout à la fin de la partie (aucune repousse automatique des Souches). Réserves de jetons et de cartes Sabotage illimitées.",
   "principes_transverses": {
-    "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve ou Nid) et chaque piste de Migration est décidée uniquement par le joueur de son Peuple d'origine. Les cartes Sabotage sont toutes identiques et diluent définitivement le paquet Machine.",
+    "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve ou Nid) et chaque piste de Migration est décidée uniquement par le joueur de son Peuple d'origine ; en Furtivité, la pose d'un Piège gagné sur un rayon est choisie uniquement par le propriétaire de ce rayon. Les cartes Sabotage sont toutes identiques et diluent définitivement le paquet Machine.",
     "communication_muette": "Silence tactique complet tant que les paravents sont fermés : seuls les placements et ajustements visibles de vos Défenseurs communiquent vos intentions jusqu'à l'ouverture simultanée des paravents.",
-    "pont_routier": "Le long d'un rayon de Forêt, toute Route Forestière est sautée automatiquement : viser devant, avancer, reculer ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Latéralement entre Forêt et Furtivité, une Route Forestière est infranchissable et inoccupable.",
-    "cascades_gardiens": "Terminez intégralement l'action ou la tuile en cours avant de parcourir la Piste des Gardiens de la case 1 à la case 6. Chaque événement allume au plus un seul déclencheur : à l'ouverture des paravents, Sabotage prime sur Insecte (déviation sur la Réglette des Tactiques), qui prime sur Rêve ; pendant les attaques, Piégeage prime sur Insecte (Parade avec dépense d'au moins un Insecte), qui prime sur Parade par Défenseurs seuls ; la case 4. Gardien s'allume à la première ouverture du tour de chaque autre Gardien distinct (sans boucle sur elle-même) ; la Furtivité et la production des Nids n'allument aucun déclencheur."
+    "pont_routier": "Le long d'un rayon de Forêt, toute Route Forestière est sautée automatiquement : viser devant, avancer, reculer ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Dès qu'un rayon est entièrement transformé en Routes Forestières, sa zone de Furtivité au pied du rayon devient définitivement fermée.",
+    "cascades_gardiens": "Terminez intégralement l'action ou la tuile en cours avant de parcourir la Piste des Gardiens de la case 1 à la case 6. Chaque événement allume au plus un seul déclencheur : à l'ouverture des paravents, Sabotage prime sur Insecte (déviation sur la Réglette des Tactiques), qui prime sur Rêve (allumé uniquement lorsqu'un Rêve défendu annule au moins une machine non déviée) ; pendant les attaques, Piégeage (Piège autonome) prime sur Insecte (Parade avec dépense d'au moins un Insecte), qui prime sur Parade par Défenseurs seuls ; la case 4. Gardien s'allume à la première ouverture du tour de chaque autre Gardien distinct (sans boucle sur elle-même) ; la Furtivité et la production des Nids n'allument aucun déclencheur."
   },
   "topologie_et_seuils_imprimes": {
-    "roue": "N rayons de Forêt (de la bordure vers le cœur) alternés avec N lisières portant chacune 2 Tuiles de Synergie et une Piste de Furtivité à 4 emplacements indépendants par case (2 rives de 2 cases).",
+    "roue": "N rayons de Forêt (de la bordure vers le cœur, munis chacun à leur pied d'une zone de Furtivité à 2 rives indépendantes de 2 cases : Rive Piège et Rive Sabotage) alternés avec N lisières portant chacune 2 Tuiles de Synergie.",
     "dotations": "Chaque parcelle porte une dotation initiale d'Arbres égale à son Seuil imprimé fixe (4 ou 5 parcelles par rayon selon la topologie choisie).",
-    "reglette_tactiques": "Réglette réversible de 6 cases aux actions fixes : 1 et 4 = Sur place (modif. 0), 2 et 5 = Devant (modif. 0), 3 et 6 = En avançant (Sur place puis Devant, avancée +1, modif. −1). Acte 1 (Tours 1 à 4, Face A) : cases 1–3 en Charge, cases 4–6 en Assaut. Acte 2 (Tours 5 à 8, Face B retournée au début du Tour 5) : permutation des deux blocs — cases 1–3 en Assaut, cases 4–6 en Charge. En Charge : jetons Puissance existants ignorés au Seuil, et +1 jeton Puissance si au moins 1 dégât effectif (plafonné à +1 par activation). En Assaut : tous les jetons Puissance comptent, 0 gain. Les Rêves se posent par-dessus depuis la droite (case 6 puis 5, etc.) sans retirer les Tactiques imprimées.",
-    "reveil_de_la_foret": "Actif dès qu'au moins un Peuple Animal Sauvage (Mammifères, Reptiles ou Oiseaux) participe à la partie. Chaque Gardien construit peut recevoir 0, 1 ou 2 Défenseurs en pari d'activation, glissés sous la tuile à chaque déclenchement. À la fin des attaques : si tous ses Défenseurs ont été glissés, le pari est gagné (le Gardien reste en piste et passe sur sa Face 2 s'il est double-face) ; s'il reste au moins un Défenseur dessus, le pari est perdu (le Gardien retourne en lisière Face 1, sauf si un Insecte présent sur sa case est défaussé en Bouclier de lisière pour le maintenir sur sa face actuelle, le pari restant perdu). Aux Tours 1 à 7, si les N joueurs ont tous engagé un Défenseur sur la Piste des Gardiens et qu'aucun pari n'est perdu, le Réveil de la Forêt met fin à la partie."
+    "reglette_tactiques": "Réglette réversible de 6 cases aux actions fixes : 1 et 4 = Sur place (modif. 0), 2 et 5 = Devant (modif. 0), 3 et 6 = En avançant (Sur place puis Devant, avancée +1, modif. −1). Acte 1 (Tours 1 à 4, Face A) : cases 1–3 en Charge, cases 4–6 en Assaut. Acte 2 (Tours 5 à 8, Face B retournée au début du Tour 5) : permutation des deux blocs — cases 1–3 en Assaut, cases 4–6 en Charge. En Charge : jetons Puissance existants ignorés au Seuil, et +1 jeton Puissance maximum par activation non parée / dommageable. En Assaut : tous les jetons Puissance comptent, 0 gain. Les Rêves se posent par-dessus depuis la droite (case 6 puis 5, etc.) sans retirer les Tactiques imprimées.",
+    "reveil_de_la_foret": "Actif dès qu'au moins un Peuple Animal Sauvage (Mammifères, Reptiles ou Oiseaux) participe à la partie. Chaque Gardien construit peut recevoir 0, 1 ou 2 Défenseurs en pari d'activation (étape 2.2), glissés sous la tuile à chaque déclenchement. À la fin des attaques : si tous ses Défenseurs ont été glissés, le pari est gagné (le Gardien reste en piste et passe sur sa Face 2 s'il est double-face) ; s'il reste au moins un Défenseur dessus, le pari est perdu (le Gardien retourne en lisière Face 1, sauf si un Insecte présent sur sa case est défaussé en Bouclier de lisière pour le maintenir sur sa face actuelle, le pari restant perdu). Aux Tours 1 à 7, si les N joueurs ont tous engagé un Défenseur sur la Piste des Gardiens en 2.2 et qu'aucun pari n'est perdu, le Réveil de la Forêt met fin à la partie."
   },
   "sequence_tour_6_etapes": {
-    "1_preparation": "Au début du Tour 5, retournez la Réglette des Tactiques sur sa Face B (Acte 2). Passage définitif en Ratissage pour toute machine présente sur la dernière parcelle non rasée de son rayon (détachée de la case 1, en Assaut permanent Sur place avec +1 puissance imprimée, aucun gain de jeton). Distribution secrète d'une carte par joueur depuis le paquet Machine (en cas de pénurie, dans le sens horaire à partir du Peuple ayant le plus d'Arbres debout). Sous paravent fermé, chaque joueur ayant reçu une carte Machine lance 2 dés et retient la plus petite valeur du Tour 1 au Tour 8 ; une carte Sabotage neutralise l'activation.",
-    "2_pose_defenseurs": "Sous paravent fermé, chaque joueur place d'abord l'un de ses deux Défenseurs de façon irrévocable sur sa propre Forêt ou ses deux lisières, puis son autre Défenseur librement sur tout le plateau (d'abord face Réflexion avec ajustements muets, puis retourné face Définitif), y compris sur un Rêve ou en pari sur un Gardien construit (0, 1 ou 2 Défenseurs maximum par Gardien). Sur une case de Furtivité (4 emplacements = 2 rives indépendantes de 2 cases), les joueurs posent librement sans aucun déplacement forcé.",
-    "3_construction_et_revelation": "Construction obligatoire avant l'ouverture des paravents dès que 2 Défenseurs sont réunis sur une tuile de lisière (Gardien sur une case libre 1 à 6 ; Rêve par-dessus la case libre la plus à droite de la Réglette des Tactiques ; Nid sur une parcelle non rasée sans machine ni autre Nid). Ouverture simultanée des paravents et fin du silence : résolution des cartes Sabotage, des déviations d'Insectes sur la Réglette (±1 rang), puis des Rêves en choix exclusif Bloquer (chaque Défenseur annule 1 machine prioritaire, le Rêve ne bouge pas) OU Avancer (1 seul Défenseur suffit, 0 machine annulée, le Rêve saute vers la 1re case libre à sa gauche).",
-    "4_furtivite_nids_migration": "Furtivité libre : sur chaque case de Furtivité, chacune des 2 rives est évaluée indépendamment et déclenche son action uniquement si elle porte un binôme complet (2 Défenseurs sur ses 2 cases ; un pion seul ne déclenche rien). Si les 4 cases sont occupées, les 2 rives s'exécutent toutes les deux (Piège si aucune machine présente, ou Sabotage si au moins 1 machine présente et aucune active ce tour). Production des Nids : chaque Nid portant au moins un Défenseur crée 1 Insecte (ou 2 si au moins 2 Insectes y sont déjà) puis applique son effet propre en bloc indivisible. Migration : chaque Insecte peut se déplacer de 0 ou 1 cran (aller simple définitif depuis la dernière parcelle non rasée vers une case 1 à 6 des pistes centrales).",
-    "5_attaques_et_verdict": "Les machines agissent dans l'ordre des cases 1 à 6 de la Réglette (en mode Charge ou Assaut selon l'Acte en cours) puis en Ratissage (Assaut permanent Sur place, détaché de la case 1 ; Abatteuse avant Bulldozer sur un même rayon). Chaque machine lit ses cibles depuis sa position réelle et résout ses frappes selon la chaîne stricte : effets spéciaux, puis Piège armé (dès que la Défense totale vaut au moins 1), puis Parade classique (Défenseurs seuls ou complétés par la défausse immédiate des Insectes manquants). Dégâts non parés : Abatteuse coupe 2 Arbres en Souches (et arrache 1 Souche en Ratissage s'il n'y a plus d'Arbre sous l'option correspondante) ; Bulldozer coupe 1 Arbre en Souche et retire toutes les Souches non protégées (0 Arbre et 0 Souche = Route Forestière + Repli). En Charge, +1 jeton Puissance rouge si au moins 1 dégât effectif (max +1 par activation). Fin des attaques : retrait des Pièges déclenchés, verdict des paris Gardiens (avec Bouclier de lisière éventuel) et test de fin de partie (priorité absolue au Tour 8 ; aux Tours 1 à 7 : Sommeil du Contremaître ou Réveil de la Forêt). Score final = Arbres debout.",
-    "6_fin_de_tour": "Retour en main de tous les Défenseurs, remise à zéro des effets temporaires, passage du marqueur Coordonnateur au joueur suivant et remélange du paquet Machine (hors machines en Ratissage) avec toutes les cartes Sabotage."
+    "1_preparation": "Au début du Tour 5, retournez la Réglette des Tactiques sur sa Face B (Acte 2). Distribution secrète d'une carte par joueur depuis le paquet Machine (en cas de pénurie, dans le sens horaire à partir du Peuple ayant le plus d'Arbres debout). Sous paravent fermé, chaque joueur ayant reçu une carte Machine lance 2 dés et retient la plus petite valeur du Tour 1 au Tour 8 ; une carte Sabotage neutralise l'activation.",
+    "2_pose_defenseurs": "Sous paravent fermé, chaque joueur place d'abord l'un de ses deux Défenseurs de façon simultanée et fixe (sur sa propre Forêt, ses deux lisières, tout Rêve déjà en piste, ou toute rive ouverte de Furtivité d'un rayon non rasé), puis son autre Défenseur librement sur tout le plateau (d'abord face Réflexion avec ajustements muets, puis retourné face Définitif), seule la Piste des Gardiens étant réservée à cette pose globale (0, 1 ou 2 Défenseurs maximum par Gardien).",
+    "3_construction_et_revelation": "Construction obligatoire avant l'ouverture des paravents dès que 2 Défenseurs sont réunis sur une tuile de lisière (Gardien sur une case libre 1 à 6 ; Rêve par-dessus la case libre la plus à droite de la Réglette des Tactiques ; Nid sur une parcelle non rasée sans machine ni autre Nid). Ouverture simultanée des paravents et fin du silence : résolution des cartes Sabotage, des déviations d'Insectes sur la Réglette (±1 rang), puis blocage par les Rêves défendus (chaque Défenseur posé sur un Rêve visé annule 1 machine prioritaire, les machines restantes exécutent la Tactique dessous et le Rêve demeure sur sa case).",
+    "4_furtivite_nids_migration": "Furtivité « Chaud vs Calme » par rayon : sur chaque rayon non rasé, une rive ne s'évalue que si elle réunit un binôme complet de 2 Défenseurs (un pion seul est perdu sans effet), selon le nombre m de machines de ce rayon mobilisées ce tour-ci (cartes Machine de ce rayon révélées en 3.2 + machines de ce rayon en Ratissage permanent, indépendamment des déviations d'Insectes et des annulations par Rêve). Rive Piège gagnée si m = 2 (le propriétaire du rayon pose 1 Piège sur une parcelle non rasée non piégée de son rayon) ; Rive Sabotage gagnée si m = 0 (+1 carte Sabotage mise de côté pour 6.3). Production des Nids : chaque Nid portant au moins un Défenseur crée 1 ou 2 Insectes puis applique son effet propre. Migration : chaque Insecte en Forêt peut se déplacer de 0 ou 1 cran le long de son rayon ou entrer définitivement depuis la dernière parcelle non rasée sur une case 1 à 6 des pistes centrales.",
+    "5_attaques_et_verdict": "Les machines agissent dans l'ordre des cases 1 à 6 de la Réglette (en mode Charge ou Assaut selon l'Acte en cours) puis en Ratissage (Assaut permanent Sur place, détaché de la case 1 ; Abatteuse avant Bulldozer sur un même rayon). Chaque machine lit ses cibles depuis sa position réelle et résout ses frappes selon la chaîne stricte : effets spéciaux, puis Piège autonome (se déclenche seul même sans Défenseur ni Insecte sur la parcelle, bloque cette unique frappe sans consommer les pions présents et est défaussé aussitôt), puis Parade classique (Défenseurs seuls ou complétés par la défausse immédiate des Insectes manquants). Dégâts non parés : l'Abatteuse coupe tous les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches ; le Bulldozer coupe 1 Arbre en Souche et retire toutes les Souches non protégées (0 Arbre et 0 Souche = Route Forestière + Repli). En Charge, +1 jeton Puissance rouge maximum par activation. Fin des attaques : verdict des paris Gardiens (avec Bouclier de lisière éventuel) et test de fin de partie (priorité absolue au Tour 8 ; aux Tours 1 à 7 : Sommeil du Contremaître ou Réveil de la Forêt). Score final = Arbres debout.",
+    "6_fin_de_tour": "Retour en main de tous les Défenseurs, remise à zéro des effets temporaires, passage du marqueur Coordonnateur au joueur suivant, bascule définitive en Ratissage de toute machine terminant le tour sur la dernière parcelle non rasée de son rayon (carte retirée du paquet), et remélange des cartes Machine actives avec toutes les cartes Sabotage."
   },
   "supports_et_grammaire": {
     "declencheurs_gardiens_6": "1: Parade, 2: Piégeage, 3: Sabotage, 4: Gardien, 5: Rêve, 6: Insecte."
@@ -53,9 +53,7 @@ function renderDidacticRulebook() {
     ? '<strong>Seuil imprimé + 1 + jetons Puissance rouges (en Assaut / Ratissage uniquement ; ignorés en Charge) − jetons Surchauffe bleus + modificateur de Tactique</strong>'
     : '<strong>Seuil imprimé + jetons Puissance rouges (en Assaut / Ratissage uniquement ; ignorés en Charge) − jetons Surchauffe bleus + modificateur de Tactique</strong>';
 
-  const abatteuseTxt = c.Role_Abatteuse_Fin_De_Piste === 'ARRACHE_1_SOUCHE_SI_SANS_ARBRE'
-    ? 'coupe jusqu’à <strong>2 Arbres debout</strong> en Souches ; lorsqu’elle attaque en <strong>Ratissage</strong> sur une parcelle qui ne possède plus aucun Arbre debout, elle arrache <strong>1 Souche</strong>'
-    : 'coupe jusqu’à <strong>2 Arbres debout</strong> en Souches (elle laisse les Souches intactes)';
+  const abatteuseTxt = 'coupe <strong>tous les Arbres debout</strong> de la parcelle en Souches (elle ne touche jamais aux Souches)';
 
   const synergieMachineTxt = c.Synergie_Binome_Machines === 'MUTUALISATION_PUISSANCE_MEME_PARCELLE'
     ? 'En mode Assaut ou Ratissage, lorsque les deux machines d’un même rayon occupent la même parcelle au moment de l’attaque, la machine active additionne ses propres jetons rouges et ceux de sa partenaire.'
@@ -82,7 +80,7 @@ function renderDidacticRulebook() {
       <div class="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div class="text-xs font-semibold uppercase tracking-[0.18em] text-forest-700 mb-1">
-            Livret de Règles Officiel · Édition v6.0
+            Livret de Règles Officiel · Édition v6.1
           </div>
           <h1 class="text-3xl sm:text-4xl font-bold text-forest-950 tracking-tight">
             AMAZONIA : DERNIER REMPART
@@ -147,7 +145,7 @@ function renderDidacticRulebook() {
 
       <div class="bg-emerald-50 border-l-4 border-emerald-600 rounded-r-xl p-3.5 text-xs text-emerald-950">
         <div class="font-bold uppercase tracking-wider text-emerald-800 mb-1">✨ Règle d’or — Gouvernance fluide, zéro débat interminable</div>
-        <p>Chaque Tuile de Synergie (Gardien, Rêve ou Nid) et chaque piste d’Insectes appartient à un unique <strong>Peuple d’origine</strong>. Dès que son effet se déclenche — ou lorsqu’un Rêve doit choisir entre <em>Bloquer</em> et <em>Avancer</em> — seul le joueur contrôlant ce Peuple tranche immédiatement. Les autres joueurs respectent sa décision et le rythme reste vif.</p>
+        <p>Chaque Tuile de Synergie (Gardien, Rêve ou Nid) et chaque piste d’Insectes appartient à un unique <strong>Peuple d’origine</strong> ; de même, lorsqu’un Piège est gagné en Furtivité sur un rayon, seul le <strong>propriétaire de ce rayon</strong> choisit la parcelle où le poser. Les autres joueurs respectent sa décision et le rythme reste vif.</p>
       </div>
     </section>
 
@@ -165,7 +163,7 @@ function renderDidacticRulebook() {
           <ul class="space-y-1.5 text-xs text-slate-700 list-disc pl-4">
             <li><strong>${n} rayons de Forêt</strong> (un par joueur), composés chacun de <span class="dyn-span"><strong>${pMax} parcelles</strong></span> allant de la <strong>parcelle 1 (bordure)</strong> jusqu’à la <strong>parcelle ${pMax} (cœur)</strong>.</li>
             <li>Chaque parcelle affiche un chiffre gravé : c’est à la fois sa <strong>dotation initiale d’Arbres</strong> et son <strong>Seuil de Parade imprimé</strong> (<span class="dyn-span">${dotationStr}</span>, soit <span class="dyn-span"><strong>${totalArbres} Arbres</strong></span> pour toute la table).</li>
-            <li><strong>${n} lisières</strong> séparent les joueurs voisins. Chacune porte une <strong>Piste de Furtivité</strong> parallèle aux parcelles (chaque case possède <strong>4 emplacements libres</strong> organisés en <strong>2 rives indépendantes</strong> de 2 cases : une rive côté gauche, une rive côté droite) et accueille en bordure <strong>2 Tuiles de Synergie</strong> communes aux deux Peuples voisins.</li>
+            <li>Au pied de chaque rayon se trouve une <strong>zone de Furtivité</strong> composée de <strong>2 rives indépendantes</strong> de 2 emplacements chacune : une <strong>Rive Piège</strong> (max 2 Défenseurs) et une <strong>Rive Sabotage</strong> (max 2 Défenseurs). Entre deux rayons voisins, chaque <strong>lisière</strong> accueille <strong>2 Tuiles de Synergie</strong> communes aux deux Peuples voisins.</li>
           </ul>
         </div>
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-4">
@@ -244,7 +242,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-forest-900 text-sm">Étape 1 · Préparation</span>
             <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">🤫 Silence</span>
           </div>
-          <p class="text-slate-600">Retournement de la Réglette au Tour 5, passage en Ratissage au cœur, pioche secrète d’1 carte par joueur et lancer de 2 dés sous paravent.</p>
+          <p class="text-slate-600">Retournement de la Réglette au Tour 5, pioche secrète d’1 carte par joueur et lancer de 2 dés sous paravent.</p>
         </div>
 
         <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
@@ -252,7 +250,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-forest-900 text-sm">Étape 2 · Défenseurs</span>
             <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">🤫 Silence</span>
           </div>
-          <p class="text-slate-600">Pose locale irrévocable d’un premier jeton Défenseur, puis pose globale muette de votre autre Défenseur (<em>Réflexion → Définitif</em>).</p>
+          <p class="text-slate-600">Pose simultanée et fixe d’un premier jeton Défenseur (Forêt, lisières, Rêves ou Furtivité), puis pose globale muette de votre autre Défenseur (<em>Réflexion → Définitif</em>).</p>
         </div>
 
         <div class="border border-emerald-200 rounded-xl p-3.5 bg-emerald-50/50">
@@ -260,7 +258,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-forest-900 text-sm">Étape 3 · Révélation</span>
             <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">🗣️ Paravents ouverts</span>
           </div>
-          <p class="text-slate-600">Construction obligatoire des tuiles complètes, puis ouverture simultanée des paravents : Sabotages, déviations Insectes et choix <em>Bloquer / Avancer</em> des Rêves.</p>
+          <p class="text-slate-600">Construction obligatoire des tuiles complètes, puis ouverture simultanée des paravents : Sabotages, déviations Insectes et blocage par les Rêves défendus.</p>
         </div>
 
         <div class="border border-emerald-200 rounded-xl p-3.5 bg-emerald-50/50">
@@ -268,7 +266,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-forest-900 text-sm">Étape 4 · Forêt vivante</span>
             <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">🗣️ Libre</span>
           </div>
-          <p class="text-slate-600">Résolution de la Furtivité libre (1 ou 2 rives complètes par case), production des Nids actifs, puis Migration des Insectes.</p>
+          <p class="text-slate-600">Résolution de la Furtivité « Chaud vs Calme » par rayon (Rive Piège / Rive Sabotage), production des Nids actifs, puis Migration des Insectes.</p>
         </div>
 
         <div class="border border-rose-200 rounded-xl p-3.5 bg-rose-50/50">
@@ -276,7 +274,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-rose-900 text-sm">Étape 5 · Attaques &amp; Bilan</span>
             <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 font-semibold">⚔️ Résolution</span>
           </div>
-          <p class="text-slate-600">Attaques des machines (cases 1 à 6 en Charge ou Assaut, puis Ratissages en Assaut permanent), retrait des Pièges utilisés, verdict des Gardiens et test de fin.</p>
+          <p class="text-slate-600">Attaques des machines (cases 1 à 6 en Charge ou Assaut, puis Ratissages en Assaut permanent), Pièges autonomes, verdict des Gardiens et test de fin.</p>
         </div>
 
         <div class="border border-slate-200 rounded-xl p-3.5 bg-slate-50">
@@ -284,7 +282,7 @@ function renderDidacticRulebook() {
             <span class="font-bold text-forest-900 text-sm">Étape 6 · Fin de tour</span>
             <span class="px-2 py-0.5 rounded bg-slate-200 text-slate-700 font-semibold">🔄 Remélange</span>
           </div>
-          <p class="text-slate-600">Récupération de tous les Défenseurs, passage du Coordonnateur et remélange du paquet Machine avec les Sabotages.</p>
+          <p class="text-slate-600">Récupération des Défenseurs, passage du Coordonnateur, bascule définitive en Ratissage au cœur et remélange du paquet Machine avec les Sabotages.</p>
         </div>
       </div>
     </section>
@@ -299,10 +297,9 @@ function renderDidacticRulebook() {
 
       <!-- ÉTAPE 1 -->
       <div class="space-y-2.5">
-        <h3 class="text-lg font-bold text-forest-900">Étape 1 — Acte, Ratissage &amp; Dés secrets</h3>
+        <h3 class="text-lg font-bold text-forest-900">Étape 1 — Acte, Distribution &amp; Dés secrets</h3>
         <ul class="space-y-2 text-sm text-slate-700 list-disc pl-5">
           <li><strong>1.0 Passage à l’Acte 2 (début du Tour 5 uniquement) :</strong> au début du 5<sup>e</sup> tour, <strong>retournez la Réglette des Tactiques sur sa Face B</strong> en conservant les Rêves et les Insectes posés sur leurs numéros de case (1 à 6). Les blocs <em>Charge</em> et <em>Assaut</em> permutent pour les Tours 5 à 8.</li>
-          <li><strong>1.1 Passage en Ratissage :</strong> toute machine se trouvant sur la <strong>dernière parcelle non rasée</strong> de son rayon est retournée définitivement sur sa <strong>face Ratissage</strong> et sa carte est retirée du paquet Machine. Détachée de la Réglette des Tactiques, elle opère désormais en <strong>Assaut permanent</strong> : elle attaque <strong>Sur place</strong> (modificateur de Seuil <code>0</code>) en fin d’Étape 5, applique tous ses jetons Puissance (y compris son bonus imprimé <strong>+1 puissance rouge</strong>) et ne gagne jamais de nouveau jeton Puissance.</li>
           <li><strong>1.2 Distribution secrète :</strong> chaque joueur pioche secrètement <strong>1 carte</strong> du paquet Machine (qui contient aussi toutes les cartes Sabotage intégrées au fil de la partie) et la place derrière son paravent. <em>En cas de pénurie</em> (moins de cartes que de joueurs), distribuez dans le sens horaire en commençant par le Peuple possédant le plus d’Arbres debout (en cas d’égalité, le plus proche du Coordonnateur dans le sens horaire).</li>
           <li><strong>1.3 Lancer de dés secret :</strong> si vous avez pioché une <strong>carte Machine</strong>, lancez vos 2 dés derrière votre paravent et retenez toujours la <strong>plus petite valeur</strong> (du Tour 1 au Tour 8) : ce chiffre (de 1 à 6) indique la case visée sur la <strong>Réglette des Tactiques</strong>. Si vous avez pioché une <strong>carte Sabotage</strong> (ou aucune carte), vous ne lancez pas les dés : le Contremaître perd cette activation.</li>
         </ul>
@@ -315,14 +312,14 @@ function renderDidacticRulebook() {
           Pendant toute cette étape, les paravents restent fermés et le silence tactique est total. Vous engagez vos <strong>2 jetons Défenseur</strong> en deux temps :
         </p>
         <ul class="space-y-2 text-sm text-slate-700 list-disc pl-5">
-          <li><strong>2.1 Pose locale (irrévocable) :</strong> simultanément, chaque joueur place l’un de ses deux Défenseurs (face <em>Définitif</em>) sur une parcelle non rasée de <strong>son propre rayon</strong>, sur un emplacement libre de <strong>l’une de ses deux Pistes de Furtivité</strong>, ou sur l’une des <strong>Tuiles de Synergie non construites</strong> de ses deux lisières. Une fois posé, ce jeton ne bouge plus jusqu’à l’ouverture des paravents.</li>
+          <li><strong>2.1 Première pose simultanée et fixe :</strong> simultanément, chaque joueur place l’un de ses deux Défenseurs (face <em>Définitif</em>) sur une parcelle non rasée de <strong>son propre rayon</strong>, sur l’une des <strong>Tuiles de Synergie non construites</strong> de ses deux lisières, sur une tuile <strong>Rêve</strong> déjà présente sur la Réglette des Tactiques, ou sur un emplacement libre d’une <strong>rive de Furtivité ouverte</strong> (<em>Rive Piège</em> ou <em>Rive Sabotage</em>) au pied de n’importe quel rayon non rasé. Une fois posé, ce jeton ne bouge plus jusqu’à l’ouverture des paravents. Seule la Piste des Gardiens est réservée à l’étape 2.2.</li>
           <li><strong>2.2 Pose globale (Réflexion puis Définitif) :</strong> chaque joueur place ensuite son <strong>autre Défenseur</strong> n’importe où sur le plateau, d’abord sur sa face <strong>Réflexion</strong> :
             <ul class="list-circle pl-5 mt-1 space-y-1 text-slate-600">
               <li>une parcelle non rasée de n’importe quel rayon de Forêt ;</li>
-              <li>n’importe quel emplacement libre d’une <strong>case de Furtivité</strong> (4 emplacements par case : 2 cases côté gauche, 2 cases côté droite — maximum <strong>2 Défenseurs par rive</strong>, jusqu’à 4 Défenseurs sur la case, sans aucun déplacement forcé) ;</li>
+              <li>un emplacement libre de la <strong>Rive Piège</strong> ou de la <strong>Rive Sabotage</strong> au pied de n’importe quel rayon non rasé (<strong>2 rives indépendantes</strong> de 2 cases par rayon, maximum <strong>2 Défenseurs par rive</strong>, sans aucun déplacement forcé ; dès qu’un rayon est intégralement transformé en Routes Forestières, sa Furtivité devient fermée) ;</li>
               <li>une Tuile de Synergie en lisière (maximum 2 Défenseurs par tuile) ;</li>
-              <li>une tuile <strong>Rêve</strong> présente sur la Réglette des Tactiques (pour décider en 3.2 de <em>Bloquer</em> ou d’<em>Avancer</em>) ;</li>
-              <li>une tuile <strong>Gardien</strong> déjà construite sur la Piste des Gardiens (pour parier sur son déclenchement, dans la limite de <strong>2 Défenseurs par Gardien</strong>).</li>
+              <li>une tuile <strong>Rêve</strong> présente sur la Réglette des Tactiques (en complément éventuel des Défenseurs déjà posés en 2.1) ;</li>
+              <li>une tuile <strong>Gardien</strong> déjà construite sur la Piste des Gardiens (pour parier sur son déclenchement, dans la limite de <strong>maximum 2 Défenseurs par Gardien</strong>).</li>
             </ul>
             En observant silencieusement les placements de vos partenaires, vous pouvez déplacer librement votre jeton tant qu’il est face <em>Réflexion</em>. Dès que votre choix est arrêté, retournez-le sur sa face <strong>Définitif</strong>. Lorsque tous les joueurs ont retourné leur jeton, passez à l’Étape 3.
           </li>
@@ -331,11 +328,11 @@ function renderDidacticRulebook() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
           <div class="bg-emerald-50 border-l-4 border-emerald-600 rounded-r-xl p-3.5 text-xs text-emerald-950">
             <div class="font-bold uppercase tracking-wider text-emerald-800 mb-1">✨ Règle d’or — Communication muette</div>
-            <p>Aucune parole, aucun signe de tête, aucun doigt pointé tant que les paravents sont fermés. Vos placements face <em>Réflexion</em> sont votre langage : poser un Défenseur sur le rayon d’un voisin lui signale un danger ; venir compléter la deuxième case de sa rive en Furtivité confirme votre binôme.</p>
+            <p>Aucune parole, aucun signe de tête, aucun doigt pointé tant que les paravents sont fermés. Vos placements sont votre langage : amorcer en 2.1 la <em>Rive Piège</em> d’un rayon dont vous détenez une machine permet à votre coéquipier détenant l’autre machine de ce rayon de compléter le binôme à coup sûr en 2.2 !</p>
           </div>
           <div class="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-xs text-amber-950">
-            <div class="font-bold uppercase tracking-wider text-amber-800 mb-1">💡 Exemple concret — Furtivité libre sur 2 rives indépendantes</div>
-            <p>Une case de Furtivité offre <strong>2 emplacements côté Mammifères</strong> et <strong>2 emplacements côté Reptiles</strong>. Si les Mammifères posent 1 Défenseur sur leur rive et les Reptiles 1 Défenseur sur la leur, chaque rive ne porte qu’un pion isolé : <strong>aucune action ne se déclenche</strong> en 4.1. Si un coéquipier complète la rive des Mammifères (2 Défenseurs côté Mammifères), cette rive s’exécute. Et si les <strong>4 emplacements</strong> sont occupés (2 binômes complets), les <strong>2 rives agissent toutes les deux</strong> en 4.1 !</p>
+            <div class="font-bold uppercase tracking-wider text-amber-800 mb-1">💡 Exemple concret — Furtivité « Chaud vs Calme »</div>
+            <p>Au pied du rayon des Mammifères se trouvent <strong>2 rives indépendantes</strong> : la <strong>Rive Piège</strong> (2 cases) et la <strong>Rive Sabotage</strong> (2 cases). Un pion resté seul sur une rive est perdu sans effet. Si un binôme complet occupe la <strong>Rive Piège</strong> et que les <strong>2 machines</strong> des Mammifères sont mobilisées ce tour-ci, les Mammifères posent 1 Piège autonome sur leur rayon ! À l’inverse, un binôme sur la <strong>Rive Sabotage</strong> gagne 1 carte Sabotage uniquement si <strong>aucune machine</strong> de ce rayon n’est mobilisée ce tour-ci.</p>
           </div>
         </div>
       </div>
@@ -347,7 +344,7 @@ function renderDidacticRulebook() {
           <li><strong>3.1 Construction avant ouverture :</strong> toute Tuile de Synergie en lisière qui réunit <strong>2 Défenseurs</strong> est obligatoirement construite <em>avant</em> de lever les paravents (en cas de plusieurs constructions, le Coordonnateur choisit l’ordre) :
             <ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600">
               <li><strong>Gardien :</strong> placez-le Face 1 sur une case libre (1 à 6) de la Piste des Gardiens choisie par son Peuple d’origine.</li>
-              <li><strong>Rêve :</strong> posez-le par-dessus la <strong>case libre la plus à droite</strong> de la Réglette des Tactiques (case 6, puis 5 si 6 porte déjà un Rêve, etc.). Il est immédiatement actif pour l’étape 3.2.</li>
+              <li><strong>Rêve :</strong> posez-le par-dessus la <strong>case libre la plus à droite</strong> de la Réglette des Tactiques (case 6, puis 5 si 6 porte déjà un Rêve, etc.). Il pourra recevoir des Défenseurs dès le prochain tour.</li>
               <li><strong>Nid :</strong> placez-le sur une parcelle non rasée de l’un de ses deux rayons adjacents ne contenant aucune machine ni aucun autre Nid ; ses Défenseurs bâtisseurs l’accompagnent sur cette parcelle.</li>
               <li><strong>Sort des bâtisseurs (Gardien / Rêve) :</strong> ${n === 3 ? '<span class="dyn-span">dans une partie à <strong>3 joueurs</strong>, le Peuple d’origine libère <strong>1 des 2 Défenseurs</strong> bâtisseurs sur la première parcelle non rasée de l’un des deux rayons de la lisière ; l’autre reste en bordure jusqu’à la fin du tour.</span>' : '<span class="dyn-span">dans une partie à <strong>' + n + ' joueurs</strong>, les 2 Défenseurs bâtisseurs restent en bordure de lisière jusqu’à la fin du tour.</span>'}</li>
             </ul>
@@ -356,7 +353,7 @@ function renderDidacticRulebook() {
             <ol class="list-decimal pl-5 mt-1 space-y-1 text-slate-600">
               <li>Les <strong>cartes Sabotage</strong> révélées sont mises de côté (elles rejoindront le paquet à l’Étape 6) et allument le déclencheur <strong>3. Sabotage</strong>.</li>
               <li>Les éventuelles <strong>déviations d’Insectes</strong> sur la Réglette des Tactiques décalent un dé de −1 ou +1 rang et allument le déclencheur <strong>6. Insecte</strong>.</li>
-              <li>Chaque carte Machine (non déviée par un Insecte) dont le dé retenu pointe sur un <strong>Rêve</strong> allume le déclencheur <strong>5. Rêve</strong>. Pour chaque Rêve portant au moins 1 Défenseur et visé par au moins 1 machine, son Peuple Onirique choisit exclusivement <strong>Bloquer</strong> ou <strong>Avancer</strong> (voir section 5.2).</li>
+              <li><strong>Blocage par les Rêves défendus :</strong> pour chaque <strong>Rêve</strong> portant au moins 1 Défenseur et visé par au moins 1 machine, chaque Défenseur posé dessus <strong>annule 1 machine</strong> de ce rang (en neutralisant d’abord la plus menaçante ; les machines restantes exécutent la Tactique imprimée dessous) et le Rêve demeure sur sa case. Dès qu’un Rêve défendu annule effectivement au moins 1 machine (non déviée par un Insecte), il allume le déclencheur <strong>5. Rêve</strong>. Un Rêve sans Défenseur reste totalement inerte.</li>
               <li>Balayez ensuite la Piste des Gardiens de 1 à 6 pour résoudre les Gardiens déclenchés.</li>
             </ol>
           </li>
@@ -365,16 +362,16 @@ function renderDidacticRulebook() {
 
       <!-- ÉTAPE 4 -->
       <div class="space-y-2.5">
-        <h3 class="text-lg font-bold text-forest-900">Étape 4 — Furtivité libre, Production des Nids &amp; Migration</h3>
+        <h3 class="text-lg font-bold text-forest-900">Étape 4 — Furtivité « Chaud vs Calme », Production des Nids &amp; Migration</h3>
         <ul class="space-y-2 text-sm text-slate-700 list-disc pl-5">
-          <li><strong>4.1 Actions de Furtivité libre :</strong> sur chaque case de Furtivité, évaluez indépendamment chacune des <strong>2 rives</strong>. Une rive déclenche son action <strong>uniquement si elle porte un binôme complet de 2 Défenseurs</strong> sur ses 2 cases (un Défenseur seul ne déclenche rien). Si les 4 cases sont occupées (2 binômes complets), les <strong>2 rives s’exécutent toutes les deux</strong>. Pour chaque rive déclenchée, le joueur de ce bord observe la parcelle de Forêt juste en face :
+          <li><strong>4.1 Résolution de la Furtivité par rayon :</strong> au pied de chaque rayon de Forêt non rasé, évaluez chacune des <strong>2 rives indépendantes</strong> uniquement si elle réunit un <strong>binôme complet de 2 Défenseurs</strong> (un pion seul est perdu sans effet). Comptez le nombre de machines de ce rayon mobilisées ce tour-ci : <strong>(cartes Machine de ce rayon révélées en 3.2) + (machines de ce rayon déjà en Ratissage permanent)</strong>, soit <code>0</code>, <code>1</code> ou <code>2</code>. <em>Important :</em> ce total ne dépend ni d’une déviation d’Insecte (±1 en 3.2), ni d’une annulation par un Rêve en 3.2, et une carte Sabotage révélée ne compte pour aucun rayon.
             <ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600">
-              <li><strong>Aucune machine présente :</strong> posez <strong>1 Piège</strong> sur cette parcelle (s’il n’y en a pas déjà un).</li>
-              <li><strong>Au moins 1 machine présente et aucune active ce tour</strong> (ni carte révélée active, ni en Ratissage — une machine annulée par un Rêve en mode <em>Bloquer</em> est inactive !) : prenez <strong>1 carte Sabotage</strong> de la réserve et mettez-la de côté pour l’intégrer définitivement au paquet Machine à l’Étape 6.</li>
+              <li><strong>Rive Piège (pari « double menace ») :</strong> gagné si les <strong>2 machines</strong> du rayon sont mobilisées (<code>2</code>) → le <strong>joueur propriétaire de ce rayon</strong> pose <strong>1 Piège</strong> sur la parcelle non rasée de son choix sur son rayon (qui n’en porte pas déjà un). Perdu si <code>0</code> ou <code>1</code> machine est mobilisée.</li>
+              <li><strong>Rive Sabotage (pari « piste calme ») :</strong> gagné si <strong>aucune machine</strong> du rayon n’est mobilisée (<code>0</code>) → prenez <strong>1 carte Sabotage</strong> de la réserve et mettez-la de côté pour l’intégrer définitivement au paquet Machine à l’Étape 6. Perdu si <code>1</code> ou <code>2</code> machines sont mobilisées.</li>
             </ul>
           </li>
           <li><strong>4.2 Production des Nids :</strong> chaque Nid présent en Forêt et occupé par <strong>au moins 1 Défenseur</strong> produit des Insectes, dans l’ordre choisi par le joueur Insectes (voir section 5.3).</li>
-          <li><strong>4.3 Migration des Insectes :</strong> chaque jeton Insecte présent sur la roue peut se déplacer de <strong>0 ou 1 cran</strong> (voir section 5.3).</li>
+          <li><strong>4.3 Migration des Insectes :</strong> chaque jeton Insecte présent sur un rayon de Forêt peut rester sur place ou se déplacer d’<strong>1 cran</strong> le long de son rayon ou vers les pistes centrales (voir section 5.3).</li>
         </ul>
       </div>
 
@@ -390,7 +387,7 @@ function renderDidacticRulebook() {
             <div class="font-bold text-sm text-amber-900 mb-1">⚡ Mode Charge (Acte 1 : cases 1–3 · Acte 2 : cases 4–6)</div>
             <ul class="list-disc pl-4 space-y-1 text-slate-700">
               <li>Les jetons Puissance rouges déjà présents sur la machine sont <strong>ignorés</strong> pour calculer le Seuil de Parade de cette attaque.</li>
-              <li>À la fin de l’activation : si la machine a infligé <strong>au moins 1 dégât effectif</strong> (au moins 1 Arbre coupé ou 1 Souche arrachée), elle gagne <strong>+1 jeton Puissance rouge</strong> (plafonné à <strong>+1 par activation</strong>, même si une attaque <em>En avançant</em> blesse deux parcelles). Si tous ses coups sont parés ou sans effet, elle ne gagne rien !</li>
+              <li>À la fin de l’activation : la machine gagne au maximum <strong>+1 jeton Puissance rouge</strong> par activation lorsqu’elle passe au travers des défenses sur une parcelle non rasée (plafonné à <strong>+1 par activation</strong>, même sur une attaque double <em>En avançant</em> ; une visée <em>Devant</em> lancée hors-plateau depuis la dernière parcelle ou une attaque intégralement parée / piégée ne fait jamais gagner de jeton).</li>
             </ul>
           </div>
           <div class="bg-rose-50 border border-rose-300 rounded-xl p-3.5 text-rose-950">
@@ -413,7 +410,7 @@ function renderDidacticRulebook() {
           </p>
           <ol class="list-decimal pl-5 space-y-1.5 text-xs text-slate-700">
             <li><strong>Effet spécial de parade automatique</strong> (si un Gardien ou une loi active permet de parer automatiquement cette frappe) → allume <strong>1. Parade</strong>.</li>
-            <li><strong>Piège armé (Embuscade) :</strong> s’il y a un Piège sur la parcelle et que la <strong>Défense totale</strong> sur place (Défenseurs + Insectes) vaut <strong>au moins 1</strong>, le Piège bloque automatiquement la frappe sans dépenser d’Insecte ! Marquez le Piège comme <em>déclenché</em> (il sera retiré en 5.3) → allume <strong>2. Piégeage</strong>.</li>
+            <li><strong>Piège autonome :</strong> dès qu’un jeton <strong>Piège</strong> est présent sur la parcelle attaquée, il se déclenche de lui-même (même sans aucun Défenseur ni aucun Insecte sur la parcelle !), bloque cette unique frappe sans dépenser ni Défenseur ni Insecte présent et est <strong>défaussé aussitôt</strong> → allume uniquement <strong>2. Piégeage</strong>.</li>
             <li><strong>Parade classique :</strong> si la Défense totale atteint le Seuil de Parade :
               <ul class="list-disc pl-5 mt-1 space-y-0.5 text-slate-600">
                 <li>Si les <strong>Défenseurs seuls</strong> suffisent : la frappe est bloquée → allume <strong>1. Parade</strong>.</li>
@@ -432,25 +429,25 @@ function renderDidacticRulebook() {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div class="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-xs text-amber-950">
             <div class="font-bold uppercase tracking-wider text-amber-800 mb-1">💡 Exemple concret — Charge vs Assaut</div>
-            <p>Au Tour 2 (<strong>Acte 1, Face A</strong>), un Bulldozer déjà muni de <strong>2 jetons rouges</strong> révèle le chiffre <strong>1 (Charge · Sur place)</strong> sur une parcelle de Seuil imprimé 2 : ses 2 jetons rouges sont <em>ignorés</em>, le Seuil vaut seulement <strong>2</strong> ! S’il est paré, il ne gagne rien ; s’il coupe ne serait-ce qu’1 Arbre ou arrache 1 Souche, il passe à <strong>3 jetons rouges</strong>. Au Tour 6 (<strong>Acte 2, Face B</strong>), le même chiffre <strong>1 est passé en Assaut</strong> : ses 3 jetons rouges frappent alors à plein régime (Seuil = <strong>5</strong>) !</p>
+            <p>Au Tour 2 (<strong>Acte 1, Face A</strong>), un Bulldozer déjà muni de <strong>2 jetons rouges</strong> révèle le chiffre <strong>1 (Charge · Sur place)</strong> sur une parcelle de Seuil imprimé 2 : ses 2 jetons rouges sont <em>ignorés</em>, le Seuil vaut seulement <strong>2</strong> ! S’il est paré ou bloqué par un Piège autonome, il ne gagne rien ; s’il passe et coupe un Arbre, il passe à <strong>3 jetons rouges</strong>. Au Tour 6 (<strong>Acte 2, Face B</strong>), le même chiffre <strong>1 est passé en Assaut</strong> : ses 3 jetons rouges frappent alors à plein régime (Seuil = <strong>5</strong>) !</p>
           </div>
           <div class="bg-amber-50 border-l-4 border-amber-500 rounded-r-xl p-3.5 text-xs text-amber-950">
             <div class="font-bold uppercase tracking-wider text-amber-800 mb-1">💡 Exemple concret — Pont routier &amp; Repli</div>
-            <p>Lorsqu’une parcelle tombe à <strong>0 Arbre et 0 Souche</strong>, elle devient une <strong>Route Forestière</strong> définitivement rasée (défaussez tout pion dessus). Les machines qui s’y trouvaient effectuent aussitôt un <strong>Repli</strong> vers la première parcelle non rasée côté bordure (ou côté cœur si toute la bordure est rasée ; si tout le rayon est rasé, elles quittent la partie). Ensuite, le long du rayon, les Routes sont toujours <strong>sautées comme un pont</strong> (avancer, reculer ou viser devant passe directement à la parcelle non rasée suivante), mais restent infranchissables depuis les lisières.</p>
+            <p>Lorsqu’une parcelle tombe à <strong>0 Arbre et 0 Souche</strong>, elle devient une <strong>Route Forestière</strong> définitivement rasée (défaussez tout pion dessus). Les machines qui s’y trouvaient effectuent aussitôt un <strong>Repli</strong> vers la première parcelle non rasée côté bordure (ou côté cœur si toute la bordure est rasée ; si tout le rayon est rasé, elles quittent la partie et la Furtivité de ce rayon se ferme). Ensuite, le long du rayon, les Routes sont toujours <strong>sautées comme un pont</strong> !</p>
           </div>
         </div>
 
         <p class="text-sm text-slate-700">
-          <strong>5.3 Bilan de fin d’attaques :</strong> retirez du plateau tous les Pièges déclenchés ce tour-ci, résolvez le <strong>verdict des paris Gardiens</strong> (voir section 5.1), puis vérifiez si l’une des <strong>3 conditions de fin de partie</strong> est atteinte (voir section 6). Si la partie continue, passez à l’Étape 6.
+          <strong>5.3 Bilan de fin d’attaques :</strong> résolvez le <strong>verdict des paris Gardiens</strong> (voir section 5.1), puis vérifiez si l’une des <strong>3 conditions de fin de partie</strong> est atteinte (voir section 6). Si la partie continue, passez à l’Étape 6.
         </p>
       </div>
 
       <!-- ÉTAPE 6 -->
       <div class="space-y-2">
-        <h3 class="text-lg font-bold text-forest-900">Étape 6 — Fin de tour &amp; Remélange</h3>
+        <h3 class="text-lg font-bold text-forest-900">Étape 6 — Fin de tour, Ratissage &amp; Remélange</h3>
         <ul class="space-y-1.5 text-sm text-slate-700 list-disc pl-5">
-          <li><strong>Récupération :</strong> chaque joueur reprend en main ses <strong>2 jetons Défenseur</strong> (y compris ceux glissés sous les Gardiens ou engagés sur les Rêves). Les effets temporaires du tour prennent fin.</li>
-          <li><strong>Remélange &amp; Coordonnateur :</strong> rassemblez toutes les cartes Machine actives (hors machines en Ratissage) et <strong>toutes les cartes Sabotage</strong> (celles déjà présentes, celles révélées ce tour et celles nouvellement acquises), puis mélangez-les pour reformer le paquet Machine. Passez le jeton <strong>Coordonnateur</strong> au joueur suivant dans le sens horaire et entamez le tour suivant !</li>
+          <li><strong>6.2 Récupération :</strong> chaque joueur reprend en main ses <strong>2 jetons Défenseur</strong> (y compris ceux glissés sous les Gardiens ou engagés sur les Rêves et en Furtivité). Les effets temporaires du tour prennent fin.</li>
+          <li><strong>6.3 Entrée en Ratissage &amp; Remélange :</strong> toute machine située sur la <strong>dernière parcelle non rasée</strong> de son rayon est retournée définitivement sur sa <strong>face Ratissage</strong> et sa carte est retirée du paquet Machine : détachée de la Réglette des Tactiques, elle agira désormais en <strong>Assaut permanent</strong> Sur place (modificateur <code>0</code>, tous ses jetons Puissance actifs dont son <strong>+1 imprimé</strong>, aucun nouveau jeton gagné). Rassemblez ensuite toutes les cartes Machine restantes et <strong>toutes les cartes Sabotage</strong> (déjà présentes, révélées ce tour ou nouvellement gagnées en Furtivité), mélangez-les, passez le jeton <strong>Coordonnateur</strong> au joueur suivant dans le sens horaire et entamez le tour suivant !</li>
         </ul>
       </div>
     </section>
@@ -519,7 +516,7 @@ function renderDidacticRulebook() {
               <tr>
                 <td class="p-2 font-bold text-amber-950">2. Piégeage</td>
                 <td class="p-2">Étape 5 (Attaques)</td>
-                <td class="p-2">Un <strong>Piège armé</strong> arrête une frappe de machine (prioritaire sur la Parade et les Insectes).</td>
+                <td class="p-2">Un <strong>Piège autonome</strong> arrête une frappe de machine (même sans Défenseur ni Insecte sur la parcelle ; prioritaire sur la Parade et les Insectes).</td>
               </tr>
               <tr>
                 <td class="p-2 font-bold text-amber-950">3. Sabotage</td>
@@ -534,7 +531,7 @@ function renderDidacticRulebook() {
               <tr>
                 <td class="p-2 font-bold text-amber-950">5. Rêve</td>
                 <td class="p-2">Étape 3.2 (Révélation)</td>
-                <td class="p-2">Une carte Machine (non déviée par un Insecte) pointe avec son dé retenu sur une case occupée par un <strong>Rêve</strong> (quel que soit le choix <em>Bloquer</em> ou <em>Avancer</em>, ou même sans Défenseur sur ce Rêve).</td>
+                <td class="p-2">Un <strong>Rêve muni d’au moins 1 Défenseur</strong> s’active réellement en 3.2 en annulant au moins 1 machine (non déviée par un Insecte). Un Rêve sans Défenseur est totalement inerte.</td>
               </tr>
               <tr>
                 <td class="p-2 font-bold text-amber-950">6. Insecte</td>
@@ -557,19 +554,14 @@ function renderDidacticRulebook() {
 
         <p class="text-sm text-slate-700">
           ${nbRevesEnJeu > 0
-            ? `<span class="dyn-span">Votre table compte <strong>${nbRevesEnJeu} tuiles Rêve</strong> en jeu. Pour remporter le <strong>Sommeil du Contremaître</strong> avant le 8<sup>e</sup> tour, rassemblez toutes ces ${nbRevesEnJeu} tuiles en un bloc continu sur les <strong>cases 1 à ${nbRevesEnJeu}</strong> de la Réglette des Tactiques.</span>`
+            ? `<span class="dyn-span">Votre table compte <strong>${nbRevesEnJeu} tuiles Rêve</strong> en jeu. Pour remporter le <strong>Sommeil du Contremaître</strong> avant le 8<sup>e</sup> tour, rassemblez toutes ces ${nbRevesEnJeu} tuiles en un bloc continu sur les <strong>cases 1 à ${nbRevesEnJeu}</strong> de la Réglette des Tactiques grâce aux pouvoirs de vos Tuiles de Synergie.</span>`
             : '<span class="dyn-span">Aucun Peuple Onirique ne siège autour de votre table : aucune tuile Rêve n’est présente et le Sommeil du Contremaître est inactif durant cette partie.</span>'}
         </p>
 
         <ul class="space-y-2 text-sm text-slate-700 list-disc pl-5">
-          <li><strong>Pose sur la Réglette des Tactiques :</strong> lorsqu’un Rêve est construit en 3.1, posez-le par-dessus la <strong>case libre la plus à droite</strong> (case 6, puis case 5 si la 6 porte déjà un Rêve, etc.). Les Tactiques restent imprimées dessous en permanence.</li>
-          <li><strong>Choix exclusif « Bloquer OU Avancer » (Étape 3.2) :</strong> dès qu’un Rêve porte <strong>au moins 1 Défenseur</strong> et est visé par <strong>au moins 1 machine</strong> (non déviée), le joueur de son Peuple Onirique tranche immédiatement entre deux issues exclusives :
-            <ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600">
-              <li><strong>🛡️ Bloquer :</strong> chaque Défenseur posé sur ce Rêve <strong>annule 1 machine</strong> pointant sur ce rang (en neutralisant d’abord la machine la plus menaçante ; toute machine restante exécute la Tactique imprimée dessous). Le Rêve <strong>ne bouge pas</strong>.</li>
-              <li><strong>🌙 Avancer :</strong> <strong>1 seul Défenseur suffit</strong> quel que soit le nombre de machines sur ce rang ! <strong>Aucune machine n’est annulée</strong> (toutes exécutent normalement la Tactique imprimée dessous), mais le Rêve <strong>saute directement vers la 1<sup>re</sup> case libre à sa gauche</strong> (en sautant par-dessus les autres Rêves déjà installés).</li>
-            </ul>
-          </li>
-          <li><strong>Pouvoir propre du Rêve :</strong> par défaut, le pouvoir imprimé de la tuile Rêve s’applique quel que soit le choix retenu (<em>Bloquer</em> ou <em>Avancer</em>, sauf mention contraire sur la tuile ; <span class="dyn-span">${reveMultiTxt}</span>). Sans Défenseur posé dessus, le Rêve reste inactif et toutes les machines de ce rang exécutent la Tactique dessous.</li>
+          <li><strong>Pose sur la Réglette &amp; accès dès 2.1 :</strong> lorsqu’un Rêve est construit en 3.1, posez-le par-dessus la <strong>case libre la plus à droite</strong> (case 6, puis case 5 si la 6 porte déjà un Rêve, etc.). Dès les tours suivants, n’importe quel joueur peut y poser un Défenseur <strong>aussi bien lors de la première pose (2.1) que lors de la pose globale (2.2)</strong> — ce qui permet notamment d’activer un Rêve via 2.1 tout en engageant tous les Défenseurs de 2.2 sur la Piste des Gardiens !</li>
+          <li><strong>Blocage en Étape 3.2 :</strong> dès qu’un Rêve porte <strong>au moins 1 Défenseur</strong> et est visé par <strong>au moins 1 machine</strong> : chaque Défenseur posé sur ce Rêve <strong>annule 1 machine</strong> pointant sur ce rang (en neutralisant d’abord la machine la plus menaçante ; toute machine restante exécute la Tactique imprimée dessous). Le Rêve demeure sur sa case (seuls les effets propres de certaines tuiles déplacent les Rêves vers la gauche).</li>
+          <li><strong>Pouvoir propre &amp; déclencheur 5. Rêve :</strong> lorsqu’un Rêve défendu annule au moins 1 machine, son pouvoir imprimé s’applique (<span class="dyn-span">${reveMultiTxt}</span>) et il allume <strong>5. Rêve</strong> dès lors qu’au moins une carte de ce rang n’avait pas été déviée par un Insecte. Sans Défenseur posé dessus, un Rêve reste totalement inerte et toutes les machines de ce rang exécutent la Tactique dessous.</li>
         </ul>
       </div>
 
@@ -590,7 +582,7 @@ function renderDidacticRulebook() {
             </ol>
           </li>
           <li><strong>Fragilité des Nids (Contact Machine-Nid) :</strong> dès qu’une machine entre (par avancée, recul ou repli) sur la parcelle d’un Nid, le Nid est immédiatement renvoyé en lisière (reconstructible plus tard) et tous les Insectes de cette parcelle sont défaussés. Les Défenseurs et un éventuel Piège restent en place.</li>
-          <li><strong>Migration (Étape 4.3) :</strong> chaque Insecte présent sur la roue peut se déplacer de <strong>0 ou 1 cran</strong> : vers une parcelle non rasée voisine sur le même rayon (en sautant les Routes), ou latéralement entre une parcelle et l’une de ses deux cases de Furtivité adjacentes (sauf à travers une Route). Retournez chaque Insecte déplacé pour le repérer, puis remettez-les tous à l’endroit en fin de Migration.</li>
+          <li><strong>Migration le long du rayon (Étape 4.3) :</strong> chaque Insecte présent sur un rayon de Forêt peut rester sur place (<strong>0 cran</strong>) ou se déplacer d’<strong>1 cran</strong> vers une parcelle non rasée voisine sur le même rayon (en sautant les Routes Forestières). Retournez chaque Insecte déplacé pour le repérer, puis remettez-les tous à l’endroit en fin de Migration.</li>
           <li><strong>Aller simple vers les pistes centrales :</strong> depuis la <strong>dernière parcelle non rasée</strong> d’un rayon, 1 cran de Migration permet d’envoyer définitivement un Insecte sur n’importe quelle case (1 à 6) de l’une des deux pistes centrales (sans limite par case) :
             <ul class="list-disc pl-5 mt-1 space-y-1 text-slate-600">
               <li><strong>Sur la Réglette des Tactiques — ${bugProf.nom} :</strong> <span class="dyn-span">${bugProf.texte}</span></li>
@@ -610,7 +602,7 @@ function renderDidacticRulebook() {
       </h2>
 
       <p class="text-sm text-slate-700">
-        La fin de partie est vérifiée à un unique moment : à l’<strong>Étape 5.3</strong>, juste après le retrait des Pièges déclenchés et le verdict des paris Gardiens. Dès qu’une condition de fin est remplie, l’Étape 6 est ignorée et vous comptez immédiatement le score final.
+        La fin de partie est vérifiée à un unique moment : à l’<strong>Étape 5.3</strong>, juste après le verdict des paris Gardiens. Dès qu’une condition de fin est remplie, l’Étape 6 est ignorée et vous comptez immédiatement le score final.
       </p>
 
       <div class="space-y-2.5 text-sm text-slate-700">
@@ -744,16 +736,16 @@ function renderDidacticRulebook() {
           <h3 class="font-bold uppercase tracking-wider text-forest-800">⚔️ Résolution d’une frappe (dans l’ordre)</h3>
           <ol class="list-decimal pl-4 space-y-1 text-slate-700">
             <li><strong>Parade automatique</strong> par effet de tuile → <em>1. Parade</em>.</li>
-            <li><strong>Piège armé</strong> (Défense totale ≥ 1) → bloque sans dépense → <em>2. Piégeage</em>.</li>
+            <li><strong>Piège autonome</strong> → bloque 1 frappe sans aucune dépense puis est défaussé aussitôt → <em>2. Piégeage</em>.</li>
             <li><strong>Parade classique</strong> (Défense totale ≥ Seuil) : Défenseurs seuls → <em>1. Parade</em> ; sinon défausse immédiate des Insectes manquants → <em>6. Insecte</em>.</li>
-            <li><strong>Dégâts :</strong> Abatteuse = 2 Arbres → Souches ; Bulldozer = 1 Arbre → Souche + retrait des Souches (0/0 = Route + Repli). En <strong>Charge</strong> : +1 jeton rouge si ≥ 1 dégât effectif (max +1/activation).</li>
+            <li><strong>Dégâts :</strong> Abatteuse = tous les Arbres → Souches (jamais aux Souches) ; Bulldozer = 1 Arbre → Souche + retrait des Souches (0/0 = Route + Repli). En <strong>Charge</strong> : +1 jeton rouge max par activation non parée.</li>
           </ol>
         </div>
 
         <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-1.5">
           <h3 class="font-bold uppercase tracking-wider text-forest-800">⚡ Partition des 6 déclencheurs (1 événement = 1 case)</h3>
           <ul class="list-disc pl-4 space-y-1 text-slate-700">
-            <li><strong>À l’ouverture des paravents (3.2) :</strong> <em>3. Sabotage</em> &gt; <em>6. Insecte</em> (déviation) &gt; <em>5. Rêve</em>.</li>
+            <li><strong>À l’ouverture des paravents (3.2) :</strong> <em>3. Sabotage</em> &gt; <em>6. Insecte</em> (déviation) &gt; <em>5. Rêve</em> (Rêve défendu annulant ≥ 1 machine).</li>
             <li><strong>Pendant les attaques (5.1 / 5.2) :</strong> <em>2. Piégeage</em> &gt; <em>6. Insecte</em> (Parade avec Insecte) &gt; <em>1. Parade</em> (Défenseurs seuls).</li>
             <li><strong>4. Gardien :</strong> 1<sup>re</sup> ouverture du tour de chaque autre Gardien distinct (sans boucle).</li>
             <li><strong>Jamais déclenché</strong> par la Furtivité (4.1) ni par la production des Nids (4.2).</li>

@@ -1,7 +1,7 @@
-# Socle Expérimental v6.0 (schema_version = 6.0.0-alpha) — Noyau Scellé sur branche exp/socle-v6
+# Socle Expérimental v6.1 (schema_version = 6.1.0-alpha) — Noyau Scellé sur branche exp/socle-v6
 # Empreintes SHA-256 vérifiées par la porte [1/8] de verify_lot.py.
 # Le socle figé v5.5 reste intact sur main.
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-7eeb6adab733bcb4f8b499e25f978c9aa73cbca21d99cb7643f40c7c32f3f382  engine/state.py
-d68f709ca5ad4d220f1d10f8876bf343590079dbcf0faace8ed21f4e0428ce93  engine/primitives.py
-9b7ec99a1d5c041a92fb43657a87a419495216c3f88e93954c6383f75932681b  engine/core_engine.py
+ab4f3643db4a71578a2235b97125784e5aeca4339e49f070c40a8d152a3b866a  engine/state.py
+82566ef2472cd0329bb10e6bb4cb95327a21478e5a6cdf1b511d187b8d8e06c7  engine/primitives.py
+0884f9903dd7ee0a0a052ec44829b7923ecfe3738e502a45c9ddfe6b0eef521f  engine/core_engine.py

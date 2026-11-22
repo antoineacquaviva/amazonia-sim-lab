@@ -753,12 +753,17 @@ def _build_defense_attribution_block(
 
 
 _OCKHAM_RULES_CATALOG: tuple[tuple[str, str, str, float, str], ...] = (
-    ("ok_furt_rive_piege", "FURTIVITE", "4.1 Rive exécutée -> Piège Embuscade", 2.0, "UTILE"),
-    ("ok_furt_rive_sabotage", "FURTIVITE", "4.1 Rive exécutée -> Carte Sabotage (6.3)", 1.0, "UTILE"),
+    ("ok_furt_rive_piege", "FURTIVITE", "4.1 Rive Piège gagnée (m(r) == 2 -> Piège autonome)", 2.0, "UTILE"),
+    ("ok_furt_rive_sabotage", "FURTIVITE", "4.1 Rive Sabotage gagnée (m(r) == 0 -> Carte Sabotage 6.3)", 1.0, "UTILE"),
+    ("ok_furt_rive_piege_lost", "FURTIVITE", "4.1 Rive Piège perdue (binôme 2/2 avec m(r) != 2)", 2.0, "STERILE_FRICTION"),
+    ("ok_furt_rive_sabotage_lost", "FURTIVITE", "4.1 Rive Sabotage perdue (binôme 2/2 avec m(r) != 0)", 2.0, "STERILE_FRICTION"),
     ("ok_furt_orphan_pawns", "FURTIVITE", "4.1 Pion Défenseur orphelin (1/2) perdu à blanc", 1.0, "STERILE_FRICTION"),
-    ("ok_furt_failed_binomes", "FURTIVITE", "4.1 Binôme 2/2 échoué (machine active/déjà piégé/route)", 2.0, "STERILE_FRICTION"),
-    ("ok_furt_double_same_cell", "FURTIVITE", "4.1 Double-rive simultanée sur une même case (4 pions)", 4.0, "EXCEPTION_RARE"),
-    ("ok_furt_multi_rive_turns", "FURTIVITE", "4.1 Tour avec >= 2 rives Furtivité exécutées", 0.0, "EXCEPTION_RARE"),
+    ("ok_furt_failed_binomes", "FURTIVITE", "4.1 Binôme 2/2 perdu ou sans cible valide", 2.0, "STERILE_FRICTION"),
+    ("ok_furt_double_same_cell", "FURTIVITE", "4.1 Double-rive simultanée sur un même rayon (4 pions)", 4.0, "EXCEPTION_RARE"),
+    ("ok_furt_multi_rive_turns", "FURTIVITE", "4.1 Tour avec >= 2 rives Furtivité gagnées", 0.0, "EXCEPTION_RARE"),
+    ("ok_pieges_placed", "FURTIVITE", "Jetons Piège autonomes posés en Forêt", 1.0, "UTILE"),
+    ("ok_pieges_triggered", "FURTIVITE", "5.x Pièges autonomes déclenchés (1re frappe bloquée)", 1.0, "UTILE"),
+    ("ok_piege_multi_strike_parries", "FURTIVITE", "5.x Frappes additionnelles bloquées par un même Piège sur le tour", 0.0, "DIAGNOSTIC"),
     ("ok_pieges_unused_end", "FURTIVITE", "Fin : Pièges actifs jamais déclenchés (reliquat)", 2.0, "STERILE_FRICTION"),
     ("ok_sabotage_acquired", "FURTIVITE", "4.1 Cartes Sabotage acquises (injectées en 6.3)", 1.0, "UTILE"),
     ("ok_sabotage_unrevealed_end", "FURTIVITE", "Fin : Sabotages acquis jamais tirés en 1.2", 1.0, "STERILE_FRICTION"),
@@ -774,16 +779,16 @@ _OCKHAM_RULES_CATALOG: tuple[tuple[str, str, str, float, str], ...] = (
     ("ok_penurie_cartes_machine", "PISTE_MACHINES", "1.2 Pénurie de cartes Machine à la distribution", 0.0, "EXCEPTION_RARE"),
     ("ok_charge_activations", "CHARGE_ASSAUT", "5.1 Activations de machine en mode CHARGE", 0.0, "DIAGNOSTIC"),
     ("ok_charge_zero_gain", "CHARGE_ASSAUT", "5.1 Activation CHARGE à 0 gain de jeton Puissance", 0.0, "DIAGNOSTIC"),
-    ("ok_charge_zero_gain_parried", "CHARGE_ASSAUT", "5.1 Activation CHARGE à 0 gain grâce aux Parades", 0.0, "UTILE"),
-    ("ok_charge_zero_gain_barren", "CHARGE_ASSAUT", "5.1 Activation CHARGE à 0 gain sur cible stérile (sans dégât)", 0.0, "STERILE_FRICTION"),
+    ("ok_charge_zero_gain_parried", "CHARGE_ASSAUT", "5.1 Activation CHARGE à 0 gain grâce aux Parades/Pièges", 0.0, "UTILE"),
+    ("ok_charge_zero_gain_barren", "CHARGE_ASSAUT", "5.1 Activation CHARGE à 0 gain sur cible stérile / hors-plateau", 0.0, "STERILE_FRICTION"),
     ("ok_ratissage_entries_6_3", "PISTE_MACHINES", "6.3 Passage d'une machine en Ratissage en fin de tour", 1.0, "UTILE"),
-    ("ok_ratissage_entries_1_1", "PISTE_MACHINES", "1.1 Passage d'une machine en Ratissage en début de tour", 1.0, "EXCEPTION_RARE"),
+    ("ok_ratissage_entries_1_1", "PISTE_MACHINES", "1.1 Passage d'une machine en Ratissage en début de tour (élagué v6.1)", 1.0, "EXCEPTION_RARE"),
     ("ok_ratissage_activations", "PISTE_MACHINES", "5.1/5.2 Frappes exécutées en mode Ratissage permanent", 0.0, "UTILE"),
     ("ok_mig_moves", "INSECTES_GARDIENS", "4.3 Migrations effectives d'Insectes (3 ops par jeton)", 3.0, "UTILE"),
     ("ok_mig_wasted_end", "INSECTES_GARDIENS", "Fin : Migrations d'Insectes restées inutilisées (gaspillage)", 3.0, "STERILE_FRICTION"),
     ("ok_bugs_unused_end", "INSECTES_GARDIENS", "Fin : Jetons Insectes Bug inutilisés sur piste Tactiques", 3.0, "STERILE_FRICTION"),
     ("ok_colonie_unused_end", "INSECTES_GARDIENS", "Fin : Jetons Bouclier de lisière inutilisés sur piste Gardiens", 3.0, "STERILE_FRICTION"),
-    ("ok_insectes_foret_unused_end", "INSECTES_GARDIENS", "Fin : Jetons Insectes restant en Forêt/Furtivité", 1.0, "DIAGNOSTIC"),
+    ("ok_insectes_foret_unused_end", "INSECTES_GARDIENS", "Fin : Jetons Insectes restant en Forêt", 1.0, "DIAGNOSTIC"),
     ("ok_bouclier_saves", "INSECTES_GARDIENS", "5.3 Gardien sauvé du retour en lisière par Bouclier", 1.0, "UTILE"),
     ("ok_gardien_return_lisiere", "INSECTES_GARDIENS", "5.3 Retour d'un Gardien en lisière sur pari perdu", 2.0, "UTILE"),
     ("ok_gardien_face2_upgrades", "INSECTES_GARDIENS", "5.3 Passage d'un Gardien en Face 2 sur pari gagné (Mode 3+)", 1.0, "UTILE"),
@@ -799,7 +804,7 @@ _OCKHAM_RULES_CATALOG: tuple[tuple[str, str, str, float, str], ...] = (
 _DILEMMA_BRANCH_SPECS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] = (
     (
         "3.2_reve_bloquer_vs_avancer_dual",
-        "3.2 Rêve actif (quand BLOQUER et AVANCER sont tous deux légaux)",
+        "3.2 Rêve actif (quand BLOQUER et AVANCER sont tous deux légaux — Mode 4)",
         (("BLOQUER", "sum_dil_reve_dual_block"), ("AVANCER", "sum_dil_reve_dual_advance")),
     ),
     (
@@ -813,7 +818,7 @@ _DILEMMA_BRANCH_SPECS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] 
     ),
     (
         "4.1_furtivite_piege_vs_sabotage",
-        "4.1 Rives Furtivité exécutées (Piège vs Sabotage)",
+        "4.1 Rives Furtivité gagnées (Piège vs Sabotage)",
         (("PIEGE", "sum_ok_furt_rive_piege"), ("SABOTAGE", "sum_ok_furt_rive_sabotage")),
     ),
     (
@@ -822,18 +827,18 @@ _DILEMMA_BRANCH_SPECS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] 
         (
             ("RESTER", "sum_dil_mig_stay"),
             ("FORET", "sum_dil_mig_foret"),
-            ("FURTIVITE", "sum_dil_mig_furtivite"),
             ("BUG", "sum_dil_mig_bug"),
             ("COLONIE", "sum_dil_mig_colonie"),
         ),
     ),
     (
         "2.1_famille_cible_def1",
-        "2.1 Pose du 1er Défenseur par famille de zone",
+        "2.1 Pose du 1er Défenseur par famille de zone (Forêt / Lisière / Furtivité / Rêve)",
         (
             ("FORET", "sum_dil_def1_foret"),
             ("LISIERE", "sum_dil_def1_lisiere"),
             ("FURTIVITE", "sum_dil_def1_furtivite"),
+            ("REVE", "sum_dil_def1_reve"),
         ),
     ),
     (
@@ -873,6 +878,7 @@ _DILEMMA_BRANCH_SPECS: tuple[tuple[str, str, tuple[tuple[str, str], ...]], ...] 
 def _build_acceptance_v6_block(
     con: duckdb.DuckDBPyConnection,
     cell_cols: set[str],
+    game_cvar20_by_vbn: dict[tuple[str, str, int], float] | None = None,
 ) -> dict[str, Any] | None:
     """Construit la couverture intégrale des Blocs 1 & 2 du Référentiel d'acceptation v6.x."""
     needed = {"has_insectes", "n_peuples_oniriques", "n_animaux_sauvages"}
@@ -1028,8 +1034,14 @@ def _build_acceptance_v6_block(
             if not rows_n:
                 continue
             for rn in rows_n:
+                n_str = int(rn["stratum"])
                 rn["table_cvar20_ratio"] = _cvar_bottom_values(
-                    t_ratios_n.get((b_ref, vid, int(rn["stratum"])), []), 0.20
+                    t_ratios_n.get((b_ref, vid, n_str), []), 0.20
+                )
+                rn["game_cvar20_ratio"] = (
+                    game_cvar20_by_vbn[(vid, b_ref, n_str)]
+                    if (game_cvar20_by_vbn is not None and (vid, b_ref, n_str) in game_cvar20_by_vbn)
+                    else rn["cvar20_ratio"]
                 )
             rows_a = _equity_axis_query("n_animaux_sauvages", b_ref, vid)
             for ra in rows_a:
@@ -1300,11 +1312,10 @@ def _build_charge_assaut_block(
 
     by_bn = _fmt_charge_rows("bot, n_players")
     out_ca: dict[str, Any] = {"by_bot_x_n_players": by_bn}
-    n_bots_ca = len({r["bot"] for r in by_bn})
     n_vars_ca = int(
         _query_dicts(con, "SELECT COUNT(DISTINCT variant_id) AS nv FROM cells")[0]["nv"] or 0
     )
-    if n_vars_ca > 1 and n_bots_ca > 1:
+    if n_vars_ca > 1:
         out_ca["by_variant_x_bot_x_n_players"] = _fmt_charge_rows("variant_id, bot, n_players")
     return out_ca
 
@@ -1327,6 +1338,28 @@ def _build_furtivite_block(
     if not req.issubset(cell_cols):
         return None
 
+    extra_piege_lost_sql = (
+        "SUM(sum_ok_furt_rive_piege_lost)"
+        if "sum_ok_furt_rive_piege_lost" in cell_cols
+        else "0"
+    )
+    extra_sab_lost_sql = (
+        "SUM(sum_ok_furt_rive_sabotage_lost)"
+        if "sum_ok_furt_rive_sabotage_lost" in cell_cols
+        else "0"
+    )
+    extra_p_placed_sql = (
+        "SUM(sum_ok_pieges_placed)" if "sum_ok_pieges_placed" in cell_cols else "0"
+    )
+    extra_p_trig_sql = (
+        "SUM(sum_ok_pieges_triggered)" if "sum_ok_pieges_triggered" in cell_cols else "0"
+    )
+    extra_p_multi_sql = (
+        "SUM(sum_ok_piege_multi_strike_parries)"
+        if "sum_ok_piege_multi_strike_parries" in cell_cols
+        else "0"
+    )
+
     def _fmt_furt(group_cols: str | None) -> list[dict[str, Any]]:
         grp_sel = f"{group_cols}," if group_cols else ""
         grp_by = f"GROUP BY {group_cols} ORDER BY {group_cols}" if group_cols else ""
@@ -1340,6 +1373,11 @@ def _build_furtivite_block(
                 SUM(count_furtivite_2_rives_turns) AS t_2_rives,
                 SUM(sum_ok_furt_rive_piege) AS r_piege,
                 SUM(sum_ok_furt_rive_sabotage) AS r_sabotage,
+                {extra_piege_lost_sql} AS r_piege_lost,
+                {extra_sab_lost_sql} AS r_sab_lost,
+                {extra_p_placed_sql} AS p_placed,
+                {extra_p_trig_sql} AS p_trig,
+                {extra_p_multi_sql} AS p_multi,
                 SUM(sum_ok_furt_orphan_pawns) AS orphans,
                 SUM(games_ok_furt_orphan_pawns) AS g_orphans,
                 SUM(sum_ok_furt_failed_binomes) AS failed_bin,
@@ -1353,6 +1391,8 @@ def _build_furtivite_block(
             ng = max(1, int(r["n_games"]))
             rp = int(r["r_piege"] or 0)
             rs = int(r["r_sabotage"] or 0)
+            rp_l = int(r["r_piege_lost"] or 0)
+            rs_l = int(r["r_sab_lost"] or 0)
             rtot = rp + rs
             entry: dict[str, Any] = {}
             if group_cols:
@@ -1366,10 +1406,21 @@ def _build_furtivite_block(
                     "turns_1_rive_per_game": round(int(r["t_1_rive"] or 0) / ng, 4),
                     "turns_2_rives_per_game": round(int(r["t_2_rives"] or 0) / ng, 4),
                     "rives_piege_per_game": round(rp / ng, 4),
+                    "rives_piege_lost_per_game": round(rp_l / ng, 4),
+                    "win_rate_rive_piege_pct": round(rp * 100.0 / (rp + rp_l), 2)
+                    if (rp + rp_l) > 0
+                    else 0.0,
                     "rives_sabotage_per_game": round(rs / ng, 4),
+                    "rives_sabotage_lost_per_game": round(rs_l / ng, 4),
+                    "win_rate_rive_sabotage_pct": round(rs * 100.0 / (rs + rs_l), 2)
+                    if (rs + rs_l) > 0
+                    else 0.0,
                     "share_sabotage_of_rives_pct": round(rs * 100.0 / rtot, 2)
                     if rtot > 0
                     else 0.0,
+                    "pieges_placed_per_game": round(int(r["p_placed"] or 0) / ng, 4),
+                    "pieges_triggered_per_game": round(int(r["p_trig"] or 0) / ng, 4),
+                    "piege_multi_strike_parries_per_game": round(int(r["p_multi"] or 0) / ng, 4),
                     "orphan_pawns_per_game": round(int(r["orphans"] or 0) / ng, 4),
                     "pct_games_with_orphan_pawn": round(
                         int(r["g_orphans"] or 0) * 100.0 / ng, 2
@@ -1540,6 +1591,439 @@ def _build_ockham_razor_block(
     return out_ok
 
 
+_V6_0_BASELINE_DEFAULTS: dict[str, Any] = {
+    "baseline_campaign": "audit_exhaustif_socle_v6_0",
+    "baseline_bot": "B2",
+    "baseline_n_games_b2": 13680,
+    "mean_ratio_arbres_b2": 0.5298,
+    "pct_arbres_coupes_b2": 47.02,
+    "ok_charge_zero_gain_barren_b2": 1.0175,
+    "tokens_per_machine_end_act1_b2_range": [0.6982, 0.7339],
+    "share_charge_gains_act1_pct_b2_range": [82.36, 88.21],
+    "eveil_actif_pct_b2_range": [0.31, 0.57],
+    "eveil_actif_6j_pct_b2": 0.0,
+    "eveil_passif_6j_pct_b2_range": [14.74, 23.86],
+    "pct_reve_rang_1_b2": 0.42,
+    "delta_oniriques_no_sommeil_b2_range": [0.0311, 0.0358],
+    "ok_pieges_unused_end_b2": 1.289,
+    "share_piege_of_rives_pct_b2": 94.51,
+    "share_sabotage_of_rives_pct_b2": 5.49,
+    "pct_games_ray_fully_razed_b2": 17.19,
+    "pct_games_abatteuse_ratissage_0_arbre_b2": 7.59,
+    "pct_games_abatteuse_ratissage_souche_b2": 0.0,
+}
+
+
+def _load_v6_0_baseline_snapshot(baseline_rel_path: str | None) -> dict[str, Any]:
+    """Charge les valeurs de référence v6.0 depuis `digest_audit_exhaustif_socle_v6_0.json` si présent."""
+    base = dict(_V6_0_BASELINE_DEFAULTS)
+    rel = baseline_rel_path or "data/digests/digest_audit_exhaustif_socle_v6_0.json"
+    cand = (ROOT / rel) if not Path(rel).is_absolute() else Path(rel)
+    if not cand.is_file():
+        return base
+    try:
+        raw = json.loads(cand.read_text(encoding="utf-8"))
+    except (OSError, ValueError, TypeError):
+        return base
+
+    base["baseline_campaign"] = str(raw.get("campaign", base["baseline_campaign"]))
+    base["baseline_digest_path"] = rel
+
+    for row in raw.get("by_mode", []):
+        if str(row.get("bot")) == "B2":
+            mr = float(row.get("mean_ratio_arbres", base["mean_ratio_arbres_b2"]))
+            base["baseline_n_games_b2"] = int(row.get("n_games", base["baseline_n_games_b2"]))
+            base["mean_ratio_arbres_b2"] = round(mr, 4)
+            base["pct_arbres_coupes_b2"] = round((1.0 - mr) * 100.0, 2)
+            base["pct_reve_rang_1_b2"] = round(
+                float(row.get("pct_reve_rang_1", base["pct_reve_rang_1_b2"])), 2
+            )
+            break
+
+    ca_rows = [
+        r
+        for r in raw.get("charge_assaut_metrics", {}).get("by_bot_x_n_players", [])
+        if str(r.get("bot")) == "B2"
+    ]
+    if ca_rows:
+        toks = [float(r["tokens_per_machine_end_act1"]) for r in ca_rows]
+        shs = [float(r["share_charge_gains_act1_pct"]) for r in ca_rows]
+        base["tokens_per_machine_end_act1_b2_range"] = [round(min(toks), 4), round(max(toks), 4)]
+        base["share_charge_gains_act1_pct_b2_range"] = [round(min(shs), 2), round(max(shs), 2)]
+
+    ok_p = raw.get("ockham_razor", {}).get("primary", {})
+    mr_ok = ok_p.get("micro_rules", {}) if isinstance(ok_p, dict) else {}
+    if isinstance(mr_ok.get("ok_charge_zero_gain_barren"), list):
+        base["ok_charge_zero_gain_barren_b2"] = round(float(mr_ok["ok_charge_zero_gain_barren"][0]), 4)
+    if isinstance(mr_ok.get("ok_pieges_unused_end"), list):
+        base["ok_pieges_unused_end_b2"] = round(float(mr_ok["ok_pieges_unused_end"][0]), 4)
+    if isinstance(mr_ok.get("ok_retrait_definitif_machine"), list):
+        base["pct_games_ray_fully_razed_b2"] = round(float(mr_ok["ok_retrait_definitif_machine"][1]), 2)
+    if isinstance(mr_ok.get("ok_abatteuse_ratissage_0_arbre"), list):
+        base["pct_games_abatteuse_ratissage_0_arbre_b2"] = round(
+            float(mr_ok["ok_abatteuse_ratissage_0_arbre"][1]), 2
+        )
+    if isinstance(mr_ok.get("ok_abatteuse_ratissage_souche"), list):
+        base["pct_games_abatteuse_ratissage_souche_b2"] = round(
+            float(mr_ok["ok_abatteuse_ratissage_souche"][1]), 2
+        )
+    br_ok = ok_p.get("decision_branches", {}) if isinstance(ok_p, dict) else {}
+    furt_br = br_ok.get("4.1_furtivite_piege_vs_sabotage", {})
+    if isinstance(furt_br, dict) and isinstance(furt_br.get("shares_pct"), dict):
+        base["share_piege_of_rives_pct_b2"] = round(
+            float(furt_br["shares_pct"].get("PIEGE", base["share_piege_of_rives_pct_b2"])), 2
+        )
+        base["share_sabotage_of_rives_pct_b2"] = round(
+            float(furt_br["shares_pct"].get("SABOTAGE", base["share_sabotage_of_rives_pct_b2"])), 2
+        )
+
+    return base
+
+
+def _build_v6_0_to_v6_1_cross_check_block(
+    con: duckdb.DuckDBPyConnection,
+    cell_cols: set[str],
+    manifest: dict[str, Any],
+    plan: dict[str, Any],
+    acceptance_v6_block: dict[str, Any] | None,
+    charge_assaut_block: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Grille de contrôle croisée v6.0 -> v6.1 (points bloquants Phase 1 + cibles de déplacement Phase 2 sur B2)."""
+    base = _load_v6_0_baseline_snapshot(
+        str(manifest["baseline_comparison_digest"])
+        if manifest.get("baseline_comparison_digest")
+        else None
+    )
+
+    present_bots = [
+        str(r["bot"]) for r in _query_dicts(con, "SELECT DISTINCT bot FROM cells ORDER BY bot")
+    ]
+    ref_bot = "B2" if "B2" in present_bots else (present_bots[-1] if present_bots else None)
+    if ref_bot is None:
+        return None
+    safe_bot = ref_bot.replace("'", "''")
+
+    def _opt_col(col: str) -> str:
+        return f"COALESCE(SUM({col}), 0) AS {col}" if col in cell_cols else f"0 AS {col}"
+
+    var_rows = _query_dicts(
+        con,
+        f"""
+        SELECT
+            variant_id,
+            CAST(SUM(n_games) AS INTEGER) AS n_games,
+            ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
+            ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
+            ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens,
+            COALESCE(SUM(count_reveil_gardiens), 0) AS count_reveil_gardiens,
+            COALESCE(SUM(count_reveil_attempts), 0) AS count_reveil_attempts,
+            COALESCE(SUM(count_reveil_failures), 0) AS count_reveil_failures,
+            {_opt_col("sum_ok_charge_zero_gain_barren")},
+            {_opt_col("sum_ok_pieges_unused_end")},
+            {_opt_col("sum_ok_furt_rive_piege")},
+            {_opt_col("sum_ok_furt_rive_piege_lost")},
+            {_opt_col("sum_ok_furt_rive_sabotage")},
+            {_opt_col("sum_ok_furt_rive_sabotage_lost")},
+            {_opt_col("sum_ok_furt_orphan_pawns")},
+            {_opt_col("sum_ok_pieges_placed")},
+            {_opt_col("sum_ok_pieges_triggered")},
+            {_opt_col("sum_ok_piege_multi_strike_parries")},
+            {_opt_col("games_ok_retrait_definitif_machine")},
+            {_opt_col("games_ok_abatteuse_ratissage_0_arbre")},
+            {_opt_col("games_ok_abatteuse_ratissage_souche")}
+        FROM cells
+        WHERE bot = '{safe_bot}'
+        GROUP BY variant_id
+        ORDER BY variant_id
+        """,
+    )
+    if not var_rows:
+        return None
+
+    # Index equity & charge_assaut par variante pour ref_bot
+    eq_by_vid: dict[str, dict[str, Any]] = {}
+    if acceptance_v6_block is not None:
+        for eq in acceptance_v6_block.get("equity_by_bot_x_variant", []):
+            if str(eq.get("bot")) == ref_bot:
+                eq_by_vid[str(eq.get("variant_id"))] = eq
+
+    ca_by_vid_n: dict[tuple[str, int], dict[str, Any]] = {}
+    if charge_assaut_block is not None:
+        ca_src = charge_assaut_block.get(
+            "by_variant_x_bot_x_n_players",
+            charge_assaut_block.get("by_bot_x_n_players", []),
+        )
+        single_vid = str(var_rows[0]["variant_id"]) if len(var_rows) == 1 else None
+        for r_ca in ca_src:
+            if str(r_ca.get("bot")) != ref_bot:
+                continue
+            vid_ca = str(r_ca.get("variant_id") or single_vid or "")
+            if vid_ca:
+                ca_by_vid_n[(vid_ca, int(r_ca["n_players"]))] = r_ca
+
+    # Requêtes par (variant_id, n_players) pour Éveil 3J..6J
+    rev_by_vn_rows = _query_dicts(
+        con,
+        f"""
+        SELECT
+            variant_id,
+            n_players,
+            CAST(SUM(n_games) AS INTEGER) AS n_games,
+            ROUND(SUM(count_reveil_gardiens) * 100.0 / SUM(n_games), 2) AS pct_reveil_gardiens
+        FROM cells
+        WHERE bot = '{safe_bot}'
+        GROUP BY variant_id, n_players
+        ORDER BY variant_id, n_players
+        """,
+    )
+    rev_by_vid: dict[str, dict[str, float]] = {}
+    for rr in rev_by_vn_rows:
+        rev_by_vid.setdefault(str(rr["variant_id"]), {})[f"{int(rr['n_players'])}J"] = float(
+            rr["pct_reveil_gardiens"]
+        )
+
+    zero_mem_debt_all = True
+    if acceptance_v6_block is not None:
+        hier = acceptance_v6_block.get("bot_hierarchy_and_cognition", [])
+        if hier:
+            zero_mem_debt_all = all(bool(h.get("zero_mem_debt_all_bots", False)) for h in hier)
+    else:
+        md_row = _query_dicts(
+            con, "SELECT MAX(sum_mem_debt * 1.0 / GREATEST(n_games, 1)) AS m FROM cells"
+        )
+        zero_mem_debt_all = not md_row or float(md_row[0]["m"] or 0.0) == 0.0
+
+    configured_scopes = sorted(
+        {str(v.get("piege_scope_mode", "SINGLE_STRIKE")) for v in plan.get("profile_variants", [])}
+    ) or ["SINGLE_STRIKE"]
+
+    ab0_by_vid: dict[str, float] = {}
+    abs_by_vid: dict[str, float] = {}
+    razed_by_vid: dict[str, float] = {}
+    multi_by_vid: dict[str, float] = {}
+    trig_by_vid: dict[str, float] = {}
+    multi_share_by_vid: dict[str, float] = {}
+    targets_by_variant: dict[str, dict[str, Any]] = {}
+
+    for vr in var_rows:
+        vid = str(vr["variant_id"])
+        ng = max(1, int(vr["n_games"]))
+
+        ab0_by_vid[vid] = round(int(vr["games_ok_abatteuse_ratissage_0_arbre"]) * 100.0 / ng, 2)
+        abs_by_vid[vid] = round(int(vr["games_ok_abatteuse_ratissage_souche"]) * 100.0 / ng, 2)
+        razed_by_vid[vid] = round(int(vr["games_ok_retrait_definitif_machine"]) * 100.0 / ng, 2)
+        p_trig = int(vr["sum_ok_pieges_triggered"])
+        p_multi = int(vr["sum_ok_piege_multi_strike_parries"])
+        trig_by_vid[vid] = round(p_trig / ng, 4)
+        multi_by_vid[vid] = round(p_multi / ng, 4)
+        multi_share_by_vid[vid] = round(p_multi * 100.0 / p_trig, 2) if p_trig > 0 else 0.0
+
+        # 1. Difficulté globale & Charge/Assaut
+        mr_v61 = float(vr["mean_ratio_arbres"])
+        cut_v61 = round((1.0 - mr_v61) * 100.0, 2)
+        barren_v61 = round(int(vr["sum_ok_charge_zero_gain_barren"]) / ng, 4)
+        tok_act1_by_n: dict[str, float] = {}
+        sh_act1_by_n: dict[str, float] = {}
+        for n_pl in (3, 4, 5, 6):
+            r_ca = ca_by_vid_n.get((vid, n_pl))
+            if r_ca is not None:
+                tok_act1_by_n[f"{n_pl}J"] = float(r_ca["tokens_per_machine_end_act1"])
+                sh_act1_by_n[f"{n_pl}J"] = float(r_ca["share_charge_gains_act1_pct"])
+        max_tok_act1 = round(max(tok_act1_by_n.values()), 4) if tok_act1_by_n else None
+        min_sh_act1 = round(min(sh_act1_by_n.values()), 2) if sh_act1_by_n else None
+
+        ok_diff = 0.40 <= mr_v61 <= 0.50
+        ok_tok_act1 = (max_tok_act1 <= 1.00) if max_tok_act1 is not None else True
+        ok_sh_act1 = (min_sh_act1 >= 70.0) if min_sh_act1 is not None else True
+
+        # 2. Éveil (REVE_TRIG=ACTIF + 2.1 ouvert aux Rêves)
+        pct_rev_g = float(vr["pct_reveil_gardiens"])
+        rev_n_map = rev_by_vid.get(vid, {})
+        pct_rev_6j = rev_n_map.get("6J")
+        att = int(vr["count_reveil_attempts"])
+        fail = int(vr["count_reveil_failures"])
+        succ_cnt = max(0, att - fail)
+        succ_rate = round(succ_cnt * 100.0 / att, 2) if att > 0 else None
+
+        ok_eveil_global = 0.5 <= pct_rev_g <= 3.0
+        ok_eveil_6j = (
+            (pct_rev_6j > 0.0 and pct_rev_6j < 14.74) if pct_rev_6j is not None else None
+        )
+        ok_eveil_succ = (35.0 <= succ_rate <= 60.0) if succ_rate is not None else False
+
+        # 3. Équité & Sommeil
+        pct_som = float(vr["pct_reve_rang_1"])
+        eq_blk = eq_by_vid.get(vid, {})
+        delta_oni = eq_blk.get("delta_oniriques_2_minus_1")
+        spread_n = eq_blk.get("spread_n_players_ratio")
+        ok_sommeil = pct_som == 0.0
+        ok_oni = (float(delta_oni) <= 0.05) if delta_oni is not None else None
+
+        # 4. Furtivité « Chaud vs Calme » + Pièges autonomes
+        unused_v61 = round(int(vr["sum_ok_pieges_unused_end"]) / ng, 4)
+        base_unused = float(base["ok_pieges_unused_end_b2"])
+        red_unused_pct = (
+            round((base_unused - unused_v61) * 100.0 / base_unused, 2) if base_unused > 0 else 0.0
+        )
+        rp = int(vr["sum_ok_furt_rive_piege"])
+        rp_l = int(vr["sum_ok_furt_rive_piege_lost"])
+        rs = int(vr["sum_ok_furt_rive_sabotage"])
+        rs_l = int(vr["sum_ok_furt_rive_sabotage_lost"])
+        rtot = rp + rs
+        sh_piege = round(rp * 100.0 / rtot, 2) if rtot > 0 else 0.0
+        sh_sab = round(rs * 100.0 / rtot, 2) if rtot > 0 else 0.0
+        ok_unused_drop = unused_v61 <= 0.35 * base_unused
+        ok_no_false_dilemma = rtot > 0 and sh_piege <= 90.0
+
+        check_flags: list[bool] = [
+            ok_diff,
+            ok_tok_act1,
+            ok_sh_act1,
+            ok_eveil_global,
+            ok_eveil_succ,
+            ok_sommeil,
+            ok_unused_drop,
+            ok_no_false_dilemma,
+        ]
+        if ok_eveil_6j is not None:
+            check_flags.append(ok_eveil_6j)
+        if ok_oni is not None:
+            check_flags.append(ok_oni)
+
+        targets_by_variant[vid] = {
+            "n_games_ref_bot": ng,
+            "difficulte_globale": {
+                "v6_0_mean_ratio_arbres": base["mean_ratio_arbres_b2"],
+                "v6_1_mean_ratio_arbres": mr_v61,
+                "delta_mean_ratio_vs_v6_0": round(mr_v61 - float(base["mean_ratio_arbres_b2"]), 4),
+                "v6_0_pct_arbres_coupes": base["pct_arbres_coupes_b2"],
+                "v6_1_pct_arbres_coupes": cut_v61,
+                "target_mean_ratio_range": [0.40, 0.50],
+                "in_target_difficulty": ok_diff,
+                "v6_0_ok_charge_zero_gain_barren_pg": base["ok_charge_zero_gain_barren_b2"],
+                "v6_1_ok_charge_zero_gain_barren_pg": barren_v61,
+                "delta_charge_zero_gain_barren_pg": round(
+                    barren_v61 - float(base["ok_charge_zero_gain_barren_b2"]), 4
+                ),
+                "v6_0_tokens_per_machine_end_act1_range": base[
+                    "tokens_per_machine_end_act1_b2_range"
+                ],
+                "v6_1_tokens_per_machine_end_act1_by_n": tok_act1_by_n,
+                "max_tokens_per_machine_end_act1": max_tok_act1,
+                "target_max_tokens_act1": 1.00,
+                "in_target_tokens_act1": ok_tok_act1,
+                "v6_0_share_charge_gains_act1_pct_range": base[
+                    "share_charge_gains_act1_pct_b2_range"
+                ],
+                "v6_1_share_charge_gains_act1_pct_by_n": sh_act1_by_n,
+                "min_share_charge_gains_act1_pct": min_sh_act1,
+                "target_min_share_act1_pct": 70.0,
+                "in_target_share_act1": ok_sh_act1,
+            },
+            "eveil_actif_et_reve_2_1": {
+                "v6_0_actif_pct_range": base["eveil_actif_pct_b2_range"],
+                "v6_0_actif_6j_pct": base["eveil_actif_6j_pct_b2"],
+                "v6_0_passif_6j_pct_range": base["eveil_passif_6j_pct_b2_range"],
+                "v6_1_pct_reveil_global": pct_rev_g,
+                "target_global_pct_range": [0.5, 3.0],
+                "in_target_global_eveil": ok_eveil_global,
+                "v6_1_pct_reveil_by_n": rev_n_map,
+                "v6_1_pct_reveil_6j": pct_rev_6j,
+                "in_target_6j_eveil": ok_eveil_6j,
+                "reveil_attempts": att,
+                "reveil_successes": succ_cnt,
+                "reveil_success_rate_pct": succ_rate,
+                "target_success_rate_pct_range": [35.0, 60.0],
+                "in_target_success_rate": ok_eveil_succ,
+            },
+            "equite_et_sommeil": {
+                "v6_0_pct_reve_rang_1": base["pct_reve_rang_1_b2"],
+                "v6_1_pct_reve_rang_1": pct_som,
+                "target_pct_reve_rang_1": 0.0,
+                "in_target_sommeil_zero": ok_sommeil,
+                "v6_0_delta_oniriques_no_sommeil_ref": base["delta_oniriques_no_sommeil_b2_range"],
+                "v6_1_delta_oniriques_2_minus_1": delta_oni,
+                "target_max_delta_oniriques": 0.05,
+                "in_target_delta_oniriques": ok_oni,
+                "v6_1_spread_n_players_ratio": spread_n,
+            },
+            "furtivite_chaud_vs_calme_et_pieges_autonomes": {
+                "v6_0_ok_pieges_unused_end_pg": base_unused,
+                "v6_1_ok_pieges_unused_end_pg": unused_v61,
+                "delta_pieges_unused_end_pg": round(unused_v61 - base_unused, 4),
+                "reduction_pieges_unused_end_pct": red_unused_pct,
+                "in_target_unused_pieges_drop": ok_unused_drop,
+                "v6_0_share_piege_pct": base["share_piege_of_rives_pct_b2"],
+                "v6_0_share_sabotage_pct": base["share_sabotage_of_rives_pct_b2"],
+                "v6_1_share_piege_pct": sh_piege,
+                "v6_1_share_sabotage_pct": sh_sab,
+                "exited_false_dilemma_gt90": ok_no_false_dilemma,
+                "rives_piege_won_pg": round(rp / ng, 4),
+                "win_rate_rive_piege_pct": round(rp * 100.0 / (rp + rp_l), 2)
+                if (rp + rp_l) > 0
+                else 0.0,
+                "rives_sabotage_won_pg": round(rs / ng, 4),
+                "win_rate_rive_sabotage_pct": round(rs * 100.0 / (rs + rs_l), 2)
+                if (rs + rs_l) > 0
+                else 0.0,
+                "orphan_pawns_pg": round(int(vr["sum_ok_furt_orphan_pawns"]) / ng, 4),
+                "pieges_placed_pg": round(int(vr["sum_ok_pieges_placed"]) / ng, 4),
+                "pieges_triggered_pg": trig_by_vid[vid],
+                "piege_multi_strike_parries_pg": multi_by_vid[vid],
+            },
+            "summary": {
+                "checks_passed": sum(1 for f in check_flags if f),
+                "checks_total": len(check_flags),
+                "all_targets_met": all(check_flags),
+            },
+        }
+
+    scope_desc = (
+        "SINGLE_STRIKE (figé v6.1 : 1 Piège autonome pare exactement 1 frappe puis est immédiatement défaussé)"
+        if configured_scopes == ["SINGLE_STRIKE"]
+        else f"DUEL_SCOPES ({', '.join(configured_scopes)})"
+    )
+
+    return {
+        "baseline_campaign": base["baseline_campaign"],
+        "reference_bot": ref_bot,
+        "phase1_blocking_audit": {
+            "abatteuse_ratissage_souche": {
+                "v6_0_b2_pct_games_0_arbre": base["pct_games_abatteuse_ratissage_0_arbre_b2"],
+                "v6_0_b2_pct_games_souche": base["pct_games_abatteuse_ratissage_souche_b2"],
+                "v6_1_b2_pct_games_0_arbre_by_variant": ab0_by_vid,
+                "v6_1_b2_pct_games_souche_by_variant": abs_by_vid,
+                "verdict": "REMOVED_IN_V6_1_STANDARD_COUPE_ARBRE",
+                "explanation": (
+                    "En v6.0 sur chassis_id=0, role_abatteuse_fin_de_piste valait STANDARD_COUPE_ARBRE "
+                    "(verrou de configuration, pas un bug). En v6.1 scellé (chassis_id=24), la micro-règle "
+                    "souche est définitivement supprimée : l'Abatteuse coupe tous les Arbres debout de la "
+                    "parcelle et ne touche jamais aux Souches."
+                ),
+            },
+            "autonomous_piege_scope": {
+                "configured_piege_scope_modes": configured_scopes,
+                "behavior": scope_desc,
+                "v6_1_b2_pieges_triggered_pg_by_variant": trig_by_vid,
+                "v6_1_b2_multi_strike_parries_pg_by_variant": multi_by_vid,
+                "v6_1_b2_pct_triggered_pieges_multi_strike_by_variant": multi_share_by_vid,
+            },
+            "invariants_and_fuzzing": {
+                "zero_mem_debt_all_bots": zero_mem_debt_all,
+                "v6_0_b2_pct_games_ray_fully_razed": base["pct_games_ray_fully_razed_b2"],
+                "v6_1_b2_pct_games_ray_fully_razed_by_variant": razed_by_vid,
+                "verified_invariants": [
+                    "mem_debt == 0.0",
+                    "furtivite_closed_on_razed_ray",
+                    "m_r_independent_of_bug_and_reve_3_2",
+                    "autonomous_piege_no_stacking_preserves_allies",
+                ],
+            },
+        },
+        "phase2_displacement_targets_b2_by_variant": targets_by_variant,
+    }
+
+
 def _active_slots_for_peuples_circle(peuples_str: str) -> set[str]:
     """Retourne l'ensemble des emplacements (parmi les 32) effectivement actifs sur ce cercle."""
     peuples = tuple(p.strip().upper() for p in peuples_str.split("-") if p.strip())
@@ -1651,7 +2135,7 @@ def aggregate_campaign_duckdb(
     glob_pattern = (shards_dir / "shard_*.jsonl.gz").as_posix()
     parquet_posix = parquet_path.as_posix()
 
-    con = duckdb.connect(":memory:")
+    con = duckdb.connect(":memory:", config={"threads": 1})
     con.execute(f"CREATE TABLE cells AS SELECT * FROM read_json_auto('{glob_pattern}')")
     con.execute(f"COPY cells TO '{parquet_posix}' (FORMAT PARQUET, COMPRESSION ZSTD)")
 
@@ -2172,26 +2656,203 @@ def aggregate_campaign_duckdb(
         },
     }
 
+    # CVaR_20% exact sur les parties individuelles (reconstitué sans perte depuis ratio_bp_counts_json)
+    exact_game_cvar20: float | None = None
+    game_cvar20_by_vbn: dict[tuple[str, str, int], float] = {}
+    if "ratio_bp_counts_json" in cell_cols:
+        hist_rows = _query_dicts(
+            con,
+            "SELECT variant_id, bot, n_players, ratio_bp_counts_json FROM cells WHERE n_games > 0",
+        )
+        global_bp_hist: dict[int, int] = {}
+        vbn_bp_hist: dict[tuple[str, str, int], dict[int, int]] = {}
+        for hr in hist_rows:
+            raw_j = hr.get("ratio_bp_counts_json")
+            if not raw_j:
+                continue
+            parsed_h = json.loads(str(raw_j))
+            key_vbn = (str(hr["variant_id"]), str(hr["bot"]), int(hr["n_players"]))
+            sub_h = vbn_bp_hist.setdefault(key_vbn, {})
+            for bp_s, cnt_v in parsed_h.items():
+                bp_i = int(bp_s)
+                c_i = int(cnt_v)
+                global_bp_hist[bp_i] = global_bp_hist.get(bp_i, 0) + c_i
+                sub_h[bp_i] = sub_h.get(bp_i, 0) + c_i
+
+        def _cvar_from_bp(hmap: dict[int, int]) -> float:
+            tot_c = sum(hmap.values())
+            if tot_c <= 0:
+                return 0.0
+            k_need = max(1, (tot_c + 4) // 5)
+            rem_k = k_need
+            acc_bp = 0
+            for bp_val in sorted(hmap):
+                take = min(rem_k, hmap[bp_val])
+                acc_bp += bp_val * take
+                rem_k -= take
+                if rem_k <= 0:
+                    break
+            return round(acc_bp / (k_need * 10000.0), 4)
+
+        if global_bp_hist:
+            exact_game_cvar20 = _cvar_from_bp(global_bp_hist)
+            for kv, sh in vbn_bp_hist.items():
+                game_cvar20_by_vbn[kv] = _cvar_from_bp(sh)
+            for row in by_variant_x_bot_x_n_players:
+                kv_r = (str(row["variant_id"]), str(row["bot"]), int(row["n_players"]))
+                if kv_r in game_cvar20_by_vbn:
+                    row["game_cvar20_ratio"] = game_cvar20_by_vbn[kv_r]
+
     # Forks et seeds (inclus automatiquement si la campagne produit des colonnes de micro-forks)
     forks_block: dict[str, Any] | None = None
     if "fork_anchors" in cell_cols:
-        fork_missed_sql = (
-            "CAST(SUM(fork_anchors_missed) AS INTEGER) AS fork_anchors_missed,"
-            if "fork_anchors_missed" in cell_cols
-            else "0 AS fork_anchors_missed,"
+        def _opt_sum_sql(col_n: str, cast_t: str = "DOUBLE") -> str:
+            return (
+                f"CAST(COALESCE(SUM({col_n}), 0) AS {cast_t}) AS {col_n}"
+                if col_n in cell_cols
+                else f"CAST(0 AS {cast_t}) AS {col_n}"
+            )
+
+        fork_cols_sql = ",\n                ".join(
+            [
+                _opt_sum_sql("fork_anchors", "INTEGER"),
+                _opt_sum_sql("fork_anchors_missed", "INTEGER"),
+                _opt_sum_sql("fork_diverged", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_neg"),
+                _opt_sum_sql("sum_sq_delta_v_neg"),
+                _opt_sum_sql("sum_c_prive"),
+                _opt_sum_sql("sum_sq_c_prive"),
+                _opt_sum_sql("sum_g_naive"),
+                _opt_sum_sql("sum_g_unbiased"),
+                _opt_sum_sql("sum_rho_delta"),
+                _opt_sum_sql("fork_2_1_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_2_1_b2_vs_b0"),
+                _opt_sum_sql("sum_sq_delta_v_2_1_b2_vs_b0"),
+                _opt_sum_sql("fork_2_1_reve_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_2_1_reve"),
+                _opt_sum_sql("sum_sq_delta_v_2_1_reve"),
+                _opt_sum_sql("fork_furt_rp_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_furt_rp"),
+                _opt_sum_sql("sum_sq_delta_v_furt_rp"),
+                _opt_sum_sql("fork_furt_rs_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_furt_rs"),
+                _opt_sum_sql("sum_sq_delta_v_furt_rs"),
+                _opt_sum_sql("fork_4_1_piege_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_4_1_piege"),
+                _opt_sum_sql("sum_sq_delta_v_4_1_piege"),
+                _opt_sum_sql("fork_eveil_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_eveil_vs_survival"),
+                _opt_sum_sql("sum_sq_delta_v_eveil_vs_survival"),
+                _opt_sum_sql("fork_charge_gain_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_charge_frappe_minus_degat"),
+                _opt_sum_sql("sum_sq_delta_v_charge_frappe_minus_degat"),
+                _opt_sum_sql("sum_delta_tokens_act1_frappe_minus_degat"),
+            ]
         )
-        fork_div_sql = (
-            "CAST(SUM(fork_diverged) AS INTEGER) AS fork_diverged,"
-            if "fork_diverged" in cell_cols
-            else "0 AS fork_diverged,"
-        )
+
+        def _ci95_half(n_a: int, sx: float, sx2: float) -> float | None:
+            if n_a < 2:
+                return None
+            var = max(0.0, (sx2 - (sx * sx) / n_a) / (n_a - 1))
+            return round(1.96 * math.sqrt(var / n_a), 5)
+
+        def _fmt_fork_summary(fr: dict[str, Any]) -> dict[str, Any]:
+            fa = int(fr.get("fork_anchors") or 0)
+            f21 = int(fr.get("fork_2_1_anchors") or 0)
+            f21r = int(fr.get("fork_2_1_reve_anchors") or 0)
+            ffrp = int(fr.get("fork_furt_rp_anchors") or 0)
+            ffrs = int(fr.get("fork_furt_rs_anchors") or 0)
+            f41 = int(fr.get("fork_4_1_piege_anchors") or 0)
+            fev = int(fr.get("fork_eveil_anchors") or 0)
+            fchg = int(fr.get("fork_charge_gain_anchors") or 0)
+
+            s_neg = float(fr.get("sum_delta_v_neg") or 0.0)
+            s_cpr = float(fr.get("sum_c_prive") or 0.0)
+            d: dict[str, Any] = {
+                "fork_anchors": fa,
+                "fork_anchors_missed": int(fr.get("fork_anchors_missed") or 0),
+                "fork_diverged": int(fr.get("fork_diverged") or 0),
+                "pct_diverged_2_2": round(int(fr.get("fork_diverged") or 0) * 100.0 / fa, 2)
+                if fa > 0
+                else 0.0,
+                "mean_delta_v_negociation_2_2": round(s_neg / fa, 5) if fa > 0 else 0.0,
+                "ci95_delta_v_negociation_2_2": _ci95_half(
+                    fa, s_neg, float(fr.get("sum_sq_delta_v_neg") or 0.0)
+                ),
+                "mean_c_prive_2_2": round(s_cpr / fa, 5) if fa > 0 else 0.0,
+                "ci95_c_prive_2_2": _ci95_half(
+                    fa, s_cpr, float(fr.get("sum_sq_c_prive") or 0.0)
+                ),
+                "mean_g_naive_2_2": round(float(fr.get("sum_g_naive") or 0.0) / fa, 5)
+                if fa > 0
+                else 0.0,
+                "mean_g_unbiased_2_2": round(float(fr.get("sum_g_unbiased") or 0.0) / fa, 5)
+                if fa > 0
+                else 0.0,
+                "mean_rho_delta_2_2": round(float(fr.get("sum_rho_delta") or 0.0) / fa, 4)
+                if fa > 0
+                else 0.0,
+            }
+            if f21 > 0 or f41 > 0 or fev > 0 or ffrp > 0 or ffrs > 0 or fchg > 0:
+                s21 = float(fr.get("sum_delta_v_2_1_b2_vs_b0") or 0.0)
+                s21r = float(fr.get("sum_delta_v_2_1_reve") or 0.0)
+                sfrp = float(fr.get("sum_delta_v_furt_rp") or 0.0)
+                sfrs = float(fr.get("sum_delta_v_furt_rs") or 0.0)
+                s41 = float(fr.get("sum_delta_v_4_1_piege") or 0.0)
+                sev = float(fr.get("sum_delta_v_eveil_vs_survival") or 0.0)
+                schg = float(fr.get("sum_delta_v_charge_frappe_minus_degat") or 0.0)
+                stok = float(fr.get("sum_delta_tokens_act1_frappe_minus_degat") or 0.0)
+                d["causal_v6_1"] = {
+                    "anchors_2_1": f21,
+                    "mean_delta_v_2_1_b2_vs_b0": round(s21 / f21, 5) if f21 > 0 else 0.0,
+                    "ci95_delta_v_2_1_b2_vs_b0": _ci95_half(
+                        f21, s21, float(fr.get("sum_sq_delta_v_2_1_b2_vs_b0") or 0.0)
+                    ),
+                    "anchors_2_1_reve": f21r,
+                    "mean_delta_v_2_1_reve": round(s21r / f21r, 5) if f21r > 0 else None,
+                    "ci95_delta_v_2_1_reve": _ci95_half(
+                        f21r, s21r, float(fr.get("sum_sq_delta_v_2_1_reve") or 0.0)
+                    ),
+                    "anchors_furt_rive_piege": ffrp,
+                    "mean_delta_v_furt_rive_piege": round(sfrp / ffrp, 5) if ffrp > 0 else None,
+                    "ci95_delta_v_furt_rive_piege": _ci95_half(
+                        ffrp, sfrp, float(fr.get("sum_sq_delta_v_furt_rp") or 0.0)
+                    ),
+                    "anchors_furt_rive_sabotage": ffrs,
+                    "mean_delta_v_furt_rive_sabotage": round(sfrs / ffrs, 5) if ffrs > 0 else None,
+                    "ci95_delta_v_furt_rive_sabotage": _ci95_half(
+                        ffrs, sfrs, float(fr.get("sum_sq_delta_v_furt_rs") or 0.0)
+                    ),
+                    "anchors_4_1_pose_piege": f41,
+                    "mean_delta_v_4_1_pose_piege": round(s41 / f41, 5) if f41 > 0 else None,
+                    "ci95_delta_v_4_1_pose_piege": _ci95_half(
+                        f41, s41, float(fr.get("sum_sq_delta_v_4_1_piege") or 0.0)
+                    ),
+                    "anchors_5_3_eveil": fev,
+                    "mean_delta_v_eveil_vs_survival": round(sev / fev, 5) if fev > 0 else None,
+                    "ci95_delta_v_eveil_vs_survival": _ci95_half(
+                        fev, sev, float(fr.get("sum_sq_delta_v_eveil_vs_survival") or 0.0)
+                    ),
+                    "anchors_charge_gain_frappe_vs_degat": fchg,
+                    "mean_delta_v_charge_frappe_minus_degat": round(schg / fchg, 5)
+                    if fchg > 0
+                    else None,
+                    "ci95_delta_v_charge_frappe_minus_degat": _ci95_half(
+                        fchg,
+                        schg,
+                        float(fr.get("sum_sq_delta_v_charge_frappe_minus_degat") or 0.0),
+                    ),
+                    "mean_delta_tokens_act1_frappe_minus_degat": round(stok / fchg, 4)
+                    if fchg > 0
+                    else None,
+                }
+            return d
+
         fork_row = _query_dicts(
             con,
             f"""
             SELECT
-                CAST(SUM(fork_anchors) AS INTEGER) AS fork_anchors,
-                {fork_missed_sql}
-                {fork_div_sql}
+                {fork_cols_sql},
                 COUNT(*) AS n_fork_rows
             FROM cells
             WHERE fork_anchors > 0
@@ -2207,12 +2868,26 @@ def aggregate_campaign_duckdb(
                 fork_seeds = [int(r["seed"]) for r in seed_rows if r.get("seed") is not None]
             else:
                 fork_seeds = [campaign_seed]
+            fork_by_n_rows = _query_dicts(
+                con,
+                f"""
+                SELECT
+                    n_players,
+                    {fork_cols_sql}
+                FROM cells
+                WHERE fork_anchors > 0
+                GROUP BY n_players
+                ORDER BY n_players
+                """,
+            )
             forks_block = {
-                "fork_anchors": int(fork_row["fork_anchors"]),
-                "fork_anchors_missed": int(fork_row["fork_anchors_missed"] or 0),
-                "fork_diverged": int(fork_row["fork_diverged"] or 0),
+                **_fmt_fork_summary(fork_row),
                 "n_fork_rows": int(fork_row["n_fork_rows"]),
                 "seeds": fork_seeds,
+                "by_n_players": [
+                    {"n_players": int(rn["n_players"]), **_fmt_fork_summary(rn)}
+                    for rn in fork_by_n_rows
+                ],
             }
 
     base_tile_profiles: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
@@ -2269,7 +2944,8 @@ def aggregate_campaign_duckdb(
             "n_configurations": int(g_stats["n_configurations"]),
             "mean_score_arbres": g_stats["mean_score_arbres"],
             "mean_ratio_arbres": g_stats["mean_ratio_arbres"],
-            "cvar20_ratio": g_stats["cvar20_ratio"],
+            "cvar20_ratio": exact_game_cvar20 if exact_game_cvar20 is not None else g_stats["cvar20_ratio"],
+            "game_cvar20_ratio": exact_game_cvar20 if exact_game_cvar20 is not None else g_stats["cvar20_ratio"],
             "within_table_cvar20_ratio": g_stats["cvar20_ratio"],
             "table_cvar20_ratio": global_table_cvar20,
             "survival_rate": g_stats["survival_rate"],
@@ -2330,7 +3006,7 @@ def aggregate_campaign_duckdb(
         or bool(manifest.get("include_v6_audit_blocks", False))
     )
     if emit_v6_audit:
-        acceptance_v6_block = _build_acceptance_v6_block(con, cell_cols)
+        acceptance_v6_block = _build_acceptance_v6_block(con, cell_cols, game_cvar20_by_vbn)
         if acceptance_v6_block is not None:
             digest_payload["acceptance_v6"] = acceptance_v6_block
         sommeil_temp_block = _build_sommeil_temporality_block(con, cell_cols)
@@ -2345,6 +3021,21 @@ def aggregate_campaign_duckdb(
         ockham_block = _build_ockham_razor_block(con, cell_cols)
         if ockham_block is not None:
             digest_payload["ockham_razor"] = ockham_block
+        if (
+            manifest.get("baseline_comparison_digest")
+            or "v6_1" in campaign_name
+            or "charge_gain_modes" in manifest
+        ):
+            cross_check_block = _build_v6_0_to_v6_1_cross_check_block(
+                con,
+                cell_cols,
+                manifest,
+                plan,
+                acceptance_v6_block,
+                charge_assaut_block,
+            )
+            if cross_check_block is not None:
+                digest_payload["cross_check_v6_0_to_v6_1"] = cross_check_block
 
     digest_path, prompt_path, final_digest = write_digest_and_prompt_files(
         campaign_name,

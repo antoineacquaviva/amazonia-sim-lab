@@ -97,7 +97,8 @@ def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
         reve_advance_mode=cfg.reve_advance_mode,
         gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
         reve_5_trigger_mode=cfg.reve_5_trigger_mode,
-        reve_advance_cost_mode=cfg.reve_advance_cost_mode,
+        charge_gain_mode=cfg.charge_gain_mode,
+        piege_scope_mode=cfg.piege_scope_mode,
         tile_profiles=cfg.tile_profiles,
     )
 
@@ -456,7 +457,7 @@ def _current_def2_target(state: GameState, seat: int) -> tuple[Any, ...] | None:
     if kind == "FORET":
         return ("FORET", a, b)
     if kind == "FURTIVITE":
-        return ("FURTIVITE", a, b, c // 2)
+        return ("FURTIVITE", a, c // 2)
     if kind == "LISIERE":
         return ("LISIERE", a)
     if kind == "GARDIEN_PARI":
@@ -743,8 +744,8 @@ def _resolve_step2_b3(
         obs_s = state.get_observation(s)
         need_retreat = False
         if cur_sp[0] == "FURTIVITE":
-            _, l_o, p_o, rv_o = cur_sp
-            need_retreat = obs_s.furtivite_rive_defs(int(l_o), int(p_o), int(rv_o)) == 1
+            _, ray_o, rv_o = cur_sp
+            need_retreat = obs_s.furtivite_ray_rive_defs(int(ray_o), int(rv_o)) == 1
         elif cur_sp[0] == "LISIERE" and obs_s.mode >= 2:
             _, sl_o = cur_sp
             _, st_lo, nb_co = obs_s.lisiere_tile_info(int(sl_o))
@@ -759,7 +760,7 @@ def _resolve_step2_b3(
             if t[0] == "FORET"
             or (
                 t[0] == "FURTIVITE"
-                and obs_s.furtivite_rive_defs(int(t[1]), int(t[2]), int(t[3])) == 1
+                and obs_s.furtivite_ray_rive_defs(int(t[1]), int(t[2])) == 1
             )
             or (
                 t[0] == "LISIERE"

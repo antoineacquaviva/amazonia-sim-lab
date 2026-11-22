@@ -14,6 +14,8 @@ from bots.belief_and_ticks import (
 from bots.heuristic_engine import (
     choose_b1,
     choose_b2,
+    play_game_b1,
+    play_game_b2,
     score_target_b1,
     score_target_b2,
 )
@@ -25,15 +27,20 @@ from engine.core_engine import (
 )
 from engine.primitives import GameOver
 from engine.state import (
+    FURT_RIVE_PIEGE,
+    FURT_RIVE_SABOTAGE,
     PEUPLES_ORDER,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     GameConfig,
     GameState,
+    is_reve_code,
 )
+from engine.telemetry import TelemetryTracker
 
 __all__ = (
     "MANDATORY_6_CIRCLES",
+    "CausalForksSummary",
     "MicroForkAggregate",
     "MicroForkRecord",
     "MirrorBlock",
@@ -43,6 +50,8 @@ __all__ = (
     "micro_fork",
     "mirror_peuples",
     "paired_mirror_blocks",
+    "run_micro_fork_on_config",
+    "run_v6_1_causal_forks_on_config",
     "sequential_halving_select",
 )
 
@@ -228,6 +237,9 @@ def _reseed_future_turns_clone(state: GameState, new_exp_seed: int, new_rep_id: 
         gardien_bet_cap_policy=old.gardien_bet_cap_policy,
         reve_advance_mode=old.reve_advance_mode,
         gardien_4_trigger_mode=old.gardien_4_trigger_mode,
+        reve_5_trigger_mode=old.reve_5_trigger_mode,
+        charge_gain_mode=old.charge_gain_mode,
+        piege_scope_mode=old.piege_scope_mode,
         tile_profiles=old.tile_profiles,
     )
     cloned.cfg = new_cfg
@@ -579,3 +591,423 @@ def sequential_halving_select(
     k = keep_count if keep_count is not None else max(1, len(scores_by_chassis) // 2)
     ranked = sorted(scores_by_chassis.items(), key=lambda kv: (-kv[1], kv[0]))
     return tuple(ch_id for ch_id, _ in ranked[:k])
+
+
+# ---------------------------------------------------------------------------
+# Batterie contrefactuelle multi-étapes v6.1
+# (2.1 / 2.2 / Rive Piège / Rive Sabotage / 4.1 Pose Piège / 5.3 Éveil / Charge Gain)
+# ---------------------------------------------------------------------------
+
+
+def _clone_cfg_with_charge_gain(cfg: GameConfig, charge_gain_mode: str) -> GameConfig:
+    return GameConfig(
+        n_players=cfg.n_players,
+        mode=cfg.mode,
+        peuples=cfg.peuples,
+        exp_seed=cfg.exp_seed,
+        rep_id=cfg.rep_id,
+        coordonnateur_initial=cfg.coordonnateur_initial,
+        max_revision_passes=cfg.max_revision_passes,
+        profil_piste=cfg.profil_piste,
+        regle_ouverture_reve_multiple=cfg.regle_ouverture_reve_multiple,
+        offset_seuil_parade=cfg.offset_seuil_parade,
+        placement_initial_machines=cfg.placement_initial_machines,
+        role_abatteuse_fin_de_piste=cfg.role_abatteuse_fin_de_piste,
+        synergie_binome_machines=cfg.synergie_binome_machines,
+        reve_activation_mode=cfg.reve_activation_mode,
+        gardien_bet_cap_policy=cfg.gardien_bet_cap_policy,
+        reve_advance_mode=cfg.reve_advance_mode,
+        gardien_4_trigger_mode=cfg.gardien_4_trigger_mode,
+        reve_5_trigger_mode=cfg.reve_5_trigger_mode,
+        charge_gain_mode=charge_gain_mode,
+        piege_scope_mode=cfg.piege_scope_mode,
+        tile_profiles=cfg.tile_profiles,
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class CausalForksSummary:
+    """Bilan contrefactuel multi-ancres v6.1 sur une trajectoire CRN."""
+
+    mf_2_2: MicroForkRecord | None
+    has_2_1_anchor: bool
+    delta_v_2_1_b2_vs_b0: float
+    has_2_1_reve_fork: bool
+    delta_v_2_1_reve: float
+    has_4_1_piege_fork: bool
+    delta_v_4_1_pose_piege: float
+    has_eveil_fork: bool
+    delta_v_eveil_vs_survival: float
+    total_rollouts: int
+    has_furt_rive_piege_fork: bool = False
+    delta_v_furt_rive_piege: float = 0.0
+    has_furt_rive_sabotage_fork: bool = False
+    delta_v_furt_rive_sabotage: float = 0.0
+    has_charge_gain_fork: bool = False
+    delta_v_charge_frappe_minus_degat: float = 0.0
+    delta_tokens_act1_frappe_minus_degat: float = 0.0
+
+
+def run_v6_1_causal_forks_on_config(
+    cfg: GameConfig,
+    *,
+    target_tour: int = 2,
+    is_b2: bool = True,
+    n_selection_rollouts: int = 3,
+    n_eval_rollouts: int = 4,
+    k_max_future: int = 3,
+    max_steps: int = 2000,
+) -> CausalForksSummary:
+    """Exécute la batterie complète des forks contrefactuels v6.1 (CRN apparié)."""
+    from bots.bot_b0 import choose_b0
+    from engine.core_engine import (
+        DEC_POSE_PIEGE_FURTIVITE_4_1,
+        advance_step2_to_2_2,
+        apply_step2_def1,
+        clear_step2_pending_wait,
+        list_legal_targets,
+    )
+    from engine.primitives import DecisionRequest
+
+    scorer = score_target_b2 if is_b2 else score_target_b1
+    chooser = choose_b2 if is_b2 else choose_b1
+    eps_b = 24.0 if is_b2 else 32.0
+    state = GameState(cfg)
+    steps = 0
+
+    mf_rec: MicroForkRecord | None = None
+    has_2_1 = False
+    dv_2_1_b0 = 0.0
+    has_2_1_reve = False
+    dv_2_1_reve = 0.0
+    has_furt_rp = False
+    dv_furt_rp = 0.0
+    has_furt_rs = False
+    dv_furt_rs = 0.0
+    has_4_1_piege = False
+    dv_4_1_piege = 0.0
+    has_eveil = False
+    dv_eveil = 0.0
+    rollouts = 0
+
+    def _no_reve_2_1_scorer(o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool) -> float:
+        if is_f and t[0] == "REVE_ACTIVATION":
+            return -1_000_000.0
+        return scorer(o, c, b, t, is_f)
+
+    def _no_furt_piege_scorer(
+        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
+    ) -> float:
+        if t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_PIEGE:
+            return -1_000_000.0
+        return scorer(o, c, b, t, is_f)
+
+    def _no_furt_sabotage_scorer(
+        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
+    ) -> float:
+        if t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_SABOTAGE:
+            return -1_000_000.0
+        return scorer(o, c, b, t, is_f)
+
+    def _no_gardien_2_2_scorer(
+        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
+    ) -> float:
+        if t[0] == "GARDIEN_PARI":
+            return -1_000_000.0
+        return scorer(o, c, b, t, is_f)
+
+    def _paired_post_2_2_eval(
+        s_a: GameState, s_b: GameState, seed_offset: int, mult_s: int, mult_r: int
+    ) -> float:
+        nonlocal rollouts
+        acc_a = 0.0
+        acc_b = 0.0
+        for j in range(n_eval_rollouts):
+            ev_s = cfg.exp_seed + seed_offset + j * mult_s
+            ev_r = cfg.rep_id * mult_r + j
+            acc_a += _rollout_from_post_2_2(
+                _reseed_future_turns_clone(s_a, ev_s, ev_r),
+                is_b2=is_b2,
+                k_max_future=k_max_future,
+            ).ratio_arbres
+            acc_b += _rollout_from_post_2_2(
+                _reseed_future_turns_clone(s_b, ev_s, ev_r),
+                is_b2=is_b2,
+                k_max_future=k_max_future,
+            ).ratio_arbres
+            rollouts += 2
+        return (acc_a - acc_b) / n_eval_rollouts
+
+    def _check_post_2_2_forks(
+        cur_state: GameState, pre_2_1_snap: GameState | None, pre_2_2_snap: GameState
+    ) -> None:
+        nonlocal has_furt_rp, dv_furt_rp, has_furt_rs, dv_furt_rs, has_eveil, dv_eveil
+        if cur_state.tour <= 7 and pre_2_1_snap is not None:
+            if not has_furt_rp and any(
+                cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_PIEGE) == 2
+                for r_i in range(cfg.n_players)
+            ):
+                s_no_rp = pre_2_1_snap.clone()
+                resolve_step2_full_with_ticks(
+                    s_no_rp,
+                    _no_furt_piege_scorer,
+                    k_max_passes=k_max_future,
+                    epsilon_base=eps_b,
+                    epsilon_step=12.0,
+                )
+                if cur_state.raw_used_bytes() != s_no_rp.raw_used_bytes():
+                    has_furt_rp = True
+                    dv_furt_rp = _paired_post_2_2_eval(cur_state, s_no_rp, 850_000, 41, 53)
+
+            if not has_furt_rs and any(
+                cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_SABOTAGE) == 2
+                for r_i in range(cfg.n_players)
+            ):
+                s_no_rs = pre_2_1_snap.clone()
+                resolve_step2_full_with_ticks(
+                    s_no_rs,
+                    _no_furt_sabotage_scorer,
+                    k_max_passes=k_max_future,
+                    epsilon_base=eps_b,
+                    epsilon_step=12.0,
+                )
+                if cur_state.raw_used_bytes() != s_no_rs.raw_used_bytes():
+                    has_furt_rs = True
+                    dv_furt_rs = _paired_post_2_2_eval(cur_state, s_no_rs, 870_000, 43, 59)
+
+        if (
+            not has_eveil
+            and cur_state.tour <= 7
+            and cfg.nb_animaux_sauvages >= 1
+            and cur_state.total_gardien_pari_engaged() == cfg.n_players
+        ):
+            has_eveil = True
+            s_surv = pre_2_2_snap.clone()
+            resolve_step2_2_from_state(
+                s_surv,
+                _no_gardien_2_2_scorer,
+                k_max_passes=k_max_future,
+                epsilon_base=eps_b,
+            )
+            dv_eveil = _paired_post_2_2_eval(cur_state, s_surv, 830_000, 37, 43)
+
+    while True:
+        steps += 1
+        if steps > max_steps:
+            raise RuntimeError(f"max_steps={max_steps} dépassé dans run_v6_1_causal_forks_on_config")
+        out = step_until_decision(state, max_internal_steps=max_steps)
+        if isinstance(out, GameOver):
+            break
+
+        # 1 & 2. Ancres 2.1 et 2.2 au target_tour
+        if state.tour == target_tour and state.step == STEP_2_1_DEF1 and not has_2_1:
+            has_2_1 = True
+            pre_2_1_clone = state.clone()
+            s_b0_21 = state.clone()
+            clear_step2_pending_wait(s_b0_21)
+            for seat_i in range(cfg.n_players):
+                leg_1 = list_legal_targets(s_b0_21, seat_i, is_first_defender=True)
+                if not leg_1:
+                    apply_step2_def1(s_b0_21, seat_i, ("PASSER_IMPASSE",), check_legal=False)
+                else:
+                    req_1 = DecisionRequest(
+                        decideur=seat_i,
+                        decision_type=DEC_POSE_DEFENSEUR_1,
+                        options=leg_1,
+                        context={},
+                    )
+                    apply_step2_def1(s_b0_21, seat_i, choose_b0(s_b0_21, req_1), check_legal=False)
+            advance_step2_to_2_2(s_b0_21)
+
+            s_noreve_21 = state.clone()
+            _resolve_only_2_1_ticks(s_noreve_21, _no_reve_2_1_scorer)
+
+            # Avancer l'état réel sur 2.1 -> début 2.2
+            _resolve_only_2_1_ticks(state, scorer)
+            reve_diverged = (not has_2_1_reve) and (
+                state.raw_used_bytes() != s_noreve_21.raw_used_bytes()
+            )
+
+            # Fork 2.1 : B2 vs B0 (et vs sans Rêve 2.1 si pertinent)
+            acc_b2_21 = 0.0
+            acc_b0_21 = 0.0
+            acc_nr_21 = 0.0
+            for j in range(n_eval_rollouts):
+                ev_s = cfg.exp_seed + 710_000 + j * 31
+                ev_r = cfg.rep_id * 41 + j
+                c_b2 = _reseed_future_turns_clone(state, ev_s, ev_r)
+                resolve_step2_2_from_state(c_b2, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+                acc_b2_21 += _rollout_from_post_2_2(
+                    c_b2, is_b2=is_b2, k_max_future=k_max_future
+                ).ratio_arbres
+
+                c_b0 = _reseed_future_turns_clone(s_b0_21, ev_s, ev_r)
+                resolve_step2_2_from_state(c_b0, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+                acc_b0_21 += _rollout_from_post_2_2(
+                    c_b0, is_b2=is_b2, k_max_future=k_max_future
+                ).ratio_arbres
+                rollouts += 2
+
+                if reve_diverged:
+                    c_nr = _reseed_future_turns_clone(s_noreve_21, ev_s, ev_r)
+                    resolve_step2_2_from_state(
+                        c_nr, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                    )
+                    acc_nr_21 += _rollout_from_post_2_2(
+                        c_nr, is_b2=is_b2, k_max_future=k_max_future
+                    ).ratio_arbres
+                    rollouts += 1
+
+            dv_2_1_b0 = (acc_b2_21 - acc_b0_21) / n_eval_rollouts
+            if reve_diverged:
+                has_2_1_reve = True
+                dv_2_1_reve = (acc_b2_21 - acc_nr_21) / n_eval_rollouts
+
+            # Fork 2.2 (K=3 vs K=0 vs Open Paravents) sur l'ancre exacte d'entrée en 2.2
+            mf_rec = micro_fork(
+                state,
+                is_b2=is_b2,
+                n_selection_rollouts=n_selection_rollouts,
+                n_eval_rollouts=n_eval_rollouts,
+                k_max_future=k_max_future,
+            )
+            rollouts += n_selection_rollouts * 2 + n_eval_rollouts * 3
+
+            # Résoudre 2.2 sur l'état réel puis évaluer Rive Piège / Rive Sabotage / Éveil
+            pre_2_2_clone = state.clone()
+            resolve_step2_2_from_state(state, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+            _check_post_2_2_forks(state, pre_2_1_clone, pre_2_2_clone)
+            continue
+
+        # Résolution normale Étape 2 sur les autres tours
+        # (+ balayage 2.1 Rêve, Rive Piège, Rive Sabotage et 5.3 Éveil)
+        if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_POSE_DEFENSEUR_1,
+            DEC_POSE_DEFENSEUR_2,
+        ):
+            need_scan = (
+                (not has_2_1_reve and state.tour <= 7 and cfg.total_reves_partie > 0)
+                or (not has_furt_rp and state.tour <= 7)
+                or (not has_furt_rs and state.tour <= 7)
+                or (not has_eveil and state.tour <= 7 and cfg.nb_animaux_sauvages >= 1)
+            )
+            if need_scan:
+                pre_2_1_snap: GameState | None = (
+                    state.clone() if state.step == STEP_2_1_DEF1 else None
+                )
+                if state.step == STEP_2_1_DEF1:
+                    check_reve_here = (
+                        (not has_2_1_reve)
+                        and state.tour <= 7
+                        and any(is_reve_code(state.get_tactique_at_rank(rk)) for rk in range(6))
+                    )
+                    s_noreve_other = state.clone() if check_reve_here else None
+                    _resolve_only_2_1_ticks(state, scorer)
+                    if s_noreve_other is not None:
+                        _resolve_only_2_1_ticks(s_noreve_other, _no_reve_2_1_scorer)
+                        if state.raw_used_bytes() != s_noreve_other.raw_used_bytes():
+                            has_2_1_reve = True
+                            acc_rv = 0.0
+                            acc_nr = 0.0
+                            for j in range(n_eval_rollouts):
+                                ev_s = cfg.exp_seed + 730_000 + j * 31
+                                ev_r = cfg.rep_id * 41 + j
+                                c_rv = _reseed_future_turns_clone(state, ev_s, ev_r)
+                                resolve_step2_2_from_state(
+                                    c_rv, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                                )
+                                acc_rv += _rollout_from_post_2_2(
+                                    c_rv, is_b2=is_b2, k_max_future=k_max_future
+                                ).ratio_arbres
+                                c_nr = _reseed_future_turns_clone(s_noreve_other, ev_s, ev_r)
+                                resolve_step2_2_from_state(
+                                    c_nr, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                                )
+                                acc_nr += _rollout_from_post_2_2(
+                                    c_nr, is_b2=is_b2, k_max_future=k_max_future
+                                ).ratio_arbres
+                                rollouts += 2
+                            dv_2_1_reve = (acc_rv - acc_nr) / n_eval_rollouts
+
+                pre_2_2_snap = state.clone()
+                resolve_step2_2_from_state(
+                    state, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                )
+                _check_post_2_2_forks(state, pre_2_1_snap, pre_2_2_snap)
+                continue
+
+            resolve_step2_full_with_ticks(
+                state,
+                scorer,
+                k_max_passes=k_max_future,
+                epsilon_base=eps_b,
+                epsilon_step=12.0,
+            )
+            continue
+
+        # 3. Fork 4.1 : pose du Piège autonome par le propriétaire du rayon (>= 2 parcelles candidates)
+        if (
+            not has_4_1_piege
+            and out.decision_type == DEC_POSE_PIEGE_FURTIVITE_4_1
+            and len(out.options) >= 2
+        ):
+            has_4_1_piege = True
+            chosen_p = chooser(state, out)
+            alt_cands = [opt_p for opt_p in out.options if opt_p != chosen_p]
+            alt_p = alt_cands[0]
+            s_chosen = state.clone()
+            apply_choice(s_chosen, chosen_p)
+            s_alt = state.clone()
+            apply_choice(s_alt, alt_p)
+            dv_4_1_piege = _paired_post_2_2_eval(s_chosen, s_alt, 790_000, 29, 47)
+            apply_choice(state, chosen_p)
+            continue
+
+        apply_choice(state, chooser(state, out))
+
+    # 4. Fork apparié plein-match CRN : CHARGE_GAIN FRAPPE_NON_PAREE vs DEGAT_EFFECTIF
+    cfg_frappe = _clone_cfg_with_charge_gain(cfg, "FRAPPE_NON_PAREE")
+    cfg_degat = _clone_cfg_with_charge_gain(cfg, "DEGAT_EFFECTIF")
+    trk_f = TelemetryTracker()
+    trk_d = TelemetryTracker()
+    if is_b2:
+        res_f = play_game_b2(
+            GameState(cfg_frappe), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_f
+        )
+        res_d = play_game_b2(
+            GameState(cfg_degat), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_d
+        )
+    else:
+        res_f = play_game_b1(
+            GameState(cfg_frappe), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_f
+        )
+        res_d = play_game_b1(
+            GameState(cfg_degat), k_max_passes=k_max_future, max_steps=max_steps, telemetry=trk_d
+        )
+    rollouts += 2
+    dv_chg = float(res_f.ratio_arbres) - float(res_d.ratio_arbres)
+    dtok_chg = (
+        float(trk_f.summary().power_tokens_end_act1 - trk_d.summary().power_tokens_end_act1)
+        / (2.0 * cfg.n_players)
+    )
+
+    return CausalForksSummary(
+        mf_2_2=mf_rec,
+        has_2_1_anchor=has_2_1,
+        delta_v_2_1_b2_vs_b0=dv_2_1_b0,
+        has_2_1_reve_fork=has_2_1_reve,
+        delta_v_2_1_reve=dv_2_1_reve,
+        has_4_1_piege_fork=has_4_1_piege,
+        delta_v_4_1_pose_piege=dv_4_1_piege,
+        has_eveil_fork=has_eveil,
+        delta_v_eveil_vs_survival=dv_eveil,
+        total_rollouts=max(1, rollouts),
+        has_furt_rive_piege_fork=has_furt_rp,
+        delta_v_furt_rive_piege=dv_furt_rp,
+        has_furt_rive_sabotage_fork=has_furt_rs,
+        delta_v_furt_rive_sabotage=dv_furt_rs,
+        has_charge_gain_fork=True,
+        delta_v_charge_frappe_minus_degat=dv_chg,
+        delta_tokens_act1_frappe_minus_degat=dtok_chg,
+    )
+

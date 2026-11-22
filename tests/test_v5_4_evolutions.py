@@ -187,8 +187,15 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
     # Bulldozer aussi en p=4, Normal, 0 rouge
     state.set_machine_pos_status(0, MACHINE_BULLDOZER, 4, MACHINE_STATUS_NORMAL)
 
-    # Étape 1.1 : les deux machines sur la dernière parcelle passent en Ratissage permanent
+    # En v6.1, le test redondant en 1.1 est élagué : seul 6.3 fait basculer en Ratissage permanent
+    from engine.state import STEP_6_3_END_TURN
+
     state.step = STEP_1_1_RATISSAGE
+    step_until_decision(state)
+    assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE)[1] == MACHINE_STATUS_NORMAL
+
+    state._continuation.clear()
+    state.step = STEP_6_3_END_TURN
     step_until_decision(state)
     assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE) == (
         4,
@@ -210,7 +217,7 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
     # Avec 5 Défenseurs, l'attaque n'est PAS parée ; avec 6 Défenseurs, elle est parée.
     state.set_parcel_defenseurs(0, 4, 5)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
-    assert state.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre coupé
+    assert state.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
     assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)  # T1: gain_rouge=0
 
     # Retour à 3 Arbres + 6 Défenseurs -> parée !

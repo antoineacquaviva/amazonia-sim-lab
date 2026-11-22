@@ -427,11 +427,13 @@ def prim_creation_entite(
         assert state.get_parcel_piege(ray, p) == PIEGE_AUCUN, "Parcelle déjà piégée"
         state.set_parcel_piege(ray, p, PIEGE_ACTIF)
         _record_phys_ops(state, 1)
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.ok_pieges_placed += 1
+            if light_trigger:
+                trk.on_trigger_lit(2)
         if light_trigger:
             state.light_trigger(2)
-            trk = _get_active_telemetry()
-            if trk is not None:
-                trk.on_trigger_lit(2)
         return
 
     if entity_type == "SABOTAGE":

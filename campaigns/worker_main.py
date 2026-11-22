@@ -28,6 +28,7 @@ from campaigns.designs import (
     mirror_peuples,
     paired_mirror_blocks,
     run_micro_fork_on_config,
+    run_v6_1_causal_forks_on_config,
     sequential_halving_select,
 )
 from campaigns.digest_builder import (
@@ -41,10 +42,12 @@ from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TO
 from engine.rng import SRC_BOT_TIEBREAK, shuffle_deterministic
 from engine.state import (
     ANIMAUX_SAUVAGES,
+    CHARGE_GAIN_MODES,
     CHASSIS_AXES_OPTIONS,
     NUM_CHASSIS,
     PEUPLES_ONIRIQUES,
     PEUPLES_ORDER,
+    PIEGE_SCOPE_MODES,
     STATE_BUF_SIZE,
     GameConfig,
     GameState,
@@ -1457,7 +1460,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_adv_modes = manifest.get("reve_advance_modes", manifest.get("reve_advance_mode"))
     if raw_adv_modes is None:
-        adv_modes: list[str] = ["SAUT"]
+        adv_modes: list[str] = ["CLEAR_RANK_ONLY"]
         explicit_adv_mode_sweep = False
     elif isinstance(raw_adv_modes, str):
         adv_modes = [raw_adv_modes.strip().upper()]
@@ -1465,17 +1468,12 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     else:
         adv_modes = [str(x).strip().upper() for x in raw_adv_modes]
         explicit_adv_mode_sweep = True
-    norm_adv_modes: list[str] = []
     for radv in adv_modes:
-        if radv not in ("SAUT", "EXCLUSIVE_CHOICE"):
+        if radv != "CLEAR_RANK_ONLY":
             raise ValueError(
-                f"reve_advance_mode invalide (figé sur SAUT / alias EXCLUSIVE_CHOICE en v6.0 ; "
-                f"PAS_A_PAS, SAUT_MAX_1_PAR_TOUR et CLEAR_RANK_ONLY supprimés) : {radv!r}"
+                f"reve_advance_mode invalide (figé sur CLEAR_RANK_ONLY dans le socle v6.1 ; "
+                f"déplacement des Rêves transféré au Mode 4) : {radv!r}"
             )
-        norm_adv = "SAUT" if radv == "EXCLUSIVE_CHOICE" else radv
-        if norm_adv not in norm_adv_modes:
-            norm_adv_modes.append(norm_adv)
-    adv_modes = norm_adv_modes
 
     raw_g4_modes = manifest.get("gardien_4_trigger_modes", manifest.get("gardien_4_trigger_mode"))
     if raw_g4_modes is None:
@@ -1495,7 +1493,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     raw_r5_modes = manifest.get("reve_5_trigger_modes", manifest.get("reve_5_trigger_mode"))
     if raw_r5_modes is None:
-        r5_modes: list[str] = ["PASSIF"]
+        r5_modes: list[str] = ["ACTIF"]
         explicit_r5_sweep = False
     elif isinstance(raw_r5_modes, str):
         r5_modes = [raw_r5_modes.strip().upper()]
@@ -1504,23 +1502,41 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         r5_modes = [str(x).strip().upper() for x in raw_r5_modes]
         explicit_r5_sweep = True
     for r5m in r5_modes:
-        if r5m not in ("PASSIF", "ACTIF"):
-            raise ValueError(f"reve_5_trigger_mode invalide (attendu PASSIF/ACTIF) : {r5m!r}")
-
-    raw_ac_modes = manifest.get("reve_advance_cost_modes", manifest.get("reve_advance_cost_mode"))
-    if raw_ac_modes is None:
-        ac_modes: list[str] = ["1DEF"]
-        explicit_ac_sweep = False
-    elif isinstance(raw_ac_modes, str):
-        ac_modes = [raw_ac_modes.strip().upper()]
-        explicit_ac_sweep = "reve_advance_cost_modes" in manifest
-    else:
-        ac_modes = [str(x).strip().upper() for x in raw_ac_modes]
-        explicit_ac_sweep = True
-    for acm in ac_modes:
-        if acm not in ("1DEF", "2DEF", "ONIRIQUE_COUNT"):
+        if r5m != "ACTIF":
             raise ValueError(
-                f"reve_advance_cost_mode invalide (attendu 1DEF/2DEF/ONIRIQUE_COUNT) : {acm!r}"
+                f"reve_5_trigger_mode invalide (figé sur ACTIF en v6.1) : {r5m!r}"
+            )
+
+    raw_cg_modes = manifest.get("charge_gain_modes", manifest.get("charge_gain_mode"))
+    if raw_cg_modes is None:
+        cg_modes: list[str] = ["DEGAT_EFFECTIF"]
+        explicit_cg_sweep = False
+    elif isinstance(raw_cg_modes, str):
+        cg_modes = [raw_cg_modes.strip().upper()]
+        explicit_cg_sweep = "charge_gain_modes" in manifest
+    else:
+        cg_modes = [str(x).strip().upper() for x in raw_cg_modes]
+        explicit_cg_sweep = True
+    for cgm in cg_modes:
+        if cgm not in CHARGE_GAIN_MODES:
+            raise ValueError(
+                f"charge_gain_mode invalide (attendu {CHARGE_GAIN_MODES}) : {cgm!r}"
+            )
+
+    raw_ps_modes = manifest.get("piege_scope_modes", manifest.get("piege_scope_mode"))
+    if raw_ps_modes is None:
+        ps_modes: list[str] = ["SINGLE_STRIKE"]
+        explicit_ps_sweep = False
+    elif isinstance(raw_ps_modes, str):
+        ps_modes = [raw_ps_modes.strip().upper()]
+        explicit_ps_sweep = "piege_scope_modes" in manifest
+    else:
+        ps_modes = [str(x).strip().upper() for x in raw_ps_modes]
+        explicit_ps_sweep = True
+    for psm in ps_modes:
+        if psm not in PIEGE_SCOPE_MODES:
+            raise ValueError(
+                f"piege_scope_mode invalide (attendu {PIEGE_SCOPE_MODES}) : {psm!r}"
             )
 
     if len(r_act_modes) > 1:
@@ -1533,14 +1549,22 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         explicit_g4_mode_sweep = True
     if len(r5_modes) > 1:
         explicit_r5_sweep = True
-    if len(ac_modes) > 1:
-        explicit_ac_sweep = True
+    if len(cg_modes) > 1:
+        explicit_cg_sweep = True
+    if len(ps_modes) > 1:
+        explicit_ps_sweep = True
+
+    is_micro_forks = bool(manifest.get("micro_forks", False)) or (
+        str(manifest.get("campaign_kind", "MACRO")).strip().upper() == "MICRO_FORKS"
+    )
+    fork_n_sel = max(1, int(manifest.get("fork_selection_rollouts", 3)))
+    fork_n_eval = max(2, int(manifest.get("fork_eval_rollouts", 4)))
 
     expanded_variants: list[dict[str, Any]] = []
     ev_idx = 0
     for var in profile_variants:
-        for ram, gcp, radv, g4m, r5m, acm in itertools.product(
-            r_act_modes, cap_pols, adv_modes, g4_modes, r5_modes, ac_modes
+        for ram, gcp, radv, g4m, r5m, cgm, psm in itertools.product(
+            r_act_modes, cap_pols, adv_modes, g4_modes, r5_modes, cg_modes, ps_modes
         ):
             tag_parts: list[str] = []
             if explicit_reve_act_sweep:
@@ -1553,8 +1577,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 tag_parts.append(f"G4={g4m}")
             if explicit_r5_sweep:
                 tag_parts.append(f"REVE_TRIG={r5m}")
-            if explicit_ac_sweep:
-                tag_parts.append(f"ADV_COST={acm}")
+            if explicit_cg_sweep:
+                tag_parts.append(f"CHARGE={cgm}")
+            if explicit_ps_sweep:
+                tag_parts.append(f"PIEGE={psm}")
             if tag_parts:
                 ext_tag = "|".join(tag_parts)
                 v_id = ext_tag if var["variant_id"] == "BASE" else f"{var['variant_id']}|{ext_tag}"
@@ -1571,7 +1597,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "reve_advance_mode": radv,
                     "gardien_4_trigger_mode": g4m,
                     "reve_5_trigger_mode": r5m,
-                    "reve_advance_cost_mode": acm,
+                    "charge_gain_mode": cgm,
+                    "piege_scope_mode": psm,
                 }
             )
             ev_idx += 1
@@ -1677,7 +1704,11 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                         "reve_advance_mode": var["reve_advance_mode"],
                                         "gardien_4_trigger_mode": var["gardien_4_trigger_mode"],
                                         "reve_5_trigger_mode": var["reve_5_trigger_mode"],
-                                        "reve_advance_cost_mode": var["reve_advance_cost_mode"],
+                                        "charge_gain_mode": var["charge_gain_mode"],
+                                        "piege_scope_mode": var["piege_scope_mode"],
+                                        "micro_forks": is_micro_forks,
+                                        "fork_selection_rollouts": fork_n_sel,
+                                        "fork_eval_rollouts": fork_n_eval,
                                         "table_id": t_id,
                                         "peuples": peuples,
                                         "n_animaux_sauvages": sum(
@@ -1728,6 +1759,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "tested_tiles": tuple(tested_tiles_set),
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
+        "micro_forks": is_micro_forks,
         "games_per_configuration": games_per_cfg,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
@@ -1749,10 +1781,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     tile_profiles = tuple((str(s), str(p)) for s, p in unit["tile_profiles"])
     reve_activation_mode = str(unit.get("reve_activation_mode", "1_DEF_1_MACHINE"))
     gardien_bet_cap_policy = str(unit.get("gardien_bet_cap_policy", "UNIFORM_MAX_2"))
-    reve_advance_mode = str(unit.get("reve_advance_mode", "SAUT"))
+    reve_advance_mode = str(unit.get("reve_advance_mode", "CLEAR_RANK_ONLY"))
     gardien_4_trigger_mode = str(unit.get("gardien_4_trigger_mode", "DISTINCT_OPEN_1"))
-    reve_5_trigger_mode = str(unit.get("reve_5_trigger_mode", "PASSIF"))
-    reve_advance_cost_mode = str(unit.get("reve_advance_cost_mode", "1DEF"))
+    reve_5_trigger_mode = str(unit.get("reve_5_trigger_mode", "ACTIF"))
+    charge_gain_mode = str(unit.get("charge_gain_mode", "DEGAT_EFFECTIF"))
+    piege_scope_mode = str(unit.get("piege_scope_mode", "SINGLE_STRIKE"))
+    is_micro_forks = bool(unit.get("micro_forks", False))
+    fork_n_sel = int(unit.get("fork_selection_rollouts", 3))
+    fork_n_eval = int(unit.get("fork_eval_rollouts", 4))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
     )
@@ -1767,6 +1803,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     n_games = int(unit["n_games"])
 
     ratios: list[float] = []
+    ratio_bp_counts: dict[str, int] = {}
     sum_arbres = 0
     sum_ratio = 0.0
     sum_sq_ratio = 0.0
@@ -1774,7 +1811,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     cnt_t8 = 0
     cnt_reve = 0
     cnt_reveil = 0
-    sommeil_by_t = [0] * 9  # indices 1..7 (et 8 par sécurité)
+    sommeil_by_t = [0] * 9
     sum_sommeil_tours = 0
     sum_sommeil_ratio = 0.0
     cnt_reveil_attempts = 0
@@ -1812,6 +1849,39 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     ok_games_acc: dict[str, int] = {f"games_{k}": 0 for k in OCKHAM_COUNT_FIELDS}
     dil_sum_acc: dict[str, int] = {f"sum_{k}": 0 for k in DILEMMA_CHOICE_FIELDS}
 
+    fork_anchors = 0
+    fork_anchors_missed = 0
+    fork_diverged = 0
+    sum_delta_v_neg = 0.0
+    sum_sq_delta_v_neg = 0.0
+    sum_c_prive = 0.0
+    sum_sq_c_prive = 0.0
+    sum_g_naive = 0.0
+    sum_g_unbiased = 0.0
+    sum_rho_delta = 0.0
+    fork_2_1_anchors = 0
+    sum_delta_v_2_1_b2_vs_b0 = 0.0
+    sum_sq_delta_v_2_1_b2_vs_b0 = 0.0
+    fork_2_1_reve_anchors = 0
+    sum_delta_v_2_1_reve = 0.0
+    sum_sq_delta_v_2_1_reve = 0.0
+    fork_furt_rp_anchors = 0
+    sum_delta_v_furt_rp = 0.0
+    sum_sq_delta_v_furt_rp = 0.0
+    fork_furt_rs_anchors = 0
+    sum_delta_v_furt_rs = 0.0
+    sum_sq_delta_v_furt_rs = 0.0
+    fork_4_1_piege_anchors = 0
+    sum_delta_v_4_1_piege = 0.0
+    sum_sq_delta_v_4_1_piege = 0.0
+    fork_eveil_anchors = 0
+    sum_delta_v_eveil_vs_survival = 0.0
+    sum_sq_delta_v_eveil_vs_survival = 0.0
+    fork_charge_gain_anchors = 0
+    sum_delta_v_charge_frappe_minus_degat = 0.0
+    sum_sq_delta_v_charge_frappe_minus_degat = 0.0
+    sum_delta_tokens_act1_frappe_minus_degat = 0.0
+
     for i in range(n_games):
         rep_id = rep_start + i
         base_cfg = GameConfig.from_chassis_index(
@@ -1828,7 +1898,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             reve_advance_mode=reve_advance_mode,
             gardien_4_trigger_mode=gardien_4_trigger_mode,
             reve_5_trigger_mode=reve_5_trigger_mode,
-            reve_advance_cost_mode=reve_advance_cost_mode,
+            charge_gain_mode=charge_gain_mode,
+            piege_scope_mode=piege_scope_mode,
         )
         p_max_val = base_cfg.p_max
         cfg = GameConfig(
@@ -1850,9 +1921,64 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             reve_advance_mode=reve_advance_mode,
             gardien_4_trigger_mode=gardien_4_trigger_mode,
             reve_5_trigger_mode=reve_5_trigger_mode,
-            reve_advance_cost_mode=reve_advance_cost_mode,
+            charge_gain_mode=charge_gain_mode,
+            piege_scope_mode=piege_scope_mode,
             tile_profiles=tile_profiles if mode >= 2 else (),
         )
+
+        if is_micro_forks:
+            anchor_tour = 2 if (i % 2 == 0) else 3
+            cf = run_v6_1_causal_forks_on_config(
+                cfg,
+                target_tour=anchor_tour,
+                is_b2=(bot_name != "B1"),
+                n_selection_rollouts=fork_n_sel,
+                n_eval_rollouts=fork_n_eval,
+                k_max_future=max(1, k_max),
+            )
+            if cf.mf_2_2 is None:
+                fork_anchors_missed += 1
+            else:
+                fork_anchors += 1
+                if cf.mf_2_2.diverged_in_2_2:
+                    fork_diverged += 1
+                sum_delta_v_neg += cf.mf_2_2.delta_v_negociation
+                sum_sq_delta_v_neg += cf.mf_2_2.delta_v_negociation ** 2
+                sum_c_prive += cf.mf_2_2.c_prive
+                sum_sq_c_prive += cf.mf_2_2.c_prive ** 2
+                sum_g_naive += cf.mf_2_2.g_naive_selection
+                sum_g_unbiased += cf.mf_2_2.g_unbiased_eval
+                sum_rho_delta += cf.mf_2_2.rho_delta
+            if cf.has_2_1_anchor:
+                fork_2_1_anchors += 1
+                sum_delta_v_2_1_b2_vs_b0 += cf.delta_v_2_1_b2_vs_b0
+                sum_sq_delta_v_2_1_b2_vs_b0 += cf.delta_v_2_1_b2_vs_b0 ** 2
+            if cf.has_2_1_reve_fork:
+                fork_2_1_reve_anchors += 1
+                sum_delta_v_2_1_reve += cf.delta_v_2_1_reve
+                sum_sq_delta_v_2_1_reve += cf.delta_v_2_1_reve ** 2
+            if cf.has_furt_rive_piege_fork:
+                fork_furt_rp_anchors += 1
+                sum_delta_v_furt_rp += cf.delta_v_furt_rive_piege
+                sum_sq_delta_v_furt_rp += cf.delta_v_furt_rive_piege ** 2
+            if cf.has_furt_rive_sabotage_fork:
+                fork_furt_rs_anchors += 1
+                sum_delta_v_furt_rs += cf.delta_v_furt_rive_sabotage
+                sum_sq_delta_v_furt_rs += cf.delta_v_furt_rive_sabotage ** 2
+            if cf.has_4_1_piege_fork:
+                fork_4_1_piege_anchors += 1
+                sum_delta_v_4_1_piege += cf.delta_v_4_1_pose_piege
+                sum_sq_delta_v_4_1_piege += cf.delta_v_4_1_pose_piege ** 2
+            if cf.has_eveil_fork:
+                fork_eveil_anchors += 1
+                sum_delta_v_eveil_vs_survival += cf.delta_v_eveil_vs_survival
+                sum_sq_delta_v_eveil_vs_survival += cf.delta_v_eveil_vs_survival ** 2
+            if cf.has_charge_gain_fork:
+                fork_charge_gain_anchors += 1
+                sum_delta_v_charge_frappe_minus_degat += cf.delta_v_charge_frappe_minus_degat
+                sum_sq_delta_v_charge_frappe_minus_degat += cf.delta_v_charge_frappe_minus_degat ** 2
+                sum_delta_tokens_act1_frappe_minus_degat += cf.delta_tokens_act1_frappe_minus_degat
+
         trk = TelemetryTracker()
         st = GameState(cfg)
         if bot_name == "B0":
@@ -1873,6 +1999,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         rt = float(res.ratio_arbres)
         tf = int(res.tour_fin)
         ratios.append(rt)
+        bp_key = str(round(rt * 10000))
+        ratio_bp_counts[bp_key] = ratio_bp_counts.get(bp_key, 0) + 1
         sum_arbres += int(res.score_arbres)
         sum_ratio += rt
         sum_sq_ratio += rt * rt
@@ -1952,8 +2080,10 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "reve_advance_mode": reve_advance_mode,
         "gardien_4_trigger_mode": gardien_4_trigger_mode,
         "reve_5_trigger_mode": reve_5_trigger_mode,
-        "reve_advance_cost_mode": reve_advance_cost_mode,
+        "charge_gain_mode": charge_gain_mode,
+        "piege_scope_mode": piege_scope_mode,
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
+        "ratio_bp_counts_json": json.dumps(ratio_bp_counts, sort_keys=True),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
         "n_animaux_sauvages": n_animaux,
@@ -2016,6 +2146,49 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "sum_mid_combat": sum_mid_combat,
         "cell_wall_sec": round(wall_sec, 4),
     }
+    if is_micro_forks:
+        out_row.update(
+            {
+                "fork_anchors": fork_anchors,
+                "fork_anchors_missed": fork_anchors_missed,
+                "fork_diverged": fork_diverged,
+                "sum_delta_v_neg": round(sum_delta_v_neg, 6),
+                "sum_sq_delta_v_neg": round(sum_sq_delta_v_neg, 6),
+                "sum_c_prive": round(sum_c_prive, 6),
+                "sum_sq_c_prive": round(sum_sq_c_prive, 6),
+                "sum_g_naive": round(sum_g_naive, 6),
+                "sum_g_unbiased": round(sum_g_unbiased, 6),
+                "sum_rho_delta": round(sum_rho_delta, 6),
+                "fork_2_1_anchors": fork_2_1_anchors,
+                "sum_delta_v_2_1_b2_vs_b0": round(sum_delta_v_2_1_b2_vs_b0, 6),
+                "sum_sq_delta_v_2_1_b2_vs_b0": round(sum_sq_delta_v_2_1_b2_vs_b0, 6),
+                "fork_2_1_reve_anchors": fork_2_1_reve_anchors,
+                "sum_delta_v_2_1_reve": round(sum_delta_v_2_1_reve, 6),
+                "sum_sq_delta_v_2_1_reve": round(sum_sq_delta_v_2_1_reve, 6),
+                "fork_furt_rp_anchors": fork_furt_rp_anchors,
+                "sum_delta_v_furt_rp": round(sum_delta_v_furt_rp, 6),
+                "sum_sq_delta_v_furt_rp": round(sum_sq_delta_v_furt_rp, 6),
+                "fork_furt_rs_anchors": fork_furt_rs_anchors,
+                "sum_delta_v_furt_rs": round(sum_delta_v_furt_rs, 6),
+                "sum_sq_delta_v_furt_rs": round(sum_sq_delta_v_furt_rs, 6),
+                "fork_4_1_piege_anchors": fork_4_1_piege_anchors,
+                "sum_delta_v_4_1_piege": round(sum_delta_v_4_1_piege, 6),
+                "sum_sq_delta_v_4_1_piege": round(sum_sq_delta_v_4_1_piege, 6),
+                "fork_eveil_anchors": fork_eveil_anchors,
+                "sum_delta_v_eveil_vs_survival": round(sum_delta_v_eveil_vs_survival, 6),
+                "sum_sq_delta_v_eveil_vs_survival": round(sum_sq_delta_v_eveil_vs_survival, 6),
+                "fork_charge_gain_anchors": fork_charge_gain_anchors,
+                "sum_delta_v_charge_frappe_minus_degat": round(
+                    sum_delta_v_charge_frappe_minus_degat, 6
+                ),
+                "sum_sq_delta_v_charge_frappe_minus_degat": round(
+                    sum_sq_delta_v_charge_frappe_minus_degat, 6
+                ),
+                "sum_delta_tokens_act1_frappe_minus_degat": round(
+                    sum_delta_tokens_act1_frappe_minus_degat, 6
+                ),
+            }
+        )
     out_row.update(def_attr_acc)
     out_row.update(ok_sum_acc)
     out_row.update(ok_games_acc)

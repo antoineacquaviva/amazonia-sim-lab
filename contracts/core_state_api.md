@@ -40,6 +40,8 @@ zéro `import random`, zéro état global mutable).
 - `FACE_VIDE: int = 0`
 - `FACE_REFLEXION: int = 1`
 - `FACE_DEFINITIF: int = 2`
+- `FURT_RIVE_PIEGE: int = 0`
+- `FURT_RIVE_SABOTAGE: int = 1`
 - `LISIERE_ABSENT: int = 0`
 - `LISIERE_UNCONSTRUCTED: int = 1`
 - `LISIERE_CONSTRUCTED: int = 2`
@@ -79,9 +81,10 @@ zéro `import random`, zéro état global mutable).
 - `CHASSIS_AXES_OPTIONS: tuple[tuple[str, tuple[Any, ...]], ...] = ...`
 - `NUM_CHASSIS: int = 1`
 - `TOPOLOGIES_DOTATION: dict[str, tuple[int, ...]] = ...`
-- `REVE_ADVANCE_MODES: tuple[str, ...] = ('SAUT',)`
-- `REVE_5_TRIGGER_MODES: tuple[str, ...] = ('PASSIF', 'ACTIF')`
-- `REVE_ADVANCE_COST_MODES: tuple[str, ...] = ('1DEF', '2DEF', 'ONIRIQUE_COUNT')`
+- `REVE_ADVANCE_MODES: tuple[str, ...] = ('CLEAR_RANK_ONLY',)`
+- `REVE_5_TRIGGER_MODES: tuple[str, ...] = ('ACTIF',)`
+- `CHARGE_GAIN_MODES: tuple[str, ...] = ('DEGAT_EFFECTIF', 'FRAPPE_NON_PAREE')`
+- `PIEGE_SCOPE_MODES: tuple[str, ...] = ('SINGLE_STRIKE',)`
 
 ### Fonctions publiques
 
@@ -114,7 +117,7 @@ Profil structurel immuable d'une tuile Tactique T1..T6.
 
 ### Classe `GameConfig`
 
-Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2).
+Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis).
 
 **Champs :**
 - `n_players: int`
@@ -135,7 +138,8 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `reve_advance_mode: str`
 - `gardien_4_trigger_mode: str`
 - `reve_5_trigger_mode: str`
-- `reve_advance_cost_mode: str`
+- `charge_gain_mode: str`
+- `piege_scope_mode: str`
 - `tile_profiles: tuple[tuple[str, str], ...]`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
@@ -146,8 +150,7 @@ Configuration immuable d'une partie (Mode 1..4 et 6 axes des 192 châssis v5.4.2
 - `nb_peuples_oniriques: int`
 
 **Méthodes :**
-- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='SAUT', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', reve_5_trigger_mode: str='PASSIF', reve_advance_cost_mode: str='1DEF', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.0 à partir d'un index 0..191.
-- `required_defenders_for_reve_advance(self) -> int` — Nombre minimal de Défenseurs requis sur un Rêve pour choisir AVANCER en 3.2.
+- `from_chassis_index(cls, chassis_idx: int, *, n_players: int=4, mode: int=1, peuples: tuple[str, ...]=(), exp_seed: int=42, rep_id: int=0, coordonnateur_initial: int=0, max_revision_passes: int=4, reve_activation_mode: str='1_DEF_1_MACHINE', gardien_bet_cap_policy: str='UNIFORM_MAX_2', reve_advance_mode: str='CLEAR_RANK_ONLY', gardien_4_trigger_mode: str='DISTINCT_OPEN_1', reve_5_trigger_mode: str='ACTIF', charge_gain_mode: str='DEGAT_EFFECTIF', piege_scope_mode: str='SINGLE_STRIKE', tile_profiles: tuple[tuple[str, str], ...]=()) -> GameConfig` — Construit l'une des 192 configurations de châssis v6.1 à partir d'un index 0..191.
 - `gardien_bet_cap_for_case(self, case_1_6: int) -> int` — Plafond de Défenseurs en pari 2.2 sur la case `1..6` (v5.5 : uniforme max 2).
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
 - `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (Bug=B, Colonie=B par défaut en Mode 2+ v5.5).
@@ -233,7 +236,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `reve_advance_mode: str`
 - `gardien_4_trigger_mode: str`
 - `reve_5_trigger_mode: str`
-- `reve_advance_cost_mode: str`
+- `charge_gain_mode: str`
+- `piege_scope_mode: str`
 - `nb_peuples_oniriques: int`
 - `gardien_pari_enabled: bool`
 - `triggers_lit: int`
@@ -264,6 +268,13 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `parcel_has_nid(self, r: int, p: int) -> bool` — Retourne True si un Nid est présent sur (r, p) en Mode >= 2.
 - `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1).
 - `furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int` — Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1).
+- `is_ray_furtivite_open(self, ray: int) -> bool` — Vrai si la piste de forêt `ray` n'est pas intégralement rasée (au moins 1 parcelle non-Route et >= 1 machine non retirée).
+- `furtivite_ray_rive_defs(self, ray: int, rive: int) -> int` — Nombre de Défenseurs (0..2) sur la rive `rive` (0=Piège, 1=Sabotage) au pied du rayon `ray`.
+- `furtivite_ray_rive_split(self, ray: int, rive: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` sur la rive `rive` au pied du rayon `ray`.
+- `furtivite_ray_def1_rive_count(self, ray: int, rive: int) -> int` — Nombre de 1ers Défenseurs (2.1, publics) posés sur la rive `rive` au pied du rayon `ray`.
+- `player_def1_furtivite_target(self, seat: int) -> tuple[int, int] | None` — Retourne `(ray, rive)` si le 1er Défenseur de `seat` est en Furtivité, sinon None.
+- `player_def2_furtivite_target(self, seat: int) -> tuple[int, int] | None` — Retourne `(ray, rive)` si le 2e Défenseur de `seat` est en Furtivité, sinon None.
+- `mobilized_machines_for_ray(self, ray: int) -> int` — Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : cartes Machine révélées du rayon + Ratissages.
 - `lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]` — Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`.
 - `machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]` — Retourne (position, status) de la machine `(r, m_type)` en O(1).
 - `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
@@ -278,12 +289,14 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `total_gardien_pari_engaged(self) -> int` — Nombre total de 2es Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés).
 - `player_def2_gardien_pari_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en pari Gardien par le 2e Défenseur actif de `seat`, ou 0.
 - `reve_at_case(self, case_1_6: int) -> int` — Retourne r_num (1..10) si un Rêve occupe la case `1..6`, sinon 0.
-- `reve_activation_defenders(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`.
+- `reve_activation_defenders(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur le Rêve en case `1..6`.
+- `reve_def1_count(self, case_1_6: int) -> int` — Nombre de 1ers Défenseurs (2.1, fixes) posés sur le Rêve en case `1..6`.
 - `reve_activation_consumed(self, case_1_6: int) -> int` — Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour.
-- `total_reve_activation_defenders(self) -> int` — Nombre total de Défenseurs actifs (non consommés) posés sur des Rêves.
-- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés).
+- `total_reve_activation_defenders(self) -> int` — Nombre total de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur des Rêves.
+- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.1 ou 2.2 sur des Rêves (actifs + consommés).
 - `reve_activation_defenders_split(self, case_1_6: int) -> tuple[int, int]` — Retourne `(nb_reflexion, nb_definitif)` des Défenseurs actifs sur le Rêve en case `1..6`.
-- `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée en activation Rêve par le Défenseur de `seat`, ou 0.
+- `player_def1_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée sur un Rêve par le 1er Défenseur (`2.1`) de `seat`, ou 0.
+- `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée sur un Rêve par le 2e Défenseur (`2.2`) de `seat`, ou 0.
 - `tactique_code_bugs_app(self, rank_0_5: int) -> tuple[int, int, int]` — Retourne (code, bugs, apprentissage) au rang `0..5` de la piste Tactiques.
 
 ### Classe `GameState`
@@ -349,7 +362,10 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `decode_def_loc(self, raw_loc: int) -> tuple[str, int, int, int]` — Décode une localisation brute en (kind, a, b, c).
 - `remove_player_defender(self, seat: int, def_idx: int) -> None` — Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main.
 - `place_defender_foret(self, seat: int, def_idx: int, r: int, p: int, face: int) -> None`
-- `enter_furtivite(self, seat: int, def_idx: int, lisiere: int, p: int, rive: int, face: int, preferred_twin: int=0) -> None` — Pose librement un Défenseur sur l'un des 2 emplacements de `rive` (Furtivité libre A1, sans tirage).
+- `is_ray_furtivite_open(self, ray: int) -> bool` — Vrai si le rayon `ray` n'est pas intégralement rasé (>= 1 parcelle non-Route et >= 1 machine non retirée).
+- `count_mobilized_machines_for_ray(self, ray: int) -> int` — Retourne `m(ray)` en 4.1 (`0`, `1` ou `2`) : cartes Machine du rayon révélées en 3.2 + Ratissages actifs. Indépendant de toute déviation d'Insecte (±1 en 3.2) et de toute annulation par un Rêve en 3.2.
+- `place_defender_furtivite(self, seat: int, def_idx: int, ray: int, rive: int, face: int, preferred_twin: int=0) -> None` — Pose librement un Défenseur en Furtivité au pied du rayon `ray` (`rive` 0=Piège, 1=Sabotage).
+- `enter_furtivite(self, seat: int, def_idx: int, lisiere: int, p: int, rive: int, face: int, preferred_twin: int=0) -> None` — Compatibilité : délègue vers `place_defender_furtivite` lorsque `p == 1`.
 - `flip_defender2_to_definitif_in_place(self, seat: int) -> None` — Retourne sur place le 2e Défenseur réflexion -> définitif (sans aucun tirage).
 - `place_defender_lisiere_tile(self, seat: int, def_idx: int, lisiere_slot_idx: int, face: int) -> None`
 - `count_gardien_pari_defenders_at_case(self, case_1_6: int) -> int` — Nombre de 2es Défenseurs actifs (non consommés) posés en pari sur la case `1..6`.
@@ -359,15 +375,15 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `total_gardien_pari_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur la Piste des Gardiens (actifs + consommés).
 - `place_defender_gardien_pari(self, seat: int, case_1_6: int, face: int) -> None` — Engage le Défenseur de `seat` en pari d'activation sur le Gardien en case `1..6` (plafond v5.4.5).
 - `consume_one_gardien_pari_defender(self, case_1_6: int) -> bool` — Retire 1 Défenseur actif sur la case `1..6` (mis de côté jusqu'en 6.2).
-- `count_reve_activation_defenders_at_case(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (non consommés) posés sur le Rêve en case `1..6`.
+- `count_reve_activation_defenders_at_case(self, case_1_6: int) -> int` — Nombre de Défenseurs actifs (2.1 + 2.2, non consommés) posés sur le Rêve en case `1..6`.
 - `count_reve_activation_consumed_at_case(self, case_1_6: int) -> int` — Nombre de Défenseurs déjà consommés sur le Rêve en case `1..6` ce tour.
-- `total_reve_activation_remaining(self) -> int` — Nombre total de Défenseurs encore actifs (non consommés) sur des Rêves.
+- `total_reve_activation_remaining(self) -> int` — Nombre total de Défenseurs encore actifs (2.1 + 2.2, non consommés) sur des Rêves.
 - `total_reve_activation_consumed(self) -> int` — Nombre total de Défenseurs consommés par annulation de machines sur des Rêves ce tour.
-- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.2 sur des Rêves (actifs + consommés).
-- `consume_reve_activation_defenders(self, case_1_6: int, count: int) -> int` — Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (pari gagné).
+- `total_reve_activation_engaged(self) -> int` — Nombre total de Défenseurs engagés en 2.1 ou 2.2 sur des Rêves (actifs + consommés).
+- `consume_reve_activation_defenders(self, case_1_6: int, count: int) -> int` — Consomme jusqu'à `count` Défenseurs actifs sur le Rêve en case `1..6` (2.1 d'abord puis 2.2).
 - `is_eveil_attempt_eligible(self) -> bool` — Vrai si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens (Éveil de la Forêt 100 % Gardiens, Tours 1..7, A >= 1).
 - `is_eveil_gardiens_victory(self) -> bool` — Éveil de la Forêt 100 % Piste des Gardiens (Tours 1..7, A >= 1) : les N Défenseurs de la table engagés en 2.2 sur la Piste des Gardiens et 0 pari perdu (0 restant en 5.3).
-- `place_defender_reve_activation(self, seat: int, case_1_6: int, face: int) -> None` — Engage le Défenseur de `seat` sur un Rêve en case `1..6` pour l'activation en 3.2.
+- `place_defender_reve_activation(self, seat: int, case_1_6: int, face: int, *, def_idx: int=1) -> None` — Engage un Défenseur (`def_idx` 0 en 2.1 ou 1 en 2.2) de `seat` sur un Rêve en case `1..6`.
 - `mark_defender_impasse(self, seat: int, def_idx: int, face: int) -> None` — Consomme le Défenseur sans pose physique lorsque 100 % des cibles légales sont épuisées.
 - `get_lisiere_tile_state(self, slot_idx: int) -> tuple[int, int]` — Retourne (status, nb_constructors).
 - `set_lisiere_tile_state(self, slot_idx: int, status: int, constructors: int) -> None`

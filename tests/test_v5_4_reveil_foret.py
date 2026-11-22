@@ -239,13 +239,8 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     assert st_rej.is_eveil_attempt_eligible() is False
     st_rej.step = STEP_3_2_REVEAL
     _run_step_3_2(st_rej)
-    from engine.core_engine import _advance_continuation, apply_choice
+    from engine.core_engine import _advance_continuation
 
-    req_rej = None
-    while st_rej._continuation and req_rej is None:
-        req_rej = _advance_continuation(st_rej)
-    assert req_rej is not None and req_rej.decision_type == "CHOIX_REVE_3_2"
-    apply_choice(st_rej, "BLOQUER")
     while st_rej._continuation:
         assert _advance_continuation(st_rej) is None
     assert st_rej.total_reve_activation_consumed() == 1
@@ -256,7 +251,7 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     sweep_gardiens(st_rej)
     assert st_rej.total_gardien_pari_consumed() == 3
     assert st_rej.total_gardien_pari_remaining() == 0
-    # Rejeté car seulement 3/4 Défenseurs sur la Piste des Gardiens (1 était sur un Rêve)
+    # Rejeté car seulement 3/4 Défenseurs de 2.2 sur la Piste des Gardiens (1 Défenseur 2.2 était sur un Rêve)
     assert st_rej.is_eveil_gardiens_victory() is False
     st_rej.step = STEP_5_3_END_CHECK
     res_rej = step_until_decision(st_rej)
@@ -324,24 +319,22 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
 
 
 def test_reve_advance_mode_clear_rank_only_vs_jump_push() -> None:
-    """v6.0 EXCLUSIVE_CHOICE : BLOQUER annule sans bouger ; AVANCER saute à la 1re case libre sans annuler ; CLEAR_RANK_ONLY rejeté."""
-    from engine.core_engine import _advance_continuation, apply_choice
+    """v6.1 CLEAR_RANK_ONLY : blocage pur automatique (1 Déf = 1 machine annulée, Rêve immobile) ; SAUT/EXCLUSIVE_CHOICE/JUMP_PUSH rejetés."""
+    from engine.core_engine import _advance_continuation
 
-    # CLEAR_RANK_ONLY et JUMP_PUSH sont supprimés et rejetés en v6.0
-    with pytest.raises(AssertionError):
-        GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"), reve_advance_mode="CLEAR_RANK_ONLY")
-    with pytest.raises(AssertionError):
-        GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"), reve_advance_mode="JUMP_PUSH")
+    for rejected_mode in ("EXCLUSIVE_CHOICE", "SAUT", "JUMP_PUSH"):
+        with pytest.raises(AssertionError):
+            GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"), reve_advance_mode=rejected_mode)
 
     cfg_ex = GameConfig(
         n_players=3,
         mode=2,
         peuples=("M", "H", "I"),
         reve_activation_mode="1_DEF_1_MACHINE",
-        reve_advance_mode="EXCLUSIVE_CHOICE",
+        reve_advance_mode="CLEAR_RANK_ONLY",
     )
 
-    # 1. BLOQUER : 2 machines au rang 6 (R3), 1 seul Défenseur -> 1/2 annulée, 1 joue T6 dessous, R3 NE BOUGE PAS
+    # 1. 1 Défenseur face à 2 machines au rang 6 (R3) -> 1/2 annulée, 1 joue T6 dessous, R3 NE BOUGE PAS, 5. Rêve allumé
     st_blk = GameState(cfg_ex)
     st_blk.set_gardien_at_case(5, 1, face=1)
     st_blk.set_tactique_at_rank(5, TILE_R_BASE + 3)
@@ -353,11 +346,6 @@ def test_reve_advance_mode_clear_rank_only_vs_jump_push() -> None:
 
     st_blk.step = STEP_3_2_REVEAL
     _run_step_3_2(st_blk)
-    req_blk = None
-    while st_blk._continuation and req_blk is None:
-        req_blk = _advance_continuation(st_blk)
-    assert req_blk is not None and req_blk.decision_type == "CHOIX_REVE_3_2"
-    apply_choice(st_blk, "BLOQUER")
     while st_blk._continuation:
         assert _advance_continuation(st_blk) is None
     assert st_blk.has_reve_opened_this_turn(3) is True
@@ -367,35 +355,24 @@ def test_reve_advance_mode_clear_rank_only_vs_jump_push() -> None:
     assert bound_vals == [0, 6]
     assert st_blk.get_tactique_at_rank(5) == TILE_R_BASE + 3
 
-    # 2. AVANCER : 2 machines au rang 6 (R3), 1 seul Défenseur, R1 en case 5 -> 0 machine annulée, R3 SAUTE en case 4 !
-    st_adv = GameState(cfg_ex)
-    st_adv.set_gardien_at_case(5, 1, face=1)
-    st_adv.set_tactique_at_rank(4, TILE_R_BASE + 1)  # R1 sur case 5
-    st_adv.set_tactique_at_rank(5, TILE_R_BASE + 3)  # R3 sur case 6
-    st_adv.set_player_hand(0, 1, 6, 6, 6, 0)
-    st_adv.set_player_hand(1, 3, 6, 6, 6, 0)
-    st_adv.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_adv.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
-    st_adv.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
+    # 2. 2 Défenseurs (2.1 + 2.2) face à 2 machines au rang 6 (R3) -> 2/2 annulées, R3 NE BOUGE TOUJOURS PAS !
+    st_blk2 = GameState(cfg_ex)
+    st_blk2.set_gardien_at_case(5, 1, face=1)
+    st_blk2.set_tactique_at_rank(5, TILE_R_BASE + 3)
+    st_blk2.set_player_hand(0, 1, 6, 6, 6, 0)
+    st_blk2.set_player_hand(1, 3, 6, 6, 6, 0)
+    st_blk2.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_blk2.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)
+    st_blk2.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=1)
+    st_blk2.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
 
-    st_adv.step = STEP_3_2_REVEAL
-    _run_step_3_2(st_adv)
-    req_adv = None
-    while st_adv._continuation and req_adv is None:
-        req_adv = _advance_continuation(st_adv)
-    assert req_adv is not None and req_adv.decision_type == "CHOIX_REVE_3_2"
-    apply_choice(st_adv, "AVANCER")
-    while st_adv._continuation:
-        assert _advance_continuation(st_adv) is None
-    assert st_adv.has_reve_opened_this_turn(3) is True
-    assert st_adv.count_gardien_pari_consumed_at_case(5) == 1
-    assert st_adv.total_reve_activation_consumed() == 1
-    assert st_adv.get_player_hand(0)[4] == 6
-    assert st_adv.get_player_hand(1)[4] == 6
-    # R3 saute par-dessus R1 (case 5) vers case 4 (index 3) ; R1 reste en index 4 ; T6 restaurée en index 5 !
-    assert st_adv.get_tactique_at_rank(3) == TILE_R_BASE + 3
-    assert st_adv.get_tactique_at_rank(4) == TILE_R_BASE + 1
-    assert st_adv.get_tactique_at_rank(5) == 6
+    st_blk2.step = STEP_3_2_REVEAL
+    _run_step_3_2(st_blk2)
+    while st_blk2._continuation:
+        assert _advance_continuation(st_blk2) is None
+    assert st_blk2.get_player_hand(0)[4] == 0
+    assert st_blk2.get_player_hand(1)[4] == 0
+    assert st_blk2.get_tactique_at_rank(5) == TILE_R_BASE + 3
 
 
 def test_bot_b2_retreat_and_b3_utility() -> None:
@@ -423,15 +400,15 @@ def test_bot_b2_retreat_and_b3_utility() -> None:
 
 
 def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
-    """Vérifie le rejet des modes legacy v5.4 et le schéma multi-variantes EXCLUSIVE_CHOICE + active_core_rules v6.0."""
+    """Vérifie le rejet des modes legacy v5.4 et le schéma multi-variantes CLEAR_RANK_ONLY + active_core_rules v6.1."""
     manifest_path = ROOT / "campaigns" / "manifests" / "calibration_pari_max2_v5_4.json"
     assert manifest_path.exists()
     legacy_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    with pytest.raises(ValueError, match="EXCLUSIVE_CHOICE"):
+    with pytest.raises(ValueError, match="CLEAR_RANK_ONLY"):
         resolve_manifest_plan(legacy_manifest)
 
     manifest = dict(legacy_manifest)
-    manifest["reve_advance_modes"] = ["EXCLUSIVE_CHOICE"]
+    manifest["reve_advance_modes"] = ["CLEAR_RANK_ONLY"]
     plan = resolve_manifest_plan(manifest)
 
     assert plan["chassis_ids"] == (0, 1, 2, 3, 4, 5)
@@ -439,15 +416,15 @@ def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
     assert len(plan["profile_variants"]) == 2
     v_ids = {v["variant_id"] for v in plan["profile_variants"]}
     assert v_ids == {
-        "CAP=UNIFORM_MAX_2|ADV=SAUT",
-        "CAP=MAX_2_RES_MAX_1|ADV=SAUT",
+        "CAP=UNIFORM_MAX_2|ADV=CLEAR_RANK_ONLY",
+        "CAP=MAX_2_RES_MAX_1|ADV=CLEAR_RANK_ONLY",
     }
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 1 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 2 for u in plan["units"])
     assert any(u["n_animaux_sauvages"] == 3 for u in plan["units"])
 
-    # Vérification active_core_rules.spec_formelle.fins_5_3 v6.0
+    # Vérification active_core_rules.spec_formelle.fins_5_3 v6.1
     core_rules = build_active_core_rules(chassis_ids=(0,))
     fins_5_3 = str(core_rules["spec_formelle"]["fins_5_3"])
     assert "v5.4.1" not in fins_5_3
@@ -461,7 +438,7 @@ def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
     row = _execute_manifest_unit(micro_unit)
     assert row["n_games"] == 2
     assert row["gardien_bet_cap_policy"] in ("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")
-    assert row["reve_advance_mode"] == "SAUT"
+    assert row["reve_advance_mode"] == "CLEAR_RANK_ONLY"
     assert "rs_def_parade" in row
     assert "rs_distinct_gardiens_bet" in row
     assert "rs_def_resonance" in row
@@ -469,7 +446,7 @@ def test_calibration_pari_max2_manifest_and_digest_schema() -> None:
 
 
 def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
-    """Vérifie by_variant_x_n_players, by_variant_x_n_animaux_sauvages et les champs reveil_anatomy v6.0."""
+    """Vérifie by_variant_x_n_players, by_variant_x_n_animaux_sauvages et les champs reveil_anatomy v6.1."""
     from run_campaign import _format_reveil_anatomy_row, aggregate_campaign_duckdb
 
     formatted = _format_reveil_anatomy_row(
@@ -519,7 +496,7 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy() -> None:
         "games_per_configuration": 2,
         "reve_activation_mode": "1_DEF_1_MACHINE",
         "gardien_bet_cap_policies": ["UNIFORM_MAX_2", "MAX_2_RES_MAX_1"],
-        "reve_advance_modes": ["EXCLUSIVE_CHOICE"],
+        "reve_advance_modes": ["CLEAR_RANK_ONLY"],
         "base_instance": {"config_index_192": 1},
         "chassis_plan": {"varying_axes": [], "fixed_axes": {}},
         "slot_profile_comparisons": {},

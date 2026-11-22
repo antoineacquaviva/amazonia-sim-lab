@@ -154,12 +154,13 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                 lis_signals += 1
 
     furt_signals = 0
-    for l_idx in range(n):
-        for p in range(1, p_max + 1):
-            if obs.furtivite_rive_defs(l_idx, p, 0) == 1:
-                furt_signals += 1
-            if obs.furtivite_rive_defs(l_idx, p, 1) == 1:
-                furt_signals += 1
+    furt_sab_signals = 0
+    for r_idx in range(n):
+        if obs.furtivite_ray_rive_defs(r_idx, 0) == 1:
+            furt_signals += 1
+        if obs.furtivite_ray_rive_defs(r_idx, 1) == 1:
+            furt_signals += 1
+            furt_sab_signals += 1
 
     def _add_strike(
         r: int,
@@ -224,13 +225,17 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                     reve_prob[lec - 1] = 1.0
                     n_def_r = obs.reve_activation_defenders(lec)
                     act_mode = cfg.reve_activation_mode
+                    own_on_lec = (
+                        obs.player_def1_reve_case(own_seat) == lec
+                        or obs.player_def2_reve_case(own_seat) == lec
+                    )
                     is_cancelled = (
                         (act_mode == "1_DEF_ALL_RANK" and n_def_r >= 1)
                         or (act_mode == "BINOME_ALL_RANK" and n_def_r >= 2)
                         or (
                             act_mode == "1_DEF_1_MACHINE"
                             and (
-                                (s == own_seat and obs.player_def2_reve_case(own_seat) == lec)
+                                (s == own_seat and (own_on_lec or n_def_r >= 2))
                                 or (s != own_seat and n_def_r >= 1)
                             )
                         )
@@ -262,9 +267,8 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         denom = max(1, m_rem + sab_rem)
         p_sab_prior = sab_rem / denom
 
-        # Mise à jour bayésienne légère par les signaux coopératifs observés en lisière/furtivité :
-        # les joueurs Sabotage émettent préférentiellement sur G/R/M et Furtivité dès le Tick 1.
-        coop_evidence = min(3, lis_signals + furt_signals)
+        # Mise à jour bayésienne légère par les signaux coopératifs corrélés au Sabotage (Lisières + Rives Sabotage)
+        coop_evidence = min(3, lis_signals + furt_sab_signals)
         if p_sab_prior > 0.0 and coop_evidence > 0:
             lr = 1.0 + 0.28 * coop_evidence
             odds = (p_sab_prior / max(1e-6, 1.0 - p_sab_prior)) * lr
@@ -274,7 +278,8 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
 
         expected_active_draws = unknown_holders * (1.0 - p_sab_post)
         if m_rem > 0 and expected_active_draws > 0.0:
-            # Pondération bayésienne par présence de Défenseurs déjà posés en forêt par les voisins
+            own_f1 = obs.player_def1_furtivite_target(own_seat)
+            # Pondération bayésienne par Défenseurs en forêt et signaux de Rive Piège / Rive Sabotage
             weights: list[float] = []
             w_total = 0.0
             for _, r_u, mt_u in unseen_machines:
@@ -283,8 +288,13 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                 p_dev_u = _next_non_razed_obs(obs, p_max, r_u, pos_u) if pos_u > 0 else None
                 if p_dev_u is not None:
                     defs_near += obs.parcel_defenseurs(r_u, p_dev_u)
-                # Vraisemblance bayésienne : une défense posée sur le rayon augmente la probabilité que la carte circule
-                w_m = 1.0 + 0.35 * min(2, defs_near)
+                ally_piege_sig = obs.furtivite_ray_def1_rive_count(r_u, 0) - (
+                    1 if own_f1 == (r_u, 0) else 0
+                )
+                ally_sab_sig = obs.furtivite_ray_rive_defs(r_u, 1)
+                w_m = 1.0 + 0.35 * min(2, defs_near) + 1.15 * min(1, max(0, ally_piege_sig))
+                if ally_sab_sig >= 1 and ally_piege_sig <= 0:
+                    w_m = max(0.35, w_m - 0.25)
                 weights.append(w_m)
                 w_total += w_m
 
@@ -301,14 +311,11 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                     p_exec = p_joint
                     if is_reve_code(t_code):
                         reve_prob[rank_idx] = 1.0 - (1.0 - reve_prob[rank_idx]) * (1.0 - p_joint)
-                        # Rêve sans Défenseur : la Tactique imprimée dessous s'exécute à 100 % ;
-                        # avec >= req_adv Défenseur(s), elle peut s'exécuter si choix AVANCER (~35 %) ;
-                        # sous 2DEF avec 1 seul Défenseur, BLOQUER est forcé (~15 % de débordement multi-cartes).
+                        # Socle v6.1 : blocage pur 1 Défenseur = 1 machine annulée (0 AVANCER)
                         n_r_def = obs.reve_activation_defenders(eff_t_code)
-                        req_adv = cfg.required_defenders_for_reve_advance()
-                        if n_r_def >= req_adv:
-                            p_exec = p_joint * 0.35
-                        elif n_r_def >= 1:
+                        if n_r_def >= 2:
+                            p_exec = p_joint * 0.03
+                        elif n_r_def == 1:
                             p_exec = p_joint * 0.15
                     spec = TACTIQUES_SPEC[eff_t_code]
                     chg = is_tactique_charge(eff_t_code, obs.tour)
@@ -355,7 +362,7 @@ def compute_private_urgency(
     """Calcule `(tick_1_2_3, U_i)` avec `U_i in [0, 1]` exclusivement depuis `PlayerObservation`.
 
     - Tick 1 (`U_i >= 0.80`) : joueur ayant tiré `CARD_SABOTAGE` / sans carte (émetteur altruiste
-      naturel sur tuile G/R/M ou Furtivité), ou urgence vitale immédiate sur son rayon.
+      naturel sur tuile G/R/M ou Furtivité), complétion certaine `Rive Piège` (`m(r) == 2`), ou urgence vitale.
     - Tick 2 (`0.45 <= U_i < 0.80`) : menace machine directe non couverte ou signal partenaire ouvert.
     - Tick 3 (`U_i < 0.45`) : main annulée par un Rêve ou déjà couverte (attend les signaux Tick 1/2).
     """
@@ -372,14 +379,31 @@ def compute_private_urgency(
             u_sab = min(0.99, u_sab + 0.04)
         return 1, u_sab
 
-    # 2. Carte Machine annulée par un Rêve en 3.2 : faible urgence privée -> attend Tick 3 (ou Tick 2 si signal ouvert)
-    if bel.own_machine_cancelled_by_reve:
+    # Urgence haute dédiée Furtivité Rive Piège si nous détenons la 2e machine (indépendant d'une annulation Rêve !)
+    u_piege_cert = 0.0
+    if own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players:
+        r_c, mt_c = unpack_machine_card(own_hand.card)
+        _, st_c = obs.machine_pos_status(r_c, mt_c)
+        if st_c == MACHINE_STATUS_NORMAL and obs.is_ray_furtivite_open(r_c):
+            _, st_other = obs.machine_pos_status(r_c, 1 - mt_c)
+            own_f1 = obs.player_def1_furtivite_target(own_seat)
+            ally_piege_d1 = obs.furtivite_ray_def1_rive_count(r_c, 0) - (
+                1 if own_f1 == (r_c, 0) else 0
+            )
+            if not is_first_defender and obs.furtivite_ray_rive_defs(r_c, 0) == 1:
+                if ally_piege_d1 >= 1 or st_other == MACHINE_STATUS_RATISSAGE:
+                    u_piege_cert = 0.89
+            elif is_first_defender and st_other == MACHINE_STATUS_RATISSAGE:
+                u_piege_cert = 0.85
+
+    # 2. Carte Machine annulée par un Rêve : faible urgence privée sauf complétion certaine Rive Piège !
+    if bel.own_machine_cancelled_by_reve and u_piege_cert < 0.80:
         if bel.coop_lisiere_signals > 0 or bel.coop_furtivite_signals > 0:
             return 2, 0.56
         return 3, 0.28
 
     # 3. Joueur détenant une carte Machine active
-    u_val = 0.35
+    u_val = max(0.35, u_piege_cert)
     if own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players:
         r_m, mt_m = unpack_machine_card(own_hand.card)
         pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
@@ -400,12 +424,12 @@ def compute_private_urgency(
                     cur_def = obs.parcel_defenseurs(r_m, tp) + obs.parcel_insectes(r_m, tp)
                     idx = r_m * MAX_P + (tp - 1)
                     seuil_est = bel.parcel_expected_seuil[idx]
-                    piege_armed = obs.parcel_piege(r_m, tp) == PIEGE_ACTIF and cur_def >= 1
+                    piege_armed = obs.parcel_piege(r_m, tp) == PIEGE_ACTIF
                     if not piege_armed and cur_def < seuil_est:
                         # Menace directe non parée
                         own_ray_access = (not is_first_defender) or (r_m == own_seat)
                         arbres = obs.parcel_arbres(r_m, tp)
-                        danger = 0.62 if own_ray_access else 0.50
+                        danger = 0.62 if own_ray_access else 0.52
                         if arbres <= 1 or mt_m == MACHINE_BULLDOZER:
                             danger += 0.16
                         if len(spec.cibles) >= 2:
@@ -511,7 +535,7 @@ def _current_def2_target_public(state: GameState, seat: int) -> tuple[Any, ...] 
     if kind == "FORET":
         return ("FORET", a, b)
     if kind == "FURTIVITE":
-        return ("FURTIVITE", a, b, c // 2)
+        return ("FURTIVITE", a, c // 2)
     if kind == "LISIERE":
         return ("LISIERE", a)
     if kind == "GARDIEN_PARI":
@@ -744,20 +768,11 @@ def resolve_step2_2_from_state(
                     if moved:
                         total_rev_moves += 1
 
-    # 3b. Retrait propre en fin de passes « en réflexion » pour l'activation des Rêves :
-    #     - en BINOME_ALL_RANK : si un Rêve n'a pas atteint 2 Défenseurs, le Défenseur isolé se replie ;
-    #     - en 1_DEF_ALL_RANK : si >= 2 Défenseurs sont empilés sur le même Rêve, le surnuméraire se replie ;
-    #     - sous ADV_COST=2DEF (1_DEF_1_MACHINE) : un Défenseur spéculatif isolé (1/2, sans propre dé M sur la case)
-    #       ne pourra pas choisir AVANCER et se replie si scorer.retreat_orphans est actif.
-    check_2def_speculative = (
-        cfg.reve_activation_mode == "1_DEF_1_MACHINE"
-        and cfg.required_defenders_for_reve_advance() >= 2
-        and isinstance(scorer, HeldAwareScorer)
-        and scorer.retreat_orphans
-    )
-    if max_passes > 0 and cfg.mode >= 2 and (
-        cfg.reve_activation_mode in ("BINOME_ALL_RANK", "1_DEF_ALL_RANK")
-        or check_2def_speculative
+    # 3b. Retrait propre en fin de passes « en réflexion » pour l'activation des Rêves (modes historiques) :
+    if (
+        max_passes > 0
+        and cfg.mode >= 2
+        and cfg.reve_activation_mode in ("BINOME_ALL_RANK", "1_DEF_ALL_RANK")
     ):
         for s in range(n):
             if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
@@ -769,16 +784,8 @@ def resolve_step2_2_from_state(
             if rc <= 0:
                 continue
             cnt_rc = obs_s.reve_activation_defenders(rc)
-            own_h = obs_s.hand_of(s)
-            own_hits_rc = (
-                own_h.card is not None
-                and 1 <= own_h.card <= 2 * n
-                and own_h.lecture_m == rc
-            )
-            need_retreat = (
-                (cfg.reve_activation_mode == "BINOME_ALL_RANK" and cnt_rc < 2)
-                or (cfg.reve_activation_mode == "1_DEF_ALL_RANK" and cnt_rc >= 2)
-                or (check_2def_speculative and cnt_rc < 2 and not own_hits_rc)
+            need_retreat = (cfg.reve_activation_mode == "BINOME_ALL_RANK" and cnt_rc < 2) or (
+                cfg.reve_activation_mode == "1_DEF_ALL_RANK" and cnt_rc >= 2
             )
             if need_retreat:
                 legal_alt = tuple(
@@ -823,8 +830,8 @@ def resolve_step2_2_from_state(
             )
             is_orphan = False
             if cur_sp[0] == "FURTIVITE":
-                _, l_o, p_o, rv_o = cur_sp
-                is_orphan = obs_s.furtivite_rive_defs(int(l_o), int(p_o), int(rv_o)) == 1
+                _, ray_o, rv_o = cur_sp
+                is_orphan = obs_s.furtivite_ray_rive_defs(int(ray_o), int(rv_o)) == 1
             elif cur_sp[0] == "LISIERE" and obs_s.mode >= 2:
                 _, sl_o = cur_sp
                 _, st_lo, nb_co = obs_s.lisiere_tile_info(int(sl_o))
@@ -837,7 +844,7 @@ def resolve_step2_2_from_state(
                 if ck == "GARDIEN_PARI":
                     return False
                 if ck == "FURTIVITE":
-                    return o_ref.furtivite_rive_defs(int(cand_t[1]), int(cand_t[2]), int(cand_t[3])) == 1
+                    return o_ref.furtivite_ray_rive_defs(int(cand_t[1]), int(cand_t[2])) == 1
                 if ck == "LISIERE":
                     if o_ref.mode < 2:
                         return False
@@ -854,7 +861,8 @@ def resolve_step2_2_from_state(
             )
             if legal_viable:
                 bel_s = build_belief_summary(obs_s, cfg)
-                fallback_t, _ = _pick_best_target_isolated(
+                cur_sc_o = _score_held_spot(obs_s, cfg, bel_s, cur_sp, scorer)
+                fallback_t, fallback_sc = _pick_best_target_isolated(
                     obs_s,
                     cfg,
                     bel_s,
@@ -863,15 +871,16 @@ def resolve_step2_2_from_state(
                     is_first_defender=False,
                     sous_etape_salt=253,
                 )
-                moved = apply_step2_def2(
-                    state,
-                    s,
-                    ("DEPLACER_REFLEXION", fallback_t),
-                    check_legal=False,
-                    telemetry=telemetry,
-                )
-                if moved:
-                    total_rev_moves += 1
+                if fallback_sc - cur_sc_o > epsilon_base:
+                    moved = apply_step2_def2(
+                        state,
+                        s,
+                        ("DEPLACER_REFLEXION", fallback_t),
+                        check_legal=False,
+                        telemetry=telemetry,
+                    )
+                    if moved:
+                        total_rev_moves += 1
 
     finish_step2_to_3_1(state, telemetry=telemetry)
     return {"passes_executed": passes_done, "revision_moves": total_rev_moves}
@@ -904,7 +913,10 @@ def _score_held_spot(
         cnt = obs.reve_activation_defenders(c_i)
         own_hand = obs.hand_of(obs.observer_seat)
         own_hits = (
-            own_hand.card is not None and 1 <= own_hand.card <= 12 and own_hand.lecture_m == c_i
+            own_hand.card is not None
+            and 1 <= own_hand.card <= 2 * obs.n_players
+            and own_hand.lecture_m == c_i
+            and obs.player_def1_reve_case(obs.observer_seat) != c_i
         )
         act_mode = cfg.reve_activation_mode
         if act_mode == "1_DEF_1_MACHINE":
@@ -931,8 +943,8 @@ def _score_held_spot(
             # Nous sommes seuls dessus (personne ne nous a rejoint) -> faible valeur de maintien !
             return base - 260.0
     elif kind == "FURTIVITE":
-        _, l_idx, p, rv = cur_spot
-        d_rv = obs.furtivite_rive_defs(int(l_idx), int(p), int(rv))
+        _, ray_i, rv = cur_spot
+        d_rv = obs.furtivite_ray_rive_defs(int(ray_i), int(rv))
         if d_rv == 2:
             return base + 310.0
         return base - 210.0
@@ -944,8 +956,6 @@ def _score_held_spot(
         idx = r_i * MAX_P + (p_i - 1)
         seuil_e = belief.parcel_expected_seuil[idx]
         s_prob = belief.parcel_strike_prob[idx]
-        if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF and tot_def == 1:
-            return base + 380.0
         if obs.mode >= 2 and obs.parcel_has_nid(r_i, p_i) and defs == 1:
             return base + 350.0
         if s_prob > 0.15 and (tot_def - 1) < seuil_e <= tot_def:
