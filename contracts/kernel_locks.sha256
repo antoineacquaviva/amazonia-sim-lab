@@ -1,6 +1,6 @@
-# Socle v6.1 (schema_version = 6.1.0-alpha) — Noyau scellé sur main (Lot 1 : mélange stable par carte & profil NEUTRE)
+# Socle v6.1 (schema_version = 6.1.0-alpha) — Noyau scellé sur main (Lot 1 : mélange stable & NEUTRE ; Lot 3 : résolution Rêves partagée & accesseurs lisière)
 # Empreintes SHA-256 vérifiées par la porte [1/8] de verify_lot.py.
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-2e0c3b6ca5946b82b60738ad48196778950118be4a5f5114e188068efa56c325  engine/state.py
+3d22d731404b77b7ee5486c01f377420855732551d06bb05dfc9980008e932d3  engine/state.py
 285e950182c05f193b3d1e5a18ff417598414a8e7d3a783b59e071f97e87c5b4  engine/primitives.py
-4064ee5a15d8a43e747154c33bc9840126ac047aa6c8c419ec4a4d3b0efceb6e  engine/core_engine.py
+26125a3df0bea7090b64c65652c609421ff60073d721f8c9e6712cfa9e2c5f3f  engine/core_engine.py

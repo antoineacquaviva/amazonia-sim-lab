@@ -10,7 +10,7 @@ from bots.belief_and_ticks import (
     resolve_step2_full_with_ticks,
 )
 from bots.heuristic_engine import (
-    ALL_12_RESOURCES,
+    ALL_ACTIVE_RESOURCES,
     choose_b1,
     choose_b2,
     count_active_laws_from_obs,
@@ -127,7 +127,8 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     econ = get_economie_catalog()
     assert len(econ) == 101
     seen_res = {tok for node in econ.values() for tok in node.outputs_produits if tok.startswith("RES_")}
-    assert seen_res == set(ALL_12_RESOURCES)
+    assert seen_res == set(ALL_ACTIVE_RESOURCES)
+    assert "RES_APPRENTISSAGE" not in seen_res
 
     # B1 : > 2 lois actives simultanément sur le plateau déclenchent l'oubli stochastique contrôlé
     cfg_laws = GameConfig(

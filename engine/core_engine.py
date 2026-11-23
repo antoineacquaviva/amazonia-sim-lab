@@ -105,6 +105,8 @@ from engine.state import (
     is_tactique_charge,
     is_tactique_code,
     machine_card_code,
+    machine_threat_key_3_2,
+    resolve_reve_rank_cancellations,
 )
 
 __all__ = (
@@ -1551,10 +1553,8 @@ def _machine_threat_key_3_2(state: GameState, seat: int, card: int) -> tuple[int
     ray = (card - 1) // 2
     m_type = (card - 1) % 2
     pos, st, _ = state.get_machine_pos_status(ray, m_type)
-    active = 1 if (st != MACHINE_STATUS_RETIRED and pos > 0) else 0
-    is_rat = 1 if st == MACHINE_STATUS_RATISSAGE else 0
-    eff_red = state.get_machine_effective_rouges(ray, m_type) if active else 0
-    return (active, is_rat, eff_red, pos, -seat)
+    eff_red = state.get_machine_effective_rouges(ray, m_type) if (st != MACHINE_STATUS_RETIRED and pos > 0) else 0
+    return machine_threat_key_3_2(seat, pos, st, eff_red)
 
 
 def _bind_hands_and_resolve_reves_3_2(
@@ -1615,15 +1615,18 @@ def _bind_hands_and_resolve_reves_3_2(
             continue
 
         r_num = code_m - TILE_R_BASE
-        if n_def >= len(entries):
-            cancelled_seats = {e[0] for e in entries}
-        else:
-            ranked = sorted(
-                entries,
-                key=lambda e: _machine_threat_key_3_2(state, e[0], e[1]),
-                reverse=True,
+        rank_entries: list[tuple[int, int, int, int]] = []
+        for s_e, card_e, _d1, _d2, _lec in entries:
+            ray_e = (card_e - 1) // 2
+            mt_e = (card_e - 1) % 2
+            pos_e, st_e, _ = state.get_machine_pos_status(ray_e, mt_e)
+            eff_r_e = (
+                state.get_machine_effective_rouges(ray_e, mt_e)
+                if (st_e != MACHINE_STATUS_RETIRED and pos_e > 0)
+                else 0
             )
-            cancelled_seats = {e[0] for e in ranked[:n_def]}
+            rank_entries.append((s_e, pos_e, st_e, eff_r_e))
+        cancelled_seats = resolve_reve_rank_cancellations(rank_entries, n_def)
 
         for s, card, d1, d2, lec_m in entries:
             if s in cancelled_seats:

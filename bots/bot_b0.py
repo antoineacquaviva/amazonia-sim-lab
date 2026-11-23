@@ -40,6 +40,7 @@ from engine.state import (
     GameState,
     HandObs,
     PlayerObservation,
+    is_reve_code,
     is_tactique_code,
     unpack_machine_card,
 )
@@ -89,6 +90,9 @@ def _compute_threat_and_machine_masks(
         lec_m = own_hand.lecture_m
         if lec_m is not None and 1 <= lec_m <= 6:
             t_code, _ = obs.tactique_code_bugs(lec_m - 1)
+            # Sous un Rêve sans Défenseur (inactif), la machine exécute la Tactique imprimée T{lec_m}
+            if is_reve_code(t_code) and obs.reve_activation_defenders(lec_m) == 0:
+                t_code = lec_m
             if is_tactique_code(t_code):
                 pos, st = obs.machine_pos_status(ray, m_type)
                 if st != MACHINE_STATUS_RETIRED and pos > 0:

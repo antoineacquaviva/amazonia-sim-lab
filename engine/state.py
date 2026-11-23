@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar, NamedTuple
 
@@ -87,6 +88,8 @@ __all__ = (
     "is_tactique_charge",
     "is_tactique_code",
     "machine_card_code",
+    "machine_threat_key_3_2",
+    "resolve_reve_rank_cancellations",
     "slot_id_to_once_index",
     "tactique_mode_for_rank",
     "tile_id_to_code",
@@ -362,6 +365,37 @@ def unpack_machine_card(card_code: int) -> tuple[int, int]:
     assert 1 <= card_code <= NUM_MACHINES
     idx = card_code - 1
     return idx // 2, idx % 2
+
+
+def machine_threat_key_3_2(
+    seat: int, pos: int, status: int, eff_red: int
+) -> tuple[int, int, int, int, int]:
+    """Clé canonique partagée (moteur & bots) de priorité décroissante de menace sur un Rêve en 3.2."""
+    active = 1 if (status != MACHINE_STATUS_RETIRED and pos > 0) else 0
+    is_rat = 1 if status == MACHINE_STATUS_RATISSAGE else 0
+    red = eff_red if active else 0
+    return (active, is_rat, red, pos, -seat)
+
+
+def resolve_reve_rank_cancellations(
+    entries: Sequence[tuple[int, int, int, int]],
+    n_defenders: int,
+) -> frozenset[int]:
+    """Résout exactement quels sièges sont annulés par `n_defenders` sur un rang portant un Rêve.
+
+    Chaque entrée est `(seat, pos, status, eff_red)`. Retourne le `frozenset` des `seat` annulés
+    (1 machine par Défenseur, en priorisant la plus menaçante selon `machine_threat_key_3_2`).
+    """
+    if n_defenders <= 0 or not entries:
+        return frozenset()
+    if n_defenders >= len(entries):
+        return frozenset(e[0] for e in entries)
+    ranked = sorted(
+        entries,
+        key=lambda e: machine_threat_key_3_2(e[0], e[1], e[2], e[3]),
+        reverse=True,
+    )
+    return frozenset(e[0] for e in ranked[:n_defenders])
 
 
 def slot_id_to_once_index(slot_id: str) -> int:
@@ -1020,6 +1054,20 @@ class PlayerObservation:
         lb = self._snap[_Mem.LISIERE_TILES + (slot_idx >> 1)]
         nib = ((lb >> 4) & 0x0F) if (slot_idx & 1) else (lb & 0x0F)
         return self._cfg.lisiere_slots[slot_idx], nib & 0x03, (nib >> 2) & 0x03
+
+    def player_def1_lisiere_slot(self, seat: int) -> int | None:
+        """Retourne `slot_idx` si le 1er Défenseur de `seat` est sur une tuile en lisière, sinon None."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2]
+        if _LOC_LISIERE_BASE <= raw < _LOC_GARDIEN_PARI_BASE:
+            return raw - _LOC_LISIERE_BASE
+        return None
+
+    def player_def2_lisiere_slot(self, seat: int) -> int | None:
+        """Retourne `slot_idx` si le 2e Défenseur de `seat` est sur une tuile en lisière, sinon None."""
+        raw = self._snap[_Mem.PLAYER_DEF_LOC + seat * 2 + 1]
+        if _LOC_LISIERE_BASE <= raw < _LOC_GARDIEN_PARI_BASE:
+            return raw - _LOC_LISIERE_BASE
+        return None
 
     def machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]:
         """Retourne (position, status) de la machine `(r, m_type)` en O(1)."""

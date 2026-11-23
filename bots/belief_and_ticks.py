@@ -38,6 +38,8 @@ from engine.state import (
     is_tactique_charge,
     is_tactique_code,
     machine_card_code,
+    machine_threat_key_3_2,
+    resolve_reve_rank_cancellations,
     unpack_machine_card,
 )
 
@@ -102,6 +104,7 @@ class BeliefSummary:
     coop_lisiere_signals: int
     coop_furtivite_signals: int
     parcel_charge_prob: tuple[float, ...] = ()
+    own_machine_cancel_prob: float = 0.0
 
 
 def _next_non_razed_obs(obs: PlayerObservation, p_max: int, r: int, from_p: int) -> int | None:
@@ -119,6 +122,45 @@ def _machine_effective_tokens_obs(
     return rouges, m_self.bleus
 
 
+def _prob_at_least_k(probs: list[float], k: int) -> float:
+    """Probabilité exacte P(sum X_i >= k) pour des Bernoulli indépendantes X_i ~ Bern(p_i)."""
+    if k <= 0:
+        return 1.0
+    if not probs or len(probs) < k:
+        return 0.0
+    # dp[j] = P(exactement j succès), tronqué à k (j == k agrège >= k)
+    dp = [0.0] * (k + 1)
+    dp[0] = 1.0
+    for p_raw in probs:
+        p = max(0.0, min(1.0, p_raw))
+        if p <= 0.0:
+            continue
+        q = 1.0 - p
+        dp[k] = dp[k] + dp[k - 1] * p
+        for j in range(k - 1, 0, -1):
+            dp[j] = dp[j] * q + dp[j - 1] * p
+        dp[0] *= q
+    return max(0.0, min(1.0, dp[k]))
+
+
+def _prob_unseen_beats_known(
+    unseen_key4: tuple[int, int, int, int],
+    known_key4: tuple[int, int, int, int],
+    known_seat: int,
+    unknown_seats: list[int],
+) -> float:
+    """Probabilité qu'une machine adverse inconnue batte une machine connue selon `machine_threat_key_3_2`."""
+    if unseen_key4 > known_key4:
+        return 1.0
+    if unseen_key4 < known_key4:
+        return 0.0
+    if not unknown_seats:
+        return 0.0
+    # À égalité exacte sur (active, is_rat, eff_red, pos), la priorité va au plus petit siège (-seat)
+    wins = sum(1 for s_u in unknown_seats if s_u < known_seat)
+    return wins / len(unknown_seats)
+
+
 def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSummary:
     """Infère la carte bayésienne des menaces et signaux uniquement depuis `obs`."""
     n = obs.n_players
@@ -129,6 +171,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
 
     drew_sab = (not own_hand.has_card) or (own_hand.card == CARD_SABOTAGE)
     own_cancelled = False
+    own_cancel_prob = 0.0
 
     strike_prob = [0.0] * NUM_PARCELS
     seuil_sum = [0.0] * NUM_PARCELS
@@ -137,20 +180,27 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
     charge_prob = [0.0] * NUM_PARCELS
     reve_prob = [0.0] * TRACK_LEN
 
-    # Signaux coopératifs déjà visibles publiquement sur le plateau (Lisières à 1 bâtisseur, rives Furtivité à 1 pion)
+    # Signaux coopératifs ALLIÉS (en excluant strictement les propres pions de `own_seat` !)
+    own_l1 = obs.player_def1_lisiere_slot(own_seat)
+    own_l2 = obs.player_def2_lisiere_slot(own_seat)
     lis_signals = 0
     if obs.mode >= 2:
         for slot_idx in range(2 * n):
             _, st_l, nb_c = obs.lisiere_tile_info(slot_idx)
-            if st_l == LISIERE_UNCONSTRUCTED and nb_c == 1:
+            own_on_slot = (1 if own_l1 == slot_idx else 0) + (1 if own_l2 == slot_idx else 0)
+            if st_l == LISIERE_UNCONSTRUCTED and nb_c == 1 and own_on_slot == 0:
                 lis_signals += 1
 
+    own_f1 = obs.player_def1_furtivite_target(own_seat)
+    own_f2 = obs.player_def2_furtivite_target(own_seat)
     furt_signals = 0
     furt_sab_signals = 0
     for r_idx in range(n):
-        if obs.furtivite_ray_rive_defs(r_idx, 0) == 1:
+        own_on_r0 = (1 if own_f1 == (r_idx, 0) else 0) + (1 if own_f2 == (r_idx, 0) else 0)
+        if obs.furtivite_ray_rive_defs(r_idx, 0) == 1 and own_on_r0 == 0:
             furt_signals += 1
-        if obs.furtivite_ray_rive_defs(r_idx, 1) == 1:
+        own_on_r1 = (1 if own_f1 == (r_idx, 1) else 0) + (1 if own_f2 == (r_idx, 1) else 0)
+        if obs.furtivite_ray_rive_defs(r_idx, 1) == 1 and own_on_r1 == 0:
             furt_signals += 1
             furt_sab_signals += 1
 
@@ -179,7 +229,20 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         if is_charge:
             charge_prob[idx] = min(2.0, charge_prob[idx] + prob)
 
-    # 1. Machines en Ratissage : certitude publique (prob = 1.0, ASSAUT permanent : SUR_PLACE, +1 rouge imprimé, mod_seuil = 0)
+    def _add_tactique_strikes(r: int, m_type: int, pos_m: int, t_code: int, prob: float) -> None:
+        if prob <= 0.0 or not is_tactique_code(t_code):
+            return
+        spec = TACTIQUES_SPEC[t_code]
+        chg = is_tactique_charge(t_code, obs.tour)
+        for c_kind in spec.cibles:
+            if c_kind == "SUR_PLACE":
+                _add_strike(r, m_type, pos_m, spec.mod_seuil, prob, is_charge=chg)
+            elif c_kind == "DEVANT":
+                p_dev = _next_non_razed_obs(obs, p_max, r, pos_m)
+                if p_dev is not None:
+                    _add_strike(r, m_type, p_dev, spec.mod_seuil, prob, is_charge=chg)
+
+    # 1. Machines en Ratissage : certitude publique (prob = 1.0, ASSAUT permanent : SUR_PLACE, +1 rouge imprimé)
     normal_deck_machines: list[tuple[int, int, int]] = []
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -191,17 +254,21 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             elif st == MACHINE_STATUS_NORMAL:
                 normal_deck_machines.append((machine_card_code(r, mt), r, mt))
 
-    # 2. Mains connues (uniquement own_seat si paravents_ouverts == False ; toutes si paravents ouverts)
+    # 2. Collecte des mains visibles et inconnues
     known_machine_cards: set[int] = set()
     known_sabotages = 0
-    unknown_holders = 0
+    unknown_seats: list[int] = []
+    # (seat, card, r_m, mt_m, pos_m, st_m, eff_red_m) groupés par rank_idx 0..5
+    known_by_rank: list[list[tuple[int, int, int, int, int, int, int]]] = [
+        [] for _ in range(TRACK_LEN)
+    ]
 
     for s in range(n):
         h = obs.hand_of(s)
         if not h.has_card:
             continue
         if h.card is None:
-            unknown_holders += 1
+            unknown_seats.append(s)
             continue
         if h.card == CARD_SABOTAGE:
             known_sabotages += 1
@@ -212,45 +279,49 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
             lec = h.lecture_m
             if st_m == MACHINE_STATUS_NORMAL and pos_m > 0 and lec is not None and 1 <= lec <= 6:
-                t_code, _ = obs.tactique_code_bugs(lec - 1)
-                if is_reve_code(t_code):
-                    reve_prob[lec - 1] = 1.0
-                    n_def_r = obs.reve_activation_defenders(lec)
-                    own_on_lec = (
-                        obs.player_def1_reve_case(own_seat) == lec
-                        or obs.player_def2_reve_case(own_seat) == lec
-                    )
-                    is_cancelled = (s == own_seat and (own_on_lec or n_def_r >= 2)) or (
-                        s != own_seat and n_def_r >= 1
-                    )
-                    if is_cancelled:
-                        if s == own_seat:
-                            own_cancelled = True
-                        continue
-                    # Rêve inactif : la Tactique imprimée T{lec} menace toujours la parcelle
-                    t_code = lec
-                if is_tactique_code(t_code):
-                    spec = TACTIQUES_SPEC[t_code]
-                    chg = is_tactique_charge(t_code, obs.tour)
-                    for c_kind in spec.cibles:
-                        if c_kind == "SUR_PLACE":
-                            _add_strike(r_m, mt_m, pos_m, spec.mod_seuil, 1.0, is_charge=chg)
-                        elif c_kind == "DEVANT":
-                            p_dev = _next_non_razed_obs(obs, p_max, r_m, pos_m)
-                            if p_dev is not None:
-                                _add_strike(r_m, mt_m, p_dev, spec.mod_seuil, 1.0, is_charge=chg)
+                eff_red_m = obs.machine_effective_rouges(r_m, mt_m)
+                known_by_rank[lec - 1].append((s, h.card, r_m, mt_m, pos_m, st_m, eff_red_m))
 
-    # 3. Inférence bayésienne sur les mains adverses masquées sous paravent
+    unknown_holders = len(unknown_seats)
+
+    # 3. Paravents ouverts (zéro main inconnue) : résolution EXACTE partagée avec le moteur !
     if unknown_holders == 0:
         p_sab_post = 0.0
+        for rank_idx in range(TRACK_LEN):
+            entries = known_by_rank[rank_idx]
+            if not entries:
+                continue
+            case_1_6 = rank_idx + 1
+            t_code, _ = obs.tactique_code_bugs(rank_idx)
+            if is_reve_code(t_code):
+                reve_prob[rank_idx] = 1.0
+                n_def_r = obs.reve_activation_defenders(case_1_6)
+                cancelled_seats = resolve_reve_rank_cancellations(
+                    [(e[0], e[4], e[5], e[6]) for e in entries],
+                    n_def_r,
+                )
+                for s_e, _c_e, r_m, mt_m, pos_m, _st_m, _red_m in entries:
+                    if s_e in cancelled_seats:
+                        if s_e == own_seat:
+                            own_cancelled = True
+                            own_cancel_prob = 1.0
+                        continue
+                    # Machine non annulée sous un Rêve -> exécute la Tactique imprimée T{case_1_6}
+                    _add_tactique_strikes(r_m, mt_m, pos_m, case_1_6, 1.0)
+            else:
+                for _s_e, _c_e, r_m, mt_m, pos_m, _st_m, _red_m in entries:
+                    _add_tactique_strikes(r_m, mt_m, pos_m, t_code, 1.0)
     else:
-        unseen_machines = [item for item in normal_deck_machines if item[0] not in known_machine_cards]
+        # 4. Paravents fermés : loi bayésienne des mains adverses + priorité exacte Rêves (Poisson-Binomiale)
+        unseen_machines = [
+            item for item in normal_deck_machines if item[0] not in known_machine_cards
+        ]
         m_rem = len(unseen_machines)
         sab_rem = max(0, obs.sabotage_deck_count - known_sabotages)
         denom = max(1, m_rem + sab_rem)
         p_sab_prior = sab_rem / denom
 
-        # Mise à jour bayésienne légère par les signaux coopératifs corrélés au Sabotage (Lisières + Rives Sabotage)
+        # Mise à jour bayésienne par les seuls signaux ALLIÉS corrélés au Sabotage
         coop_evidence = min(3, lis_signals + furt_sab_signals)
         if p_sab_prior > 0.0 and coop_evidence > 0:
             lr = 1.0 + 0.28 * coop_evidence
@@ -260,9 +331,10 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             p_sab_post = p_sab_prior
 
         expected_active_draws = unknown_holders * (1.0 - p_sab_post)
+
+        # Pré-calcul des probabilités de tirage et clés de menace des machines inconnues
+        unseen_info: list[tuple[int, int, int, int, tuple[int, int, int, int], float]] = []
         if m_rem > 0 and expected_active_draws > 0.0:
-            own_f1 = obs.player_def1_furtivite_target(own_seat)
-            # Pondération bayésienne par Défenseurs en forêt et signaux de Rive Piège / Rive Sabotage
             weights: list[float] = []
             w_total = 0.0
             for _, r_u, mt_u in unseen_machines:
@@ -271,44 +343,121 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                 p_dev_u = _next_non_razed_obs(obs, p_max, r_u, pos_u) if pos_u > 0 else None
                 if p_dev_u is not None:
                     defs_near += obs.parcel_defenseurs(r_u, p_dev_u)
-                ally_piege_sig = obs.furtivite_ray_def1_rive_count(r_u, 0) - (
-                    1 if own_f1 == (r_u, 0) else 0
+                own_on_piege = (1 if own_f1 == (r_u, 0) else 0) + (
+                    1 if own_f2 == (r_u, 0) else 0
                 )
-                ally_sab_sig = obs.furtivite_ray_rive_defs(r_u, 1)
-                w_m = 1.0 + 0.35 * min(2, defs_near) + 1.15 * min(1, max(0, ally_piege_sig))
+                own_on_sab = (1 if own_f1 == (r_u, 1) else 0) + (1 if own_f2 == (r_u, 1) else 0)
+                ally_piege_sig = max(0, obs.furtivite_ray_rive_defs(r_u, 0) - own_on_piege)
+                ally_sab_sig = max(0, obs.furtivite_ray_rive_defs(r_u, 1) - own_on_sab)
+                w_m = 1.0 + 0.35 * min(2, defs_near) + 1.15 * min(1, ally_piege_sig)
                 if ally_sab_sig >= 1 and ally_piege_sig <= 0:
                     w_m = max(0.35, w_m - 0.25)
                 weights.append(w_m)
                 w_total += w_m
 
             for idx_u, (_, r_u, mt_u) in enumerate(unseen_machines):
-                p_card_drawn = min(0.95, expected_active_draws * (weights[idx_u] / max(1e-6, w_total)))
-                pos_u, _ = obs.machine_pos_status(r_u, mt_u)
-                if pos_u <= 0:
+                pos_u, st_u = obs.machine_pos_status(r_u, mt_u)
+                if pos_u <= 0 or st_u == MACHINE_STATUS_RETIRED:
                     continue
+                p_card = min(0.95, expected_active_draws * (weights[idx_u] / max(1e-6, w_total)))
+                eff_red_u = obs.machine_effective_rouges(r_u, mt_u)
+                k4_u = (1, 1 if st_u == MACHINE_STATUS_RATISSAGE else 0, eff_red_u, pos_u)
+                unseen_info.append((r_u, mt_u, pos_u, st_u, k4_u, p_card))
+
+        # 4a. Résolution des mains connues (ex. own_seat) sous la loi exacte des mains adverses compatibles
+        for rank_idx in range(TRACK_LEN):
+            entries = known_by_rank[rank_idx]
+            if not entries:
+                continue
+            case_1_6 = rank_idx + 1
+            t_code, _ = obs.tactique_code_bugs(rank_idx)
+            if not is_reve_code(t_code):
+                for _s_e, _c_e, r_m, mt_m, pos_m, _st_m, _red_m in entries:
+                    _add_tactique_strikes(r_m, mt_m, pos_m, t_code, 1.0)
+                continue
+
+            reve_prob[rank_idx] = 1.0
+            n_def_r = obs.reve_activation_defenders(case_1_6)
+            p_m_val = _MIN_2D6_PROBS[rank_idx]
+            for s_e, _c_e, r_m, mt_m, pos_m, st_m, red_m in entries:
+                if n_def_r <= 0:
+                    p_exec_k = 1.0
+                else:
+                    my_key = machine_threat_key_3_2(s_e, pos_m, st_m, red_m)
+                    known_ahead = sum(
+                        1
+                        for e2 in entries
+                        if e2[0] != s_e
+                        and machine_threat_key_3_2(e2[0], e2[4], e2[5], e2[6]) > my_key
+                    )
+                    rem_def = n_def_r - known_ahead
+                    if rem_def <= 0:
+                        p_exec_k = 1.0
+                    elif rem_def > unknown_holders:
+                        p_exec_k = 0.0
+                    else:
+                        my_key4 = my_key[:4]
+                        ahead_probs: list[float] = []
+                        for _ru, _mtu, _posu, _stu, k4_u, p_card in unseen_info:
+                            p_beat = _prob_unseen_beats_known(k4_u, my_key4, s_e, unknown_seats)
+                            if p_beat > 0.0:
+                                ahead_probs.append(p_card * p_m_val * p_beat)
+                        p_exec_k = _prob_at_least_k(ahead_probs, rem_def)
+                p_cancel_k = 1.0 - p_exec_k
+                if s_e == own_seat:
+                    own_cancel_prob = p_cancel_k
+                    own_cancelled = p_cancel_k >= 0.5
+                if p_exec_k > 0.0:
+                    _add_tactique_strikes(r_m, mt_m, pos_m, case_1_6, p_exec_k)
+
+        # 4b. Résolution des mains inconnues adverses sous la même règle de priorité Rêves
+        if unseen_info:
+            rem_unknown_scale = (
+                max(0.0, expected_active_draws - 1.0) / max(1e-6, expected_active_draws)
+                if unknown_holders > 1
+                else 0.0
+            )
+            for idx_u, (r_u, mt_u, pos_u, _st_u, k4_u, p_card_u) in enumerate(unseen_info):
                 for rank_idx in range(TRACK_LEN):
                     p_m_val = _MIN_2D6_PROBS[rank_idx]
-                    p_joint = p_card_drawn * p_m_val
+                    p_joint = p_card_u * p_m_val
                     t_code, _ = obs.tactique_code_bugs(rank_idx)
-                    eff_t_code = rank_idx + 1
+                    case_1_6 = rank_idx + 1
                     p_exec = p_joint
                     if is_reve_code(t_code):
                         reve_prob[rank_idx] = 1.0 - (1.0 - reve_prob[rank_idx]) * (1.0 - p_joint)
-                        # Socle v6.1 : blocage pur 1 Défenseur = 1 machine annulée (0 AVANCER)
-                        n_r_def = obs.reve_activation_defenders(eff_t_code)
-                        if n_r_def >= 2:
-                            p_exec = p_joint * 0.03
-                        elif n_r_def == 1:
-                            p_exec = p_joint * 0.15
-                    spec = TACTIQUES_SPEC[eff_t_code]
-                    chg = is_tactique_charge(eff_t_code, obs.tour)
-                    for c_kind in spec.cibles:
-                        if c_kind == "SUR_PLACE":
-                            _add_strike(r_u, mt_u, pos_u, spec.mod_seuil, p_exec, is_charge=chg)
-                        elif c_kind == "DEVANT":
-                            p_dev = _next_non_razed_obs(obs, p_max, r_u, pos_u)
-                            if p_dev is not None:
-                                _add_strike(r_u, mt_u, p_dev, spec.mod_seuil, p_exec, is_charge=chg)
+                        n_def_r = obs.reve_activation_defenders(case_1_6)
+                        if n_def_r > 0:
+                            # Probabilités exactes que chaque concurrent (connu ou inconnu) batte `u`
+                            ahead_all: list[float] = []
+                            for s_k, _ck, _rk, _mtk, pos_k, st_k, red_k in known_by_rank[rank_idx]:
+                                k4_k = machine_threat_key_3_2(s_k, pos_k, st_k, red_k)[:4]
+                                p_k_beats_u = 1.0 - _prob_unseen_beats_known(
+                                    k4_u, k4_k, s_k, unknown_seats
+                                )
+                                if p_k_beats_u > 0.0:
+                                    ahead_all.append(p_k_beats_u)
+                            if unknown_holders > 1:
+                                for idx_v, (_rv, _mtv, _posv, _stv, k4_v, p_card_v) in enumerate(
+                                    unseen_info
+                                ):
+                                    if idx_v == idx_u:
+                                        continue
+                                    if k4_v > k4_u:
+                                        p_v_beats = 1.0
+                                    elif k4_v == k4_u:
+                                        p_v_beats = 0.5
+                                    else:
+                                        p_v_beats = 0.0
+                                    if p_v_beats > 0.0:
+                                        ahead_all.append(
+                                            min(0.95, p_card_v * rem_unknown_scale)
+                                            * p_m_val
+                                            * p_v_beats
+                                        )
+                            p_not_cancelled = _prob_at_least_k(ahead_all, n_def_r)
+                            p_exec = p_joint * p_not_cancelled
+                    _add_tactique_strikes(r_u, mt_u, pos_u, case_1_6, p_exec)
 
     expected_seuil: list[float] = []
     for r in range(n):
@@ -332,6 +481,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         coop_lisiere_signals=lis_signals,
         coop_furtivite_signals=furt_signals,
         parcel_charge_prob=tuple(charge_prob),
+        own_machine_cancel_prob=own_cancel_prob,
     )
 
 
@@ -385,7 +535,7 @@ def compute_private_urgency(
             return 2, 0.56
         return 3, 0.28
 
-    # 3. Joueur détenant une carte Machine active
+    # 3. Joueur détenant une carte Machine active (y compris Tactique imprimée sous Rêve non annulé !)
     u_val = max(0.35, u_piege_cert)
     if own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players:
         r_m, mt_m = unpack_machine_card(own_hand.card)
@@ -393,8 +543,9 @@ def compute_private_urgency(
         lec = own_hand.lecture_m
         if st_m == MACHINE_STATUS_NORMAL and pos_m > 0 and lec is not None and 1 <= lec <= 6:
             t_code, _ = obs.tactique_code_bugs(lec - 1)
-            if is_tactique_code(t_code):
-                spec = TACTIQUES_SPEC[t_code]
+            eff_t_code = lec if is_reve_code(t_code) else t_code
+            if is_tactique_code(eff_t_code):
+                spec = TACTIQUES_SPEC[eff_t_code]
                 cand_ps: list[int] = []
                 for c_kind in spec.cibles:
                     if c_kind == "SUR_PLACE" and not obs.is_route(r_m, pos_m):

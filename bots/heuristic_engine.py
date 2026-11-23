@@ -48,6 +48,7 @@ from engine.state import (
     MAX_P,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
+    RATISSAGE_TACTIQUE_SPEC,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     SYNERGY_META,
@@ -56,6 +57,7 @@ from engine.state import (
     GameConfig,
     GameState,
     PlayerObservation,
+    TactiqueSpec,
     is_reve_code,
     is_tactique_charge,
     is_tactique_code,
@@ -63,7 +65,7 @@ from engine.state import (
 )
 
 __all__ = (
-    "ALL_12_RESOURCES",
+    "ALL_ACTIVE_RESOURCES",
     "BotB1",
     "BotB2",
     "EconomieNode",
@@ -79,13 +81,12 @@ __all__ = (
     "score_target_b2",
 )
 
-ALL_12_RESOURCES: tuple[str, ...] = (
+ALL_ACTIVE_RESOURCES: tuple[str, ...] = (
     "RES_INSECTE",
     "RES_PIEGE",
     "RES_DEFENSEUR",
     "RES_JETON_BLEU",
     "RES_JETON_ROUGE",
-    "RES_APPRENTISSAGE",
     "RES_SEUIL_PARADE",
     "RES_DILUTION_SABOTAGE",
     "RES_SOUCHE",
@@ -191,8 +192,12 @@ def get_economie_catalog() -> dict[tuple[str, str], EconomieNode]:
                 portee=str(eb.get("portee", "LOCAL_RAYON")),
                 is_law=is_law,
                 cablage=cablage,
-                inputs_requis=tuple(str(x) for x in eb.get("inputs_requis", [])),
-                outputs_produits=tuple(str(x) for x in eb.get("outputs_produits", [])),
+                inputs_requis=tuple(
+                    str(x) for x in eb.get("inputs_requis", []) if str(x) != "RES_APPRENTISSAGE"
+                ),
+                outputs_produits=tuple(
+                    str(x) for x in eb.get("outputs_produits", []) if str(x) != "RES_APPRENTISSAGE"
+                ),
             )
 
     _EconomieStore.cache = nodes
@@ -351,7 +356,6 @@ def _compute_b2_resource_and_trigger_values(
         "RES_SEUIL_PARADE": 62.0 + 4.0 * fragile_parcels,
         "RES_JETON_BLEU": 64.0 + (22.0 if tour <= 6 else 8.0),
         "RES_JETON_ROUGE": 72.0 + 8.0 * max(0, 8 - tour),
-        "RES_APPRENTISSAGE": (48.0 * reve_push_mult) if tour <= 7 else 8.0,
         "RES_DILUTION_SABOTAGE": _SABOTAGE_TOUR_WEIGHT[tour],
         "RES_POSITION_MACHINE": 70.0 + 4.0 * fragile_parcels,
         "RES_POSITION_PISTE": 78.0 * reve_push_mult,
@@ -2376,11 +2380,313 @@ def _choose_policy(
                 best_m_sc, best_mv = sc, opts[idx_m]
         return best_mv
 
-    if dtype in (DEC_ORDRE_ATTAQUE_5_1, DEC_ORDRE_RATISSAGE_5_2, DEC_ORDRE_NID_4_2):
-        # Choix déterministe sans biais
-        return max(opts, key=lambda o: _tiebreak(cfg, obs, hash(o) & 0xFFFF, 9))
+    if dtype == DEC_ORDRE_ATTAQUE_5_1:
+        rank_ctx = int(decision.context.get("rank", 1))
+        return _choose_best_attack_order(
+            obs, cfg, opts, rank_1_6=rank_ctx, is_ratissage=False
+        )
 
-    return max(opts, key=lambda o: _tiebreak(cfg, obs, hash(o) & 0xFFFF, 11))
+    if dtype == DEC_ORDRE_RATISSAGE_5_2:
+        return _choose_best_attack_order(
+            obs, cfg, opts, rank_1_6=None, is_ratissage=True
+        )
+
+    if dtype == DEC_ORDRE_NID_4_2:
+        return _choose_best_nid_order_4_2(obs, opts)
+
+    best_idx = max(range(len(opts)), key=lambda i: _tiebreak(cfg, obs, i, 11))
+    return opts[best_idx]
+
+
+def _simulate_ray_machine_seq_loss(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    ray: int,
+    seq: tuple[int, ...],
+    tactique: TactiqueSpec,
+    *,
+    is_ratissage: bool,
+) -> tuple[int, int, int, int, int, int]:
+    """Simule localement l'ordre de frappe d'une séquence de machines sur un même rayon depuis `obs`.
+
+    Retourne un tuple de coût minimaliste à minimiser lexicographiquement :
+    `(trees_lost, routes_created, charge_red_gains, insects_spent, traps_used, souches_lost)`.
+    """
+    p_max = cfg.p_max
+    arbres = [0] * (p_max + 1)
+    souches = [0] * (p_max + 1)
+    defs = [0] * (p_max + 1)
+    ins = [0] * (p_max + 1)
+    piege = [PIEGE_AUCUN] * (p_max + 1)
+    is_route = [True] * (p_max + 1)
+    for p in range(1, p_max + 1):
+        arbres[p] = obs.parcel_arbres(ray, p)
+        souches[p] = obs.parcel_souches(ray, p)
+        defs[p] = obs.parcel_defenseurs(ray, p)
+        ins[p] = obs.parcel_insectes(ray, p)
+        piege[p] = obs.parcel_piege(ray, p)
+        is_route[p] = obs.is_route(ray, p)
+
+    init_trees = sum(arbres[1:])
+    init_souches = sum(souches[1:])
+
+    m_pos = [0, 0]
+    m_st = [MACHINE_STATUS_RETIRED, MACHINE_STATUS_RETIRED]
+    m_red = [0, 0]
+    m_blue = [0, 0]
+    machines_obs = obs.machines
+    for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+        pos, st = obs.machine_pos_status(ray, mt)
+        m_pos[mt] = pos
+        m_st[mt] = st
+        m_red[mt] = obs.machine_effective_rouges(ray, mt)
+        m_blue[mt] = machines_obs[ray * 2 + mt].bleus
+
+    def _next_fwd(from_p: int) -> int | None:
+        for p_i in range(from_p + 1, p_max + 1):
+            if not is_route[p_i]:
+                return p_i
+        return None
+
+    def _next_back(from_p: int) -> int | None:
+        for p_i in range(from_p - 1, 0, -1):
+            if not is_route[p_i]:
+                return p_i
+        return None
+
+    routes_created = 0
+    charge_red_gains = 0
+    insects_spent = 0
+    traps_used = 0
+
+    for mt in seq:
+        pos = m_pos[mt]
+        st = m_st[mt]
+        if st == MACHINE_STATUS_RETIRED or pos <= 0:
+            continue
+        eff_rat = is_ratissage or st == MACHINE_STATUS_RATISSAGE
+        is_charge = (not eff_rat) and is_tactique_charge(tactique.code, obs.tour)
+
+        targets: list[int] = []
+        for c_type in tactique.cibles:
+            if c_type == "SUR_PLACE":
+                if not is_route[pos]:
+                    targets.append(pos)
+            elif c_type == "DEVANT":
+                p_dev = _next_fwd(pos)
+                if p_dev is not None:
+                    targets.append(p_dev)
+
+        unparried = 0
+        for tp in targets:
+            if is_route[tp]:
+                continue
+            if piege[tp] == PIEGE_ACTIF:
+                piege[tp] = PIEGE_AUCUN
+                traps_used += 1
+                continue
+            base_s = CANONICAL_DOTATION[tp - 1]
+            seuil = max(
+                1,
+                base_s + (0 if is_charge else m_red[mt]) - m_blue[mt] + tactique.mod_seuil,
+            )
+            if defs[tp] + ins[tp] >= seuil:
+                manque = max(0, seuil - defs[tp])
+                used = min(ins[tp], manque)
+                ins[tp] -= used
+                insects_spent += used
+                continue
+            unparried += 1
+            if mt == MACHINE_ABATTEUSE:
+                cut = arbres[tp]
+                arbres[tp] = 0
+                souches[tp] += cut
+            else:
+                cut = min(1, arbres[tp])
+                arbres[tp] -= cut
+                souches[tp] = 0
+            if arbres[tp] == 0 and souches[tp] == 0:
+                is_route[tp] = True
+                defs[tp] = 0
+                ins[tp] = 0
+                piege[tp] = PIEGE_AUCUN
+                routes_created += 1
+                for m_other in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                    if m_st[m_other] != MACHINE_STATUS_RETIRED and m_pos[m_other] == tp:
+                        p_b = _next_back(tp)
+                        if p_b is not None:
+                            m_pos[m_other] = p_b
+                        else:
+                            p_f = _next_fwd(tp)
+                            if p_f is not None:
+                                m_pos[m_other] = p_f
+                            else:
+                                m_pos[m_other] = 0
+                                m_st[m_other] = MACHINE_STATUS_RETIRED
+
+        if is_charge and unparried >= 1 and m_st[mt] != MACHINE_STATUS_RETIRED and m_pos[mt] > 0:
+            charge_red_gains += 1
+            m_red[mt] = min(15, m_red[mt] + 1)
+
+        if (not eff_rat) and m_st[mt] == MACHINE_STATUS_NORMAL and m_pos[mt] > 0 and tactique.avancee > 0:
+            for _ in range(tactique.avancee):
+                p_nxt = _next_fwd(m_pos[mt])
+                if p_nxt is not None:
+                    m_pos[mt] = p_nxt
+
+    trees_lost = init_trees - sum(arbres[1:])
+    souches_lost = max(0, init_souches - sum(souches[1:]))
+    return (trees_lost, routes_created, charge_red_gains, insects_spent, traps_used, souches_lost)
+
+
+def _attack_lights_available_gardien_trigger(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    ray: int,
+    m_type: int,
+    tactique: TactiqueSpec,
+    *,
+    is_ratissage: bool,
+) -> int:
+    """Retourne 1 si résoudre `(ray, m_type)` en premier allume un déclencheur Gardien (1, 2 ou 6) actif."""
+    if obs.mode < 2:
+        return 0
+    pos, st = obs.machine_pos_status(ray, m_type)
+    if st == MACHINE_STATUS_RETIRED or pos <= 0:
+        return 0
+    eff_rat = is_ratissage or st == MACHINE_STATUS_RATISSAGE
+    is_charge = (not eff_rat) and is_tactique_charge(tactique.code, obs.tour)
+    eff_red = obs.machine_effective_rouges(ray, m_type)
+    bleus = obs.machines[ray * 2 + m_type].bleus
+    p_max = cfg.p_max
+
+    targets: list[int] = []
+    for c_type in tactique.cibles:
+        if c_type == "SUR_PLACE":
+            if not obs.is_route(ray, pos):
+                targets.append(pos)
+        elif c_type == "DEVANT":
+            for p_i in range(pos + 1, p_max + 1):
+                if not obs.is_route(ray, p_i):
+                    targets.append(p_i)
+                    break
+
+    for tp in targets:
+        if obs.parcel_piege(ray, tp) == PIEGE_ACTIF:
+            if obs.gardien_available_at_case(2):
+                return 1
+            continue
+        seuil = max(
+            1,
+            CANONICAL_DOTATION[tp - 1]
+            + (0 if is_charge else eff_red)
+            - bleus
+            + tactique.mod_seuil,
+        )
+        d_cnt = obs.parcel_defenseurs(ray, tp)
+        i_cnt = obs.parcel_insectes(ray, tp)
+        if d_cnt + i_cnt >= seuil:
+            trig = 6 if (seuil > d_cnt and i_cnt > 0) else 1
+            if obs.gardien_available_at_case(trig):
+                return 1
+    return 0
+
+
+def _choose_best_attack_order(
+    obs: PlayerObservation,
+    cfg: GameConfig,
+    opts: tuple[Any, ...],
+    *,
+    rank_1_6: int | None,
+    is_ratissage: bool,
+) -> Any:
+    """Choisit de manière déterministe la machine minimisant la perte d'arbres en 5.1 ou 5.2."""
+    tactique = (
+        RATISSAGE_TACTIQUE_SPEC
+        if (is_ratissage or rank_1_6 is None or rank_1_6 not in TACTIQUES_SPEC)
+        else TACTIQUES_SPEC[rank_1_6]
+    )
+
+    by_ray: dict[int, list[int]] = {}
+    for opt in opts:
+        r_i, mt_i = int(opt[0]), int(opt[1])
+        by_ray.setdefault(r_i, []).append(mt_i)
+
+    deferred_losers: set[tuple[int, int]] = set()
+    pair_gain: dict[tuple[int, int], tuple[int, int, int, int, int, int]] = {}
+    zero_gain = (0, 0, 0, 0, 0, 0)
+
+    for r_i, mts in by_ray.items():
+        if len(mts) == 2:
+            m0, m1 = mts[0], mts[1]
+            loss_01 = _simulate_ray_machine_seq_loss(
+                obs, cfg, r_i, (m0, m1), tactique, is_ratissage=is_ratissage
+            )
+            loss_10 = _simulate_ray_machine_seq_loss(
+                obs, cfg, r_i, (m1, m0), tactique, is_ratissage=is_ratissage
+            )
+            if loss_01 < loss_10:
+                deferred_losers.add((r_i, m1))
+                pair_gain[(r_i, m0)] = (
+                    loss_10[0] - loss_01[0],
+                    loss_10[1] - loss_01[1],
+                    loss_10[2] - loss_01[2],
+                    loss_10[3] - loss_01[3],
+                    loss_10[4] - loss_01[4],
+                    loss_10[5] - loss_01[5],
+                )
+            elif loss_10 < loss_01:
+                deferred_losers.add((r_i, m0))
+                pair_gain[(r_i, m1)] = (
+                    loss_01[0] - loss_10[0],
+                    loss_01[1] - loss_10[1],
+                    loss_01[2] - loss_10[2],
+                    loss_01[3] - loss_10[3],
+                    loss_01[4] - loss_10[4],
+                    loss_01[5] - loss_10[5],
+                )
+
+    def _priority_key(opt: Any) -> tuple[Any, ...]:
+        r_i, mt_i = int(opt[0]), int(opt[1])
+        is_allowed_first = 0 if (r_i, mt_i) in deferred_losers else 1
+        gain = pair_gain.get((r_i, mt_i), zero_gain)
+        lights_g = _attack_lights_available_gardien_trigger(
+            obs, cfg, r_i, mt_i, tactique, is_ratissage=is_ratissage
+        )
+        return (is_allowed_first, gain, lights_g, -r_i, -mt_i)
+
+    return max(opts, key=_priority_key)
+
+
+def _choose_best_nid_order_4_2(
+    obs: PlayerObservation,
+    opts: tuple[Any, ...],
+) -> Any:
+    """Choisit de manière déterministe l'ordre d'activation des Nids en 4.2 depuis `obs`."""
+    nid_loc: dict[int, tuple[int, int]] = {}
+    for r_i, row in enumerate(obs.foret):
+        for p_off, parcel in enumerate(row):
+            if parcel.nid_id > 0:
+                nid_loc[parcel.nid_id] = (r_i, p_off + 1)
+
+    def _nid_key(opt: Any) -> tuple[int, int, int, int]:
+        m_num = int(opt)
+        loc = nid_loc.get(m_num)
+        if loc is None:
+            return (0, 0, 0, -m_num)
+        r_i, p_i = loc
+        threat = 0
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            m_pos, m_st = obs.machine_pos_status(r_i, mt)
+            if m_st != MACHINE_STATUS_RETIRED and m_pos in (p_i, p_i - 1):
+                threat += 1
+        arbres = obs.parcel_arbres(r_i, p_i)
+        cur_ins = obs.parcel_insectes(r_i, p_i)
+        # Prioriser les Nids sur parcelles menacées et riches en arbres (et ceux qui produisent +2)
+        prod_bonus = 2 if cur_ins >= 2 else 1
+        return (threat, arbres, prod_bonus, -m_num)
+
+    return max(opts, key=_nid_key)
 
 
 class BotB1:
@@ -2392,7 +2698,7 @@ class BotB1:
 
 
 class BotB2:
-    """Bot Cœur de cible B2 (`k = 2`, graphe `economie_bot` 12 `RES_*` + `TRIG_1..6` + lookahead)."""
+    """Bot Cœur de cible B2 (`k = 2`, graphe `economie_bot` 11 `RES_*` actifs + `TRIG_1..6` + lookahead)."""
 
     @staticmethod
     def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:

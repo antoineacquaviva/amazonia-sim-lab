@@ -94,6 +94,8 @@ zéro `import random`, zéro état global mutable).
 - `tile_id_to_code(tile_id: str) -> int`
 - `machine_card_code(ray: int, m_type: int) -> int`
 - `unpack_machine_card(card_code: int) -> tuple[int, int]`
+- `machine_threat_key_3_2(seat: int, pos: int, status: int, eff_red: int) -> tuple[int, int, int, int, int]` — Clé canonique partagée (moteur & bots) de priorité décroissante de menace sur un Rêve en 3.2.
+- `resolve_reve_rank_cancellations(entries: Sequence[tuple[int, int, int, int]], n_defenders: int) -> frozenset[int]` — Résout exactement quels sièges sont annulés par `n_defenders` sur un rang portant un Rêve. Chaque entrée est `(seat, pos, status, eff_red)`. Retourne le `frozenset` des `seat` annulés (1 machine par Défenseur, en priorisant la plus menaçante selon `machine_threat_key_3_2`).
 - `slot_id_to_once_index(slot_id: str) -> int` — Convertit un identifiant d'emplacement (G1..G15, R1..R10, M1..M5, Migration) en index 0..63.
 - `get_layout_report() -> dict[str, Any]` — Retourne le bilan détaillé d'allocation mémoire sur les 384 octets (6 cache lines).
 
@@ -248,6 +250,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `player_def2_furtivite_target(self, seat: int) -> tuple[int, int] | None` — Retourne `(ray, rive)` si le 2e Défenseur de `seat` est en Furtivité, sinon None.
 - `mobilized_machines_for_ray(self, ray: int) -> int` — Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : cartes Machine révélées du rayon + Ratissages.
 - `lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]` — Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`.
+- `player_def1_lisiere_slot(self, seat: int) -> int | None` — Retourne `slot_idx` si le 1er Défenseur de `seat` est sur une tuile en lisière, sinon None.
+- `player_def2_lisiere_slot(self, seat: int) -> int | None` — Retourne `slot_idx` si le 2e Défenseur de `seat` est sur une tuile en lisière, sinon None.
 - `machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]` — Retourne (position, status) de la machine `(r, m_type)` en O(1).
 - `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
 - `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
