@@ -7,8 +7,10 @@ aucune main adverse masquée sous paravent ni l'ordre futur du paquet Machine ne
 
 from __future__ import annotations
 
+import math
 from typing import Any
 
+from bots.b2_rollouts import determinize_state_from_obs
 from bots.belief_and_ticks import (
     BeliefSummary,
     build_belief_summary,
@@ -36,21 +38,12 @@ from engine.primitives import (
     DecisionRequest,
     GameOver,
 )
-from engine.rng import (
-    SRC_BOT_TIEBREAK,
-    SRC_DICE,
-    rand_u64,
-    roll_d6,
-    shuffle_deterministic,
-)
+from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
-    CARD_NONE,
-    CARD_SABOTAGE,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
-    MACHINE_STATUS_NORMAL,
     MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
     PIEGE_ACTIF,
@@ -61,8 +54,6 @@ from engine.state import (
     GameState,
     PlayerObservation,
     is_reve_code,
-    is_tactique_code,
-    machine_card_code,
 )
 
 __all__ = (
@@ -72,115 +63,6 @@ __all__ = (
     "evaluate_horizon_state",
     "play_game_b3",
 )
-
-_SRC_B3_DETERMINIZE: int = 41
-
-
-def _reseed_config(cfg: GameConfig, det_seed: int, det_rep: int) -> GameConfig:
-    """Construit une copie de `GameConfig` avec un flux PRNG futur indépendant."""
-    return GameConfig(
-        n_players=cfg.n_players,
-        mode=cfg.mode,
-        peuples=cfg.peuples,
-        exp_seed=det_seed,
-        rep_id=det_rep,
-        coordonnateur_initial=cfg.coordonnateur_initial,
-        max_revision_passes=cfg.max_revision_passes,
-        tile_profiles=cfg.tile_profiles,
-    )
-
-
-def determinize_state_from_obs(
-    template_state: GameState,
-    obs: PlayerObservation,
-    det_idx: int = 0,
-) -> GameState:
-    """Construit un clone déterminisé cohérent avec `obs` (zéro fuite mains/paquet/PRNG futur).
-
-    Garantie d'isolation : deux états `s1`, `s2` partageant la même `PlayerObservation`
-    produisent exactement les mêmes octets `raw_used_bytes()` après déterminisation.
-    """
-    cfg = template_state.cfg
-    seat = obs.observer_seat
-    n = obs.n_players
-
-    salt = ((obs.step & 0xFF) << 16) | ((seat & 0x0F) << 8) | (det_idx & 0xFF)
-    det_seed = int(
-        rand_u64(cfg.exp_seed, cfg.rep_id, _SRC_B3_DETERMINIZE, obs.tour, seat, salt)
-        & 0x7FFFFFFF
-    )
-    det_rep = int(
-        rand_u64(cfg.exp_seed, cfg.rep_id, _SRC_B3_DETERMINIZE, obs.tour, seat + 8, salt)
-        & 0x3FFFFFFF
-    )
-
-    det = template_state.clone()
-    det.cfg = _reseed_config(cfg, det_seed, det_rep)
-
-    # 1. Échantillonner les mains masquées sous paravent uniquement depuis `obs`
-    known_machine_cards: set[int] = set()
-    known_sabotages = 0
-    unknown_seats: list[int] = []
-
-    for s in range(n):
-        h = obs.hand_of(s)
-        if not h.has_card:
-            if not obs.paravents_ouverts and s != seat:
-                det.set_player_hand(s, CARD_NONE, 0, 0, 0, 0)
-            continue
-        if h.card is None:
-            unknown_seats.append(s)
-        elif h.card == CARD_SABOTAGE:
-            known_sabotages += 1
-        elif 1 <= h.card <= 2 * n:
-            known_machine_cards.add(h.card)
-
-    if not obs.paravents_ouverts and unknown_seats:
-        pool: list[int] = []
-        for r in range(n):
-            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
-                _, st = obs.machine_pos_status(r, mt)
-                if st == MACHINE_STATUS_NORMAL:
-                    code = machine_card_code(r, mt)
-                    if code not in known_machine_cards:
-                        pool.append(code)
-        rem_sab = max(0, obs.sabotage_deck_count - known_sabotages)
-        pool.extend([CARD_SABOTAGE] * rem_sab)
-        while len(pool) < len(unknown_seats):
-            pool.append(CARD_SABOTAGE)
-
-        shuffled_pool = shuffle_deterministic(
-            pool, det_seed, det_rep, _SRC_B3_DETERMINIZE, obs.tour, det_idx + 1
-        )
-        for idx_u, s in enumerate(unknown_seats):
-            c_draw = shuffled_pool[idx_u]
-            if c_draw == CARD_SABOTAGE:
-                det.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-            else:
-                d1 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2)
-                d2 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2 + 1)
-                lec_m = min(d1, d2)
-                t_code, _ = obs.tactique_code_bugs(lec_m - 1)
-                bound_t = t_code if is_tactique_code(t_code) else 0
-                det.set_player_hand(s, c_draw, d1, d2, lec_m, bound_t)
-
-    # 2. Réécrire intégralement le paquet Machine restant sans lire l'ordre secret d'origine
-    orig_sab_deck = obs.sabotage_deck_count
-    orig_sab_pend = obs.sabotage_pending_count
-    det.sabotage_deck_count = orig_sab_deck
-    det.sabotage_pending_count = 0
-    det.rebuild_and_shuffle_machine_deck(increment_reshuffle=False)
-    det.sabotage_pending_count = orig_sab_pend
-
-    # Retirer du paquet futur les cartes Machine actuellement en main (connues + échantillonnées)
-    for s in range(n):
-        c_held, _, _, _, _ = det.get_player_hand(s)
-        if 1 <= c_held <= 2 * n:
-            det.remove_machine_card_from_deck_if_present(c_held)
-
-    target_rem = obs.deck_remaining_count
-    det.deck_cursor = min(det.deck_len, max(0, det.deck_len - target_rem))
-    return det
 
 
 def _gameover_utility(res: GameOver) -> float:
@@ -344,8 +226,21 @@ def _rank_candidates_for_b3(
     return tuple(picked_other)
 
 
+def _paired_margin_separated(diffs: list[float], threshold: float) -> bool:
+    """Vrai si la marge CRN appariée entre top-2 dépasse à la fois le seuil et 1,96 * SE."""
+    m = len(diffs)
+    if m == 0:
+        return False
+    mean_d = sum(diffs) / float(m)
+    if m == 1:
+        return abs(mean_d) >= threshold
+    var_d = sum((d - mean_d) ** 2 for d in diffs) / float(m - 1)
+    se_d = math.sqrt(var_d / float(m))
+    return abs(mean_d) > max(threshold, 1.96 * se_d)
+
+
 class BotB3:
-    """Agent Rolling Horizon / IS-MCTS léger opérant par déterminisation cohérente sur clone."""
+    """Agent Rolling Horizon / IS-MCTS léger à conservation exacte et budget CRN adaptatif."""
 
     @staticmethod
     def choose_from_determinized(
@@ -354,48 +249,63 @@ class BotB3:
         decision: DecisionRequest,
         *,
         n_determinizations: int = 2,
+        max_determinizations: int | None = None,
+        uncertainty_threshold: float = 0.035,
         horizon_turns: int = 1,
         max_candidates: int = 3,
         max_steps: int = 2000,
+        budget_stats: dict[str, int] | None = None,
     ) -> Any:
         opts = decision.options
         assert len(opts) >= 1
         if len(opts) == 1:
+            if budget_stats is not None:
+                budget_stats["determinizations_used"] = 0
+                budget_stats["rollouts_executed"] = 0
             return opts[0]
 
         candidates = _rank_candidates_for_b3(obs, decision, state.cfg, max_candidates)
         if len(candidates) == 1:
+            if budget_stats is not None:
+                budget_stats["determinizations_used"] = 0
+                budget_stats["rollouts_executed"] = 0
             return candidates[0]
 
         b2_choice = BotB2.choose(obs, decision, state.cfg)
         stop_tour = min(9, obs.tour + max(1, horizon_turns))
-        n_det = max(1, n_determinizations)
+        min_det = max(1, n_determinizations)
+        max_det = max(min_det, max_determinizations if max_determinizations is not None else max(min_det, 6))
 
-        # Pré-générer les `n_det` mondes déterminisés CRN partagés entre tous les candidats
+        # Phase 1 : évaluer tous les candidats sur les `min_det` premiers mondes CRN partagés
         det_worlds = [
-            determinize_state_from_obs(state, obs, det_idx=d_i) for d_i in range(n_det)
+            determinize_state_from_obs(state, obs, det_idx=d_i) for d_i in range(min_det)
         ]
-
-        best_opt = candidates[0]
-        best_val = -1e9
-        best_tb = -1
+        scores_by_cand: list[list[float]] = [[] for _ in candidates]
+        rollouts_run = 0
 
         for c_idx, cand in enumerate(candidates):
-            acc_val = 0.0
             for det_w in det_worlds:
                 sim = det_w.clone()
                 apply_choice(sim, cand)
-                acc_val += _rollout_horizon_b2(
-                    sim,
-                    stop_tour=stop_tour,
-                    k_max_passes=3,
-                    max_steps=max_steps,
+                scores_by_cand[c_idx].append(
+                    _rollout_horizon_b2(
+                        sim,
+                        stop_tour=stop_tour,
+                        k_max_passes=3,
+                        max_steps=max_steps,
+                    )
                 )
-            mean_val = acc_val / n_det
-            # Léger prior domaine B2 pour stabiliser les ex-aequo Monte-Carlo
-            if cand == b2_choice:
-                mean_val += 0.0025
-            tb = int(
+                rollouts_run += 1
+
+        def _cand_mean(c_idx: int) -> float:
+            vals = scores_by_cand[c_idx]
+            mean_v = sum(vals) / float(len(vals))
+            if candidates[c_idx] == b2_choice:
+                mean_v += 0.0025
+            return mean_v
+
+        def _cand_tb(c_idx: int) -> int:
+            return int(
                 rand_u64(
                     state.cfg.exp_seed,
                     state.cfg.rep_id,
@@ -406,12 +316,43 @@ class BotB3:
                 )
                 & 0xFFFFFFFF
             )
-            if mean_val > best_val or (mean_val == best_val and tb > best_tb):
-                best_val = mean_val
-                best_tb = tb
-                best_opt = cand
 
-        return best_opt
+        ranked_idx = sorted(
+            range(len(candidates)),
+            key=lambda i: (_cand_mean(i), _cand_tb(i)),
+            reverse=True,
+        )
+        top1, top2 = ranked_idx[0], ranked_idx[1]
+
+        # Phase 2 : allocation dynamique du budget sur le duel top-2 uniquement si l'écart est incertain
+        n_det_used = min_det
+        while n_det_used < max_det:
+            diffs_12 = [
+                scores_by_cand[top1][k] - scores_by_cand[top2][k] for k in range(n_det_used)
+            ]
+            if _paired_margin_separated(diffs_12, uncertainty_threshold):
+                break
+            extra_world = determinize_state_from_obs(state, obs, det_idx=n_det_used)
+            for c_idx in (top1, top2):
+                sim = extra_world.clone()
+                apply_choice(sim, candidates[c_idx])
+                scores_by_cand[c_idx].append(
+                    _rollout_horizon_b2(
+                        sim,
+                        stop_tour=stop_tour,
+                        k_max_passes=3,
+                        max_steps=max_steps,
+                    )
+                )
+                rollouts_run += 1
+            n_det_used += 1
+
+        if budget_stats is not None:
+            budget_stats["determinizations_used"] = n_det_used
+            budget_stats["rollouts_executed"] = rollouts_run
+
+        best_idx = max((top1, top2), key=lambda i: (_cand_mean(i), _cand_tb(i)))
+        return candidates[best_idx]
 
 
 def choose_b3(
@@ -419,9 +360,12 @@ def choose_b3(
     decision: DecisionRequest,
     *,
     n_determinizations: int = 2,
+    max_determinizations: int | None = None,
+    uncertainty_threshold: float = 0.035,
     horizon_turns: int = 1,
     max_candidates: int = 3,
     max_steps: int = 2000,
+    budget_stats: dict[str, int] | None = None,
 ) -> Any:
     """Point d'entrée isolé B3 : extrait d'abord `obs` puis déterminise sans fuite d'information."""
     obs = state.get_observation(decision.decideur)
@@ -430,9 +374,12 @@ def choose_b3(
         obs,
         decision,
         n_determinizations=n_determinizations,
+        max_determinizations=max_determinizations,
+        uncertainty_threshold=uncertainty_threshold,
         horizon_turns=horizon_turns,
         max_candidates=max_candidates,
         max_steps=max_steps,
+        budget_stats=budget_stats,
     )
 
 
@@ -501,6 +448,8 @@ def _resolve_step2_b3(
     *,
     k_max_passes: int = 4,
     n_determinizations: int = 2,
+    max_determinizations: int | None = None,
+    uncertainty_threshold: float = 0.035,
     horizon_turns: int = 1,
     max_steps: int = 2000,
     telemetry: Any | None = None,
@@ -665,7 +614,8 @@ def _resolve_step2_b3(
             f_items.append((s, t_s, u_s))
         ordered_f = order_seats_by_tick_and_urgency(f_items, cfg, state.tour, 249)
         stop_t = min(9, state.tour + max(1, horizon_turns))
-        n_det = max(1, n_determinizations)
+        min_det = max(1, n_determinizations)
+        max_det = max(min_det, max_determinizations if max_determinizations is not None else max(min_det, 6))
 
         for s in ordered_f:
             cur_spot = _current_def2_target(state, s)
@@ -690,16 +640,13 @@ def _resolve_step2_b3(
             if alt_sc < cur_sc - 80.0:
                 continue
 
-            det_worlds = [
-                determinize_state_from_obs(state, obs_s, det_idx=d_i + 10)
-                for d_i in range(n_det)
-            ]
-            keep_sum = 0.0
-            move_sum = 0.0
-            for dw in det_worlds:
+            diffs_km: list[float] = []
+            d_i = 0
+            while d_i < max_det:
+                dw = determinize_state_from_obs(state, obs_s, det_idx=d_i + 10)
                 sim_keep = dw.clone()
                 finish_step2_to_3_1(sim_keep)
-                keep_sum += _rollout_horizon_b2(
+                v_keep = _rollout_horizon_b2(
                     sim_keep, stop_tour=stop_t, k_max_passes=3, max_steps=max_steps
                 )
 
@@ -708,11 +655,15 @@ def _resolve_step2_b3(
                     sim_move, s, ("DEPLACER_REFLEXION", best_alt), check_legal=False
                 )
                 finish_step2_to_3_1(sim_move)
-                move_sum += _rollout_horizon_b2(
+                v_move = _rollout_horizon_b2(
                     sim_move, stop_tour=stop_t, k_max_passes=3, max_steps=max_steps
                 )
+                diffs_km.append(v_move - v_keep)
+                d_i += 1
+                if d_i >= min_det and _paired_margin_separated(diffs_km, uncertainty_threshold):
+                    break
 
-            if (move_sum - keep_sum) / n_det > 0.012:
+            if (sum(diffs_km) / float(len(diffs_km))) > 0.012:
                 apply_step2_def2(
                     state,
                     s,
@@ -773,6 +724,8 @@ def play_game_b3(
     *,
     k_max_passes: int = 4,
     n_determinizations: int = 2,
+    max_determinizations: int | None = None,
+    uncertainty_threshold: float = 0.035,
     horizon_turns: int = 1,
     max_candidates: int = 3,
     max_steps: int = 2000,
@@ -805,6 +758,8 @@ def play_game_b3(
                 state,
                 k_max_passes=k_max_passes,
                 n_determinizations=n_determinizations,
+                max_determinizations=max_determinizations,
+                uncertainty_threshold=uncertainty_threshold,
                 horizon_turns=horizon_turns,
                 max_steps=max_steps,
                 telemetry=telemetry,
@@ -815,6 +770,8 @@ def play_game_b3(
             state,
             out,
             n_determinizations=n_determinizations,
+            max_determinizations=max_determinizations,
+            uncertainty_threshold=uncertainty_threshold,
             horizon_turns=horizon_turns,
             max_candidates=max_candidates,
             max_steps=max_steps,

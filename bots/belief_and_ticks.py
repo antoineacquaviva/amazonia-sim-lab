@@ -703,6 +703,7 @@ def resolve_step2_2_from_state(
     epsilon_step: float = 12.0,
     counterfactual_open_paravents: bool = False,
     target_filter: TargetFilter | None = None,
+    post_revision_hook: Callable[[GameState], int] | None = None,
     telemetry: Any | None = None,
 ) -> dict[str, int]:
     """Résout l'Étape 2.2 (pose initiale Ticks 1..3 + jusqu'à K_max passes de révision muette).
@@ -995,6 +996,9 @@ def resolve_step2_2_from_state(
                     if moved:
                         total_rev_moves += 1
 
+    if post_revision_hook is not None and max_passes > 0:
+        total_rev_moves += int(post_revision_hook(state))
+
     finish_step2_to_3_1(state, telemetry=telemetry)
     return {"passes_executed": passes_done, "revision_moves": total_rev_moves}
 
@@ -1073,6 +1077,7 @@ def resolve_step2_full_with_ticks(
     epsilon_step: float = 12.0,
     counterfactual_open_paravents: bool = False,
     target_filter: TargetFilter | None = None,
+    post_revision_hook: Callable[[GameState], int] | None = None,
     telemetry: Any | None = None,
 ) -> dict[str, int]:
     """Résout intégralement l'Étape 2 (2.1 en Ticks 1..3 puis 2.2 en Ticks 1..3 + révision)."""
@@ -1136,6 +1141,7 @@ def resolve_step2_full_with_ticks(
             epsilon_step=epsilon_step,
             counterfactual_open_paravents=counterfactual_open_paravents,
             target_filter=target_filter,
+            post_revision_hook=post_revision_hook,
             telemetry=telemetry,
         )
     return {"passes_executed": 0, "revision_moves": 0}
