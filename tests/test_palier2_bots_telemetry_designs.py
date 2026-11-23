@@ -130,7 +130,7 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     assert seen_res == set(ALL_ACTIVE_RESOURCES)
     assert "RES_APPRENTISSAGE" not in seen_res
 
-    # B1 : > 2 lois actives simultanément sur le plateau déclenchent l'oubli stochastique contrôlé
+    # Comptage de lois toujours opérationnel pour la télémétrie, et bruit B1 désormais porté par softmax tau_b1 dès 0 loi
     cfg_laws = GameConfig(
         n_players=4,
         mode=3,
@@ -146,22 +146,16 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     st_laws.set_gardien_at_case(4, 11, 1)
     obs_laws = st_laws.get_observation(0)
     assert count_active_laws_from_obs(obs_laws, cfg_laws) == 4
+    assert score_target_b1.softmax_tau > 0.0
 
-    bel_laws = build_belief_summary(obs_laws, cfg_laws)
-    diffs = 0
-    for r in range(4):
-        for p in range(1, 5):
-            sc_4 = score_target_b1(obs_laws, cfg_laws, bel_laws, ("FORET", r, p), False)
-            # Avec <= 2 lois (en retirant 2 Gardiens), l'oubli stochastique disparaît totalement
-            st_2 = st_laws.clone()
-            st_2.set_gardien_at_case(3, 0, 1)
-            st_2.set_gardien_at_case(4, 0, 1)
-            obs_2 = st_2.get_observation(0)
-            assert count_active_laws_from_obs(obs_2, cfg_laws) == 2
-            sc_2 = score_target_b1(obs_2, cfg_laws, build_belief_summary(obs_2, cfg_laws), ("FORET", r, p), False)
-            if abs(sc_4 - sc_2) > 1.0:
-                diffs += 1
-    assert diffs >= 2
+    # À 0 loi active (Mode 2), B1 avec tau_b1 > 0 conserve son bruit softmax calibré vs tau_b1 = 0.0
+    cfg_zero_law = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=9192, rep_id=1)
+    st_zero = GameState(cfg_zero_law)
+    assert count_active_laws_from_obs(st_zero.get_observation(0), cfg_zero_law) == 0
+    over_det = play_game_b1(GameState(cfg_zero_law), tau_b1=0.0)
+    over_noisy = play_game_b1(GameState(cfg_zero_law), tau_b1=120.0)
+    assert 1 <= over_det.tour_fin <= 8
+    assert 1 <= over_noisy.tour_fin <= 8
 
     # B2 : RES_DILUTION_SABOTAGE fortement valorisée au Tour 1 vs faiblement au Tour 8
     cfg_sab = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=303)

@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Amazonia — Journal de parties humaines (human_trace_1.0)</title>
+  <style>
+    :root { --bg: #0f1714; --card: #17231e; --fg: #e7f0eb; --muted: #9ab0a4; --acc: #4ec08b; --border: #283d34; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.45; }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 18px 48px; }
+    h1 { margin: 0 0 6px; font-size: 1.45rem; color: var(--acc); }
+    p.sub { margin: 0 0 18px; color: var(--muted); font-size: 0.92rem; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
+    input, select, textarea { background: #0d1411; color: var(--fg); border: 1px solid var(--border); border-radius: 6px; padding: 7px 9px; font: inherit; }
+    button { background: var(--acc); color: #09140f; border: 0; border-radius: 7px; padding: 9px 14px; font-weight: 600; cursor: pointer; }
+    button.sec { background: #263a31; color: var(--fg); }
+    .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; }
+    pre { background: #0a100d; border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow: auto; max-height: 280px; font-size: 0.82rem; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #1f332b; color: var(--acc); font-size: 0.78rem; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Journaliseur de parties humaines <span class="badge">human_trace_1.0</span></h1>
+  <p class="sub">Outil statique autonome (compatible <code>file://</code>) pour consigner des décisions réelles (poses 2.1 et révisions 2.2) et exporter un fichier JSONL évaluable par <code>uv run python -m bots.human_eval evaluate &lt;fichier.jsonl&gt;</code>.</p>
+
+  <section class="card">
+    <div class="grid">
+      <label>Identifiant de partie
+        <input id="gameId" value="playtest_local_01">
+      </label>
+      <label>Nombre de joueurs (N)
+        <select id="nPlayers">
+          <option value="3">3 joueurs</option>
+          <option value="4" selected>4 joueurs</option>
+          <option value="5">5 joueurs</option>
+          <option value="6">6 joueurs</option>
+        </select>
+      </label>
+      <label>Mode
+        <select id="mode">
+          <option value="2" selected>Mode 2 (Socle v6.1)</option>
+          <option value="4">Mode 4 (Catalogue 32 slots)</option>
+        </select>
+      </label>
+      <label>Peuples (ordre horaire)
+        <input id="peuples" value="M,R,O,H">
+      </label>
+      <label>Tour (1..8)
+        <input id="tour" type="number" min="1" max="8" value="1">
+      </label>
+      <label>Étape
+        <select id="step">
+          <option value="21">2.1 (1er Défenseur)</option>
+          <option value="22">2.2 (2e Défenseur)</option>
+        </select>
+      </label>
+      <label>Siège joueur (0..N-1)
+        <input id="seat" type="number" min="0" max="5" value="0">
+      </label>
+      <label>Niveau joueur
+        <select id="level">
+          <option value="decouverte">Découverte</option>
+          <option value="intermediaire" selected>Intermédiaire</option>
+          <option value="expert">Expert</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="grid">
+      <label>Main du joueur (code carte 0=vide, 1..2N=machine, 13=Sabotage)
+        <input id="handCard" type="number" min="0" max="13" value="1">
+      </label>
+      <label>Dé 1 (1..6)
+        <input id="d1" type="number" min="0" max="6" value="2">
+      </label>
+      <label>Dé 2 (1..6)
+        <input id="d2" type="number" min="0" max="6" value="4">
+      </label>
+      <label>Type de cible choisie
+        <select id="targetKind">
+          <option value="FORET">FORET (rayon, parcelle)</option>
+          <option value="LISIERE">LISIERE (slot 0..2N-1)</option>
+          <option value="FURTIVITE">FURTIVITE (rayon, rive 0=Piège/1=Sabotage)</option>
+          <option value="REVE_ACTIVATION">REVE_ACTIVATION (case 1..6)</option>
+          <option value="GARDIEN_PARI">GARDIEN_PARI (case 1..6)</option>
+        </select>
+      </label>
+      <label>Paramètre A (rayon / slot / case)
+        <input id="paramA" type="number" min="0" max="11" value="0">
+      </label>
+      <label>Paramètre B (parcelle 1..4 / rive 0..1)
+        <input id="paramB" type="number" min="0" max="4" value="2">
+      </label>
+    </div>
+    <div style="margin-top:10px;">
+      <label>Notes d'intention du joueur (optionnel)
+        <input id="notes" placeholder="Ex : protège la parcelle 2 contre l'Abatteuse en main">
+      </label>
+    </div>
+    <div class="row">
+      <button id="btnAdd" type="button">+ Ajouter la décision</button>
+      <button id="btnExport" type="button" class="sec">Exporter JSONL</button>
+      <button id="btnClear" type="button" class="sec">Effacer la session</button>
+      <span id="status" style="color: var(--muted); font-size: 0.88rem;">0 décision enregistrée.</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <strong>Aperçu JSONL (<code>human_trace_1.0</code>)</strong>
+    <pre id="preview">(aucune entrée)</pre>
+  </section>
+</main>
+<script>
+(function () {
+  const DOTATION = [2, 2, 3, 3];
+  const records = [];
+
+  function buildTarget(kind, a, b) {
+    if (kind === "FORET" || kind === "FURTIVITE") return [kind, a, b];
+    return [kind, a];
+  }
+
+  function buildDefaultBoard(n, tour, step, seat, handCard, d1, d2) {
+    const parcels = [];
+    const machines = [];
+    for (let r = 0; r < n; r++) {
+      const row = [];
+      for (let p = 0; p < 4; p++) {
+        row.push({ arbres: DOTATION[p], souches: 0, insectes: 0, piege: 0, nid_id: 0, nid_active: 0 });
+      }
+      parcels.push(row);
+      machines.push({ ray: r, m_type: 0, pos: 2, status: 0, pending_siege: 0, rouges: 0, bleus: 0 });
+      machines.push({ ray: r, m_type: 1, pos: 1, status: 0, pending_siege: 0, rouges: 0, bleus: 0 });
+    }
+    const hands = [];
+    const lec = (handCard >= 1 && handCard <= 2 * n && d1 > 0 && d2 > 0) ? Math.min(d1, d2) : 0;
+    for (let s = 0; s < n; s++) {
+      if (s === seat) {
+        hands.push([handCard, d1, d2, lec, lec]);
+      } else {
+        hands.push([0, 0, 0, 0, 0]);
+      }
+    }
+    return {
+      tour,
+      step,
+      coordonnateur: 0,
+      paravents_ouverts: false,
+      sabotage_deck_count: 0,
+      sabotage_pending_count: 0,
+      parcels,
+      machines,
+      hands,
+      piste_tactiques: [1, 2, 3, 4, 5, 6],
+      piste_gardiens: [[0, 1], [0, 1], [0, 1], [0, 1], [0, 1], [0, 1]],
+      lisieres: Array.from({ length: 2 * n }, () => [1, 0]),
+      defenders: []
+    };
+  }
+
+  function refresh() {
+    const pre = document.getElementById("preview");
+    const st = document.getElementById("status");
+    st.textContent = records.length + " décision(s) enregistrée(s).";
+    pre.textContent = records.length ? records.map((r) => JSON.stringify(r)).join("\n") : "(aucune entrée)";
+  }
+
+  document.getElementById("btnAdd").addEventListener("click", function () {
+    const n = Number(document.getElementById("nPlayers").value);
+    const mode = Number(document.getElementById("mode").value);
+    const peuples = document.getElementById("peuples").value.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, n);
+    const tour = Number(document.getElementById("tour").value);
+    const step = Number(document.getElementById("step").value);
+    const seat = Number(document.getElementById("seat").value);
+    const handCard = Number(document.getElementById("handCard").value);
+    const d1 = Number(document.getElementById("d1").value);
+    const d2 = Number(document.getElementById("d2").value);
+    const kind = document.getElementById("targetKind").value;
+    const a = Number(document.getElementById("paramA").value);
+    const b = Number(document.getElementById("paramB").value);
+    const chosen = buildTarget(kind, a, b);
+
+    const rec = {
+      schema_version: "human_trace_1.0",
+      game_id: document.getElementById("gameId").value.trim() || "playtest_local",
+      decision_id: records.length + 1,
+      config: { n_players: n, mode, peuples, exp_seed: 42, rep_id: 0, tile_profiles: [] },
+      tour,
+      step,
+      seat,
+      is_first_defender: step === 21,
+      board_state: buildDefaultBoard(n, tour, step, seat, handCard, d1, d2),
+      legal_targets: [],
+      chosen_target: chosen,
+      player_level: document.getElementById("level").value,
+      notes: document.getElementById("notes").value.trim()
+    };
+    records.push(rec);
+    refresh();
+  });
+
+  document.getElementById("btnExport").addEventListener("click", function () {
+    const text = records.map((r) => JSON.stringify(r)).join("\n") + (records.length ? "\n" : "");
+    const blob = new Blob([text], { type: "application/x-ndjson;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (document.getElementById("gameId").value.trim() || "human_traces") + ".jsonl";
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById("btnClear").addEventListener("click", function () {
+    records.length = 0;
+    refresh();
+  });
+})();
+</script>
+</body>
+</html>

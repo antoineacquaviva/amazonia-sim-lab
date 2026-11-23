@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
@@ -52,6 +53,7 @@ __all__ = (
     "order_seats_by_tick_and_urgency",
     "resolve_step2_2_from_state",
     "resolve_step2_full_with_ticks",
+    "softmax_select_index",
 )
 
 # Loi exacte de M = min(D1, D2) sur 2D6 équilibrés : P(M = k) = (13 - 2k) / 36 pour k = 1..6
@@ -598,6 +600,88 @@ def order_seats_by_tick_and_urgency(
     return [item[3] for item in keyed]
 
 
+_U64_NORM_SOFTMAX: float = float(1 << 64)
+
+
+def softmax_select_index(
+    scores: list[float],
+    tau: float,
+    cfg: GameConfig,
+    obs: PlayerObservation,
+    salt: int,
+) -> int:
+    """Sélectionne un indice dans `scores` par softmax déterministe (`rand_u64`) à température `tau`.
+
+    - Si `tau <= 0.0` ou `len(scores) <= 1` : argmax exact avec bris d'égalité déterministe `rand_u64`.
+    - Si `tau > 0.0` : tirage inverse-CDF sur `exp((s_i - max_s) / tau)` (100 % stdlib, sans `random`).
+    """
+    m = len(scores)
+    assert m >= 1
+    if m == 1:
+        return 0
+    if tau <= 0.0:
+        best_idx = 0
+        best_sc = scores[0]
+        best_tb = -1
+        for idx in range(1, m):
+            sc = scores[idx]
+            if sc > best_sc + 1e-9:
+                best_sc = sc
+                best_idx = idx
+                best_tb = -1
+            elif abs(sc - best_sc) <= 1e-9:
+                if best_tb < 0:
+                    best_tb = rand_u64(
+                        cfg.exp_seed,
+                        cfg.rep_id,
+                        SRC_BOT_TIEBREAK,
+                        obs.tour,
+                        obs.observer_seat,
+                        (salt * 64 + best_idx) & 0xFFFFFFFF,
+                    )
+                tb = rand_u64(
+                    cfg.exp_seed,
+                    cfg.rep_id,
+                    SRC_BOT_TIEBREAK,
+                    obs.tour,
+                    obs.observer_seat,
+                    (salt * 64 + idx) & 0xFFFFFFFF,
+                )
+                if tb > best_tb:
+                    best_tb = tb
+                    best_idx = idx
+        return best_idx
+
+    max_s = max(scores)
+    inv_tau = 1.0 / tau
+    weights: list[float] = []
+    total_w = 0.0
+    for s_val in scores:
+        z = (s_val - max_s) * inv_tau
+        w = math.exp(z) if z > -60.0 else 0.0
+        weights.append(w)
+        total_w += w
+
+    if total_w <= 0.0:
+        return 0
+
+    u_raw = rand_u64(
+        cfg.exp_seed,
+        cfg.rep_id,
+        SRC_BOT_TIEBREAK,
+        obs.tour,
+        obs.observer_seat,
+        (salt * 97 + 13) & 0xFFFFFFFF,
+    )
+    threshold = (float(u_raw) / _U64_NORM_SOFTMAX) * total_w
+    acc = 0.0
+    for idx, w in enumerate(weights):
+        acc += w
+        if acc >= threshold:
+            return idx
+    return m - 1
+
+
 def _pick_best_target_isolated(
     obs: PlayerObservation,
     cfg: GameConfig,
@@ -609,6 +693,12 @@ def _pick_best_target_isolated(
     sous_etape_salt: int,
 ) -> tuple[tuple[Any, ...], float]:
     assert len(targets) >= 1
+    tau = float(getattr(scorer, "softmax_tau", 0.0))
+    if tau > 0.0 and len(targets) > 1:
+        scores = [scorer(obs, cfg, belief, cand, is_first_defender) for cand in targets]
+        chosen_idx = softmax_select_index(scores, tau, cfg, obs, sous_etape_salt)
+        return targets[chosen_idx], scores[chosen_idx]
+
     best_t = targets[0]
     best_sc = scorer(obs, cfg, belief, best_t, is_first_defender)
     best_tb = -1

@@ -25,6 +25,7 @@ from bots.belief_and_ticks import (
     BeliefSummary,
     build_belief_summary,
     resolve_step2_full_with_ticks,
+    softmax_select_index,
 )
 from engine.core_engine import (
     DEC_CHOIX_CASE_GARDIEN,
@@ -79,6 +80,7 @@ from engine.state import (
 __all__ = (
     "ALL_ACTIVE_RESOURCES",
     "DEFAULT_B2_WEIGHTS",
+    "DEFAULT_TAU_B1",
     "TREE_SCORE_UNIT",
     "B2Weights",
     "BotB1",
@@ -89,6 +91,7 @@ __all__ = (
     "choose_b2_open",
     "count_active_laws_from_obs",
     "get_economie_catalog",
+    "make_b1_scorer",
     "make_b2_scorer",
     "play_game_b1",
     "play_game_b2",
@@ -96,6 +99,9 @@ __all__ = (
     "score_target_b1",
     "score_target_b2",
 )
+
+# Température softmax calibrée de B1 (60.0 centi-arbres = 0,60 arbre, active dès 0 loi : B0 < B1 < B2)
+DEFAULT_TAU_B1: float = 60.0
 
 
 def _tactique_danger(rank_1_6: int, tour: int, eff_red: int = 1) -> float:
@@ -169,33 +175,6 @@ def count_active_laws_from_obs(obs: PlayerObservation, cfg: GameConfig) -> int:
     _EconomieStore.last_b1_obs = obs
     _EconomieStore.last_b1_laws = count
     return count
-
-
-def _b1_forgetting_penalty(
-    obs: PlayerObservation, cfg: GameConfig, active_laws: int, item_salt: int
-) -> float:
-    """Oubli stochastique contrôlé de B1 via rng.py dès que > 2 lois sont actives simultanément."""
-    if active_laws <= 2:
-        return 0.0
-    excess = active_laws - 2
-    # Probabilité d'oubli bornée : 22 % par loi excédentaire au-delà de 2 (plafond 66 %)
-    threshold_permille = min(660, excess * 220)
-    roll = (
-        rand_u64(
-            cfg.exp_seed,
-            cfg.rep_id,
-            SRC_BOT_TIEBREAK,
-            obs.tour,
-            obs.observer_seat + 64,
-            item_salt & 0xFFFFFFFF,
-        )
-        % 1000
-    )
-    if roll < threshold_permille:
-        # Perturbation d'évaluation due à l'oubli de la loi par un joueur Découverte (B1)
-        sign = 1.0 if (roll & 1) else -1.0
-        return sign * (55.0 + 25.0 * excess)
-    return 0.0
 
 
 # ---------------------------------------------------------------------------
@@ -292,15 +271,14 @@ def _best_untrapped_parcel_value_on_ray(
 # ---------------------------------------------------------------------------
 
 
-def score_target_b1(
+def _score_target_b1_core(
     obs: PlayerObservation,
     cfg: GameConfig,
     belief: BeliefSummary,
     target: tuple[Any, ...],
     is_first_defender: bool,
 ) -> float:
-    """Évaluation tactique 1-coup de B1 (+ oubli stochastique si > 2 lois actives)."""
-    active_laws = count_active_laws_from_obs(obs, cfg)
+    """Évaluation tactique 1-coup de B1 (le bruit novice est porté par le softmax `tau_b1`)."""
     kind = target[0]
 
     if kind == "FORET":
@@ -321,10 +299,8 @@ def score_target_b1(
         souches = obs.parcel_souches(r_i, p_i)
 
         score = 95.0
-        # Activer un Nid en forêt
         if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
             score += 470.0
-        # Parer une frappe attendue non couverte par un Piège autonome
         if s_prob > 0.08 and cur_def < seuil_e:
             gap = seuil_e - cur_def
             reach_mult = 1.0 if gap <= 1.25 else (0.58 if gap <= 2.25 else 0.25)
@@ -337,8 +313,6 @@ def score_target_b1(
             if r_i == obs.observer_seat:
                 urgency += 40.0
             score += urgency
-
-        score += _b1_forgetting_penalty(obs, cfg, active_laws, 100 + idx)
         return score
 
     if kind == "LISIERE":
@@ -358,12 +332,10 @@ def score_target_b1(
         else:
             fam_bonus = 65.0
         if constructors == 1:
-            base_l = 610.0 + fam_bonus
-        elif belief.drew_sabotage_or_none and obs.tour <= 7:
-            base_l = 525.0 + fam_bonus
-        else:
-            base_l = 255.0 + fam_bonus
-        return base_l + _b1_forgetting_penalty(obs, cfg, active_laws, 300 + s_idx)
+            return 610.0 + fam_bonus
+        if belief.drew_sabotage_or_none and obs.tour <= 7:
+            return 525.0 + fam_bonus
+        return 255.0 + fam_bonus
 
     if kind == "FURTIVITE":
         _, ray, rive = target
@@ -396,18 +368,16 @@ def score_target_b1(
             if trap_v <= 10.0:
                 return 25.0
             if partner_ready and p_m2 >= 0.99:
-                # Complétion prioritaire d'une rive amorcée lorsque m(r) == 2 est certain
-                base_f = 685.0 + 0.25 * trap_v
-            elif (
+                return 685.0 + 0.25 * trap_v
+            if (
                 is_first_defender
                 and p_m2 >= 0.99
                 and other_open_rives == 0
                 and other_completed_rives == 0
                 and (own_card_is_ray or r_i == obs.observer_seat)
             ):
-                # Amorce 2.1 uniquement sur certitude privée/publique forte (rat_cnt==2 ou 1 Ratissage + carte en main)
-                base_f = 415.0 + 0.16 * trap_v
-            elif (
+                return 415.0 + 0.16 * trap_v
+            if (
                 (not is_first_defender)
                 and (not partner_ready)
                 and other_open_rives == 0
@@ -417,55 +387,70 @@ def score_target_b1(
                     or (own_card_is_ray and p_m2 >= 0.38 and trap_v >= 280.0)
                 )
             ):
-                # Ouverture réversible en 2.2 (filet anti-orphelin 3c si non rejoint)
-                base_f = 345.0 + 0.18 * trap_v
-            else:
-                base_f = 30.0
-        else:
-            sab_cnt_b1 = obs.sabotage_deck_count + obs.sabotage_pending_count
-            ray_undef_b1 = sum(obs.parcel_def1_count(r_i, p) for p in range(1, cfg.p_max + 1)) == 0
-            if obs.tour >= 8 or p_m0 < 0.24 or sab_cnt_b1 >= 3:
-                base_f = 30.0
-            elif partner_ready and p_m0 >= 0.30 and other_completed_rives == 0:
-                base_f = (545.0 if obs.tour <= 4 else 470.0) + 115.0 * p_m0
-            elif (
-                (not is_first_defender)
-                and other_open_rives == 0
-                and other_completed_rives == 0
-                and belief.drew_sabotage_or_none
-                and obs.tour <= 5
-                and p_m0 >= 0.28
-            ):
-                base_f = (420.0 if sab_cnt_b1 <= 1 else 360.0) + 90.0 * p_m0
-            elif (
-                (not is_first_defender)
-                and other_open_rives == 0
-                and other_completed_rives == 0
-                and sab_cnt_b1 <= 1
-                and obs.tour <= 4
-                and p_m0 >= 0.32
-                and (ray_undef_b1 or _is_own_hand_covered(obs, cfg))
-            ):
-                base_f = 385.0 + 85.0 * p_m0 + (30.0 if ray_undef_b1 else 0.0)
-            else:
-                base_f = 35.0
-        return base_f + _b1_forgetting_penalty(obs, cfg, active_laws, 500 + r_i * 4 + rv)
+                return 345.0 + 0.18 * trap_v
+            return 30.0
+
+        sab_cnt_b1 = obs.sabotage_deck_count + obs.sabotage_pending_count
+        ray_undef_b1 = sum(obs.parcel_def1_count(r_i, p) for p in range(1, cfg.p_max + 1)) == 0
+        if obs.tour >= 8 or p_m0 < 0.24 or sab_cnt_b1 >= 3:
+            return 30.0
+        if partner_ready and p_m0 >= 0.30 and other_completed_rives == 0:
+            return (545.0 if obs.tour <= 4 else 470.0) + 115.0 * p_m0
+        if (
+            (not is_first_defender)
+            and other_open_rives == 0
+            and other_completed_rives == 0
+            and belief.drew_sabotage_or_none
+            and obs.tour <= 5
+            and p_m0 >= 0.28
+        ):
+            return (420.0 if sab_cnt_b1 <= 1 else 360.0) + 90.0 * p_m0
+        if (
+            (not is_first_defender)
+            and other_open_rives == 0
+            and other_completed_rives == 0
+            and sab_cnt_b1 <= 1
+            and obs.tour <= 4
+            and p_m0 >= 0.32
+            and (ray_undef_b1 or _is_own_hand_covered(obs, cfg))
+        ):
+            return 385.0 + 85.0 * p_m0 + (30.0 if ray_undef_b1 else 0.0)
+        return 35.0
 
     if kind == "GARDIEN_PARI":
-        _, case_c = target
-        c_i = int(case_c)
-        return _score_gardien_pari(obs, cfg, belief, c_i, is_b2=False) + _b1_forgetting_penalty(
-            obs, cfg, active_laws, 700 + c_i
-        )
+        return _score_gardien_pari(obs, cfg, belief, int(target[1]), is_b2=False)
 
     if kind == "REVE_ACTIVATION":
-        _, case_c = target
-        c_i = int(case_c)
         return _score_reve_activation(
-            obs, cfg, belief, c_i, is_b2=False, is_first_defender=is_first_defender
-        ) + _b1_forgetting_penalty(obs, cfg, active_laws, 800 + c_i)
+            obs, cfg, belief, int(target[1]), is_b2=False, is_first_defender=is_first_defender
+        )
 
     return 0.0
+
+
+class _B1TargetScorer:
+    """Évaluateur B1 (Découverte) avec sélection softmax déterministe calibrable `softmax_tau`."""
+
+    def __init__(self, softmax_tau: float = DEFAULT_TAU_B1) -> None:
+        self.softmax_tau = max(0.0, float(softmax_tau))
+
+    def __call__(
+        self,
+        obs: PlayerObservation,
+        cfg: GameConfig,
+        belief: BeliefSummary,
+        target: tuple[Any, ...],
+        is_first_defender: bool,
+    ) -> float:
+        return _score_target_b1_core(obs, cfg, belief, target, is_first_defender)
+
+
+def make_b1_scorer(tau_b1: float = DEFAULT_TAU_B1) -> _B1TargetScorer:
+    """Construit un évaluateur B1 paramétré par une température softmax `tau_b1` (0.0 = argmax)."""
+    return _B1TargetScorer(softmax_tau=tau_b1)
+
+
+score_target_b1 = _B1TargetScorer(softmax_tau=DEFAULT_TAU_B1)
 
 
 def _score_target_b2_core(
@@ -959,6 +944,7 @@ def _choose_policy(
     cfg: GameConfig,
     *,
     is_b2: bool,
+    tau_b1: float = DEFAULT_TAU_B1,
 ) -> Any:
     opts = decision.options
     assert len(opts) >= 1
@@ -966,6 +952,7 @@ def _choose_policy(
         return opts[0]
 
     dtype = decision.decision_type
+    eff_tau = 0.0 if is_b2 else max(0.0, float(tau_b1))
 
     if dtype == DEC_POSE_PIEGE_FURTIVITE_4_1:
         return _choose_pose_piege_4_1_policy(obs, cfg, decision, is_b2=is_b2)
@@ -974,81 +961,38 @@ def _choose_policy(
     belief = build_belief_summary(obs, cfg)
 
     if dtype == DEC_POSE_DEFENSEUR_1:
-        best_opt = opts[0]
-        best_sc = scorer(obs, cfg, belief, opts[0], True)
-        best_tb = -1
-        best_i = 0
-        for i in range(1, len(opts)):
-            sc = scorer(obs, cfg, belief, opts[i], True)
-            if sc > best_sc + 1e-9:
-                best_sc, best_opt, best_i, best_tb = sc, opts[i], i, -1
-            elif abs(sc - best_sc) <= 1e-9:
-                if best_tb < 0:
-                    best_tb = _tiebreak(cfg, obs, best_i, 1)
-                tb = _tiebreak(cfg, obs, i, 1)
-                if tb > best_tb:
-                    best_tb, best_opt, best_i = tb, opts[i], i
-        return best_opt
+        scores_1 = [scorer(obs, cfg, belief, opt, True) for opt in opts]
+        return opts[softmax_select_index(scores_1, eff_tau, cfg, obs, 1)]
 
     if dtype == DEC_POSE_DEFENSEUR_2:
         prefer_kind = "POSER_REFLEXION" if cfg.max_revision_passes > 0 else "POSER_DEFINITIF"
-        filtered = [(i, o) for i, o in enumerate(opts) if o[0] == prefer_kind]
+        filtered = [o for o in opts if o[0] == prefer_kind]
         if not filtered:
-            filtered = list(enumerate(opts))
-        best_i, best_opt = filtered[0]
-        best_sc = scorer(obs, cfg, belief, best_opt[1], False)
-        best_tb = -1
-        for i, opt in filtered[1:]:
-            sc = scorer(obs, cfg, belief, opt[1], False)
-            if sc > best_sc + 1e-9:
-                best_sc, best_opt, best_i, best_tb = sc, opt, i, -1
-            elif abs(sc - best_sc) <= 1e-9:
-                if best_tb < 0:
-                    best_tb = _tiebreak(cfg, obs, best_i, 2)
-                tb = _tiebreak(cfg, obs, i, 2)
-                if tb > best_tb:
-                    best_tb, best_opt, best_i = tb, opt, i
-        return best_opt
+            filtered = list(opts)
+        scores_2 = [scorer(obs, cfg, belief, opt[1], False) for opt in filtered]
+        return filtered[softmax_select_index(scores_2, eff_tau, cfg, obs, 2)]
 
     if dtype == DEC_REVISION_DEFENSEUR_2:
         pass_idx = int(decision.context.get("pass", 1))
         eps = (24.0 if is_b2 else 32.0) + (pass_idx - 1) * 12.0
-        move_opts = [(i, o) for i, o in enumerate(opts) if o[0] == "DEPLACER_REFLEXION"]
+        move_opts = [o for o in opts if o[0] == "DEPLACER_REFLEXION"]
         if not move_opts:
             for o in opts:
                 if o[0] == "GARDER_REFLEXION":
                     return o
             return opts[0]
-        best_i, best_mv = move_opts[0]
-        best_sc = scorer(obs, cfg, belief, best_mv[1], False)
-        for i, mv in move_opts[1:]:
-            sc = scorer(obs, cfg, belief, mv[1], False)
-            if sc > best_sc:
-                best_sc, best_mv, best_i = sc, mv, i
-        _ = best_i
-        if best_sc > 520.0 + eps:
-            return best_mv
+        scores_rev = [scorer(obs, cfg, belief, mv[1], False) for mv in move_opts]
+        pick_r = softmax_select_index(scores_rev, eff_tau, cfg, obs, 20 + pass_idx)
+        if scores_rev[pick_r] > 520.0 + eps:
+            return move_opts[pick_r]
         for o in opts:
             if o[0] == "GARDER_REFLEXION":
                 return o
         return opts[0]
 
     if dtype == DEC_EFFET_TUILE:
-        best_e = opts[0]
-        best_sc = _score_effect_option(obs, cfg, belief, decision, opts[0], is_b2=is_b2)
-        best_tb = -1
-        best_i = 0
-        for i in range(1, len(opts)):
-            sc = _score_effect_option(obs, cfg, belief, decision, opts[i], is_b2=is_b2)
-            if sc > best_sc + 1e-9:
-                best_sc, best_e, best_i, best_tb = sc, opts[i], i, -1
-            elif abs(sc - best_sc) <= 1e-9:
-                if best_tb < 0:
-                    best_tb = _tiebreak(cfg, obs, best_i, 7)
-                tb = _tiebreak(cfg, obs, i, 7)
-                if tb > best_tb:
-                    best_tb, best_e, best_i = tb, opts[i], i
-        return best_e
+        scores_e = [_score_effect_option(obs, cfg, belief, decision, opt, is_b2=is_b2) for opt in opts]
+        return opts[softmax_select_index(scores_e, eff_tau, cfg, obs, 7)]
 
     if dtype == DEC_ORDRE_CONSTRUCTION_3_1:
         res_val, trig_vals = (
@@ -1056,8 +1000,7 @@ def _choose_policy(
             if is_b2
             else ({}, (20.0,) * 6)
         )
-        best_s = opts[0]
-        best_sc = -1e9
+        scores_c: list[float] = []
         for slot_idx in opts:
             tid, _, _ = obs.lisiere_tile_info(int(slot_idx))
             if is_b2:
@@ -1065,9 +1008,8 @@ def _choose_policy(
             else:
                 fam, _, _ = SYNERGY_META[tid]
                 sc = 300.0 if fam == FAMILLE_REVE else (200.0 if fam == FAMILLE_CROISSANCE else 100.0)
-            if sc > best_sc:
-                best_sc, best_s = sc, slot_idx
-        return best_s
+            scores_c.append(sc)
+        return opts[softmax_select_index(scores_c, eff_tau, cfg, obs, 31)]
 
     if dtype == DEC_CHOIX_CASE_GARDIEN:
         has_ins_peuple = "I" in cfg.peuples
@@ -1243,13 +1185,8 @@ def _choose_policy(
                 return stay_sc
             return 160.0  # RESTER
 
-        best_mv = opts[0]
-        best_m_sc = _mig_sc(opts[0])
-        for idx_m in range(1, len(opts)):
-            sc = _mig_sc(opts[idx_m])
-            if sc > best_m_sc:
-                best_m_sc, best_mv = sc, opts[idx_m]
-        return best_mv
+        mig_scores = [_mig_sc(opt) for opt in opts]
+        return opts[softmax_select_index(mig_scores, eff_tau, cfg, obs, 43)]
 
     if dtype == DEC_ORDRE_ATTAQUE_5_1:
         rank_ctx = int(decision.context.get("rank", 1))
@@ -1561,25 +1498,36 @@ def _choose_best_nid_order_4_2(
 
 
 class BotB1:
-    """Bot Découverte B1 (`k = 1`, oubli stochastique si `> 2` lois actives)."""
+    """Bot Découverte B1 (`k = 1`, bruit novice calibrable par softmax déterministe `tau_b1`)."""
 
     @staticmethod
-    def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:
-        return _choose_policy(obs, decision, cfg, is_b2=False)
+    def choose(
+        obs: PlayerObservation,
+        decision: DecisionRequest,
+        cfg: GameConfig,
+        *,
+        tau_b1: float = DEFAULT_TAU_B1,
+    ) -> Any:
+        return _choose_policy(obs, decision, cfg, is_b2=False, tau_b1=tau_b1)
 
 
 class BotB2:
-    """Bot Cœur de cible B2 (`k = 2`, graphe `economie_bot` 11 `RES_*` actifs + `TRIG_1..6` + lookahead)."""
+    """Bot Cœur de cible B2 (`k = 2`, économie unifiée arbres < 100 params + CRN Gardiens/Rêves)."""
 
     @staticmethod
     def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:
         return _choose_policy(obs, decision, cfg, is_b2=True)
 
 
-def choose_b1(state: GameState, decision: DecisionRequest) -> Any:
+def choose_b1(
+    state: GameState,
+    decision: DecisionRequest,
+    *,
+    tau_b1: float = DEFAULT_TAU_B1,
+) -> Any:
     """Point d'entrée isolé B1 : extrait uniquement PlayerObservation pour `decision.decideur`."""
     obs = state.get_observation(decision.decideur)
-    return BotB1.choose(obs, decision, state.cfg)
+    return BotB1.choose(obs, decision, state.cfg, tau_b1=tau_b1)
 
 
 def choose_b2(state: GameState, decision: DecisionRequest) -> Any:
@@ -1613,11 +1561,13 @@ def _play_game_cooperative(
     counterfactual_open_paravents: bool = False,
     weights: B2Weights = DEFAULT_B2_WEIGHTS,
     gardien_reve_rollouts: int = 8,
+    tau_b1: float = DEFAULT_TAU_B1,
 ) -> GameOver:
     if is_b2:
         scorer: Any = score_target_b2 if weights is DEFAULT_B2_WEIGHTS else make_b2_scorer(weights)
     else:
-        scorer = score_target_b1
+        scorer = score_target_b1 if tau_b1 == DEFAULT_TAU_B1 else make_b1_scorer(tau_b1)
+
     if is_b2 and counterfactual_open_paravents:
         chooser = choose_b2_open
         bot_label = "B2_OPEN"
@@ -1625,7 +1575,10 @@ def _play_game_cooperative(
         chooser = choose_b2
         bot_label = "B2"
     else:
-        chooser = choose_b1
+        def _choose_b1_tau(st_in: GameState, dec_in: DecisionRequest) -> Any:
+            return choose_b1(st_in, dec_in, tau_b1=tau_b1)
+
+        chooser = choose_b1 if tau_b1 == DEFAULT_TAU_B1 else _choose_b1_tau
         bot_label = "B1"
 
     def _post_rev_crn(st_now: GameState) -> int:
@@ -1683,8 +1636,9 @@ def play_game_b1(
     max_steps: int = 2000,
     chassis_id: int = -1,
     telemetry: Any | None = None,
+    tau_b1: float = DEFAULT_TAU_B1,
 ) -> GameOver:
-    """Exécute une partie complète pilotée par B1 (Ticks 1..3 + révision 2.2) sous garde-fou max_steps."""
+    """Exécute une partie complète pilotée par B1 (Ticks 1..3 + softmax calibrable `tau_b1`)."""
     return _play_game_cooperative(
         state,
         is_b2=False,
@@ -1693,6 +1647,7 @@ def play_game_b1(
         chassis_id=chassis_id,
         telemetry=telemetry,
         gardien_reve_rollouts=0,
+        tau_b1=tau_b1,
     )
 
 
