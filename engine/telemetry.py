@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import NamedTuple
 
 from engine.state import (
@@ -14,9 +14,12 @@ from engine.state import (
     MACHINE_STATUS_RETIRED,
     PIEGE_ACTIF,
     STEP_1_2_DEAL,
+    STEP_3_2_REVEAL,
     STEP_4_1_FURTIVITE,
     STEP_4_2_NIDS,
+    STEP_4_3_MIGRATION,
     STEP_5_1_TACTIQUES,
+    STEP_5_3_END_CHECK,
     STEP_6_2_EVOLUTION,
     STEP_6_3_END_TURN,
     STEP_GAME_OVER,
@@ -434,6 +437,7 @@ class TelemetrySummary(NamedTuple):
     rf_trig5_lit: int = 0
     rf_trig6_lit: int = 0
     rf_sabotage_in_deck: int = 0
+    tile_activations: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass(slots=True)
@@ -635,6 +639,32 @@ class TelemetryTracker:
     rf_trig5_lit: int = 0
     rf_trig6_lit: int = 0
     rf_sabotage_in_deck: int = 0
+    # Compteurs exacts d'activations réelles par emplacement (32 slots Mode 4 / socle)
+    tile_activations: dict[str, int] = field(default_factory=dict)
+    _turn_gardiens_seen_mask: int = 0
+    _turn_reves_seen_mask: int = 0
+
+    def record_tile_activation(self, slot_id: str, count: int = 1) -> None:
+        """Incrémente le compteur d'activations réelles pour l'emplacement `slot_id`."""
+        if count > 0 and slot_id:
+            self.tile_activations[slot_id] = self.tile_activations.get(slot_id, 0) + count
+
+    def _sync_turn_tile_activations(self, state: GameState) -> None:
+        """Capture sans doublon intra-tour les Gardiens (G1..G15) et Rêves (R1..R10) ouverts."""
+        for c in range(1, TRACK_LEN + 1):
+            if state.has_gardien_opened_this_turn(c):
+                g_num, _ = state.get_gardien_at_case(c)
+                if g_num > 0:
+                    bit = 1 << (g_num - 1)
+                    if not (self._turn_gardiens_seen_mask & bit):
+                        self._turn_gardiens_seen_mask |= bit
+                        self.record_tile_activation(f"G{g_num}", 1)
+        for r_num in range(1, 11):
+            if state.has_reve_opened_this_turn(r_num):
+                bit_r = 1 << (r_num - 1)
+                if not (self._turn_reves_seen_mask & bit_r):
+                    self._turn_reves_seen_mask |= bit_r
+                    self.record_tile_activation(f"R{r_num}", 1)
 
     def _snapshot_pre_step5(self, state: GameState) -> None:
         n = state.cfg.n_players
@@ -994,11 +1024,24 @@ class TelemetryTracker:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
         if prev_step == STEP_4_1_FURTIVITE and next_step == STEP_4_2_NIDS:
             self.on_furtivite_step_end()
+        if prev_step == STEP_4_2_NIDS and next_step == STEP_4_3_MIGRATION:
+            for nid_num in range(1, 6):
+                if state.get_nid_position(nid_num) is not None:
+                    self.record_tile_activation(f"M{nid_num}", 1)
+        if prev_step in (STEP_3_2_REVEAL, STEP_5_3_END_CHECK) or next_step in (
+            STEP_4_1_FURTIVITE,
+            STEP_5_3_END_CHECK,
+            STEP_6_2_EVOLUTION,
+            STEP_6_3_END_TURN,
+        ):
+            self._sync_turn_tile_activations(state)
         if next_step == STEP_1_2_DEAL and prev_step == STEP_6_3_END_TURN:
             self._turn_closed = False
             self._turn_strikes = 0
             self._turn_reves_opened = 0
             self._turn_trig_lit_mask = 0
+            self._turn_gardiens_seen_mask = 0
+            self._turn_reves_seen_mask = 0
             self._turn_reveil_active = False
             self._turn_def_snap = None
             self._turn_pre5_snap = None
@@ -1020,6 +1063,7 @@ class TelemetryTracker:
 
     def on_game_over_ratio(self, state: GameState, *, cause: str, ratio_arbres: float) -> None:
         """Finalise l'anatomie d'Éveil, les jetons Puissance et les reliquats Ockham de fin de partie."""
+        self._sync_turn_tile_activations(state)
         tot_pow = state.total_power_tokens_plateau()
         if state.tour >= 4 and self.act1_reached == 0:
             self.power_tokens_end_act1 = tot_pow
@@ -1081,7 +1125,7 @@ class TelemetryTracker:
 
     def on_gardien_sweep(
         self,
-        _state: GameState,
+        state: GameState,
         *,
         repasses: int,
         opened: int,
@@ -1092,6 +1136,8 @@ class TelemetryTracker:
         self.interrupt_windows_count += 1
         self.cascade_sweeps += repasses
         self.gardiens_opened_total += opened
+        if opened > 0:
+            self._sync_turn_tile_activations(state)
         if opened_in_later_pass > 0:
             self.ok_cascade_second_pass_sweeps += 1
         if in_combat and opened > 0:
@@ -1164,6 +1210,7 @@ class TelemetryTracker:
         if count > 0:
             self.bouclier_lisiere_saves += count
             self.ok_bouclier_saves += count
+            self.record_tile_activation("SLOT_COLONISATION_GARDIENS", count)
 
     def on_trigger_lit(self, case_num: int) -> None:
         """Enregistre l'allumage de chacune des 6 cases déclencheurs 1..6 durant le tour."""
@@ -1211,6 +1258,7 @@ class TelemetryTracker:
         """Enregistre les déviations de dé M par Insecte sur la Piste des Tactiques en 3.2."""
         if count > 0:
             self.da_insecte_bug_deviation += count
+            self.record_tile_activation("SLOT_BUG_CERVEAU", count)
 
     def on_defense_repousse_finale(self, trees_regrown: int) -> None:
         """Enregistre le nombre total d'Arbres repoussés depuis les Souches en fin de partie."""
@@ -1219,6 +1267,7 @@ class TelemetryTracker:
 
     def on_end_turn(self, state: GameState, *, game_over: bool) -> None:
         """Clôture le ratio `physical_ops / max(1, decisions_joueurs)` du tour écoulé."""
+        self._sync_turn_tile_activations(state)
         if not game_over and state.tour == 4 and self.act1_reached == 0:
             self.power_tokens_end_act1 = state.total_power_tokens_plateau()
             self.act1_reached = 1
@@ -1427,4 +1476,5 @@ class TelemetryTracker:
             rf_trig5_lit=self.rf_trig5_lit,
             rf_trig6_lit=self.rf_trig6_lit,
             rf_sabotage_in_deck=self.rf_sabotage_in_deck,
+            tile_activations=tuple(sorted(self.tile_activations.items())),
         )

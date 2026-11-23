@@ -1,0 +1,19 @@
+{
+  "schema_version": "6.1.0-alpha",
+  "campaign_name": "template_calibration_panel_v6_1",
+  "description": "Gabarit standard de calibration v6.1 avec panel obligatoire B0 / B1 / B2 / B2_OPEN (plafond paravents ouverts), cercles de voisinage équilibrés et différences appariées groupées par table.",
+  "mode": 4,
+  "bots": "CALIBRATION_PANEL",
+  "k_max": 2,
+  "seed": 20261201,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "BALANCED_CIRCLES",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 60,
+  "include_v6_audit_blocks": true,
+  "ab_tile_protocol": "ACTIVE_VS_NEUTRE",
+  "ab_slots": ["G1", "G2", "R1", "M1"],
+  "base_instance": {
+    "bundle_id": "STANDARD_A"
+  }
+}

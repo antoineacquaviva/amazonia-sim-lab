@@ -52,9 +52,9 @@ GEMINI_EDITORIAL_HEADER: str = (
 GEMINI_EDITORIAL_STYLE_INSTRUCTIONS: str = (
     "Consignes de restitution pour l'auteur :\n"
     "- Continuité de la discussion avant tout : si une conversation est déjà en cours, réponds d'abord dans sa continuité directe (en reliant les résultats aux hypothèses, intentions et arbitrages déjà discutés et à la question précise du message). N'utilise le bilan complet en 4 temps que si la discussion vient de démarrer ou si l'auteur demande un bilan global.\n"
-    "- Fiabilité factuelle : pour les chiffres et les règles actives, ne rien inventer et s'appuyer uniquement sur les données de ce bilan.\n"
+    "- Fiabilité factuelle et incertitude : pour les chiffres et les règles actives, ne rien inventer, s'appuyer uniquement sur les données de ce bilan et citer systématiquement les fourchettes d'incertitude (intervalles de confiance à 95 %) pour tout écart entre variantes, toute dispersion entre cercles et tout pire quintile ; signaler explicitement lorsqu'une incertitude est non estimable (un seul cercle joué) ou qu'une tuile s'active moins d'une fois par partie (effet non significatif).\n"
     "- Français naturel et zéro jargon : rédige en français clair pour l'auteur du jeu, sans code interne, nom de variable, identifiant de variante, numéro de règle/d'étape ni sigle statistique brut (traduis systématiquement chaque notion en langage concret de jeu de société).\n"
-    "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.\n"
+    "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants (avec leurs marges d'incertitude à 95 %) ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs et stabilité entre niveaux d'équipe) ; 4) Préconisations hiérarchisées pour la suite.\n"
     "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
 )
 
@@ -68,18 +68,24 @@ AUTHOR_REPORTING_INSTRUCTIONS: dict[str, Any] = {
     "fiabilite_factuelle": (
         "Pour les règles actives et les statistiques, ne rien inventer et se fier uniquement aux données de ce bilan."
     ),
+    "incertitude_obligatoire": (
+        "Citer systématiquement la fourchette d'incertitude (intervalle de confiance à 95 %) "
+        "pour chaque différence appariée, chaque dispersion entre cercles et le pire quintile ; "
+        "signaler explicitement toute incertitude non estimable (1 seul cercle) et toute tuile "
+        "activée moins d'une fois par partie (non significative)."
+    ),
     "interdits": (
         "Aucun code interne, nom de variable, identifiant de variante, numéro d'étape/règle "
         "ni sigle statistique brut dans le corps du rapport."
     ),
     "traduction_obligatoire": (
         "Traduire chaque indicateur et variante en langage concret de jeu de société "
-        "(ex. joueurs débutants/intermédiaires/aguerris, pires 20 % de parties, description claire des règles testées)."
+        "(ex. joueurs débutants/intermédiaires/aguerris/équipe à paravents ouverts, pires 20 % de parties, description claire des règles testées)."
     ),
     "structure_bilan_global": [
         "1. Hauteur de vue (lien avec les travaux en cours et les intentions d'auteur)",
-        "2. Chiffres clés (essentiels, lisibles et contextualisés)",
-        "3. Constats majeurs (forces, fragilités, sensations de 3 à 6 joueurs)",
+        "2. Chiffres clés (essentiels, lisibles, contextualisés et accompagnés de leurs marges d'incertitude à 95 %)",
+        "3. Constats majeurs (forces, fragilités, sensations de 3 à 6 joueurs et stabilité du signe entre niveaux d'équipe)",
         "4. Préconisations pour la suite (arbitrages concrets et hiérarchisés)",
     ],
     "annexe_technique": (

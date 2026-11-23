@@ -894,6 +894,15 @@
             games: null,
             gamesLabel: null,
             shapleyPhi: null,
+            abDelta: null,
+            abCi95Low: null,
+            abCi95High: null,
+            abRefProfile: null,
+            abProtocol: null,
+            abEstimable: null,
+            activationsPerGame: null,
+            lowActivationLt1: false,
+            significant: null,
             interactions: [],
             alerts: []
           };
@@ -1111,7 +1120,7 @@
         });
       }
 
-      // 5) Métriques directes par tuile/profil (schéma générique pour campagnes ciblées futures)
+      // 5) Métriques directes / protocole A/B apparié par tuile/profil
       const directSource = digest.tile_metrics || digest.by_tile || digest.profiles_metrics || null;
       if (directSource && typeof directSource === 'object') {
         const entries = Array.isArray(directSource)
@@ -1124,17 +1133,49 @@
           const rec = ensureProfile(parsed.slot, parsed.profile);
           if (!rec) return;
           rec.tested = true;
-          const wr = typeof val.win_rate === 'number' ? val.win_rate : (typeof val.taux_victoire === 'number' ? val.taux_victoire : (typeof val.mean_ratio_arbres === 'number' ? val.mean_ratio_arbres : null));
+          if (typeof val.protocol === 'string') rec.abProtocol = val.protocol;
+          if (typeof val.ref_profile === 'string') rec.abRefProfile = val.ref_profile;
+          if (typeof val.ab_effect_estimable === 'boolean') rec.abEstimable = val.ab_effect_estimable;
+          if (typeof val.mean_delta_ratio === 'number') rec.abDelta = val.mean_delta_ratio;
+          if (typeof val.ci95_low === 'number') rec.abCi95Low = val.ci95_low;
+          if (typeof val.ci95_high === 'number') rec.abCi95High = val.ci95_high;
+          if (typeof val.activations_per_game === 'number') rec.activationsPerGame = val.activations_per_game;
+          if (typeof val.low_activation_lt1 === 'boolean') {
+            rec.lowActivationLt1 = val.low_activation_lt1;
+          } else if (typeof val.activations_per_game === 'number') {
+            rec.lowActivationLt1 = val.activations_per_game < 1.0;
+          }
+          if (typeof val.significant === 'boolean') rec.significant = val.significant;
+
+          const wr = typeof val.win_rate === 'number'
+            ? val.win_rate
+            : (typeof val.taux_victoire === 'number'
+                ? val.taux_victoire
+                : (typeof val.mean_ratio_arbres === 'number'
+                    ? val.mean_ratio_arbres
+                    : (typeof val.mean_ratio_arbres_in_play === 'number' ? val.mean_ratio_arbres_in_play : null)));
           if (wr !== null) {
             rec.winRate = wr;
             rec.winRateLabel = typeof val.win_rate === 'number' || typeof val.taux_victoire === 'number' ? 'Taux de victoire' : 'Ratio arbres moyen';
           }
-          const ng = typeof val.n_games === 'number' ? val.n_games : (typeof val.games === 'number' ? val.games : (typeof val.samples === 'number' ? val.samples : null));
+          const ng = typeof val.n_pairs === 'number' && val.n_pairs > 0
+            ? val.n_pairs
+            : (typeof val.n_games_in_play === 'number'
+                ? val.n_games_in_play
+                : (typeof val.n_games === 'number'
+                    ? val.n_games
+                    : (typeof val.games === 'number' ? val.games : (typeof val.samples === 'number' ? val.samples : null))));
           if (ng !== null) {
             rec.games = ng;
-            rec.gamesLabel = `${formatInt(ng)} parties`;
+            rec.gamesLabel = typeof val.n_pairs === 'number' && val.n_pairs > 0
+              ? `${formatInt(ng)} paires A/B`
+              : `${formatInt(ng)} parties`;
           }
           if (typeof val.cvar20 === 'number') rec.cvar20 = val.cvar20;
+          if (rec.lowActivationLt1) {
+            const actTxt = typeof rec.activationsPerGame === 'number' ? `${rec.activationsPerGame.toFixed(2)} act./partie` : '< 1 act./partie';
+            pushAlert(rec.alerts, 'warn', `Non significatif (${actTxt} < 1/partie — effet masqué)`);
+          }
           const explicitAlerts = val.alerts || val.alertes || [];
           if (Array.isArray(explicitAlerts)) {
             explicitAlerts.forEach(al => {
@@ -1148,7 +1189,7 @@
       // 6) Alertes de seuils sur chaque profil indexé
       Object.values(bySlot).forEach(slotObj => {
         Object.values(slotObj.profiles).forEach(rec => {
-          if (typeof rec.winRate === 'number') {
+          if (typeof rec.winRate === 'number' && !rec.abProtocol) {
             if (rec.winRate < 0.50) pushAlert(rec.alerts, 'danger', `Taux bas (${formatPct(rec.winRate)})`);
             else if (rec.winRate > 0.90) pushAlert(rec.alerts, 'warn', `Taux très élevé (${formatPct(rec.winRate)})`);
           }
@@ -1179,9 +1220,9 @@
       "",
       "Consignes de restitution pour l'auteur :",
       "- Continuité de la discussion avant tout : si une conversation est déjà en cours, réponds d'abord dans sa continuité directe (en reliant ces résultats aux hypothèses, intentions et arbitrages déjà discutés et à la question précise du message). N'utilise le bilan complet en 4 temps que si la discussion vient de démarrer ou si l'auteur demande un bilan global.",
-      "- Fiabilité factuelle : pour les chiffres et les règles actives, ne rien inventer et s'appuyer uniquement sur les données de ce bilan.",
+      "- Fiabilité factuelle et incertitude : pour les chiffres et les règles actives, ne rien inventer, s'appuyer uniquement sur les données de ce bilan et citer systématiquement les fourchettes d'incertitude (intervalles de confiance à 95 %) pour tout écart entre variantes, toute dispersion entre cercles et tout pire quintile ; signaler explicitement lorsqu'une incertitude est non estimable (un seul cercle joué) ou qu'une tuile s'active moins d'une fois par partie (effet non significatif).",
       "- Français naturel et zéro jargon : rédige en français clair pour l'auteur du jeu, sans code interne, nom de variable, identifiant de variante, numéro de règle/d'étape ni sigle statistique brut (traduis systématiquement chaque notion en langage concret de jeu de société).",
-      "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs) ; 4) Préconisations hiérarchisées pour la suite.",
+      "- Pour un bilan global, structure en 4 temps : 1) Hauteur de vue par rapport aux travaux en cours et aux intentions d'auteur ; 2) Chiffres clés essentiels et parlants (avec leurs marges d'incertitude à 95 %) ; 3) Constats majeurs (ce qui fonctionne, ce qui coince, sensations de 3 à 6 joueurs et stabilité entre niveaux d'équipe) ; 4) Préconisations hiérarchisées pour la suite.",
       "- Si tu proposes un prompt technique destiné à Antigravity, place-le uniquement à la toute fin dans un encart séparé « Annexe technique (pour Antigravity) »."
     ].join('\n');
     let copyDigestFeedbackTimer = null;
@@ -1434,6 +1475,12 @@
       reader.readAsText(file, 'utf-8');
     }
 
+    function formatSignedPts(ratioDelta) {
+      const pts = ratioDelta * 100.0;
+      const sign = pts >= 0 ? '+' : '';
+      return `${sign}${pts.toFixed(2)} pts`;
+    }
+
     function renderSlotDigestFooter(tileId, lettersToShow) {
       if (!state.activeDigest || !state.digestIndex) return '';
       const slotData = state.digestIndex.bySlot[tileId];
@@ -1452,13 +1499,50 @@
         });
       });
 
-      const primaryRec = matchingRecords.find(r => r.inCanon) || matchingRecords.find(r => r.winRate !== null) || matchingRecords[0];
-      const winRateText = primaryRec.winRate !== null ? formatPct(primaryRec.winRate) : '—';
+      const primaryRec =
+        matchingRecords.find(r => r.abProtocol && r.abProtocol !== 'PAIRED_AB_REFERENCE') ||
+        matchingRecords.find(r => r.inCanon) ||
+        matchingRecords.find(r => r.winRate !== null) ||
+        matchingRecords[0];
       const gamesText = primaryRec.gamesLabel || (primaryRec.games !== null ? `${formatInt(primaryRec.games)} parties` : (s.total_games !== null ? `${formatInt(s.total_games)} parties` : '—'));
+
+      let primaryMetricHtml = '';
+      if (primaryRec.abProtocol === 'ACTIVATION_AUDIT_ONLY') {
+        const actStr = typeof primaryRec.activationsPerGame === 'number'
+          ? `${primaryRec.activationsPerGame.toFixed(2)} act./partie`
+          : '—';
+        primaryMetricHtml = `<span class="font-semibold text-slate-800">Activations : <span class="font-mono text-sky-700">${escapeHtml(actStr)}</span> <span class="text-slate-500 font-normal">(effet A/B non estimable sans neutralisation)</span></span>`;
+      } else if (primaryRec.abProtocol && primaryRec.abProtocol.startsWith('PAIRED_AB')) {
+        const refLbl = primaryRec.abRefProfile ? ` vs ${primaryRec.abRefProfile}` : '';
+        const actStr = typeof primaryRec.activationsPerGame === 'number'
+          ? `${primaryRec.activationsPerGame.toFixed(2)} act./partie`
+          : null;
+        if (primaryRec.lowActivationLt1) {
+          primaryMetricHtml = `<span class="font-semibold text-amber-900">Écart A/B${escapeHtml(refLbl)} : <span class="font-mono text-amber-800">masqué (non significatif, ${escapeHtml(actStr || '< 1 act./partie')})</span></span>`;
+        } else if (typeof primaryRec.abDelta === 'number') {
+          const deltaTxt = formatSignedPts(primaryRec.abDelta);
+          const ciTxt = (typeof primaryRec.abCi95Low === 'number' && typeof primaryRec.abCi95High === 'number')
+            ? `[IC95 : ${formatSignedPts(primaryRec.abCi95Low)} ; ${formatSignedPts(primaryRec.abCi95High)}]`
+            : '[IC95 : non estimable]';
+          const deltaCls = primaryRec.abDelta >= 0 ? 'text-emerald-700' : 'text-rose-700';
+          primaryMetricHtml = `<span class="font-semibold text-slate-800">Écart A/B${escapeHtml(refLbl)} : <span class="font-mono ${deltaCls}">${escapeHtml(deltaTxt)}</span> <span class="font-mono text-[11px] text-slate-600">${escapeHtml(ciTxt)}</span>${actStr ? ` <span class="text-slate-500 font-mono text-[11px]">· ${escapeHtml(actStr)}</span>` : ''}</span>`;
+        } else {
+          primaryMetricHtml = `<span class="font-semibold text-slate-700">Écart A/B${escapeHtml(refLbl)} : <span class="font-mono">non estimable</span></span>`;
+        }
+      } else {
+        const winRateText = primaryRec.winRate !== null ? formatPct(primaryRec.winRate) : '—';
+        primaryMetricHtml = `<span class="font-semibold text-slate-800">${escapeHtml(primaryRec.winRateLabel)} : <span class="font-mono text-emerald-700">${winRateText}</span></span>` +
+          (primaryRec.cvar20 !== null ? ` <span class="text-slate-600 font-mono text-[11px]">(CVaR₂₀ : ${formatPct(primaryRec.cvar20)})</span>` : '');
+      }
 
       const profileBadgesHtml = matchingRecords.map(rec => {
         const parts = [`${tileId}:${rec.profile}`];
         if (rec.inCanon) parts.push('★ Canon 32');
+        if (typeof rec.abDelta === 'number' && !rec.lowActivationLt1 && rec.abProtocol !== 'PAIRED_AB_REFERENCE') {
+          parts.push(`Δ ${formatSignedPts(rec.abDelta)}`);
+        } else if (rec.lowActivationLt1) {
+          parts.push('< 1 act./p.');
+        }
         if (typeof rec.shapleyPhi === 'number') {
           parts.push(`φ ${rec.shapleyPhi >= 0 ? '+' : ''}${rec.shapleyPhi.toFixed(3)}`);
         }
@@ -1479,8 +1563,7 @@
         <div class="mt-4 pt-3 border-t border-slate-200 bg-slate-50/90 -mx-5 -mb-5 px-5 py-3 rounded-b-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="px-2 py-0.5 rounded bg-slate-800 text-sky-200 font-mono text-[11px] font-semibold">📊 ${escapeHtml(s.campaign)}</span>
-            <span class="font-semibold text-slate-800">${escapeHtml(primaryRec.winRateLabel)} : <span class="font-mono text-emerald-700">${winRateText}</span></span>
-            ${primaryRec.cvar20 !== null ? `<span class="text-slate-600 font-mono text-[11px]">(CVaR₂₀ : ${formatPct(primaryRec.cvar20)})</span>` : ''}
+            ${primaryMetricHtml}
             <span class="text-slate-500">·</span>
             <span class="text-slate-700">Effectif : <strong class="font-mono">${escapeHtml(gamesText)}</strong></span>
             ${profileBadgesHtml}

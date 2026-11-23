@@ -21,7 +21,7 @@ from typing import Any
 import engine.effects  # noqa: F401
 from bots.bot_b0 import play_game_b0
 from bots.bot_b3_rh import play_game_b3
-from bots.heuristic_engine import play_game_b1, play_game_b2
+from bots.heuristic_engine import play_game_b1, play_game_b2, play_game_b2_open
 from campaigns.designs import (
     balanced_neighbor_mirror_tables,
     mirror_peuples,
@@ -32,6 +32,7 @@ from campaigns.digest_builder import (
     build_prompt_gemini_markdown,
     build_self_contained_digest,
 )
+from campaigns.stats_tools import cvar_exact_values
 from engine.core_engine import ensure_builtin_migration_registered
 from engine.effects.registry import list_registered_tiles
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
@@ -39,6 +40,7 @@ from engine.state import (
     ANIMAUX_SAUVAGES,
     CANONICAL_P_MAX,
     CANONICAL_PROFIL_PISTE,
+    MATRICE_PAIRES,
     PEUPLES_ONIRIQUES,
     PEUPLES_ORDER,
     STATE_BUF_SIZE,
@@ -66,6 +68,9 @@ NATIVE_MIGRATION_SLOTS: frozenset[str] = frozenset(
     {"SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"}
 )
 NEUTRAL_TILE_PROFILE: str = "NEUTRE"
+CALIBRATION_BOT_PANEL: tuple[str, ...] = ("B0", "B1", "B2", "B2_OPEN")
+ALLOWED_BOTS: frozenset[str] = frozenset({"B0", "B1", "B2", "B2_OPEN", "B3"})
+ALLOWED_AB_TILE_PROTOCOLS: frozenset[str] = frozenset({"ACTIVE_VS_NEUTRE", "PROFILE_COMPARE"})
 
 ALLOWED_MANIFEST_KEYS: frozenset[str] = frozenset(
     {
@@ -91,6 +96,9 @@ ALLOWED_MANIFEST_KEYS: frozenset[str] = frozenset(
         "include_v6_audit_blocks",
         "base_instance",
         "slot_profile_comparisons",
+        "ab_tile_protocol",
+        "ab_slots",
+        "reference_variant_id",
     }
 )
 ALLOWED_BASE_INSTANCE_KEYS: frozenset[str] = frozenset(
@@ -318,6 +326,23 @@ def _validate_tile_profile_executable(
     return s_norm, p_norm
 
 
+def _active_slots_for_peuples_tuple(peuples: tuple[str, ...]) -> frozenset[str]:
+    """Retourne les emplacements (parmi les 32) effectivement présents sur ce cercle de peuples."""
+    n = len(peuples)
+    active: set[str] = set()
+    if n >= 3:
+        for i in range(n):
+            pair_tiles = MATRICE_PAIRES.get(f"{peuples[i]}_{peuples[(i + 1) % n]}")
+            if pair_tiles:
+                active.add(pair_tiles[0])
+                active.add(pair_tiles[1])
+    if "I" in peuples:
+        active.add("SLOT_BUG_CERVEAU")
+        if any(p in ANIMAUX_SAUVAGES for p in peuples):
+            active.add("SLOT_COLONISATION_GARDIENS")
+    return frozenset(active)
+
+
 def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     """Valide strictement et résout un manifeste JSON `campaigns/<nom>.json` en plan déterministe v6.1."""
     if not isinstance(manifest, dict):
@@ -356,7 +381,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     raw_bots = manifest.get("bots")
     if raw_bots is not None:
         if isinstance(raw_bots, str):
-            bot_list = [raw_bots.strip().upper()]
+            norm_b = raw_bots.strip().upper()
+            bot_list = list(CALIBRATION_BOT_PANEL) if norm_b == "CALIBRATION_PANEL" else [norm_b]
         elif isinstance(raw_bots, (list, tuple)):
             bot_list = [str(b).strip().upper() for b in raw_bots]
         else:
@@ -364,9 +390,10 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     else:
         bot_list = [str(manifest.get("bot", "B2")).strip().upper()]
     bot_list = list(dict.fromkeys(bot_list))
-    if not bot_list or any(b not in ("B0", "B1", "B2", "B3") for b in bot_list):
+    if not bot_list or any(b not in ALLOWED_BOTS for b in bot_list):
         raise ValueError(
-            f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} (attendu B0/B1/B2/B3)"
+            f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} "
+            f"(attendu {sorted(ALLOWED_BOTS)} ou 'CALIBRATION_PANEL')"
         )
     bot_name = bot_list[0]
 
@@ -427,10 +454,58 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         )
         base_map[s_ok] = p_ok
 
-    # 2. Validation & résolution des variantes de profils comparés (slot_profile_comparisons)
+    # 2. Validation du protocole A/B apparié ou des comparaisons de profils (slot_profile_comparisons)
+    raw_ab_proto = manifest.get("ab_tile_protocol")
+    ab_tile_protocol: str | None = None
+    if raw_ab_proto is not None:
+        ab_tile_protocol = str(raw_ab_proto).strip().upper()
+        if ab_tile_protocol not in ALLOWED_AB_TILE_PROTOCOLS:
+            raise ValueError(
+                f"ab_tile_protocol invalide : {raw_ab_proto!r} "
+                f"(attendu {sorted(ALLOWED_AB_TILE_PROTOCOLS)})"
+            )
+
+    raw_ab_slots = manifest.get("ab_slots")
+    ab_slots: list[str] = []
+    if raw_ab_slots is not None:
+        if ab_tile_protocol != "ACTIVE_VS_NEUTRE":
+            raise ValueError(
+                "ab_slots ne peut être utilisé qu'avec ab_tile_protocol='ACTIVE_VS_NEUTRE'."
+            )
+        if isinstance(raw_ab_slots, str):
+            norm_s = raw_ab_slots.strip().upper()
+            if norm_s == "ALL_32":
+                ab_slots = list(CANONICAL_32_SLOTS)
+            elif norm_s == "ALL_30":
+                ab_slots = list(CANONICAL_32_SLOTS[:30])
+            else:
+                raise ValueError(
+                    f"ab_slots chaîne invalide : {raw_ab_slots!r} (attendu 'ALL_32', 'ALL_30' ou liste)"
+                )
+        elif isinstance(raw_ab_slots, (list, tuple)) and raw_ab_slots:
+            for item in raw_ab_slots:
+                s_item = str(item).strip()
+                if s_item not in CANONICAL_32_SLOTS_SET:
+                    raise ValueError(f"Emplacement inconnu dans ab_slots : {item!r}")
+                if s_item not in ab_slots:
+                    ab_slots.append(s_item)
+        else:
+            raise ValueError(f"ab_slots invalide : {raw_ab_slots!r}")
+    elif ab_tile_protocol == "ACTIVE_VS_NEUTRE":
+        ab_slots = list(CANONICAL_32_SLOTS if mode >= 3 else NATIVE_MIGRATION_SLOTS)
+
     raw_comps = manifest.get("slot_profile_comparisons", {})
     if not isinstance(raw_comps, dict):
         raise TypeError("slot_profile_comparisons doit être un objet JSON.")
+    if ab_tile_protocol == "ACTIVE_VS_NEUTRE" and raw_comps:
+        raise ValueError(
+            "ab_tile_protocol='ACTIVE_VS_NEUTRE' est exclusif de slot_profile_comparisons."
+        )
+    if ab_tile_protocol == "PROFILE_COMPARE" and not raw_comps:
+        raise ValueError(
+            "ab_tile_protocol='PROFILE_COMPARE' requiert un dictionnaire slot_profile_comparisons non vide."
+        )
+
     validated_comps: dict[str, list[str]] = {}
     for raw_slot, raw_profs in raw_comps.items():
         slot_s = str(raw_slot).strip()
@@ -460,7 +535,38 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     profile_variants: list[dict[str, Any]] = []
     tested_tiles_set: list[tuple[str, str]] = []
     varying_tiles_set: list[tuple[str, str]] = []
-    if ordered_comp_slots:
+    if ab_tile_protocol == "ACTIVE_VS_NEUTRE":
+        for s_ab in ab_slots:
+            _validate_tile_profile_executable(
+                s_ab, base_map[s_ab], mode=mode, registered_tiles=registered_tiles
+            )
+            for pair in ((s_ab, base_map[s_ab]), (s_ab, NEUTRAL_TILE_PROFILE)):
+                if pair not in varying_tiles_set:
+                    varying_tiles_set.append(pair)
+                if pair not in tested_tiles_set:
+                    tested_tiles_set.append(pair)
+        profile_variants.append(
+            {
+                "variant_idx": 0,
+                "variant_id": "BASE",
+                "compared_slots": {},
+                "required_active_slot": None,
+                "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
+            }
+        )
+        for v_offset, s_ab in enumerate(ab_slots, start=1):
+            gmap = dict(base_map)
+            gmap[s_ab] = NEUTRAL_TILE_PROFILE
+            profile_variants.append(
+                {
+                    "variant_idx": v_offset,
+                    "variant_id": f"{s_ab}:{NEUTRAL_TILE_PROFILE}",
+                    "compared_slots": {s_ab: NEUTRAL_TILE_PROFILE},
+                    "required_active_slot": s_ab,
+                    "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
+                }
+            )
+    elif ordered_comp_slots:
         for s, letters in zip(ordered_comp_slots, comp_lists, strict=True):
             for letter in letters:
                 pair = (s, letter)
@@ -484,6 +590,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     "variant_idx": v_idx,
                     "variant_id": v_label,
                     "compared_slots": overrides,
+                    "required_active_slot": None,
                     "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
                 }
             )
@@ -493,6 +600,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 "variant_idx": 0,
                 "variant_id": "BASE",
                 "compared_slots": {},
+                "required_active_slot": None,
                 "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
             }
         )
@@ -500,6 +608,18 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             for s in CANONICAL_32_SLOTS[:30]:
                 if base_map[s] != "A":
                     tested_tiles_set.append((s, base_map[s]))
+
+    raw_ref_vid = manifest.get("reference_variant_id")
+    variant_ids = [str(v["variant_id"]) for v in profile_variants]
+    if raw_ref_vid is not None:
+        reference_variant_id = str(raw_ref_vid).strip()
+        if reference_variant_id not in variant_ids:
+            raise ValueError(
+                f"reference_variant_id inconnu : {reference_variant_id!r} "
+                f"(variantes résolues : {variant_ids})"
+            )
+    else:
+        reference_variant_id = "BASE" if "BASE" in variant_ids else variant_ids[0]
 
     # 3. Construction des unités de calcul (cercles de voisinage équilibrés en paires miroirs CRN)
     base_peuples_raw = base_inst_raw.get("peuples_cercle", [])
@@ -581,7 +701,9 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     idx_t += 1
 
             for var in profile_variants:
+                req_slot = var.get("required_active_slot")
                 rep_offset = 0
+                emitted_for_var = False
                 for is_mirror_pair, grp in table_groups:
                     max_g_in_grp = 0
                     for t_i, t_id, peuples in grp:
@@ -589,6 +711,11 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                         if g_cnt <= 0:
                             continue
                         max_g_in_grp = max(max_g_in_grp, g_cnt)
+                        if req_slot is not None and req_slot not in _active_slots_for_peuples_tuple(
+                            peuples
+                        ):
+                            continue
+                        emitted_for_var = True
                         units.append(
                             {
                                 "campaign": campaign_name,
@@ -622,7 +749,8 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                             }
                         )
                     rep_offset += max_g_in_grp
-                config_idx += 1
+                if emitted_for_var:
+                    config_idx += 1
 
     return {
         "campaign_name": campaign_name,
@@ -632,6 +760,9 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "base_tile_profiles": dict(base_map),
         "resolved_32_slots_sha256": resolved_32_slots_sha256,
         "profile_variants": profile_variants,
+        "reference_variant_id": reference_variant_id,
+        "ab_tile_protocol": ab_tile_protocol,
+        "ab_slots": tuple(ab_slots),
         "tested_tiles": tuple(tested_tiles_set),
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
@@ -672,7 +803,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     n_games = int(unit["n_games"])
 
     ratios: list[float] = []
+    rep_ratios_bp: list[int] = []
     ratio_bp_counts: dict[str, int] = {}
+    tile_act_acc: dict[str, int] = {}
     sum_arbres = 0
     sum_ratio = 0.0
     sum_sq_ratio = 0.0
@@ -810,6 +943,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             res = play_game_b0(st, max_steps=2000, telemetry=trk)
         elif bot_name == "B1":
             res = play_game_b1(st, k_max_passes=k_max, max_steps=2000, telemetry=trk)
+        elif bot_name == "B2_OPEN":
+            res = play_game_b2_open(st, k_max_passes=k_max, max_steps=2000, telemetry=trk)
         elif bot_name == "B3":
             res = play_game_b3(st, k_max_passes=max(1, k_max), max_steps=2000, telemetry=trk)
         else:
@@ -817,8 +952,10 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
 
         rt = float(res.ratio_arbres)
         tf = int(res.tour_fin)
+        bp_int = round(rt * 10000)
         ratios.append(rt)
-        bp_key = str(round(rt * 10000))
+        rep_ratios_bp.append(bp_int)
+        bp_key = str(bp_int)
         ratio_bp_counts[bp_key] = ratio_bp_counts.get(bp_key, 0) + 1
         sum_arbres += int(res.score_arbres)
         sum_ratio += rt
@@ -838,6 +975,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             cnt_reveil += 1
 
         ts = trk.summary()
+        for slot_act, cnt_act in ts.tile_activations:
+            tile_act_acc[slot_act] = tile_act_acc.get(slot_act, 0) + int(cnt_act)
         cnt_reveil_attempts += int(ts.reveil_attempts)
         cnt_reveil_failures += int(ts.reveil_failures)
         cnt_gardien_bets_won += int(ts.gardien_bets_won)
@@ -877,9 +1016,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
                 reveil_anat_acc[k] += int(getattr(ts, k))
 
     ratios.sort()
-    k20 = max(1, (len(ratios) + 4) // 5)
     p20_idx = min(len(ratios) - 1, max(0, int(0.2 * (len(ratios) - 1))))
-    cvar20 = sum(ratios[:k20]) / k20
+    cvar20 = cvar_exact_values(ratios, alpha=0.20)
     wall_sec = time.perf_counter() - t0
 
     out_row: dict[str, Any] = {
@@ -893,6 +1031,8 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "variant_id": str(unit["variant_id"]),
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "ratio_bp_counts_json": json.dumps(ratio_bp_counts, sort_keys=True),
+        "rep_ratios_bp_json": json.dumps(rep_ratios_bp, separators=(",", ":")),
+        "tile_activations_json": json.dumps(tile_act_acc, sort_keys=True, separators=(",", ":")),
         "table_id": str(unit["table_id"]),
         "peuples": "-".join(peuples),
         "n_animaux_sauvages": n_animaux,
@@ -902,6 +1042,7 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "k_max": k_max,
         "mode": mode,
         "exp_seed": exp_seed,
+        "rep_start": rep_start,
         "n_games": n_games,
         "sum_arbres": sum_arbres,
         "sum_ratio_arbres": round(sum_ratio, 6),

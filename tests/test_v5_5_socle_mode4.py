@@ -508,7 +508,7 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
     assert "by_bot" in da
     assert {row["bot"] for row in da["by_bot"]} == {"B0", "B1", "B2"}
 
-    # 2. Section tile_metrics complète sur les 32 slots du catalogue actif
+    # 2. Section tile_metrics (audit d'activations sur les 32 slots sans effet A/B confondu)
     tm = digest["tile_metrics"]
     expected_keys = (
         {f"G{i}:A" for i in range(1, 16)}
@@ -518,5 +518,8 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
     )
     assert set(tm.keys()) == expected_keys
     for k, entry in tm.items():
-        assert entry["n_games"] > 0, f"n_games nul pour le slot {k}"
-        assert 0.0 <= entry["mean_ratio_arbres"] <= 1.0
+        assert entry["n_games_in_play"] > 0, f"n_games_in_play nul pour le slot {k}"
+        assert entry["protocol"] == "ACTIVATION_AUDIT_ONLY"
+        assert entry["ab_effect_estimable"] is False
+        assert entry["activations_per_game"] >= 0.0
+        assert "mean_ratio_arbres" not in entry

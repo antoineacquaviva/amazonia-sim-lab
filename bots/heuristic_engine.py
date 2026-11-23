@@ -69,10 +69,12 @@ __all__ = (
     "EconomieNode",
     "choose_b1",
     "choose_b2",
+    "choose_b2_open",
     "count_active_laws_from_obs",
     "get_economie_catalog",
     "play_game_b1",
     "play_game_b2",
+    "play_game_b2_open",
     "score_target_b1",
     "score_target_b2",
 )
@@ -2409,6 +2411,20 @@ def choose_b2(state: GameState, decision: DecisionRequest) -> Any:
     return BotB2.choose(obs, decision, state.cfg)
 
 
+def choose_b2_open(state: GameState, decision: DecisionRequest) -> Any:
+    """Plafond contrefactuel à paravents ouverts (équipe omnisciente, zéro mutation des règles)."""
+    if state.paravents_ouverts:
+        obs = state.get_observation(decision.decideur)
+    else:
+        saved = state.paravents_ouverts
+        state.paravents_ouverts = True
+        try:
+            obs = state.get_observation(decision.decideur)
+        finally:
+            state.paravents_ouverts = saved
+    return BotB2.choose(obs, decision, state.cfg)
+
+
 def _play_game_cooperative(
     state: GameState,
     *,
@@ -2417,9 +2433,18 @@ def _play_game_cooperative(
     max_steps: int = 2000,
     chassis_id: int = -1,
     telemetry: Any | None = None,
+    counterfactual_open_paravents: bool = False,
 ) -> GameOver:
     scorer = score_target_b2 if is_b2 else score_target_b1
-    chooser = choose_b2 if is_b2 else choose_b1
+    if is_b2 and counterfactual_open_paravents:
+        chooser = choose_b2_open
+        bot_label = "B2_OPEN"
+    elif is_b2:
+        chooser = choose_b2
+        bot_label = "B2"
+    else:
+        chooser = choose_b1
+        bot_label = "B1"
     steps = 0
 
     while True:
@@ -2427,7 +2452,7 @@ def _play_game_cooperative(
         if steps > max_steps:
             cfg = state.cfg
             raise RuntimeError(
-                f"Garde-fou max_steps={max_steps} dépassé ({'B2' if is_b2 else 'B1'}) : "
+                f"Garde-fou max_steps={max_steps} dépassé ({bot_label}) : "
                 f"mode={cfg.mode}, chassis_id={chassis_id}, n_players={cfg.n_players}, "
                 f"exp_seed={cfg.exp_seed}, rep_id={cfg.rep_id}, tour={state.tour}, "
                 f"step={state.step}, continuation={state._continuation!r}"
@@ -2449,6 +2474,7 @@ def _play_game_cooperative(
                 epsilon_base=24.0 if is_b2 else 32.0,
                 epsilon_step=12.0,
                 telemetry=telemetry,
+                counterfactual_open_paravents=counterfactual_open_paravents,
             )
             continue
 
@@ -2491,4 +2517,24 @@ def play_game_b2(
         max_steps=max_steps,
         chassis_id=chassis_id,
         telemetry=telemetry,
+    )
+
+
+def play_game_b2_open(
+    state: GameState,
+    *,
+    k_max_passes: int | None = None,
+    max_steps: int = 2000,
+    chassis_id: int = -1,
+    telemetry: Any | None = None,
+) -> GameOver:
+    """Plafond d'équipe omnisciente à paravents ouverts (`counterfactual_open_paravents=True`)."""
+    return _play_game_cooperative(
+        state,
+        is_b2=True,
+        k_max_passes=k_max_passes,
+        max_steps=max_steps,
+        chassis_id=chassis_id,
+        telemetry=telemetry,
+        counterfactual_open_paravents=True,
     )

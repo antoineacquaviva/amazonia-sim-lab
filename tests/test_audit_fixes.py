@@ -488,7 +488,9 @@ def test_manifest_crn_mirror_and_duckdb_mode4(tmp_path: Path, monkeypatch: Any) 
         gcs_prefix="campaigns/audit_crn_check/20261119T000000Z_deadbeef",
     )
     assert "table_cvar20_ratio" in digest["totals"]
-    assert "within_table_cvar20_ratio" in digest["totals"]
+    assert "cvar20_ci95_low" in digest["totals"]
+    assert "cvar20_ci95_high" in digest["totals"]
+    assert "survival_rate" not in digest["totals"]
     assert "mean_physical_ops" in digest["telemetry"]
     assert "mean_player_decisions" in digest["telemetry"]
     assert digest["telemetry"]["mean_physical_ops"] > 0

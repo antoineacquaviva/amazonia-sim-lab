@@ -32,7 +32,21 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from campaigns.digest_builder import write_digest_and_prompt_files
-from campaigns.worker_main import CANONICAL_32_SLOTS, resolve_manifest_plan
+from campaigns.stats_tools import (
+    assess_sign_stability,
+    circle_dispersion_summary,
+    cvar_exact_values,
+    cvar_with_bootstrap_ci95,
+    estimate_required_pairs,
+    holm_bonferroni_adjust,
+    paired_diff_cluster_ci95,
+    sequential_ci_elimination,
+)
+from campaigns.worker_main import (
+    CANONICAL_32_SLOTS,
+    _execute_manifest_unit,
+    resolve_manifest_plan,
+)
 from engine.state import ANIMAUX_SAUVAGES, MATRICE_PAIRES
 from engine.telemetry import (
     DEFENSE_ATTRIBUTION_FIELDS,
@@ -217,12 +231,10 @@ def _build_run_id(manifest: dict[str, Any]) -> str:
 
 
 def _cvar_bottom_values(values: list[float], alpha: float = 0.20) -> float:
-    """Calcule la moyenne du pire quintile (CVaR_20% inter-tables) d'une liste de ratios."""
+    """Calcule la CVaR continue uniforme sur une liste de ratios."""
     if not values:
         return 0.0
-    ordered = sorted(values)
-    k = max(1, int((len(ordered) * alpha) + 0.999999))
-    return round(sum(ordered[:k]) / k, 4)
+    return round(cvar_exact_values(values, alpha=alpha), 4)
 
 
 def _quantile_values(values: list[float], q: float) -> float:
@@ -239,41 +251,16 @@ def _quantile_values(values: list[float], q: float) -> float:
     return round(ordered[lo] * (1.0 - frac) + ordered[hi] * frac, 4)
 
 
-def _inter_block_ci95(block_means: list[float]) -> dict[str, Any]:
-    """Calcule la moyenne, l'écart-type, l'erreur standard et l'IC95 % inter-blocs."""
-    n = len(block_means)
-    if n == 0:
-        return {
-            "n_blocks": 0,
-            "mean_ratio_arbres": 0.0,
-            "std_inter_blocks": 0.0,
-            "se_inter_blocks": 0.0,
-            "ci95_low": 0.0,
-            "ci95_high": 0.0,
-        }
-    mean_v = sum(block_means) / n
-    if n == 1:
-        m_r = round(mean_v, 4)
-        return {
-            "n_blocks": 1,
-            "mean_ratio_arbres": m_r,
-            "std_inter_blocks": 0.0,
-            "se_inter_blocks": 0.0,
-            "ci95_low": m_r,
-            "ci95_high": m_r,
-        }
-    var = sum((x - mean_v) ** 2 for x in block_means) / (n - 1)
-    std = math.sqrt(max(0.0, var))
-    se = std / math.sqrt(n)
-    half = 1.96 * se
-    return {
-        "n_blocks": n,
-        "mean_ratio_arbres": round(mean_v, 4),
-        "std_inter_blocks": round(std, 4),
-        "se_inter_blocks": round(se, 4),
-        "ci95_low": round(max(0.0, mean_v - half), 4),
-        "ci95_high": round(min(1.0, mean_v + half), 4),
-    }
+def _inter_block_ci95(
+    block_means: list[float],
+    block_weights: list[int] | None = None,
+) -> dict[str, Any]:
+    """Calcule la moyenne pondérée et la dispersion inter-cercles (explicitement non estimable si 1 cercle)."""
+    res = circle_dispersion_summary(block_means, block_weights)
+    # Rétro-compatibilité douce des noms de champs std_inter_blocks / se_inter_blocks
+    res["std_inter_blocks"] = res["std_inter_circles"]
+    res["se_inter_blocks"] = res["se_inter_circles"]
+    return res
 
 
 def _auto_task_count(n_units: int, total_games: int, backend: str) -> int:
@@ -1587,77 +1574,776 @@ def _active_slots_for_peuples_circle(peuples_str: str) -> set[str]:
     return active
 
 
-def _build_full_tile_metrics(
-    con: duckdb.DuckDBPyConnection,
-    base_tile_profiles: dict[str, str],
-    global_mean_ratio: float,
-) -> dict[str, dict[str, Any]]:
-    """Agrège `tile_metrics` sur l'ensemble des 32 emplacements actifs (tables où chaque tuile joue)."""
-    rows = _query_dicts(
-        con,
-        """
-        SELECT
-            peuples,
-            bot,
-            CAST(SUM(n_games) AS INTEGER) AS n_games,
-            SUM(sum_ratio_arbres) AS sum_ratio,
-            SUM(cvar20_ratio * n_games) AS weighted_cvar20
-        FROM cells
-        WHERE n_games > 0
-        GROUP BY peuples, bot
-        """,
-    )
-    acc: dict[str, dict[str, Any]] = {}
-    distinct_bots: set[str] = set()
-    for row in rows:
-        peuples_s = str(row.get("peuples") or "")
-        bot_s = str(row.get("bot") or "")
-        distinct_bots.add(bot_s)
-        ng = int(row["n_games"])
-        sr = float(row["sum_ratio"])
-        wc = float(row["weighted_cvar20"])
-        for slot_id in _active_slots_for_peuples_circle(peuples_s):
-            if slot_id not in acc:
-                acc[slot_id] = {
-                    "n_games": 0,
-                    "sum_ratio": 0.0,
-                    "weighted_cvar20": 0.0,
-                    "by_bot": {},
-                }
-            acc[slot_id]["n_games"] += ng
-            acc[slot_id]["sum_ratio"] += sr
-            acc[slot_id]["weighted_cvar20"] += wc
-            b_map = acc[slot_id]["by_bot"].setdefault(bot_s, [0, 0.0])
-            b_map[0] += ng
-            b_map[1] += sr
+def _parse_json_dict(raw: Any) -> dict[str, Any]:
+    if not raw:
+        return {}
+    if isinstance(raw, dict):
+        return raw
+    try:
+        parsed = json.loads(str(raw))
+        return parsed if isinstance(parsed, dict) else {}
+    except (TypeError, ValueError):
+        return {}
 
-    multi_bot = len(distinct_bots) > 1
-    out: dict[str, dict[str, Any]] = {}
-    for slot_id in CANONICAL_32_SLOTS:
-        prof = str(base_tile_profiles.get(slot_id, "B" if slot_id.startswith("SLOT_") else "A"))
-        tok = f"{slot_id}:{prof}"
-        slot_acc = acc.get(slot_id)
-        if not slot_acc or int(slot_acc["n_games"]) <= 0:
+
+def _parse_bp_list(raw: Any) -> list[int] | None:
+    if not raw:
+        return None
+    if isinstance(raw, list):
+        return [int(x) for x in raw]
+    try:
+        parsed = json.loads(str(raw))
+        if isinstance(parsed, list) and parsed:
+            return [int(x) for x in parsed]
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+def _extract_cell_diffs_pair(row_var: dict[str, Any], row_ref: dict[str, Any]) -> list[float]:
+    """Extrait les différences appariées jeu-à-jeu (CRN) entre deux cellules sur la même table."""
+    bp_v = _parse_bp_list(row_var.get("rep_ratios_bp_json"))
+    bp_r = _parse_bp_list(row_ref.get("rep_ratios_bp_json"))
+    if bp_v is not None and bp_r is not None and len(bp_v) == len(bp_r) and bp_v:
+        return [(a - b) / 10000.0 for a, b in zip(bp_v, bp_r, strict=True)]
+    nv = max(1, int(row_var.get("n_games") or 1))
+    nr = max(1, int(row_ref.get("n_games") or 1))
+    mv = float(row_var.get("sum_ratio_arbres") or 0.0) / nv
+    mr = float(row_ref.get("sum_ratio_arbres") or 0.0) / nr
+    return [mv - mr] * min(nv, nr)
+
+
+def _build_weighted_circle_dispersion(
+    cell_rows: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, dict[str, Any]]]:
+    """Calcule la moyenne pondérée et la dispersion inter-cercles (explicite non estimable si 1 cercle)."""
+    # Agrégation exacte par cercle orienté `peuples` (poids = n_games) -> moyenne globale unifiée avec totals
+    by_circle_global: dict[str, list[float]] = {}
+    by_n_circle: dict[int, dict[str, list[float]]] = {}
+    by_bn_circle: dict[tuple[str, int], dict[str, list[float]]] = {}
+    by_var_circle: dict[str, dict[str, list[float]]] = {}
+
+    for r in cell_rows:
+        ng = int(r.get("n_games") or 0)
+        if ng <= 0:
             continue
-        ng = int(slot_acc["n_games"])
-        mr = round(float(slot_acc["sum_ratio"]) / ng, 4)
-        cv = round(float(slot_acc["weighted_cvar20"]) / ng, 4)
-        entry: dict[str, Any] = {
-            "slot": slot_id,
-            "profile": prof,
-            "n_games": ng,
-            "mean_ratio_arbres": mr,
-            "cvar20": cv,
-            "delta_vs_global": round(mr - global_mean_ratio, 4),
-        }
-        if multi_bot:
-            entry["by_bot"] = {
-                b_key: round(b_vals[1] / b_vals[0], 4)
-                for b_key, b_vals in sorted(slot_acc["by_bot"].items())
-                if b_vals[0] > 0
+        sr = float(r.get("sum_ratio_arbres") or 0.0)
+        circle_key = str(r.get("peuples") or r.get("table_id") or "")
+        n_pl = int(r["n_players"])
+        bot_s = str(r["bot"])
+        vid = str(r["variant_id"])
+
+        for bucket, k in (
+            (by_circle_global, circle_key),
+            (by_n_circle.setdefault(n_pl, {}), circle_key),
+            (by_bn_circle.setdefault((bot_s, n_pl), {}), circle_key),
+            (by_var_circle.setdefault(vid, {}), circle_key),
+        ):
+            acc = bucket.get(k)
+            if acc is None:
+                bucket[k] = [sr, float(ng)]
+            else:
+                acc[0] += sr
+                acc[1] += float(ng)
+
+    def _summarize_circle_map(cmap: dict[str, list[float]]) -> dict[str, Any]:
+        means: list[float] = []
+        weights: list[int] = []
+        for c_key in sorted(cmap):
+            sr_c, ng_c = cmap[c_key]
+            w_i = round(ng_c)
+            if w_i > 0:
+                means.append(sr_c / w_i)
+                weights.append(w_i)
+        return _inter_block_ci95(means, weights)
+
+    global_disp = _summarize_circle_map(by_circle_global)
+    by_n_disp = {str(n_pl): _summarize_circle_map(by_n_circle[n_pl]) for n_pl in sorted(by_n_circle)}
+    by_bn_disp = [
+        {"bot": bot_s, "n_players": n_pl, **_summarize_circle_map(by_bn_circle[(bot_s, n_pl)])}
+        for (bot_s, n_pl) in sorted(by_bn_circle)
+    ]
+    by_var_disp = {vid: _summarize_circle_map(by_var_circle[vid]) for vid in sorted(by_var_circle)}
+
+    inter_block_intervals: dict[str, Any] = {
+        "global": global_disp,
+        "by_n_players": by_n_disp,
+    }
+    circle_dispersion: dict[str, Any] = {
+        "global": global_disp,
+        "by_n_players": by_n_disp,
+        "by_bot_x_n_players": by_bn_disp,
+    }
+    return inter_block_intervals, circle_dispersion, by_var_disp
+
+
+def _build_stratified_cvar_bootstrap(
+    cell_rows: list[dict[str, Any]],
+    *,
+    alpha: float = 0.20,
+    n_boot: int = 300,
+    seed: int = 20261201,
+) -> dict[str, Any]:
+    """Calcule la CVaR directe (alpha uniforme) et son IC 95 % bootstrap sur chaque strate."""
+    global_clusters: dict[str, dict[int, int]] = {}
+    by_mode: dict[tuple[int, str], dict[str, dict[int, int]]] = {}
+    by_n: dict[int, dict[str, dict[int, int]]] = {}
+    by_anim: dict[int, dict[str, dict[int, int]]] = {}
+    by_var: dict[str, dict[str, dict[int, int]]] = {}
+    by_var_n: dict[tuple[str, int], dict[str, dict[int, int]]] = {}
+    by_vbn: dict[tuple[str, str, int], dict[str, dict[int, int]]] = {}
+    by_var_anim: dict[tuple[str, int], dict[str, dict[int, int]]] = {}
+
+    has_any_hist = False
+    for r in cell_rows:
+        raw_h = r.get("ratio_bp_counts_json")
+        if not raw_h:
+            continue
+        parsed_h = _parse_json_dict(raw_h)
+        if not parsed_h:
+            continue
+        has_any_hist = True
+        hist = {int(k): int(v) for k, v in parsed_h.items() if int(v) > 0}
+        if not hist:
+            continue
+
+        circle_k = str(r.get("peuples") or r.get("table_id") or "")
+        mode_i = int(r["mode"])
+        bot_s = str(r["bot"])
+        n_pl = int(r["n_players"])
+        vid = str(r["variant_id"])
+
+        def _merge(target: dict[str, dict[int, int]], c_key: str, h_add: dict[int, int]) -> None:
+            dst = target.setdefault(c_key, {})
+            for bp_v, cnt_v in h_add.items():
+                dst[bp_v] = dst.get(bp_v, 0) + cnt_v
+
+        _merge(global_clusters, circle_k, hist)
+        _merge(by_mode.setdefault((mode_i, bot_s), {}), circle_k, hist)
+        _merge(by_n.setdefault(n_pl, {}), circle_k, hist)
+        _merge(by_var.setdefault(vid, {}), circle_k, hist)
+        _merge(by_var_n.setdefault((vid, n_pl), {}), circle_k, hist)
+        _merge(by_vbn.setdefault((vid, bot_s, n_pl), {}), circle_k, hist)
+        if r.get("n_animaux_sauvages") is not None:
+            na = int(r["n_animaux_sauvages"])
+            _merge(by_anim.setdefault(na, {}), circle_k, hist)
+            _merge(by_var_anim.setdefault((vid, na), {}), circle_k, hist)
+
+    if not has_any_hist:
+        return {"has_hist": False}
+
+    def _run_boot(cmap: dict[str, dict[int, int]], salt: int) -> dict[str, Any]:
+        ordered = [cmap[k] for k in sorted(cmap)]
+        return cvar_with_bootstrap_ci95(
+            ordered, alpha=alpha, n_boot=n_boot, seed=(seed ^ salt) & 0x7FFFFFFF
+        )
+
+    return {
+        "has_hist": True,
+        "global": _run_boot(global_clusters, 101),
+        "by_mode": {k: _run_boot(v, 200 + i) for i, (k, v) in enumerate(sorted(by_mode.items()))},
+        "by_n": {k: _run_boot(v, 300 + i) for i, (k, v) in enumerate(sorted(by_n.items()))},
+        "by_anim": {k: _run_boot(v, 400 + i) for i, (k, v) in enumerate(sorted(by_anim.items()))},
+        "by_variant": {k: _run_boot(v, 500 + i) for i, (k, v) in enumerate(sorted(by_var.items()))},
+        "by_variant_n": {
+            k: _run_boot(v, 600 + i) for i, (k, v) in enumerate(sorted(by_var_n.items()))
+        },
+        "by_vbn": {k: _run_boot(v, 700 + i) for i, (k, v) in enumerate(sorted(by_vbn.items()))},
+        "by_variant_anim": {
+            k: _run_boot(v, 800 + i) for i, (k, v) in enumerate(sorted(by_var_anim.items()))
+        },
+    }
+
+
+def _build_paired_comparisons_block(
+    cell_rows: list[dict[str, Any]],
+    *,
+    reference_variant_id: str,
+    by_variant_rows: list[dict[str, Any]],
+    circle_ci_by_variant: dict[str, dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Construit les différences appariées + IC 95 % groupés par table, correction Holm et stabilité panel."""
+    if not cell_rows:
+        return None
+
+    distinct_variants = sorted({str(r["variant_id"]) for r in cell_rows})
+    distinct_bots = sorted({str(r["bot"]) for r in cell_rows})
+    ref_vid = (
+        reference_variant_id
+        if reference_variant_id in distinct_variants
+        else ("BASE" if "BASE" in distinct_variants else distinct_variants[0])
+    )
+
+    # Indexation CRN : (variant_id, bot, n_players, table_id, exp_seed, rep_start) -> row
+    indexed: dict[tuple[str, str, int, str, int, int], dict[str, Any]] = {}
+    for r in cell_rows:
+        key = (
+            str(r["variant_id"]),
+            str(r["bot"]),
+            int(r["n_players"]),
+            str(r.get("table_id") or r.get("peuples") or ""),
+            int(r.get("exp_seed") or 0),
+            int(r.get("rep_start") or 0),
+        )
+        indexed[key] = r
+
+    vs_ref_entries: list[dict[str, Any]] = []
+    p_items_global: list[tuple[str, float | None]] = []
+
+    if len(distinct_variants) >= 2:
+        for vid in distinct_variants:
+            if vid == ref_vid:
+                continue
+            diffs_all_by_tbl: dict[tuple[int, str], list[float]] = {}
+            diffs_by_bot: dict[str, dict[tuple[int, str], list[float]]] = {}
+            diffs_by_bn: dict[tuple[str, int], dict[str, list[float]]] = {}
+
+            for (v_k, b_k, n_k, t_k, s_k, rs_k), row_v in indexed.items():
+                if v_k != vid:
+                    continue
+                row_ref = indexed.get((ref_vid, b_k, n_k, t_k, s_k, rs_k))
+                if row_ref is None:
+                    continue
+                d_list = _extract_cell_diffs_pair(row_v, row_ref)
+                diffs_all_by_tbl.setdefault((n_k, t_k), []).extend(d_list)
+                diffs_by_bot.setdefault(b_k, {}).setdefault((n_k, t_k), []).extend(d_list)
+                diffs_by_bn.setdefault((b_k, n_k), {}).setdefault(t_k, []).extend(d_list)
+
+            glob_stat = paired_diff_cluster_ci95(diffs_all_by_tbl)
+            bot_stats = {
+                b_s: paired_diff_cluster_ci95(diffs_by_bot[b_s]) for b_s in sorted(diffs_by_bot)
             }
-        out[tok] = entry
-    return out
+            bn_list = [
+                {"bot": b_s, "n_players": n_pl, **paired_diff_cluster_ci95(diffs_by_bn[(b_s, n_pl)])}
+                for (b_s, n_pl) in sorted(diffs_by_bn)
+            ]
+            sign_stab = assess_sign_stability(bot_stats)
+            p_items_global.append((vid, glob_stat.get("p_value")))
+            vs_ref_entries.append(
+                {
+                    "variant_id": vid,
+                    "reference_variant_id": ref_vid,
+                    "global": glob_stat,
+                    "by_bot": bot_stats,
+                    "by_bot_x_n_players": bn_list,
+                    "sign_stability_b1_b2_open": sign_stab,
+                }
+            )
+
+        holm_map = holm_bonferroni_adjust(p_items_global, alpha=0.05)
+        for entry in vs_ref_entries:
+            h_res = holm_map.get(str(entry["variant_id"]), {})
+            entry["holm_adjusted_p"] = h_res.get("holm_adjusted_p")
+            entry["holm_significant"] = bool(h_res.get("reject_h0", False))
+
+    # Élimination séquentielle par IC 95 % entre variantes si >= 2 variantes
+    seq_elim: dict[str, Any] | None = None
+    if len(by_variant_rows) >= 2:
+        cand_list = []
+        for vr in by_variant_rows:
+            vid = str(vr["variant_id"])
+            ci_v = circle_ci_by_variant.get(vid, {})
+            cand_list.append(
+                {
+                    "id": vid,
+                    "mean": float(vr["mean_ratio_arbres"]),
+                    "ci95_low": ci_v.get("ci95_low"),
+                    "ci95_high": ci_v.get("ci95_high"),
+                }
+            )
+        seq_elim = sequential_ci_elimination(cand_list, maximize=True)
+
+    # Comparaisons appariées du panel de bots (B1/B2/B2_OPEN vs B0 et B2_OPEN vs B2)
+    bot_panel_comps: list[dict[str, Any]] = []
+    if len(distinct_bots) >= 2:
+        bot_pairs: list[tuple[str, str]] = []
+        if "B0" in distinct_bots:
+            for b_other in ("B1", "B2", "B2_OPEN", "B3"):
+                if b_other in distinct_bots:
+                    bot_pairs.append((b_other, "B0"))
+        if "B1" in distinct_bots and "B2" in distinct_bots:
+            bot_pairs.append(("B2", "B1"))
+        if "B2" in distinct_bots and "B2_OPEN" in distinct_bots:
+            bot_pairs.append(("B2_OPEN", "B2"))
+        for b_hi, b_lo in bot_pairs:
+            d_tbl: dict[tuple[int, str], list[float]] = {}
+            d_by_n: dict[int, dict[str, list[float]]] = {}
+            for (v_k, b_k, n_k, t_k, s_k, rs_k), row_hi in indexed.items():
+                if b_k != b_hi:
+                    continue
+                row_lo = indexed.get((v_k, b_lo, n_k, t_k, s_k, rs_k))
+                if row_lo is None:
+                    continue
+                dl = _extract_cell_diffs_pair(row_hi, row_lo)
+                d_tbl.setdefault((n_k, t_k), []).extend(dl)
+                d_by_n.setdefault(n_k, {}).setdefault(t_k, []).extend(dl)
+            if d_tbl:
+                bot_panel_comps.append(
+                    {
+                        "comparison": f"{b_hi}_minus_{b_lo}",
+                        "bot_high": b_hi,
+                        "bot_low": b_lo,
+                        "global": paired_diff_cluster_ci95(d_tbl),
+                        "by_n_players": {
+                            str(n_pl): paired_diff_cluster_ci95(d_by_n[n_pl])
+                            for n_pl in sorted(d_by_n)
+                        },
+                    }
+                )
+
+    if not vs_ref_entries and not bot_panel_comps:
+        return None
+
+    out_block: dict[str, Any] = {
+        "reference_variant_id": ref_vid,
+        "multiple_comparison_method": "holm_bonferroni",
+        "bots_present": distinct_bots,
+        "has_full_calibration_panel": all(
+            b in distinct_bots for b in ("B0", "B1", "B2", "B2_OPEN")
+        ),
+    }
+    if vs_ref_entries:
+        out_block["variants_vs_reference"] = vs_ref_entries
+    if seq_elim is not None:
+        out_block["sequential_ci_elimination"] = seq_elim
+    if bot_panel_comps:
+        out_block["bot_panel_diffs"] = bot_panel_comps
+    return out_block
+
+
+def _build_paired_ab_tile_metrics(
+    cell_rows: list[dict[str, Any]],
+    *,
+    plan: dict[str, Any],
+) -> dict[str, dict[str, Any]]:
+    """Construit `tile_metrics` par protocole A/B apparié (ou audit d'activations sans biais N/lisière)."""
+    base_tile_profiles: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
+    ab_protocol = plan.get("ab_tile_protocol")
+
+    # Pré-parsing de compared_slots, active_slots et tile_activations par cellule
+    parsed_rows: list[dict[str, Any]] = []
+    slot_act_by_var: dict[tuple[str, str], list[int]] = {}
+    slot_act_by_vbn: dict[tuple[str, str, str, int], list[int]] = {}
+    slot_act_global: dict[str, list[int]] = {}
+
+    for r in cell_rows:
+        ng = int(r.get("n_games") or 0)
+        if ng <= 0:
+            continue
+        vid = str(r["variant_id"])
+        bot_s = str(r["bot"])
+        n_pl = int(r["n_players"])
+        peuples_s = str(r.get("peuples") or r.get("table_id") or "")
+        act_slots = _active_slots_for_peuples_circle(peuples_s)
+        comp_map = {str(k): str(v) for k, v in _parse_json_dict(r.get("compared_slots_json")).items()}
+        acts_map = {str(k): int(v) for k, v in _parse_json_dict(r.get("tile_activations_json")).items()}
+
+        for s_id in act_slots:
+            a_cnt = acts_map.get(s_id, 0)
+            cur_g = slot_act_global.get(s_id)
+            if cur_g is None:
+                slot_act_global[s_id] = [ng, a_cnt]
+            else:
+                cur_g[0] += ng
+                cur_g[1] += a_cnt
+
+            k_var = (vid, s_id)
+            cur_v = slot_act_by_var.get(k_var)
+            if cur_v is None:
+                slot_act_by_var[k_var] = [ng, a_cnt]
+            else:
+                cur_v[0] += ng
+                cur_v[1] += a_cnt
+
+            k_vbn = (vid, bot_s, s_id, n_pl)
+            cur_b = slot_act_by_vbn.get(k_vbn)
+            if cur_b is None:
+                slot_act_by_vbn[k_vbn] = [ng, a_cnt]
+            else:
+                cur_b[0] += ng
+                cur_b[1] += a_cnt
+
+        parsed_rows.append(
+            {
+                **r,
+                "_active_slots": act_slots,
+                "_comp_map": comp_map,
+                "_acts_map": acts_map,
+            }
+        )
+
+    def _act_rate(pair_counts: list[int] | None) -> tuple[int, int, float]:
+        if not pair_counts or pair_counts[0] <= 0:
+            return 0, 0, 0.0
+        ng_v, act_v = pair_counts[0], pair_counts[1]
+        return ng_v, act_v, round(act_v / ng_v, 4)
+
+    # Indexation CRN : (variant_id, bot, n_players, table_id, exp_seed, rep_start) -> parsed_row
+    indexed_by_vid: dict[tuple[str, str, int, str, int, int], dict[str, Any]] = {
+        (
+            str(r["variant_id"]),
+            str(r["bot"]),
+            int(r["n_players"]),
+            str(r.get("table_id") or r.get("peuples") or ""),
+            int(r.get("exp_seed") or 0),
+            int(r.get("rep_start") or 0),
+        ): r
+        for r in parsed_rows
+    }
+
+    # --- Cas 1 : Protocole A/B explicite ACTIVE_VS_NEUTRE (BASE vs "{slot}:NEUTRE") ---
+    if ab_protocol == "ACTIVE_VS_NEUTRE":
+        ab_slots: tuple[str, ...] = tuple(plan.get("ab_slots", ()))
+        out_ab: dict[str, dict[str, Any]] = {}
+        p_items_ab: list[tuple[str, float | None]] = []
+
+        for s_id in ab_slots:
+            active_prof = str(base_tile_profiles.get(s_id, "B" if s_id.startswith("SLOT_") else "A"))
+            neutre_vid = f"{s_id}:NEUTRE"
+            diffs_all: dict[tuple[int, str], list[float]] = {}
+            diffs_bot: dict[str, dict[tuple[int, str], list[float]]] = {}
+            diffs_bn: dict[tuple[str, int], dict[str, list[float]]] = {}
+
+            for (v_k, b_k, n_k, t_k, seed_k, rs_k), row_neu in indexed_by_vid.items():
+                if v_k != neutre_vid:
+                    continue
+                if s_id not in row_neu["_active_slots"]:
+                    continue
+                row_base = indexed_by_vid.get(("BASE", b_k, n_k, t_k, seed_k, rs_k))
+                if row_base is None:
+                    continue
+                # Effet positif = la tuile active améliore le score par rapport à la tuile neutralisée
+                d_list = _extract_cell_diffs_pair(row_base, row_neu)
+                diffs_all.setdefault((n_k, t_k), []).extend(d_list)
+                diffs_bot.setdefault(b_k, {}).setdefault((n_k, t_k), []).extend(d_list)
+                diffs_bn.setdefault((b_k, n_k), {}).setdefault(t_k, []).extend(d_list)
+
+            ng_in_play, act_tot, act_pg = _act_rate(slot_act_by_var.get(("BASE", s_id)))
+            glob_s = paired_diff_cluster_ci95(diffs_all)
+            bot_s_map = {b_k: paired_diff_cluster_ci95(diffs_bot[b_k]) for b_k in sorted(diffs_bot)}
+            bn_rows: list[dict[str, Any]] = []
+            for b_k, n_pl in sorted(diffs_bn):
+                _, _, act_bn = _act_rate(slot_act_by_vbn.get(("BASE", b_k, s_id, n_pl)))
+                bn_st = paired_diff_cluster_ci95(diffs_bn[(b_k, n_pl)])
+                bn_rows.append(
+                    {
+                        "bot": b_k,
+                        "n_players": n_pl,
+                        "n_tables": bn_st["n_tables"],
+                        "n_pairs": bn_st["n_pairs"],
+                        "mean_delta_ratio": bn_st["mean_delta"],
+                        "ci95_low": bn_st["ci95_low"],
+                        "ci95_high": bn_st["ci95_high"],
+                        "activations_per_game": act_bn,
+                        "low_activation_lt1": bool(act_bn < 1.0),
+                    }
+                )
+
+            tok = f"{s_id}:{active_prof}"
+            p_items_ab.append((tok, glob_s.get("p_value")))
+            out_ab[tok] = {
+                "slot": s_id,
+                "profile": active_prof,
+                "ref_profile": "NEUTRE",
+                "protocol": "PAIRED_AB_ACTIVE_VS_NEUTRE",
+                "ab_effect_estimable": bool(glob_s["estimable"]),
+                "n_games": ng_in_play,
+                "n_games_in_play": ng_in_play,
+                "n_tables": glob_s["n_tables"],
+                "n_pairs": glob_s["n_pairs"],
+                "mean_delta_ratio": glob_s["mean_delta"],
+                "se_clustered": glob_s["se_clustered"],
+                "ci95_low": glob_s["ci95_low"],
+                "ci95_high": glob_s["ci95_high"],
+                "p_value": glob_s["p_value"],
+                "activations_total": act_tot,
+                "activations_per_game": act_pg,
+                "low_activation_lt1": bool(act_pg < 1.0),
+                "sign_stability_b1_b2_open": assess_sign_stability(bot_s_map),
+                "by_bot_x_n_players": bn_rows,
+            }
+
+        holm_ab = holm_bonferroni_adjust(p_items_ab, alpha=0.05)
+        for tok, entry in out_ab.items():
+            h_res = holm_ab.get(tok, {})
+            entry["holm_adjusted_p"] = h_res.get("holm_adjusted_p")
+            raw_sig = bool(h_res.get("reject_h0", False))
+            entry["raw_significant"] = raw_sig
+            entry["significant"] = bool(raw_sig and not entry["low_activation_lt1"])
+        return out_ab
+
+    # --- Cas 2 : Comparaisons de profils (`slot_profile_comparisons`, ex. G7:A vs G7:NEUTRE) ---
+    slot_to_profs: dict[str, list[str]] = {}
+    for r in parsed_rows:
+        for s_id, prof in r["_comp_map"].items():
+            plist = slot_to_profs.setdefault(s_id, [])
+            if prof not in plist:
+                plist.append(prof)
+
+    if slot_to_profs:
+        out_comp: dict[str, dict[str, Any]] = {}
+        p_items_comp: list[tuple[str, float | None]] = []
+
+        # Indexation générique par (bot, n_players, table_id, exp_seed, rep_start, frozen_comp_map)
+        indexed_comp: dict[
+            tuple[str, int, str, int, int, tuple[tuple[str, str], ...]], dict[str, Any]
+        ] = {}
+        for r in parsed_rows:
+            comp_key = tuple(sorted(r["_comp_map"].items()))
+            indexed_comp[
+                (
+                    str(r["bot"]),
+                    int(r["n_players"]),
+                    str(r.get("table_id") or r.get("peuples") or ""),
+                    int(r.get("exp_seed") or 0),
+                    int(r.get("rep_start") or 0),
+                    comp_key,
+                )
+            ] = r
+
+        for s_id in [s for s in CANONICAL_32_SLOTS if s in slot_to_profs]:
+            profs = slot_to_profs[s_id]
+            ref_prof = "NEUTRE" if "NEUTRE" in profs else profs[0]
+
+            # Statistiques d'activation & moyenne sur tables actives pour chaque profil de s_id
+            prof_ng_act: dict[str, list[int]] = {}
+            prof_ratio_acc: dict[str, list[float]] = {}
+            prof_bn_act: dict[tuple[str, str, int], list[int]] = {}
+            for r in parsed_rows:
+                p_cur = r["_comp_map"].get(s_id)
+                if p_cur is None or s_id not in r["_active_slots"]:
+                    continue
+                ng = int(r["n_games"])
+                a_cnt = r["_acts_map"].get(s_id, 0)
+                sr = float(r.get("sum_ratio_arbres") or 0.0)
+                cur_a = prof_ng_act.setdefault(p_cur, [0, 0])
+                cur_a[0] += ng
+                cur_a[1] += a_cnt
+                cur_r = prof_ratio_acc.setdefault(p_cur, [0.0, 0.0])
+                cur_r[0] += sr
+                cur_r[1] += float(ng)
+                b_key = (p_cur, str(r["bot"]), int(r["n_players"]))
+                cur_bn = prof_bn_act.setdefault(b_key, [0, 0])
+                cur_bn[0] += ng
+                cur_bn[1] += a_cnt
+
+            # Entrée de référence explicite
+            ref_ng, ref_act, ref_act_pg = _act_rate(prof_ng_act.get(ref_prof))
+            ref_mean = (
+                round(prof_ratio_acc[ref_prof][0] / prof_ratio_acc[ref_prof][1], 4)
+                if (ref_prof in prof_ratio_acc and prof_ratio_acc[ref_prof][1] > 0)
+                else None
+            )
+            out_comp[f"{s_id}:{ref_prof}"] = {
+                "slot": s_id,
+                "profile": ref_prof,
+                "ref_profile": ref_prof,
+                "is_reference": True,
+                "protocol": "PAIRED_AB_REFERENCE",
+                "ab_effect_estimable": True,
+                "n_games": ref_ng,
+                "n_games_in_play": ref_ng,
+                "mean_ratio_arbres_in_play": ref_mean,
+                "mean_delta_ratio": 0.0,
+                "ci95_low": 0.0,
+                "ci95_high": 0.0,
+                "activations_total": ref_act,
+                "activations_per_game": ref_act_pg,
+                "low_activation_lt1": bool(ref_act_pg < 1.0),
+                "significant": False,
+            }
+
+            for p_cand in profs:
+                if p_cand == ref_prof:
+                    continue
+                diffs_all: dict[tuple[int, str], list[float]] = {}
+                diffs_bot: dict[str, dict[tuple[int, str], list[float]]] = {}
+                diffs_bn: dict[tuple[str, int], dict[str, list[float]]] = {}
+
+                for (b_k, n_k, t_k, seed_k, rs_k, comp_t), row_c in indexed_comp.items():
+                    if dict(comp_t).get(s_id) != p_cand:
+                        continue
+                    if s_id not in row_c["_active_slots"]:
+                        continue
+                    ref_comp_dict = dict(comp_t)
+                    ref_comp_dict[s_id] = ref_prof
+                    row_r = indexed_comp.get(
+                        (b_k, n_k, t_k, seed_k, rs_k, tuple(sorted(ref_comp_dict.items())))
+                    )
+                    if row_r is None:
+                        continue
+                    dl = _extract_cell_diffs_pair(row_c, row_r)
+                    diffs_all.setdefault((n_k, t_k), []).extend(dl)
+                    diffs_bot.setdefault(b_k, {}).setdefault((n_k, t_k), []).extend(dl)
+                    diffs_bn.setdefault((b_k, n_k), {}).setdefault(t_k, []).extend(dl)
+
+                ng_c, act_c, act_pg_c = _act_rate(prof_ng_act.get(p_cand))
+                cand_mean = (
+                    round(prof_ratio_acc[p_cand][0] / prof_ratio_acc[p_cand][1], 4)
+                    if (p_cand in prof_ratio_acc and prof_ratio_acc[p_cand][1] > 0)
+                    else None
+                )
+                glob_s = paired_diff_cluster_ci95(diffs_all)
+                bot_s_map = {
+                    b_k: paired_diff_cluster_ci95(diffs_bot[b_k]) for b_k in sorted(diffs_bot)
+                }
+                bn_rows: list[dict[str, Any]] = []
+                for b_k, n_pl in sorted(diffs_bn):
+                    _, _, act_bn = _act_rate(prof_bn_act.get((p_cand, b_k, n_pl)))
+                    bn_st = paired_diff_cluster_ci95(diffs_bn[(b_k, n_pl)])
+                    bn_rows.append(
+                        {
+                            "bot": b_k,
+                            "n_players": n_pl,
+                            "n_tables": bn_st["n_tables"],
+                            "n_pairs": bn_st["n_pairs"],
+                            "mean_delta_ratio": bn_st["mean_delta"],
+                            "ci95_low": bn_st["ci95_low"],
+                            "ci95_high": bn_st["ci95_high"],
+                            "activations_per_game": act_bn,
+                            "low_activation_lt1": bool(act_bn < 1.0),
+                        }
+                    )
+
+                tok = f"{s_id}:{p_cand}"
+                p_items_comp.append((tok, glob_s.get("p_value")))
+                out_comp[tok] = {
+                    "slot": s_id,
+                    "profile": p_cand,
+                    "ref_profile": ref_prof,
+                    "is_reference": False,
+                    "protocol": "PAIRED_AB_PROFILE_COMPARE",
+                    "ab_effect_estimable": bool(glob_s["estimable"]),
+                    "n_games": ng_c,
+                    "n_games_in_play": ng_c,
+                    "mean_ratio_arbres_in_play": cand_mean,
+                    "n_tables": glob_s["n_tables"],
+                    "n_pairs": glob_s["n_pairs"],
+                    "mean_delta_ratio": glob_s["mean_delta"],
+                    "se_clustered": glob_s["se_clustered"],
+                    "ci95_low": glob_s["ci95_low"],
+                    "ci95_high": glob_s["ci95_high"],
+                    "p_value": glob_s["p_value"],
+                    "activations_total": act_c,
+                    "activations_per_game": act_pg_c,
+                    "low_activation_lt1": bool(act_pg_c < 1.0),
+                    "sign_stability_b1_b2_open": assess_sign_stability(bot_s_map),
+                    "by_bot_x_n_players": bn_rows,
+                }
+
+        holm_c = holm_bonferroni_adjust(p_items_comp, alpha=0.05)
+        for tok, h_res in holm_c.items():
+            entry = out_comp[tok]
+            entry["holm_adjusted_p"] = h_res.get("holm_adjusted_p")
+            raw_sig = bool(h_res.get("reject_h0", False))
+            entry["raw_significant"] = raw_sig
+            entry["significant"] = bool(raw_sig and not entry["low_activation_lt1"])
+        return out_comp
+
+    # --- Cas 3 : Campagne mono-variante (sans protocole A/B) -> audit d'activations pur ---
+    if not (bool(plan.get("include_full_tile_metrics", False)) or int(plan.get("mode", 0)) >= 4):
+        return {}
+
+    out_audit: dict[str, dict[str, Any]] = {}
+    for s_id in CANONICAL_32_SLOTS:
+        ng_s, act_s, act_pg_s = _act_rate(slot_act_global.get(s_id))
+        if ng_s <= 0:
+            continue
+        prof = str(base_tile_profiles.get(s_id, "B" if s_id.startswith("SLOT_") else "A"))
+        out_audit[f"{s_id}:{prof}"] = {
+            "slot": s_id,
+            "profile": prof,
+            "protocol": "ACTIVATION_AUDIT_ONLY",
+            "ab_effect_estimable": False,
+            "n_games": ng_s,
+            "n_games_in_play": ng_s,
+            "activations_total": act_s,
+            "activations_per_game": act_pg_s,
+            "low_activation_lt1": bool(act_pg_s < 1.0),
+            "significant": False,
+            "note": "Effet causal non estimable sans protocole A/B apparié (ab_tile_protocol: ACTIVE_VS_NEUTRE).",
+        }
+    return out_audit
+
+
+def run_pilot_sample_size_estimation(
+    manifest: dict[str, Any],
+    *,
+    pilot_pairs: int = 100,
+    target_delta: float = 0.02,
+) -> dict[str, Any]:
+    """Exécute un pilote local (~100 paires CRN) et estime la taille d'échantillon n = (1,96*sigma/delta)^2."""
+    if pilot_pairs < 4:
+        raise ValueError(f"pilot_pairs doit être >= 4 (reçu {pilot_pairs})")
+    if target_delta <= 0.0:
+        raise ValueError(f"target_delta doit être > 0 (reçu {target_delta})")
+
+    pilot_manifest = dict(manifest)
+    pilot_manifest["games_per_configuration"] = int(pilot_pairs)
+    pilot_manifest["micro_forks"] = False
+    plan = resolve_manifest_plan(pilot_manifest)
+    ref_vid = str(plan["reference_variant_id"])
+    variants = [str(v["variant_id"]) for v in plan["profile_variants"]]
+    if len(variants) < 2:
+        raise ValueError(
+            "Le dimensionnement apparié requiert au moins 2 variantes (ex. slot_profile_comparisons ou ab_tile_protocol)."
+        )
+
+    records = [_execute_manifest_unit(u) for u in plan["units"]]
+    indexed: dict[tuple[str, str, int, str, int, int], dict[str, Any]] = {
+        (
+            str(r["variant_id"]),
+            str(r["bot"]),
+            int(r["n_players"]),
+            str(r["table_id"]),
+            int(r["exp_seed"]),
+            int(r["rep_start"]),
+        ): r
+        for r in records
+    }
+
+    estimates: list[dict[str, Any]] = []
+    for vid in variants:
+        if vid == ref_vid:
+            continue
+        diffs_by_bn: dict[tuple[str, int], list[float]] = {}
+        diffs_all: list[float] = []
+        for (v_k, b_k, n_k, t_k, s_k, rs_k), row_v in indexed.items():
+            if v_k != vid:
+                continue
+            row_r = indexed.get((ref_vid, b_k, n_k, t_k, s_k, rs_k))
+            if row_r is None:
+                continue
+            dl = _extract_cell_diffs_pair(row_v, row_r)
+            diffs_all.extend(dl)
+            diffs_by_bn.setdefault((b_k, n_k), []).extend(dl)
+
+        if len(diffs_all) >= 2:
+            entry: dict[str, Any] = {
+                "variant_id": vid,
+                "reference_variant_id": ref_vid,
+                "global": estimate_required_pairs(diffs_all, target_delta=target_delta),
+                "by_bot_x_n_players": [
+                    {
+                        "bot": b_k,
+                        "n_players": n_pl,
+                        **estimate_required_pairs(
+                            diffs_by_bn[(b_k, n_pl)], target_delta=target_delta
+                        ),
+                    }
+                    for (b_k, n_pl) in sorted(diffs_by_bn)
+                    if len(diffs_by_bn[(b_k, n_pl)]) >= 2
+                ],
+            }
+            estimates.append(entry)
+
+    return {
+        "campaign": str(plan["campaign_name"]),
+        "pilot_pairs_requested": int(pilot_pairs),
+        "target_delta": float(target_delta),
+        "reference_variant_id": ref_vid,
+        "estimates": estimates,
+    }
 
 
 def aggregate_campaign_duckdb(
@@ -1812,7 +2498,6 @@ def aggregate_campaign_duckdb(
             ROUND(SUM(sum_arbres) * 1.0 / SUM(n_games), 3) AS mean_score_arbres,
             ROUND(SUM(sum_ratio_arbres) / SUM(n_games), 4) AS mean_ratio_arbres,
             ROUND(SUM(cvar20_ratio * n_games) / SUM(n_games), 4) AS cvar20_ratio,
-            ROUND(SUM(count_arbres_pos) * 1.0 / SUM(n_games), 4) AS survival_rate,
             ROUND(SUM(sum_tours) * 1.0 / SUM(n_games), 3) AS mean_tours,
             ROUND(SUM(count_tour_8) * 100.0 / SUM(n_games), 2) AS pct_tour_8,
             ROUND(SUM(count_reve_rang_1) * 100.0 / SUM(n_games), 2) AS pct_reve_rang_1,
@@ -1832,9 +2517,22 @@ def aggregate_campaign_duckdb(
         """,
     )[0]
 
-    # CVaR_20% inter-tables véritable (pire quintile des ratios moyens par table/cellule),
-    # distinct de `cvar20_ratio` (moyenne pondérée des CVaR intra-cellule).
-    n_anim_col_sql = "n_animaux_sauvages," if has_n_animaux_col else "NULL AS n_animaux_sauvages,"
+    # Chargement unifié des cellules pour CVaR directe (alpha=0.20 uniforme + bootstrap IC95),
+    # dispersion inter-cercles pondérée, différences appariées groupées par table et A/B tuiles.
+    opt_cell_cols = (
+        ("n_animaux_sauvages", "NULL AS n_animaux_sauvages"),
+        ("table_id", "peuples AS table_id"),
+        ("peuples", "table_id AS peuples"),
+        ("compared_slots_json", "'{}' AS compared_slots_json"),
+        ("exp_seed", "0 AS exp_seed"),
+        ("rep_start", "0 AS rep_start"),
+        ("ratio_bp_counts_json", "NULL AS ratio_bp_counts_json"),
+        ("rep_ratios_bp_json", "NULL AS rep_ratios_bp_json"),
+        ("tile_activations_json", "NULL AS tile_activations_json"),
+    )
+    opt_select_sql = ",\n            ".join(
+        col if col in cell_cols else fallback for col, fallback in opt_cell_cols
+    )
     cell_table_rows = _query_dicts(
         con,
         f"""
@@ -1843,7 +2541,9 @@ def aggregate_campaign_duckdb(
             bot,
             n_players,
             variant_id,
-            {n_anim_col_sql}
+            n_games,
+            sum_ratio_arbres,
+            {opt_select_sql},
             sum_ratio_arbres * 1.0 / n_games AS table_mean_ratio
         FROM cells
         WHERE n_games > 0
@@ -1874,6 +2574,17 @@ def aggregate_campaign_duckdb(
             ratios_by_variant_animaux.setdefault((v_id_t, na_t), []).append(mr_t)
 
     global_table_cvar20 = _cvar_bottom_values(all_table_ratios, 0.20)
+    campaign_seed = int(manifest.get("seed", plan.get("exp_seed", 20261201)))
+    cvar_boot = _build_stratified_cvar_bootstrap(
+        cell_table_rows, alpha=0.20, n_boot=300, seed=campaign_seed
+    )
+
+    def _apply_direct_cvar(row: dict[str, Any], boot_info: dict[str, Any] | None) -> None:
+        if boot_info is not None:
+            row["cvar20_ratio"] = boot_info["cvar"]
+            row["game_cvar20_ratio"] = boot_info["cvar"]
+            row["cvar20_ci95_low"] = boot_info["ci95_low"]
+            row["cvar20_ci95_high"] = boot_info["ci95_high"]
 
     task_rows = _query_dicts(
         con,
@@ -1915,9 +2626,10 @@ def aggregate_campaign_duckdb(
         """,
     )
     for row in by_mode:
-        row["table_cvar20_ratio"] = _cvar_bottom_values(
-            ratios_by_mode.get((int(row["mode"]), str(row["bot"])), []), 0.20
-        )
+        m_key = (int(row["mode"]), str(row["bot"]))
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_mode.get(m_key, []), 0.20)
+        if cvar_boot.get("has_hist"):
+            _apply_direct_cvar(row, cvar_boot["by_mode"].get(m_key))
 
     by_n_players = _query_dicts(
         con,
@@ -1940,9 +2652,10 @@ def aggregate_campaign_duckdb(
         """,
     )
     for row in by_n_players:
-        row["table_cvar20_ratio"] = _cvar_bottom_values(
-            ratios_by_n.get(int(row["n_players"]), []), 0.20
-        )
+        n_key = int(row["n_players"])
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_n.get(n_key, []), 0.20)
+        if cvar_boot.get("has_hist"):
+            _apply_direct_cvar(row, cvar_boot["by_n"].get(n_key))
 
     by_n_animaux_sauvages: list[dict[str, Any]] = []
     if has_n_animaux_col:
@@ -1966,9 +2679,10 @@ def aggregate_campaign_duckdb(
             """,
         )
         for row in by_n_animaux_sauvages:
-            row["table_cvar20_ratio"] = _cvar_bottom_values(
-                ratios_by_n_animaux.get(int(row["n_animaux_sauvages"]), []), 0.20
-            )
+            a_key = int(row["n_animaux_sauvages"])
+            row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_n_animaux.get(a_key, []), 0.20)
+            if cvar_boot.get("has_hist"):
+                _apply_direct_cvar(row, cvar_boot["by_anim"].get(a_key))
 
     by_variant = _query_dicts(
         con,
@@ -1992,9 +2706,10 @@ def aggregate_campaign_duckdb(
         """,
     )
     for row in by_variant:
-        row["table_cvar20_ratio"] = _cvar_bottom_values(
-            ratios_by_variant.get(str(row["variant_id"]), []), 0.20
-        )
+        v_key = str(row["variant_id"])
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_variant.get(v_key, []), 0.20)
+        if cvar_boot.get("has_hist"):
+            _apply_direct_cvar(row, cvar_boot["by_variant"].get(v_key))
 
     by_variant_x_n_players = _query_dicts(
         con,
@@ -2018,9 +2733,10 @@ def aggregate_campaign_duckdb(
         """,
     )
     for row in by_variant_x_n_players:
-        row["table_cvar20_ratio"] = _cvar_bottom_values(
-            ratios_by_variant_n.get((str(row["variant_id"]), int(row["n_players"])), []), 0.20
-        )
+        vn_key = (str(row["variant_id"]), int(row["n_players"]))
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_variant_n.get(vn_key, []), 0.20)
+        if cvar_boot.get("has_hist"):
+            _apply_direct_cvar(row, cvar_boot["by_variant_n"].get(vn_key))
 
     by_variant_x_bot_x_n_players = _query_dicts(
         con,
@@ -2046,12 +2762,10 @@ def aggregate_campaign_duckdb(
         """,
     )
     for row in by_variant_x_bot_x_n_players:
-        row["table_cvar20_ratio"] = _cvar_bottom_values(
-            ratios_by_variant_bot_n.get(
-                (str(row["variant_id"]), str(row["bot"]), int(row["n_players"])), []
-            ),
-            0.20,
-        )
+        vbn_key = (str(row["variant_id"]), str(row["bot"]), int(row["n_players"]))
+        row["table_cvar20_ratio"] = _cvar_bottom_values(ratios_by_variant_bot_n.get(vbn_key, []), 0.20)
+        if cvar_boot.get("has_hist"):
+            _apply_direct_cvar(row, cvar_boot["by_vbn"].get(vbn_key))
 
     by_variant_x_n_animaux_sauvages: list[dict[str, Any]] = []
     if has_n_animaux_col:
@@ -2077,54 +2791,16 @@ def aggregate_campaign_duckdb(
             """,
         )
         for row in by_variant_x_n_animaux_sauvages:
+            va_key = (str(row["variant_id"]), int(row["n_animaux_sauvages"]))
             row["table_cvar20_ratio"] = _cvar_bottom_values(
-                ratios_by_variant_animaux.get(
-                    (str(row["variant_id"]), int(row["n_animaux_sauvages"])), []
-                ),
-                0.20,
+                ratios_by_variant_animaux.get(va_key, []), 0.20
             )
+            if cvar_boot.get("has_hist"):
+                _apply_direct_cvar(row, cvar_boot["by_variant_anim"].get(va_key))
 
-    # Agrégation directe par (slot, profil) pour affichage dans Amazonia Doc Studio (tile_metrics)
-    tile_acc: dict[str, dict[str, Any]] = {}
-    for row in by_variant:
-        comp_map: dict[str, str] = json.loads(str(row["compared_slots_json"]))
-        ng = int(row["n_games"])
-        mr = float(row["mean_ratio_arbres"])
-        cv = float(row["cvar20_ratio"])
-        for slot_id, prof in comp_map.items():
-            tok = f"{slot_id}:{prof}"
-            if tok not in tile_acc:
-                tile_acc[tok] = {
-                    "slot": slot_id,
-                    "profile": prof,
-                    "n_games": 0,
-                    "weighted_ratio": 0.0,
-                    "weighted_cvar20": 0.0,
-                }
-            tile_acc[tok]["n_games"] += ng
-            tile_acc[tok]["weighted_ratio"] += mr * ng
-            tile_acc[tok]["weighted_cvar20"] += cv * ng
-
-    tile_metrics: dict[str, dict[str, Any]] = {}
-    for tok, acc in sorted(tile_acc.items()):
-        ng = int(acc["n_games"])
-        tile_metrics[tok] = {
-            "slot": acc["slot"],
-            "profile": acc["profile"],
-            "n_games": ng,
-            "mean_ratio_arbres": round(acc["weighted_ratio"] / ng, 4) if ng > 0 else 0.0,
-            "cvar20": round(acc["weighted_cvar20"] / ng, 4) if ng > 0 else 0.0,
-        }
-
+    # Protocole A/B apparié par tuile (remplace l'ancien tile_metrics confondu avec N et co-lisières)
     base_tile_profiles_plan: dict[str, str] = dict(plan.get("base_tile_profiles", {}))
-    if not tile_metrics and (
-        bool(plan.get("include_full_tile_metrics", False)) or int(plan.get("mode", 0)) >= 4
-    ):
-        tile_metrics = _build_full_tile_metrics(
-            con,
-            base_tile_profiles_plan,
-            float(g_stats["mean_ratio_arbres"] or 0.0),
-        )
+    tile_metrics = _build_paired_ab_tile_metrics(cell_table_rows, plan=plan)
 
     by_variant_clean = [
         {k: v for k, v in row.items() if k != "compared_slots_json"}
@@ -2134,7 +2810,6 @@ def aggregate_campaign_duckdb(
     tested_tiles: tuple[tuple[str, str], ...] = tuple(plan["tested_tiles"])
     varying_tiles: tuple[tuple[str, str], ...] = tuple(plan.get("varying_tiles", ()))
     generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    campaign_seed = int(manifest.get("seed", plan.get("exp_seed", 20261201)))
 
     # Quantiles inter-tables + quantiles intra-cellules disponibles dans DuckDB
     quantiles_block: dict[str, Any] = {
@@ -2156,61 +2831,33 @@ def aggregate_campaign_duckdb(
         if g_stats.get(q_key) is not None:
             quantiles_block[q_key] = float(g_stats[q_key])
 
-    # Intervalles de confiance 95 % calculés inter-blocs (uniquement sur les moyennes de blocs/tables)
-    inter_block_intervals: dict[str, Any] = {
-        "global": _inter_block_ci95(all_table_ratios),
-        "by_n_players": {
-            str(n_pl): _inter_block_ci95(ratios_by_n[n_pl])
-            for n_pl in sorted(ratios_by_n)
-        },
-    }
+    # Dispersion inter-cercles pondérée par n_games (unifiée avec totals.mean_ratio_arbres,
+    # et explicitement marquée non estimable lorsqu'un seul cercle a été exécuté)
+    inter_block_intervals, circle_dispersion, circle_ci_by_variant = (
+        _build_weighted_circle_dispersion(cell_table_rows)
+    )
 
-    # CVaR_20% exact sur les parties individuelles (reconstitué sans perte depuis ratio_bp_counts_json)
-    exact_game_cvar20: float | None = None
-    game_cvar20_by_vbn: dict[tuple[str, str, int], float] = {}
-    if "ratio_bp_counts_json" in cell_cols:
-        hist_rows = _query_dicts(
-            con,
-            "SELECT variant_id, bot, n_players, ratio_bp_counts_json FROM cells WHERE n_games > 0",
-        )
-        global_bp_hist: dict[int, int] = {}
-        vbn_bp_hist: dict[tuple[str, str, int], dict[int, int]] = {}
-        for hr in hist_rows:
-            raw_j = hr.get("ratio_bp_counts_json")
-            if not raw_j:
-                continue
-            parsed_h = json.loads(str(raw_j))
-            key_vbn = (str(hr["variant_id"]), str(hr["bot"]), int(hr["n_players"]))
-            sub_h = vbn_bp_hist.setdefault(key_vbn, {})
-            for bp_s, cnt_v in parsed_h.items():
-                bp_i = int(bp_s)
-                c_i = int(cnt_v)
-                global_bp_hist[bp_i] = global_bp_hist.get(bp_i, 0) + c_i
-                sub_h[bp_i] = sub_h.get(bp_i, 0) + c_i
+    # Différences appariées + IC 95 % groupés par table, correction Holm et stabilité panel B1/B2/B2_OPEN
+    ref_vid_plan = str(plan.get("reference_variant_id") or "BASE")
+    paired_comparisons = _build_paired_comparisons_block(
+        cell_table_rows,
+        reference_variant_id=ref_vid_plan,
+        by_variant_rows=by_variant,
+        circle_ci_by_variant=circle_ci_by_variant,
+    )
 
-        def _cvar_from_bp(hmap: dict[int, int]) -> float:
-            tot_c = sum(hmap.values())
-            if tot_c <= 0:
-                return 0.0
-            k_need = max(1, (tot_c + 4) // 5)
-            rem_k = k_need
-            acc_bp = 0
-            for bp_val in sorted(hmap):
-                take = min(rem_k, hmap[bp_val])
-                acc_bp += bp_val * take
-                rem_k -= take
-                if rem_k <= 0:
-                    break
-            return round(acc_bp / (k_need * 10000.0), 4)
-
-        if global_bp_hist:
-            exact_game_cvar20 = _cvar_from_bp(global_bp_hist)
-            for kv, sh in vbn_bp_hist.items():
-                game_cvar20_by_vbn[kv] = _cvar_from_bp(sh)
-            for row in by_variant_x_bot_x_n_players:
-                kv_r = (str(row["variant_id"]), str(row["bot"]), int(row["n_players"]))
-                if kv_r in game_cvar20_by_vbn:
-                    row["game_cvar20_ratio"] = game_cvar20_by_vbn[kv_r]
+    # CVaR_20% exact sur les parties individuelles (alpha=0.20 uniforme) + IC 95 % bootstrap
+    global_cvar_boot: dict[str, Any] | None = (
+        cvar_boot["global"] if cvar_boot.get("has_hist") else None
+    )
+    exact_game_cvar20: float | None = (
+        float(global_cvar_boot["cvar"]) if global_cvar_boot is not None else None
+    )
+    game_cvar20_by_vbn: dict[tuple[str, str, int], float] = (
+        {kv: float(bv["cvar"]) for kv, bv in cvar_boot["by_vbn"].items()}
+        if cvar_boot.get("has_hist")
+        else {}
+    )
 
     # Forks et seeds (inclus automatiquement si la campagne produit des colonnes de micro-forks)
     forks_block: dict[str, Any] | None = None
@@ -2425,9 +3072,12 @@ def aggregate_campaign_duckdb(
             "mean_ratio_arbres": g_stats["mean_ratio_arbres"],
             "cvar20_ratio": exact_game_cvar20 if exact_game_cvar20 is not None else g_stats["cvar20_ratio"],
             "game_cvar20_ratio": exact_game_cvar20 if exact_game_cvar20 is not None else g_stats["cvar20_ratio"],
-            "within_table_cvar20_ratio": g_stats["cvar20_ratio"],
+            "cvar20_ci95_low": global_cvar_boot["ci95_low"] if global_cvar_boot is not None else None,
+            "cvar20_ci95_high": global_cvar_boot["ci95_high"] if global_cvar_boot is not None else None,
+            "cvar20_bootstrap_level": (
+                global_cvar_boot["bootstrap_level"] if global_cvar_boot is not None else "unavailable"
+            ),
             "table_cvar20_ratio": global_table_cvar20,
-            "survival_rate": g_stats["survival_rate"],
             "mean_tours": g_stats["mean_tours"],
             "pct_tour_8": g_stats["pct_tour_8"],
             "pct_reve_rang_1": g_stats["pct_reve_rang_1"],
@@ -2451,6 +3101,7 @@ def aggregate_campaign_duckdb(
         },
         "quantiles": quantiles_block,
         "inter_block_intervals": inter_block_intervals,
+        "circle_dispersion": circle_dispersion,
         "telemetry": telemetry_block,
         "by_mode": by_mode,
         "by_n_players": by_n_players,
@@ -2458,6 +3109,8 @@ def aggregate_campaign_duckdb(
         "by_variant_x_n_players": by_variant_x_n_players,
         "tile_metrics": tile_metrics,
     }
+    if paired_comparisons is not None:
+        digest_payload["paired_comparisons"] = paired_comparisons
     if int(plan.get("mode", 0)) >= 3 or varying_tiles:
         digest_payload["mode4_catalog"] = {
             "base_bundle_id": str(plan.get("base_bundle_id", "STANDARD_A")),
@@ -2659,6 +3312,23 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="N'exécute pas git add/commit/push (utile pour test à blanc).",
     )
+    parser.add_argument(
+        "--estimate-sample-size",
+        action="store_true",
+        help="Mode pré-campagne local : exécute un pilote apparié et estime n = (1,96*sigma/delta)^2.",
+    )
+    parser.add_argument(
+        "--pilot-pairs",
+        type=int,
+        default=100,
+        help="Nombre de paires pilote pour --estimate-sample-size (défaut: 100).",
+    )
+    parser.add_argument(
+        "--target-delta",
+        type=float,
+        default=0.02,
+        help="Précision cible delta (ratio d'arbres) pour --estimate-sample-size (défaut: 0.02).",
+    )
     args = parser.parse_args(argv)
 
     manifest_path = Path(args.manifest)
@@ -2670,6 +3340,16 @@ def main(argv: list[str] | None = None) -> int:
     manifest: dict[str, Any] = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not manifest.get("campaign_name"):
         manifest["campaign_name"] = manifest_path.stem
+
+    if args.estimate_sample_size:
+        sizing = run_pilot_sample_size_estimation(
+            manifest,
+            pilot_pairs=int(args.pilot_pairs),
+            target_delta=float(args.target_delta),
+        )
+        print(json.dumps(sizing, indent=2, ensure_ascii=False))
+        return 0
+
     plan = resolve_manifest_plan(manifest)
     campaign_name = str(plan["campaign_name"])
     total_games_planned = int(plan["total_games"])
