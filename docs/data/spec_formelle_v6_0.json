@@ -1,0 +1,157 @@
+{
+  "schema_version": "6.1.0-alpha",
+  "date_consolidation": "2026-11-22",
+  "architecture_reference": {
+    "total_emplacements_synergie": 30,
+    "total_pistes_migration": 2,
+    "total_profils": 100,
+    "topologies_validees": {
+      "P4_2233": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "P4_2223": [
+        2,
+        2,
+        2,
+        3
+      ],
+      "P4_1223": [
+        1,
+        2,
+        2,
+        3
+      ],
+      "P5_22233": [
+        2,
+        2,
+        2,
+        3,
+        3
+      ],
+      "P5_22223": [
+        2,
+        2,
+        2,
+        2,
+        3
+      ],
+      "P5_12223": [
+        1,
+        2,
+        2,
+        2,
+        3
+      ]
+    },
+    "reserves_materiel": "illimitees (jetons et cartes Sabotage identiques)",
+    "plafond_repousse_parcelle": "dotation_initiale_arbres",
+    "repousse_finale_base": 0,
+    "score_final": "arbres_debout_uniquement (0 Repousse Finale automatique de base)"
+  },
+  "principes_transverses": {
+    "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve, Nid) et chaque piste de Migration est gouvernée exclusivement par le joueur de son Peuple d'origine (champ peuple_origine). Zéro vote de groupe.",
+    "communication_muette": "Silence tactique complet tant que les paravents sont fermés (aucun échange verbal ou gestuel sur les coups, cartes ou dés). Sous Le Cri d'Alarme de l'Ara (ouverture anticipée), visibilité publique des cartes et dés mais pose individuelle sans concertation orale.",
+    "pont_routier_routes_forestieres": "Le long d'un rayon de Forêt, toute Route Forestière est systématiquement sautée : viser devant, avancer, reculer ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Dès qu'un rayon est intégralement transformé en Routes Forestières (ses 2 machines définitivement retirées), sa zone de Furtivité au pied du rayon devient fermée et inaccessible en 2.1 et 2.2.",
+    "suppression_dette_et_verrouillage": "Zéro Insecte engagé et zéro verrouillage des parcelles ciblées. Les Insectes requis lors d’une parade classique sont défaussés immédiatement à la frappe. Tant qu'un Insecte est sur le plateau, il est libre. Tout Piège posé est autonome (aucune condition de présence sur la parcelle) : il pare exactement 1 frappe puis est défaussé aussitôt (SINGLE_STRIKE).",
+    "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Partition stricte des 6 déclencheurs (« 1 événement = au plus 1 déclencheur ») : en 3.2 (par carte révélée) 3. Sabotage > 6. Insecte (déviation ±1 sur la Réglette des Tactiques) > 5. Rêve (REVE_TRIG=ACTIF : s'allume uniquement lorsqu'un Rêve portant >= 1 Défenseur annule effectivement >= 1 machine non déviée en 3.2 ; un Rêve sans Défenseur est totalement inerte) ; en 4.1 Furtivité et en 4.2 production de Nid aucun déclencheur n'est allumé ; en 5.1/5.2 (par frappe bloquée) 2. Piégeage (Piège autonome SINGLE_STRIKE défaussé aussitôt) > 6. Insecte (Parade classique avec dépense >= 1 Insecte) > 1. Parade (Défenseurs seuls ou parade automatique). Case 4. Gardien : 1re ouverture du tour de chaque autre Gardien distinct (anti-boucle conservé). Pari uniforme de 0, 1 ou 2 Défenseurs maximum par Gardien construit en 2.2 (glissés sous la tuile à chaque déclenchement). Balayage à plat de 1 à 6."
+  },
+  "etapes_tour": [
+    {
+      "numero": 1,
+      "code": "PREPARATION_ET_DES_SECRETS",
+      "nom": "Acte / Réglette, Distribution et Dés secrets (1.0–1.3)",
+      "regles": [
+        "1.0 Réglette des Tactiques réversible par blocs : Acte 1 (Tours 1–4, Face A) place les cases 1, 2, 3 en mode CHARGE et les cases 4, 5, 6 en mode ASSAUT. Au début du Tour 5, retournez la Réglette sur sa Face B (Acte 2, Tours 5–8) : permutation des deux blocs — cases 1, 2, 3 en mode ASSAUT et cases 4, 5, 6 en mode CHARGE. Actions fixes sur les deux faces : 1/4 = Sur place (mod_seuil = 0), 2/5 = Devant (mod_seuil = 0), 3/6 = En avançant (SUR_PLACE + DEVANT, avancée +1, mod_seuil = -1).",
+        "1.1 Élagage du test d'entrée en Ratissage : aucun passage en Ratissage n'est re-testé en début de tour (seule l'étape 6.3 fait basculer définitivement en Ratissage les machines situées sur la dernière parcelle non rasée de leur rayon). Mise en place canonique décalée (chassis_id = 24) : Bulldozer en parcelle 1, Abatteuse en parcelle 2 sur chaque rayon.",
+        "1.2 Distribution : chaque joueur hors pénurie pioche secrètement 1 carte du paquet Machine (incluant toutes les cartes Sabotage intégrées définitivement). Une carte Sabotage tirée n'active aucune machine (action du Contremaître perdue). S'il reste moins de cartes que de joueurs, distribution dans le sens horaire à partir du peuple ayant le plus d'Arbres debout.",
+        "1.3 Dés secrets sous paravent fermé (silence complet) : chaque joueur ayant reçu une carte Machine lance ses 2D6 et retient la plus petite valeur (Dé MIN unique du Tour 1 au Tour 8, modifié par les éventuelles Lois actives), qui désigne le rang 1..6 sur la Réglette des Tactiques."
+      ]
+    },
+    {
+      "numero": 2,
+      "code": "POSE_DES_DEFENSEURS",
+      "nom": "Pose des Défenseurs, Rêves et Furtivité par rayon (2.1–2.2)",
+      "regles": [
+        "2.1 Première pose simultanée et fixe (paravent fermé) : chaque joueur place son 1er Défenseur irrévocable sur sa propre Forêt (parcelle non rasée), sur l'une des Tuiles de Synergie non construites de ses 2 lisières, sur un Rêve déjà présent sur la Réglette des Tactiques (1..6), ou sur une rive ouverte de Furtivité (Rive Piège ou Rive Sabotage, max 2 Défenseurs par rive) au pied de n'importe quel rayon non rasé (1..N). Seule la Piste des Gardiens reste réservée à la pose 2.2.",
+        "Topologie de Furtivité (« Chaud vs Calme » par rayon) : au pied de chaque rayon de forêt r (1..N), la zone de Furtivité comporte 2 rives indépendantes de 2 emplacements — Rive Piège (max 2 Défenseurs) et Rive Sabotage (max 2 Défenseurs) — ouvertes à tout joueur de la table en 2.1 comme en 2.2 (zéro glissement automatique). Garde-fou piste rasée : dès qu'un rayon r est intégralement transformé en Routes Forestières (ses 2 machines retirées), sa zone de Furtivité est fermée et inaccessible en 2.1 et 2.2.",
+        "2.2 Deuxième pose globale (réflexion -> choix définitif) : chaque joueur place son 2e Défenseur partout sur le plateau — Forêt non rasée, Tuile de Synergie en lisière, Rêve sur la Réglette des Tactiques (cumulable avec les Défenseurs posés en 2.1), rive ouverte de Furtivité d'un rayon non rasé, ou pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; 0, 1 ou 2 Défenseurs maximum par Gardien, glissés sous la tuile à chaque déclenchement). Un Gardien sans Défenseur reste inactif ce tour-ci."
+      ]
+    },
+    {
+      "numero": 3,
+      "code": "CONSTRUCTION_ET_REVELATION",
+      "nom": "Construction obligatoire (3.1), Ouverture des Paravents et Rêves (3.2)",
+      "regles": [
+        "3.1 Construction obligatoire : toute tuile réunissant ses 2 constructeurs (ou 1 Défenseur + 1 Insecte avec La Brèche du Tamanoir) est obligatoirement construite AVANT l’ouverture des paravents.",
+        "3.1 Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
+        "3.1 Rêve : un Rêve construit se pose par-dessus la case libre la plus à droite de la Réglette des Tactiques fixe 1..6 (case 6, puis case 5 si 6 est déjà occupée par un Rêve, etc.). Aucune Tactique n'est éjectée (les Insectes restent sur leur numéro de case imprimé). Ce Rêve est immédiatement présent sur la piste (sans Défenseur s'il vient d'être construit en 3.1).",
+        "3.1 Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents.",
+        "3.2 Révélation simultanée (paravents ouverts) — partition stricte « 1 carte révélée = au plus 1 déclencheur » : (a) 3. Sabotage si la carte révélée est un Sabotage ; (b) sinon 6. Insecte si un pion Insecte de la Réglette des Tactiques (SLOT_BUG_CERVEAU=B) dévie le dé M de ±1 rang ; (c) sinon 5. Rêve (REVE_TRIG=ACTIF figé) uniquement lorsqu'un Rêve portant >= 1 Défenseur s'active réellement en 3.2 en annulant au moins 1 machine sur une carte non déviée de ce rang (un Rêve sans Défenseur est totalement inerte). Résolution épurée des Rêves dans le socle (CLEAR_RANK_ONLY) : tout Rêve portant >= 1 Défenseur (posé en 2.1 et/ou 2.2) et visé par >= 1 machine applique uniquement le blocage — chaque Défenseur annule 1 machine du rang en priorisant la plus menaçante, les machines restantes exécutent la Tactique imprimée dessous, et le Rêve ne bouge pas (le déplacement des Rêves est porté exclusivement par les tuiles du Mode 4)."
+      ]
+    },
+    {
+      "numero": 4,
+      "code": "FURTIVITE_NIDS_ET_MIGRATION",
+      "nom": "Furtivité (4.1), Production des Nids (4.2) et Migration des Insectes (4.3)",
+      "regles": [
+        "4.1 Furtivité « Chaud vs Calme » par rayon (1..N) : un pion seul sur une rive ne produit aucun effet (perdu à blanc) ; seule une rive portant un binôme complet de 2 Défenseurs est évaluée. Pour le rayon r, on compte m(r) = (cartes Machine du rayon r révélées en 3.2) + (machines du rayon r déjà en Ratissage permanent), soit 0, 1 ou 2. Garde-fou d'indépendance : m(r) dépend uniquement des cartes révélées à l'ouverture des paravents et des Ratissages actifs (ni une déviation d'Insecte ±1 en 3.2, ni une annulation par un Rêve en 3.2 ne modifie m(r) ; une carte Sabotage révélée en 3.2 ne compte pour aucun rayon). Rive Piège (pari « double menace ») : pari GAGNÉ si m(r) == 2 -> 1 jeton Piège est posé sur une parcelle non-Route (non piégée) du rayon r choisie uniquement par le joueur propriétaire du rayon r (gouvernance unitaire 1-clic, zéro débat) ; pari PERDU si m(r) == 0 ou 1. Rive Sabotage (pari « piste calme ») : pari GAGNÉ si m(r) == 0 -> 1 carte Sabotage est mise de côté pour rejoindre définitivement le paquet Machine au remélange 6.3 (sans allumer 3. Sabotage en 4.1) ; pari PERDU si m(r) == 1 ou 2.",
+        "4.2 Production des Nids : chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (sans allumer le déclencheur 6. Insecte), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens.",
+        "4.3 Migration des Insectes (sans Furtivité) : chaque Insecte présent sur un rayon de Forêt peut rester sur place (0 cran) ou se déplacer d'1 cran le long de son rayon vers une parcelle non rasée voisine (en sautant les Routes Forestières ; jusqu'à 2 crans avec L'Envol du Batará Suiveur). Les zones de Furtivité ne sont pas accessibles aux Insectes. On retourne chaque jeton déplacé sur sa face verso pour suivi, puis on remet tous les jetons à l'endroit en fin de Migration.",
+        "4.3 Pistes centrales globales : depuis la dernière parcelle non rasée d'un rayon, 1 cran de Migration permet d'entrer en aller simple définitif sur n'importe quelle case 1..6 de la Réglette des Tactiques (Bug du Cerveau) ou de la Piste des Gardiens (Colonisation / Bouclier de lisière), sans limite de jetons par case."
+      ]
+    },
+    {
+      "numero": 5,
+      "code": "ATTAQUES_ET_TEST_FIN",
+      "nom": "Attaques des Machines et Vérification de Fin de Partie (5.1–5.3)",
+      "regles": [
+        "Ordre des machines : Réglette des Tactiques de la case 1 à la case 6, puis machines en Ratissage (mode ASSAUT permanent, détaché de la case 1). Sur un même rayon au même rang (ou en Ratissage), l'Abatteuse agit toujours avant le Bulldozer ; entre rayons distincts au même rang, ordre libre entre les joueurs concernés.",
+        "Modes CHARGE et ASSAUT (Réglette réversible) : chaque machine est résolue d'un seul tenant (lecture dynamique des cibles -> frappes -> avancée éventuelle sur 3/6 -> gain éventuel de jeton Puissance). En mode CHARGE (Acte 1 cases 1–3 ; Acte 2 cases 4–6) : les jetons Puissance déjà sur la machine sont ignorés dans le calcul du seuil de parade ; gain plafonné à +1 jeton Puissance par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE figé — une attaque Devant lancée hors-plateau depuis la dernière parcelle ne fait jamais gagner de jeton). En mode ASSAUT (Acte 1 cases 4–6 ; Acte 2 cases 1–3 ; et Ratissage permanent) : tous les jetons Puissance comptent dans le seuil de parade ; aucun jeton Puissance n'est gagné. Dégâts non parés : l'Abatteuse coupe TOUS les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches (micro-règle souche supprimée) ; le Bulldozer coupe 1 Arbre en Souche puis retire toutes les Souches non protégées (0/0 = Route Forestière + Repli).",
+        "Chaîne stricte des parades à chaque frappe : (1) Bond du Jaguar (Loi auto : 2 jetons bleus défaussés -> toutes frappes restantes de la machine parées + recul) -> (2) Piquée de la Harpie -> (3) Piège autonome SINGLE_STRIKE (dès qu'un jeton Piège est présent sur la parcelle attaquée, il se déclenche de lui-même même avec 0 Défenseur et 0 Insecte sur place, sans consommer les Défenseurs ou Insectes présents, pare exactement cette unique frappe, est immédiatement défaussé et allume uniquement 2. Piégeage) -> (4) Parade classique (Défenseurs seuls -> 1. Parade ; Défenseurs + défausse immédiate des Insectes manquants -> 6. Insecte).",
+        "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
+        "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer, ou après une Abatteuse en Ratissage arrachant la dernière Souche sous l'option correspondante) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
+        "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
+        "Issue des paris Gardiens, Bouclier de lisière & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné : le Gardien reste en piste et passe Face 2 s'il est double-face ; >= 1 Défenseur restant -> pari perdu : si Bouclier de lisière SLOT_COLONISATION_GARDIENS=B et >= 1 Insecte sur sa case, défausser 1 Insecte pour garder le Gardien en piste sur sa face actuelle tout en laissant le pari PERDU, sinon retour immédiat en lisière Face 1). Test de fin de partie : priorité absolue au Tour 8 ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Réveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur les Gardiens et aucun pari perdu). Si atteint : fin immédiate de la partie et décompte des Arbres debout (0 Repousse Finale automatique de base)."
+      ]
+    },
+    {
+      "numero": 6,
+      "code": "APPRENTISSAGE_ET_MENAGE",
+      "nom": "Ménage de fin de tour (6.2–6.3)",
+      "regles": [
+        "Ménage systématique (6.2) : Réglette des Tactiques 1..6 fixe (retournée sur Face B au début du Tour 5 pour l'Acte 2), retour en main de tous les Défenseurs (y compris ceux posés en 2.1/2.2 sur des Rêves, en Furtivité ou sur les Gardiens et ceux glissés sous une tuile) et remise à zéro des modificateurs transitoires.",
+        "Entrée en Ratissage & Clôture du tour (6.3) : passage du pion Coordonnateur au siège suivant, retournement définitif sur sa face Ratissage de toute machine située sur la dernière parcelle non rasée de son rayon (carte retirée définitivement du paquet Machine ; Assaut permanent Sur place avec +1 puissance imprimée), puis remélange des cartes Machine actives avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises en 4.1)."
+      ]
+    }
+  ],
+  "arbitrages_valides": {
+    "A01": "Lecture unique du Dé MIN (Tours 1 à 8) sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Ce rang 1..6 désigne la case visée sur la Réglette des Tactiques.",
+    "A02": "Rêves épurés & 1re pose 2.1 ouverte aux Rêves (v6.1) : un joueur peut poser son 1er Défenseur (2.1) comme son 2e Défenseur (2.2) sur un Rêve déjà présent sur la Réglette des Tactiques. En 3.2 dans le socle (CLEAR_RANK_ONLY), chaque Défenseur sur un Rêve visé annule 1 machine du rang (en priorisant la plus menaçante) et le Rêve ne bouge pas.",
+    "A03": "Furtivité « Chaud vs Calme » par piste de forêt (v6.1) : au pied de chaque rayon r (1..N), 2 rives de 2 emplacements (Rive Piège et Rive Sabotage) ouvertes à toute la table en 2.1 et 2.2 tant que le rayon r n'est pas intégralement rasé. En 4.1, seule une rive complète (2 Défenseurs) est évaluée selon m(r) = cartes Machine de r révélées en 3.2 + machines de r en Ratissage (indépendant de déviation Insecte ±1 et d'annulation Rêve ; Sabotage révélé = 0). Rive Piège gagnée si m(r) == 2 (le propriétaire du rayon r pose 1 Piège sur une parcelle non-Route non piégée de r) ; Rive Sabotage gagnée si m(r) == 0 (+1 carte Sabotage mise de côté pour 6.3 sans allumer 3. Sabotage).",
+    "A04": "Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d'origine.",
+    "A05": "Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés.",
+    "A06": "Pièges autonomes SINGLE_STRIKE (v6.1 figé) : suppression de la condition d'Embuscade — dès qu'un jeton Piège est présent sur une parcelle attaquée en 5.1/5.2, il se déclenche de lui-même (même avec 0 Défenseur et 0 Insecte sur place), ne consomme ni Défenseur ni Insecte présent, pare exactement 1 frappe puis est défaussé aussitôt, en allumant uniquement 2. Piégeage.",
+    "A07": "Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
+    "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
+    "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Ratissage irréversible maintenu.",
+    "A10": "Autonomie du Ratissage en Assaut permanent, départ décalé & Abatteuse coupe-tout (v6.1) : mise en place canonique décalée BULLDOZER_P1_ABATTEUSE_P2 (chassis_id = 24 : Bulldozer en parcelle 1, Abatteuse en parcelle 2). L'Abatteuse coupe TOUS les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches (suppression définitive de la micro-règle souche). En 6.3 uniquement (test redondant en 1.1 supprimé), toute machine située sur la dernière parcelle non rasée de son rayon est retournée définitivement sur sa face Ratissage (carte retirée du paquet Machine ; Assaut permanent Sur place +1 puissance imprimée, 0 gain).",
+    "A11": "Réglette des Tactiques réversible par blocs & placement des Rêves (v6.0) : actions fixes 1/4 Sur place (0), 2/5 Devant (0), 3/6 En avançant (+1 parcelle, -1 seuil). Acte 1 (Tours 1–4, Face A) : 1–3 CHARGE / 4–6 ASSAUT. Acte 2 (Tours 5–8, Face B retournée début Tour 5) : 1–3 ASSAUT / 4–6 CHARGE. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.) sans éjecter les Tactiques ni déplacer les Insectes.",
+    "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
+    "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
+    "A14": "Éveil / Réveil de la Forêt 100 % Piste des Gardiens (v6.0) : actif uniquement si >= 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue au Tour 8). En 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu'aucun pari n'est perdu (0 Défenseur restant). Un Gardien sauvé par Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B) reste en piste sur sa face actuelle mais son pari reste PERDU.",
+    "A15": "Test de fin de partie & Suppression de la Repousse Finale de base (5.3, v6.0) : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, vérification directe après issue des paris Gardiens de Sommeil du Contremaître (tous les Rêves en jeu en bloc continu cases 1..k) ou de Réveil de la Forêt 100 % Gardiens. En fin de partie, 0 Souche ne repousse automatiquement dans le cœur : le score compte uniquement les Arbres debout.",
+    "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
+    "A17": "Migration des Insectes recentrée Forêt & Pistes centrales (v6.1) : 0 ou 1 cran facultatif le long du rayon (en sautant les Routes Forestières) ou aller simple définitif depuis la dernière parcelle non rasée vers une case 1..6 de la Réglette des Tactiques ou de la Piste des Gardiens (retrait de la Furtivité des destinations d'Insectes).",
+    "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
+    "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
+    "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
+    "A21": "Déclencheur 5. Rêve actif uniquement & transfert de l'avancée au Mode 4 (v6.1) : REVE_TRIG=ACTIF figé — 5. Rêve s'allume uniquement lorsqu'un Rêve portant >= 1 Défenseur annule effectivement au moins 1 machine (non déviée) en 3.2. Un Rêve sans Défenseur est totalement inerte. Grâce à l'ouverture de 2.1 aux Rêves, une table à 5J–6J peut allumer 5. Rêve via 2.1 tout en engageant ses N Défenseurs de 2.2 sur les Gardiens pour l'Éveil.",
+    "A22": "Pari uniforme sur les Gardiens & Partition stricte des 6 déclencheurs (v6.1) : actif si >= 1 Animal Sauvage (M/R/O) est à la table. Pari uniforme UNIFORM_MAX_2 réservé à 2.2 (0, 1 ou 2 Défenseurs maximum par Gardien construit cases 1..6, glissés sous la tuile à chaque déclenchement). Partition stricte (« 1 événement = au plus 1 déclencheur ») : en 3.2 Sabotage > Insecte sur Tactiques > Rêve actif ; en 4.1 et 4.2 Nids aucun déclencheur ; en 5.1/5.2 Piégeage (Piège autonome SINGLE_STRIKE) > Insecte en Parade >= 1 Insecte > Parade par Défenseurs seuls ; 4. Gardien sur 1re ouverture du tour de chaque autre Gardien distinct.",
+    "A23": "Réglette des Tactiques réversible Face A/B, gain Charge FRAPPE_NON_PAREE & Déviation par Insectes (v6.1 gelé) : en mode CHARGE les jetons Puissance existants sont ignorés au seuil et au plus +1 jeton Puissance est gagné par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE figé, hors attaque Devant dans le vide depuis la dernière parcelle). En mode ASSAUT tous les jetons Puissance comptent au seuil et 0 jeton n'est gagné.",
+    "A24": "Cartes Sabotage (dilution permanente, v5.5) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis en Furtivité 4.1 est mis de côté pour rejoindre définitivement le paquet Machine en 6.3 (sans allumer 3. Sabotage) ; 1 carte Sabotage révélée à l'ouverture des paravents en 3.2 fait perdre 1 activation au Contremaître, allume 3. Sabotage (partition stricte 3.2), puis est remélangée en fin de tour.",
+    "A25": "Séquence des attaques (v6.0) : Réglette 1..6 (mode CHARGE ou ASSAUT selon l'Acte) puis Ratissages (ASSAUT permanent détaché de la case 1) ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
+  }
+}

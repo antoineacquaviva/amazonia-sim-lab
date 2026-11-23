@@ -319,18 +319,15 @@ def _build_g3_a_moves(state: GameState) -> list[tuple[tuple[Any, ...], tuple[int
                 if p_h is not None:
                     moves.append((("FORET", r, p), (r, p_h)))
 
-    for l_idx in range(n):
-        r0 = l_idx
-        r1 = (l_idx + 1) % n
+    for r_idx in range(n):
         for p in range(1, p_max + 1):
             if (
-                state.get_furtivite_total_defs(l_idx, p) >= 1
-                and _has_tracked_defender_furtivite(state, l_idx, p)
+                state.get_furtivite_total_defs(r_idx, p) >= 1
+                and _has_tracked_defender_furtivite(state, r_idx, p)
             ):
-                if not state.is_route_forestiere(r0, p):
-                    moves.append((("FURTIVITE", l_idx, p), (r0, p)))
-                if r1 != r0 and not state.is_route_forestiere(r1, p):
-                    moves.append((("FURTIVITE", l_idx, p), (r1, p)))
+                p_dst = state.first_non_razed_from_border(r_idx) if p == 1 else p
+                if p_dst is not None and not state.is_route_forestiere(r_idx, p_dst):
+                    moves.append((("FURTIVITE", r_idx, p), (r_idx, p_dst)))
 
     for slot_idx in range(2 * n):
         _, nb = state.get_lisiere_tile_state(slot_idx)
@@ -1100,7 +1097,7 @@ def g12_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
 
 @register_tile("G13", "A", hooks=(HOOK_GARDIEN_OUVERTURE, HOOK_EFFECT_RESUME))
 def g13_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
-    """Pose 1 Insecte sur une parcelle non rasée ou case Furtivité avec >= 1 Défenseur."""
+    """Pose 1 Insecte sur une parcelle non rasée portant >= 1 Défenseur."""
     if hook == HOOK_GARDIEN_OUVERTURE:
         n = state.cfg.n_players
         p_max = state.cfg.p_max
@@ -1109,25 +1106,13 @@ def g13_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
             for p in range(1, p_max + 1):
                 if not state.is_route_forestiere(r, p) and state.get_parcel_defenseurs(r, p) >= 1:
                     cands.append(("FORET", r, p))
-        for l_idx in range(n):
-            for p in range(1, p_max + 1):
-                if (
-                    state.get_furtivite_total_defs(l_idx, p) >= 1
-                    and state.get_furtivite_insectes(l_idx, p) < 15
-                ):
-                    cands.append(("FURTIVITE", l_idx, p))
         if not cands:
             return None
         if len(cands) == 1:
-            loc, idx_a, p = cands[0]
-            if loc == "FORET":
-                prim_creation_entite(
-                    state, "INSECTE", ray=idx_a, p=p, count=1, light_trigger=False
-                )
-            else:
-                prim_creation_entite(
-                    state, "INSECTE", lisiere=idx_a, p=p, count=1, light_trigger=False
-                )
+            _, idx_a, p = cands[0]
+            prim_creation_entite(
+                state, "INSECTE", ray=idx_a, p=p, count=1, light_trigger=False
+            )
             return None
         push_effect_decision(
             state,
@@ -1147,10 +1132,6 @@ def g13_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
             if loc == "FORET":
                 prim_creation_entite(
                     state, "INSECTE", ray=idx_a, p=p, count=1, light_trigger=False
-                )
-            elif loc == "FURTIVITE":
-                prim_creation_entite(
-                    state, "INSECTE", lisiere=idx_a, p=p, count=1, light_trigger=False
                 )
     return None
 

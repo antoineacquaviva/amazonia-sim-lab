@@ -1,4 +1,4 @@
-"""Bot Baseline B0 (Réflexe, K_max = 0) — 100 % stdlib PyPy 3.11, isolation stricte."""
+"""Bot Baseline B0 (Réflexe, K_max = 0) — 100 % stdlib PyPy 3.11, isolation stricte v6.1."""
 
 from __future__ import annotations
 
@@ -6,14 +6,13 @@ from typing import Any
 
 from engine.core_engine import (
     DEC_CHOIX_CASE_GARDIEN,
-    DEC_COLONIE_A_OPEN,
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MIGRATION_INSECTE_4_3,
     DEC_ORDRE_CONSTRUCTION_3_1,
     DEC_PLACEMENT_NID_3_1,
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
-    DEC_RETRAIT_APPRENTISSAGE_6_1,
+    DEC_POSE_PIEGE_FURTIVITE_4_1,
     DEC_REVISION_DEFENSEUR_2,
     apply_choice,
     step_until_decision,
@@ -21,9 +20,13 @@ from engine.core_engine import (
 from engine.primitives import DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    CANONICAL_DOTATION,
     CARD_SABOTAGE,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
+    FURT_RIVE_PIEGE,
+    FURT_RIVE_SABOTAGE,
+    GARDIEN_BET_CAP,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_RATISSAGE,
@@ -49,7 +52,7 @@ __all__ = (
 
 
 def _tiebreak_u64(cfg: GameConfig, obs: PlayerObservation, opt_idx: int) -> int:
-    """Bris d'égalité déterministe sans biais de siège 0 via rng.py."""
+    """Bris d'égalité déterministe sans biais de siège 0 via rng.py (zéro accès `_buf`)."""
     salt = (obs.step * 31 + opt_idx) & 0xFFFFFFFF
     return rand_u64(
         cfg.exp_seed,
@@ -85,7 +88,7 @@ def _compute_threat_and_machine_masks(
         ray, m_type = unpack_machine_card(own_hand.card)
         lec_m = own_hand.lecture_m
         if lec_m is not None and 1 <= lec_m <= 6:
-            t_code, _, _ = obs.tactique_code_bugs_app(lec_m - 1)
+            t_code, _ = obs.tactique_code_bugs(lec_m - 1)
             if is_tactique_code(t_code):
                 pos, st = obs.machine_pos_status(ray, m_type)
                 if st != MACHINE_STATUS_RETIRED and pos > 0:
@@ -113,42 +116,63 @@ def _active_machine_mask(obs: PlayerObservation) -> int:
     return mask
 
 
+def _ray_ratissage_count(obs: PlayerObservation, ray: int) -> int:
+    cnt = 0
+    for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+        pos, st = obs.machine_pos_status(ray, mt)
+        if st == MACHINE_STATUS_RATISSAGE and pos > 0:
+            cnt += 1
+    return cnt
+
+
+def _ray_has_untrapped_parcel(obs: PlayerObservation, cfg: GameConfig, ray: int) -> bool:
+    for p in range(1, cfg.p_max + 1):
+        if not obs.is_route(ray, p) and obs.parcel_piege(ray, p) == PIEGE_AUCUN:
+            return True
+    return False
+
+
 def _score_defender_target(
     obs: PlayerObservation,
     cfg: GameConfig,
     target: tuple[Any, ...],
     threat_mask: int,
     machine_mask: int,
+    own_hand: HandObs,
     drew_sabotage_or_none: bool,
+    is_first_defender: bool,
+    has_open_furt_rive: bool,
 ) -> int:
-    """Score heuristique réflexe (entier, zéro allocation) d'une pose de Défenseur."""
+    """Score heuristique réflexe B0 v6.1 (entier, K_max = 0, zéro inférence bayésienne)."""
     kind = target[0]
 
     if kind == "FORET":
         _, r, p = target
-        defs = obs.parcel_defenseurs(r, p)
-        cur_def = defs + obs.parcel_insectes(r, p)
-        seuil_base = cfg.dotation_arbres[p - 1] + cfg.offset_seuil_parade
-        bit = 1 << (r * MAX_P + (p - 1))
+        r_i, p_i = int(r), int(p)
+        defs = obs.parcel_defenseurs(r_i, p_i)
+        cur_def = defs + obs.parcel_insectes(r_i, p_i)
+        seuil_base = CANONICAL_DOTATION[p_i - 1]
+        bit = 1 << (r_i * MAX_P + (p_i - 1))
         score = 100
 
-        if obs.parcel_piege(r, p) == PIEGE_ACTIF and cur_def == 0:
-            score += 550
-        if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r, p):
+        # Piège autonome v6.1 (SINGLE_STRIKE, sans Embuscade) : ne pas gaspiller un Défenseur dessus
+        if obs.parcel_piege(r_i, p_i) == PIEGE_ACTIF:
+            return 65
+        if obs.mode >= 2 and defs == 0 and obs.parcel_has_nid(r_i, p_i):
             score += 480
         if (threat_mask & bit) and cur_def < seuil_base:
-            score += 600 if r == obs.observer_seat else 520
+            score += 600 if r_i == obs.observer_seat else 520
         if (machine_mask & bit) and cur_def < seuil_base:
             score += 180
-        if obs.parcel_arbres(r, p) == 1:
+        if obs.parcel_arbres(r_i, p_i) == 1:
             score += 60
         return score
 
     if kind == "LISIERE":
         _, slot_idx = target
-        if obs.mode < 2 or slot_idx >= 2 * obs.n_players:
+        if obs.mode < 2 or int(slot_idx) >= 2 * obs.n_players:
             return 0
-        tile_id, _, constructors = obs.lisiere_tile_info(slot_idx)
+        tile_id, _, constructors = obs.lisiere_tile_info(int(slot_idx))
         fam, _, _ = SYNERGY_META[tile_id]
         fam_bonus = 90 if fam == FAMILLE_REVE else (70 if fam == FAMILLE_CROISSANCE else 50)
         if constructors == 1:
@@ -158,20 +182,50 @@ def _score_defender_target(
         return 240 + fam_bonus
 
     if kind == "FURTIVITE":
-        _, l_idx, p, rive = target
-        nb_d, f_ins = obs.furtivite_defs_and_ins(l_idx, p)
-        t_ray = l_idx if rive == 0 else (l_idx + 1) % obs.n_players
-        has_m = bool(machine_mask & (1 << (t_ray * MAX_P + (p - 1))))
+        _, ray, rive = target
+        ray_i, rive_i = int(ray), int(rive)
+        if not obs.is_ray_furtivite_open(ray_i):
+            return 0
+        d_rv = obs.furtivite_ray_rive_defs(ray_i, rive_i)
+        if d_rv >= 2:
+            return 0
+        own_card_ray = (
+            unpack_machine_card(own_hand.card)[0]
+            if (own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players)
+            else -1
+        )
+        own_on_ray = own_card_ray == ray_i
+        rat_cnt = _ray_ratissage_count(obs, ray_i)
+        has_untrapped = _ray_has_untrapped_parcel(obs, cfg, ray_i)
 
-        partner_ready = (nb_d == 1) or (f_ins >= 1)
-        useful_trap = (not has_m) and obs.parcel_piege(t_ray, p) == PIEGE_AUCUN
-        useful_sabotage = has_m and obs.tour <= 6
+        # En 2.1 : ne pas jeter son pion au hasard sur les 2N rives vides (garde-fou anti-orphelins).
+        # Seul réflexe élémentaire : on voit 1 machine en Ratissage sur ce rayon ET on tient l'autre carte -> m(r)=2 !
+        if is_first_defender:
+            if rive_i == FURT_RIVE_PIEGE and own_on_ray and rat_cnt == 1 and has_untrapped:
+                return 360
+            return 55
 
-        if partner_ready and (useful_trap or useful_sabotage):
-            return 510 if useful_sabotage else 490
-        if drew_sabotage_or_none and (useful_trap or useful_sabotage):
-            return 340
-        return 140
+        # En 2.2 : si un partenaire a déjà amorcé cette rive (1/2), compléter le binôme si cohérent !
+        if d_rv == 1:
+            if rive_i == FURT_RIVE_PIEGE:
+                if has_untrapped and (own_on_ray or rat_cnt >= 1):
+                    return 500
+                if has_untrapped and drew_sabotage_or_none:
+                    return 390
+                return 110
+            if rive_i == FURT_RIVE_SABOTAGE:
+                if obs.tour <= 6 and rat_cnt == 0 and not own_on_ray:
+                    return 480
+                return 95
+
+        # En 2.2 sur rive vide (0/2) : ne pas ouvrir une seconde rive si une 1/2 attend déjà
+        if has_open_furt_rive:
+            return 60
+        if rive_i == FURT_RIVE_PIEGE and own_on_ray and rat_cnt == 1 and has_untrapped:
+            return 370
+        if rive_i == FURT_RIVE_SABOTAGE and drew_sabotage_or_none and obs.tour <= 6 and rat_cnt == 0:
+            return 270
+        return 65
 
     if kind == "GARDIEN_PARI":
         _, case_c = target
@@ -180,7 +234,7 @@ def _score_defender_target(
             return 0
         own_c = obs.player_def2_gardien_pari_case(obs.observer_seat)
         allies_c = obs.gardien_pari_defenders(c_i) - (1 if own_c == c_i else 0)
-        if allies_c >= cfg.gardien_bet_cap_for_case(c_i):
+        if allies_c >= GARDIEN_BET_CAP:
             return 0
         total_g = obs.total_gardien_pari_defenders()
         if obs.tour <= 7 and total_g >= obs.n_players - 1 and drew_sabotage_or_none:
@@ -194,30 +248,21 @@ def _score_defender_target(
         c_i = int(case_c)
         if obs.reve_at_case(c_i) <= 0:
             return 0
-        own_hand = obs.hand_of(obs.observer_seat)
         own_hits = (
-            own_hand.card is not None and 1 <= own_hand.card <= 12 and own_hand.lecture_m == c_i
+            own_hand.card is not None
+            and 1 <= own_hand.card <= 2 * obs.n_players
+            and own_hand.lecture_m == c_i
         )
-        allies = obs.reve_activation_defenders(c_i)
-        act_mode = cfg.reve_activation_mode
-        if act_mode == "1_DEF_1_MACHINE":
-            return 435 if own_hits else 70
-        if act_mode == "1_DEF_ALL_RANK":
-            if allies >= 1:
-                return 30
-            return 450 if own_hits else 70
-        # BINOME_ALL_RANK
-        if allies >= 2:
-            return 30
-        if allies == 1:
-            return 460 if own_hits else (260 if drew_sabotage_or_none else 120)
-        return 330 if own_hits else 60
+        # Éviter de poser son 2e Défenseur sur un Rêve où l'on a déjà mis son 1er Défenseur pour sa propre carte
+        if (not is_first_defender) and obs.player_def1_reve_case(obs.observer_seat) == c_i:
+            return 45
+        return 435 if own_hits else 70
 
     return 0
 
 
 class BotB0:
-    """Agent réflexe B0 (K_max = 0) opérant exclusivement sur PlayerObservation."""
+    """Agent réflexe B0 v6.1 (`K_max = 0`) opérant exclusivement sur `PlayerObservation`."""
 
     @staticmethod
     def choose(obs: PlayerObservation, decision: DecisionRequest, cfg: GameConfig) -> Any:
@@ -233,15 +278,34 @@ class BotB0:
             drew_sab = (not own_hand.has_card) or (own_hand.card == CARD_SABOTAGE)
             threat_mask, machine_mask = _compute_threat_and_machine_masks(obs, cfg, own_hand)
 
+            is_def1 = dtype == DEC_POSE_DEFENSEUR_1
+            has_open_furt_rive = False
+            if not is_def1:
+                for r_chk in range(obs.n_players):
+                    if obs.is_ray_furtivite_open(r_chk) and (
+                        obs.furtivite_ray_rive_defs(r_chk, FURT_RIVE_PIEGE) == 1
+                        or obs.furtivite_ray_rive_defs(r_chk, FURT_RIVE_SABOTAGE) == 1
+                    ):
+                        has_open_furt_rive = True
+                        break
+
             best_choice = opts[0]
             best_sc = -1
             best_tb = -1
             best_idx = 0
 
-            if dtype == DEC_POSE_DEFENSEUR_1:
+            if is_def1:
                 for idx, opt in enumerate(opts):
                     sc = _score_defender_target(
-                        obs, cfg, opt, threat_mask, machine_mask, drew_sab
+                        obs,
+                        cfg,
+                        opt,
+                        threat_mask,
+                        machine_mask,
+                        own_hand,
+                        drew_sab,
+                        True,
+                        False,
                     )
                     if sc > best_sc:
                         best_sc = sc
@@ -264,7 +328,15 @@ class BotB0:
                 if act_kind != "POSER_DEFINITIF":
                     continue
                 sc = _score_defender_target(
-                    obs, cfg, target, threat_mask, machine_mask, drew_sab
+                    obs,
+                    cfg,
+                    target,
+                    threat_mask,
+                    machine_mask,
+                    own_hand,
+                    drew_sab,
+                    False,
+                    has_open_furt_rive,
                 )
                 if sc > best_sc:
                     best_sc = sc
@@ -287,8 +359,35 @@ class BotB0:
                     return opt
             return opts[0]
 
-        if dtype == DEC_COLONIE_A_OPEN:
-            return "OUVRIR" if "OUVRIR" in opts else opts[0]
+        if dtype == DEC_POSE_PIEGE_FURTIVITE_4_1:
+            ray_p = int(decision.context.get("ray", obs.observer_seat))
+            m_mask = _active_machine_mask(obs)
+            best_p = opts[0]
+            best_sc = -1
+            best_tb = -1
+            best_idx = 0
+            for idx, cand_p in enumerate(opts):
+                p_i = int(cand_p)
+                has_m = bool(m_mask & (1 << (ray_p * MAX_P + (p_i - 1))))
+                sc = (
+                    (120 if has_m else 0)
+                    + obs.parcel_arbres(ray_p, p_i) * 35
+                    + (45 if obs.parcel_has_nid(ray_p, p_i) else 0)
+                )
+                if sc > best_sc:
+                    best_sc = sc
+                    best_tb = -1
+                    best_idx = idx
+                    best_p = cand_p
+                elif sc == best_sc:
+                    if best_tb < 0:
+                        best_tb = _tiebreak_u64(cfg, obs, best_idx)
+                    tb = _tiebreak_u64(cfg, obs, idx)
+                    if tb > best_tb:
+                        best_tb = tb
+                        best_idx = idx
+                        best_p = cand_p
+            return best_p
 
         if dtype == DEC_ORDRE_CONSTRUCTION_3_1:
             best_slot = opts[0]
@@ -327,7 +426,11 @@ class BotB0:
                     else (
                         55
                         if c_int == 6
-                        else (50 if c_int == 4 else (45 if c_int == 2 else (35 if c_int == 3 else 30)))
+                        else (
+                            50
+                            if c_int == 4
+                            else (45 if c_int == 2 else (35 if c_int == 3 else 30))
+                        )
                     )
                 )
                 if w > best_sc:
@@ -394,16 +497,7 @@ class BotB0:
 
         if dtype == DEC_MIGRATION_INSECTE_4_3:
             src = decision.context.get("source", ("FORET", 0, 1))
-            src_kind, src_a, src_p = src
-            if src_kind == "FORET":
-                sr, sp = int(src_a), int(src_p)
-                if (
-                    obs.parcel_piege(sr, sp) == PIEGE_ACTIF
-                    and obs.parcel_defenseurs(sr, sp) == 0
-                    and obs.parcel_insectes(sr, sp) == 1
-                ):
-                    return ("RESTER",)
-
+            src_kind, _, src_p = src
             m_mask = _active_machine_mask(obs)
             best_mv = opts[0]
             best_sc = -1
@@ -415,17 +509,11 @@ class BotB0:
                 if mk == "COLONIE":
                     sc = 500 if obs.gardien_available_at_case(int(mv[1])) else 260
                 elif mk == "BUG":
-                    t_code, t_bugs, _ = obs.tactique_code_bugs_app(int(mv[1]) - 1)
+                    t_code, t_bugs = obs.tactique_code_bugs(int(mv[1]) - 1)
                     sc = 420 if (is_tactique_code(t_code) and t_bugs == 0) else 220
                 elif mk == "FORET":
                     dst_r, dst_p = int(mv[1]), int(mv[2])
-                    if (
-                        obs.parcel_piege(dst_r, dst_p) == PIEGE_ACTIF
-                        and obs.parcel_defenseurs(dst_r, dst_p) + obs.parcel_insectes(dst_r, dst_p)
-                        == 0
-                    ):
-                        sc = 480
-                    elif obs.mode >= 2 and src_kind == "FORET" and dst_p > int(src_p):
+                    if obs.mode >= 2 and src_kind == "FORET" and dst_p > int(src_p):
                         sc = 300
                     elif m_mask & (1 << (dst_r * MAX_P + (dst_p - 1))):
                         sc = 250
@@ -449,32 +537,6 @@ class BotB0:
                         best_mv = mv
             return best_mv
 
-        if dtype == DEC_RETRAIT_APPRENTISSAGE_6_1:
-            best_r = opts[0]
-            best_sc = -1
-            best_tb = -1
-            best_idx = 0
-            for idx, opt in enumerate(opts):
-                if opt == "PASSER":
-                    sc = 0
-                else:
-                    _, _, app = obs.tactique_code_bugs_app(int(opt))
-                    sc = 100 + app * 10
-                if sc > best_sc:
-                    best_sc = sc
-                    best_tb = -1
-                    best_idx = idx
-                    best_r = opt
-                elif sc == best_sc:
-                    if best_tb < 0:
-                        best_tb = _tiebreak_u64(cfg, obs, best_idx)
-                    tb = _tiebreak_u64(cfg, obs, idx)
-                    if tb > best_tb:
-                        best_tb = tb
-                        best_idx = idx
-                        best_r = opt
-            return best_r
-
         best_gen = opts[0]
         best_u_gen = _tiebreak_u64(cfg, obs, 0)
         for idx in range(1, len(opts)):
@@ -486,7 +548,7 @@ class BotB0:
 
 
 def choose_b0(state: GameState, decision: DecisionRequest) -> Any:
-    """Point d'entrée isolé : extrait uniquement PlayerObservation pour decision.decideur."""
+    """Point d'entrée isolé : extrait uniquement `PlayerObservation` pour `decision.decideur`."""
     obs = state.get_observation(decision.decideur)
     return BotB0.choose(obs, decision, state.cfg)
 

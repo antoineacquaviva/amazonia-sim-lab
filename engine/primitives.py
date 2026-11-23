@@ -1,4 +1,4 @@
-"""Bus des 8 Primitives Formelles, structures de décision/fin et registre de hooks."""
+"""Bus des 7 Primitives Formelles actives v6.1, structures de décision/fin et registre de hooks Mode 4."""
 
 from __future__ import annotations
 
@@ -36,7 +36,6 @@ __all__ = (
     "HOOK_3_2_REVELATION",
     "HOOK_4_1_FURTIVITE",
     "HOOK_4_2_NID_APRES_PROD",
-    "HOOK_4_3_COLONIE_FIN",
     "HOOK_4_3_MIGRATION_DESTS",
     "HOOK_5_3_PRE_RETRAIT",
     "HOOK_5_APRES_PARADE_PIEGE",
@@ -52,15 +51,11 @@ __all__ = (
     "HOOK_5_PARADE_JAGUAR",
     "HOOK_5_SEUIL_PARADE",
     "HOOK_5_TERRASSEMENT",
-    "HOOK_6_1_BUG",
-    "HOOK_6_1_REDUCTION_VOLONTAIRE",
-    "HOOK_6_2_AVANCEMENT",
     "HOOK_EFFECT_RESUME",
     "HOOK_GARDIEN_OUVERTURE",
     "HOOK_REPOUSSE_FINALE",
     "PRIM_CREATION_ENTITE",
     "PRIM_DEPLACEMENT",
-    "PRIM_MOD_APPRENTISSAGE",
     "PRIM_MOD_LOI_DU_COEUR",
     "PRIM_MOD_PUISSANCE",
     "PRIM_MOD_SEUIL",
@@ -78,7 +73,6 @@ __all__ = (
     "list_registered_tiles",
     "prim_creation_entite",
     "prim_deplacement",
-    "prim_mod_apprentissage",
     "prim_mod_loi_du_coeur",
     "prim_mod_puissance",
     "prim_mod_seuil",
@@ -96,12 +90,11 @@ CAUSE_REVEIL_GARDIENS: str = "REVEIL_GARDIENS"
 # Type canonique de décision émise par un effet de tuile
 DEC_EFFET_TUILE: str = "EFFET_TUILE"
 
-# Les 8 Primitives Formelles v5.3
+# Les 7 Primitives Formelles actives v6.1 / Mode 4
 PRIM_MOD_SEUIL: str = "MOD_SEUIL"
 PRIM_CREATION_ENTITE: str = "CREATION_ENTITE"
 PRIM_DEPLACEMENT: str = "DEPLACEMENT"
 PRIM_MOD_PUISSANCE: str = "MOD_PUISSANCE"
-PRIM_MOD_APPRENTISSAGE: str = "MOD_APPRENTISSAGE"
 PRIM_PERMUTATION_PISTE: str = "PERMUTATION_PISTE"
 PRIM_PARTAGE_INFO_ETAT_GARDIEN: str = "PARTAGE_INFO_ETAT_GARDIEN"
 PRIM_MOD_LOI_DU_COEUR: str = "MOD_LOI_DU_COEUR"
@@ -111,13 +104,12 @@ ALL_PRIMITIVES: tuple[str, ...] = (
     PRIM_CREATION_ENTITE,
     PRIM_DEPLACEMENT,
     PRIM_MOD_PUISSANCE,
-    PRIM_MOD_APPRENTISSAGE,
     PRIM_PERMUTATION_PISTE,
     PRIM_PARTAGE_INFO_ETAT_GARDIEN,
     PRIM_MOD_LOI_DU_COEUR,
 )
 
-# Fenêtres / Hooks du bus d'exécution
+# Fenêtres / Hooks du bus d'exécution (Panier 2 : prises d'accroche Mode 4 préservées)
 HOOK_1_3_LECTURE_DE: str = "HOOK_1_3_LECTURE_DE"
 HOOK_2_1_DEBUT: str = "HOOK_2_1_DEBUT"
 HOOK_2_1_PORTEE_DEF1: str = "HOOK_2_1_PORTEE_DEF1"
@@ -128,7 +120,6 @@ HOOK_3_2_APRES_REVELATION: str = "HOOK_3_2_APRES_REVELATION"
 HOOK_GARDIEN_OUVERTURE: str = "HOOK_GARDIEN_OUVERTURE"
 HOOK_4_1_FURTIVITE: str = "HOOK_4_1_FURTIVITE"
 HOOK_4_2_NID_APRES_PROD: str = "HOOK_4_2_NID_APRES_PROD"
-HOOK_4_3_COLONIE_FIN: str = "HOOK_4_3_COLONIE_FIN"
 HOOK_4_3_MIGRATION_DESTS: str = "HOOK_4_3_MIGRATION_DESTS"
 HOOK_5_DEBUT: str = "HOOK_5_DEBUT"
 HOOK_5_ORDRE_RAYON: str = "HOOK_5_ORDRE_RAYON"
@@ -144,9 +135,6 @@ HOOK_5_TERRASSEMENT: str = "HOOK_5_TERRASSEMENT"
 HOOK_5_CONTACT_NID: str = "HOOK_5_CONTACT_NID"
 HOOK_5_FIN_ATTAQUE_MACHINE: str = "HOOK_5_FIN_ATTAQUE_MACHINE"
 HOOK_5_3_PRE_RETRAIT: str = "HOOK_5_3_PRE_RETRAIT"
-HOOK_6_1_REDUCTION_VOLONTAIRE: str = "HOOK_6_1_REDUCTION_VOLONTAIRE"
-HOOK_6_1_BUG: str = "HOOK_6_1_BUG"
-HOOK_6_2_AVANCEMENT: str = "HOOK_6_2_AVANCEMENT"
 HOOK_REPOUSSE_FINALE: str = "HOOK_REPOUSSE_FINALE"
 HOOK_EFFECT_RESUME: str = "HOOK_EFFECT_RESUME"
 
@@ -427,18 +415,21 @@ def prim_creation_entite(
         assert state.get_parcel_piege(ray, p) == PIEGE_AUCUN, "Parcelle déjà piégée"
         state.set_parcel_piege(ray, p, PIEGE_ACTIF)
         _record_phys_ops(state, 1)
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.ok_pieges_placed += 1
+            if light_trigger:
+                trk.on_trigger_lit(2)
         if light_trigger:
             state.light_trigger(2)
-            trk = _get_active_telemetry()
-            if trk is not None:
-                trk.on_trigger_lit(2)
         return
 
     if entity_type == "SABOTAGE":
         state.add_permanent_sabotage(count=count, light_case_3=light_trigger)
-        if light_trigger:
-            trk = _get_active_telemetry()
-            if trk is not None:
+        trk = _get_active_telemetry()
+        if trk is not None:
+            trk.ok_sabotage_acquired += count
+            if light_trigger:
                 trk.on_trigger_lit(3)
         _record_phys_ops(state, count)
         return
@@ -477,6 +468,10 @@ def apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool:
         state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, 0)
     ins_before = state.get_parcel_insectes(ray, p)
     state.set_parcel_insectes(ray, p, 0)
+    trk = _get_active_telemetry()
+    if trk is not None:
+        trk.ok_contact_nid_renvois += 1
+        trk.ok_contact_nid_insectes_perdus += ins_before
     _record_phys_ops(state, 1 + ins_before)
     return True
 
@@ -613,53 +608,27 @@ def prim_mod_puissance(
     _record_phys_ops(state, ops)
 
 
-def prim_mod_apprentissage(state: GameState, rank_0_5: int, delta: int) -> None:
-    """Primitive 5 : MOD_APPRENTISSAGE — neutralisée (Apprentissage supprimé en v5.4.2)."""
-    _ = (state, rank_0_5, delta)
-
-
 def prim_permutation_piste(
     state: GameState,
     action: str,
     *,
     rank_a: int = 0,
-    rank_b: int = 0,
     seat: int = 0,
     delta_m: int = 0,
     rebind_tactique: bool = False,
 ) -> bool:
-    """Primitive 6 : PERMUTATION_PISTE — avancée Rêve (saut/poussée) ou lecture M sur piste fixe T1..T6."""
-    if action == "SWAP_RANKS":
-        # Piste des Tactiques T1..T6 imprimée en dur : aucune permutation de Tactiques.
-        _ = (rank_a, rank_b)
-        return False
-
+    """Primitive 5 : PERMUTATION_PISTE — avancée Rêve Mode 4 (ADVANCE_REVE_LEFT) ou décalage dé M."""
     if action == "ADVANCE_REVE_LEFT":
         assert 0 <= rank_a < TRACK_LEN
         code = state.get_tactique_at_rank(rank_a)
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
-        if rank_a == 0:
-            return False
-        if state.cfg.reve_advance_mode == "FREE_SLOT_ONLY":
-            if is_reve_code(state.get_tactique_at_rank(rank_a - 1)):
-                return False
-            state.set_tactique_at_rank(rank_a - 1, code)
-            state.set_tactique_at_rank(rank_a, rank_a + 1)
-            _record_phys_ops(state, 1)
-            return True
-        dest: int | None = None
-        for j in range(rank_a - 1, -1, -1):
-            if not is_reve_code(state.get_tactique_at_rank(j)):
-                dest = j
-                break
+        dest = state.get_reve_advance_dest_rank(rank_a)
         if dest is None:
             return False
-        # Poussée du bloc contigu de Rêves vers la première case libre à gauche ;
-        # la case libérée retrouve sa Tactique imprimée T1..T6 (rank_a + 1).
-        for idx in range(dest, rank_a):
-            state.set_tactique_at_rank(idx, state.get_tactique_at_rank(idx + 1))
+        # Hook Mode 4 : le Rêve avance vers la 1re case libre à gauche ; la case libérée retrouve T{rank_a+1}.
+        state.set_tactique_at_rank(dest, code)
         state.set_tactique_at_rank(rank_a, rank_a + 1)
-        _record_phys_ops(state, rank_a - dest)
+        _record_phys_ops(state, 1)
         return True
 
     if action == "SHIFT_LECTURE_M":
@@ -711,6 +680,10 @@ def prim_partage_info_etat_gardien(
             first_open = not state.has_gardien_opened_this_turn(case_1_6)
             state.mark_gardien_opened_this_turn(case_1_6)
             should_light_4 = first_open
+        else:
+            trk_c4 = _get_active_telemetry()
+            if trk_c4 is not None:
+                trk_c4.ok_cascade_case4_openings += 1
 
         sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
         if should_light_4:
@@ -756,6 +729,9 @@ def prim_partage_info_etat_gardien(
                     )
                 )
                 state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, min(2, rem_tracked))
+        trk_ret = _get_active_telemetry()
+        if trk_ret is not None:
+            trk_ret.ok_gardien_return_lisiere += 1
         _record_phys_ops(state, 1)
         return True
 

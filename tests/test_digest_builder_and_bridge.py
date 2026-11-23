@@ -14,7 +14,6 @@ from campaigns.digest_builder import (
     build_prompt_gemini_markdown,
     build_self_contained_digest,
     build_tested_tiles_rules,
-    decode_chassis_axes,
     write_digest_and_prompt_files,
 )
 from scripts_cloud.publish_digest import (
@@ -25,26 +24,19 @@ from scripts_cloud.publish_digest import (
 )
 
 
-def test_decode_chassis_axes_and_active_core_rules() -> None:
-    c0 = decode_chassis_axes(0)
-    assert c0["chassis_id"] == 0
-    assert c0["profil_piste"] == "P4_2233"
-    assert c0["regle_ouverture_reve_multiple"] == "UNIQUE_PAR_TOUR"
-    assert c0["offset_seuil_parade"] == 0
-    assert c0["placement_initial_machines"] == "MEME_PARCELLE_P1"
-
-    c191 = decode_chassis_axes(191)
-    assert c191["chassis_id"] == 191
-    assert c191["profil_piste"] == "P5_12223"
-    assert c191["placement_initial_machines"] == "BULLDOZER_P1_ABATTEUSE_P2"
-    assert c191["synergie_binome_machines"] == "MUTUALISATION_PUISSANCE_MEME_PARCELLE"
-
-    core = build_active_core_rules((0, 1, 191))
-    assert core["version"] == "5.5.0"
-    assert "catalog_v5_5.json" in core["studio_sha256"]
-    assert "spec_formelle_v5_5.json" in core["studio_sha256"]
-    assert "livret_v5_5.js" in core["studio_sha256"]
-    assert len(core["chassis_6_axes"]) == 3
+def test_canonical_v6_1_active_core_rules() -> None:
+    core = build_active_core_rules()
+    assert core["version"] == "6.1.0-alpha"
+    assert "catalog_v6_0.json" in core["studio_sha256"]
+    assert "spec_formelle_v6_0.json" in core["studio_sha256"]
+    assert "livret_v6_0.js" in core["studio_sha256"]
+    cc = core["chassis_canonique"]
+    assert cc["profil_piste"] == "P4_2233"
+    assert cc["dotation_arbres"] == [2, 2, 3, 3]
+    assert cc["placement_initial_machines"] == "BULLDOZER_P1_ABATTEUSE_P2"
+    assert cc["gardien_bet_cap"] == 2
+    assert cc["charge_gain"] == "FRAPPE_NON_PAREE"
+    assert cc["piege"] == "AUTONOME_SINGLE_STRIKE"
     assert [t["id"] for t in core["tactiques"]] == ["T1", "T2", "T3", "T4", "T5", "T6"]
     assert core["machine_deck_rules"]["sabotage_dilution_permanente"] is True
 
@@ -114,7 +106,6 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
     d_path, p_path, digest = write_digest_and_prompt_files(
         "unit_test_bridge",
         sample_stats,
-        chassis_ids=(0, 19),
         digests_dir=tmp_path,
         legacy_data_copy=False,
     )
@@ -122,7 +113,7 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
     assert "consignes_restitution_auteur" in digest
     assert "continuite_discussion" in digest["consignes_restitution_auteur"]
     assert "structure_bilan_global" in digest["consignes_restitution_auteur"]
-    assert len(digest["active_core_rules"]["chassis_6_axes"]) == 2
+    assert digest["active_core_rules"]["chassis_canonique"]["profil_piste"] == "P4_2233"
     assert [t["slot"] for t in digest["tested_tiles_rules"]] == ["G3", "M1"]
 
     prompt_md = build_prompt_gemini_markdown(digest)
@@ -148,7 +139,6 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
     pub_res = publish_campaign_digest(
         "unit_test_bridge",
         sample_stats,
-        chassis_ids=(0, 19),
         digests_dir=tmp_path,
         push_gcs=False,
         upload_drive=True,
@@ -194,7 +184,7 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
     # On fixe max_bytes juste en dessous de la version 12 tuiles mais suffisant pour 2 tuiles variées
     full_compact_size = len(
         json.dumps(
-            build_self_contained_digest(payload_many_tiles, chassis_ids=(0,)),
+            build_self_contained_digest(payload_many_tiles),
             separators=(",", ":"),
             ensure_ascii=False,
         ).encode("utf-8")
@@ -202,7 +192,6 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
     d_path, _p_path, final_digest = write_digest_and_prompt_files(
         "macro_budget_test",
         payload_many_tiles,
-        chassis_ids=(0,),
         varying_tiles=("G7:A", "G7:B"),
         digests_dir=tmp_path,
         legacy_data_copy=False,
@@ -217,12 +206,11 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
         d_big, _p_big, big_digest = write_digest_and_prompt_files(
             "macro_huge_test",
             payload_many_tiles,
-            chassis_ids=(0,),
             varying_tiles=("G7:A", "G7:B"),
             digests_dir=tmp_path,
             legacy_data_copy=False,
             max_bytes=1_000,
         )
     assert d_big.exists()
-    assert big_digest["active_core_rules"]["version"] == "5.5.0"
+    assert big_digest["active_core_rules"]["version"] == "6.1.0-alpha"
     assert len(d_big.read_bytes()) >= 1_000

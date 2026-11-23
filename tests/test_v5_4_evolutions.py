@@ -1,135 +1,67 @@
-"""Tests dédiés aux évolutions de règles v5.4.
-
-Couvre les 4 axes d'évolution v5.4 :
-1. 6 profils de pistes (`P4_2233`, `P4_2223`, `P4_1223`, `P5_22233`, `P5_22223`, `P5_12223`).
-2. Option de placement initial des machines (`MEME_PARCELLE_P1` vs `BULLDOZER_P1_ABATTEUSE_P2`),
-   remplaçant `DEPASSEMENT_DERNIERE_PARCELLE` (supprimée) — espace 384 configurations.
-3. Nouvelle règle de victoire Sommeil du Contremaître : tous les Rêves en jeu
+"""Tests dédiés aux règles consolidées du châssis unique v6.1 :
+1. Châssis unique P4_2233 (4 parcelles 2-2-3-3, 10 arbres/rayon) et départ décalé (Bulldozer p=1, Abatteuse p=2).
+2. Condition de victoire Sommeil du Contremaître (Mode 4) : tous les Rêves en jeu
    (2 × peuples oniriques = 0, 2 ou 4) en bloc contigu en tête de piste.
-4. Passage « Siège » → « Ratissage » : retournement permanent en dernière parcelle non rasée,
-   +1 puissance rouge imprimé (traité comme +1 rouge à tous égards, conservant les rouges acquis),
-   T1 Sur place systématique et alimentation de T1 en 6.1 Apprentissage.
+3. Ratissage : bascule uniquement en 6.3, +1 puissance rouge imprimé conservant les rouges acquis,
+   T1 Sur place systématique et piste T1..T6 fixe.
 """
 
 from __future__ import annotations
 
-import pytest
-
-from campaigns.digest_builder import (
-    chassis_id_to_studio_index_384,
-    studio_index_384_to_chassis_id,
-)
 from engine.core_engine import (
     resolve_single_machine_attack,
     step_until_decision,
 )
 from engine.primitives import CAUSE_REVE_RANG_1, GameOver
 from engine.state import (
+    ABATTEUSE_INIT_PARCEL,
+    BULLDOZER_INIT_PARCEL,
+    CANONICAL_ARBRES_PAR_RAYON,
+    CANONICAL_DOTATION,
+    CANONICAL_P_MAX,
+    CANONICAL_PROFIL_PISTE,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
     MACHINE_STATUS_RATISSAGE,
-    NUM_CHASSIS,
-    STEP_1_1_RATISSAGE,
     STEP_5_2_RATISSAGE,
     STEP_5_3_END_CHECK,
+    STEP_6_3_END_TURN,
     TACTIQUES_SPEC,
     TILE_R_BASE,
-    TOPOLOGIES_DOTATION,
     GameConfig,
     GameState,
     code_to_tile_id,
-    decode_chassis_index,
 )
 
 
-@pytest.mark.parametrize(
-    ("profil", "expected_p_max", "expected_dotation"),
-    [
-        ("P4_2233", 4, (2, 2, 3, 3)),
-        ("P4_2223", 4, (2, 2, 2, 3)),
-        ("P4_1223", 4, (1, 2, 2, 3)),
-        ("P5_22233", 5, (2, 2, 2, 3, 3)),
-        ("P5_22223", 5, (2, 2, 2, 2, 3)),
-        ("P5_12223", 5, (1, 2, 2, 2, 3)),
-    ],
-)
-def test_v5_4_six_track_profiles_setup(
-    profil: str, expected_p_max: int, expected_dotation: tuple[int, ...]
-) -> None:
-    assert TOPOLOGIES_DOTATION[profil] == expected_dotation
-    cfg = GameConfig(n_players=4, mode=1, profil_piste=profil, exp_seed=5401)
-    assert cfg.p_max == expected_p_max
-    assert cfg.dotation_arbres == expected_dotation
+def test_v6_1_canonical_track_p4_2233_and_split_machine_placement() -> None:
+    cfg = GameConfig(n_players=4, mode=1, exp_seed=5401)
+    assert cfg.profil_piste == CANONICAL_PROFIL_PISTE == "P4_2233"
+    assert cfg.p_max == CANONICAL_P_MAX == 4
+    assert cfg.dotation_arbres == CANONICAL_DOTATION == (2, 2, 3, 3)
 
     state = GameState(cfg)
     total_trees = 0
     for ray in range(4):
-        for p in range(1, expected_p_max + 1):
+        assert state.get_machine_pos_status(ray, MACHINE_BULLDOZER) == (
+            BULLDOZER_INIT_PARCEL,
+            MACHINE_STATUS_NORMAL,
+            False,
+        )
+        assert state.get_machine_pos_status(ray, MACHINE_ABATTEUSE) == (
+            ABATTEUSE_INIT_PARCEL,
+            MACHINE_STATUS_NORMAL,
+            False,
+        )
+        for p in range(1, CANONICAL_P_MAX + 1):
             arbres = state.get_parcel_arbres(ray, p)
-            assert arbres == expected_dotation[p - 1]
+            assert arbres == CANONICAL_DOTATION[p - 1]
             total_trees += arbres
-    assert total_trees == 4 * sum(expected_dotation)
+    assert total_trees == 4 * CANONICAL_ARBRES_PAR_RAYON
 
 
-def test_v5_4_initial_machine_placement_options() -> None:
-    cfg_same = GameConfig(
-        n_players=4,
-        mode=1,
-        placement_initial_machines="MEME_PARCELLE_P1",
-        exp_seed=5402,
-    )
-    st_same = GameState(cfg_same)
-    for ray in range(4):
-        assert st_same.get_machine_pos_status(ray, MACHINE_BULLDOZER) == (
-            1,
-            MACHINE_STATUS_NORMAL,
-            False,
-        )
-        assert st_same.get_machine_pos_status(ray, MACHINE_ABATTEUSE) == (
-            1,
-            MACHINE_STATUS_NORMAL,
-            False,
-        )
-
-    cfg_split = GameConfig(
-        n_players=4,
-        mode=1,
-        placement_initial_machines="BULLDOZER_P1_ABATTEUSE_P2",
-        exp_seed=5402,
-    )
-    st_split = GameState(cfg_split)
-    for ray in range(4):
-        assert st_split.get_machine_pos_status(ray, MACHINE_BULLDOZER) == (
-            1,
-            MACHINE_STATUS_NORMAL,
-            False,
-        )
-        assert st_split.get_machine_pos_status(ray, MACHINE_ABATTEUSE) == (
-            2,
-            MACHINE_STATUS_NORMAL,
-            False,
-        )
-
-
-def test_v5_4_chassis_192_bijection() -> None:
-    assert NUM_CHASSIS == 192
-    seen_studio: set[int] = set()
-    for cid in range(NUM_CHASSIS):
-        decoded = decode_chassis_index(cid)
-        assert decoded["profil_piste"] in TOPOLOGIES_DOTATION
-        assert decoded["placement_initial_machines"] in (
-            "MEME_PARCELLE_P1",
-            "BULLDOZER_P1_ABATTEUSE_P2",
-        )
-        sidx = chassis_id_to_studio_index_384(cid)
-        assert 1 <= sidx <= 192
-        assert studio_index_384_to_chassis_id(sidx) == cid
-        seen_studio.add(sidx)
-    assert len(seen_studio) == 192
-
-
-def test_v5_4_sommeil_victory_zero_one_two_oniric_peoples() -> None:
+def test_v6_1_sommeil_victory_zero_one_two_oniric_peoples() -> None:
     # 0 peuple onirique -> impossible (total_reves_partie == 0)
     st0 = GameState(GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"), exp_seed=5403))
     assert st0.cfg.total_reves_partie == 0
@@ -172,14 +104,8 @@ def test_v5_4_sommeil_victory_zero_one_two_oniric_peoples() -> None:
     assert st2.is_sommeil_victory() is True
 
 
-def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None:
-    cfg = GameConfig(
-        n_players=4,
-        mode=2,
-        profil_piste="P4_2233",
-        synergie_binome_machines="MUTUALISATION_PUISSANCE_MEME_PARCELLE",
-        exp_seed=5406,
-    )
+def test_v6_1_ratissage_flip_6_3_printed_red_and_fixed_track() -> None:
+    cfg = GameConfig(n_players=4, mode=2, exp_seed=5406)
     state = GameState(cfg)
     # Abatteuse sur la dernière parcelle (p=4) avec 1 jeton Rouge physique déjà acquis
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_NORMAL)
@@ -187,8 +113,8 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
     # Bulldozer aussi en p=4, Normal, 0 rouge
     state.set_machine_pos_status(0, MACHINE_BULLDOZER, 4, MACHINE_STATUS_NORMAL)
 
-    # Étape 1.1 : les deux machines sur la dernière parcelle passent en Ratissage permanent
-    state.step = STEP_1_1_RATISSAGE
+    # Bascule en Ratissage permanent exclusivement en 6.3
+    state.step = STEP_6_3_END_TURN
     step_until_decision(state)
     assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE) == (
         4,
@@ -206,20 +132,19 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
     assert state.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 2
     assert state.get_machine_effective_rouges(0, MACHINE_BULLDOZER) == 1
 
-    # Mutualisation sur la même parcelle : Seuil = base(3) + T1(0) + (2 + 1) rouges effectifs = 6 !
-    # Avec 5 Défenseurs, l'attaque n'est PAS parée ; avec 6 Défenseurs, elle est parée.
-    state.set_parcel_defenseurs(0, 4, 5)
+    # Mode individuel v6.1 : Seuil Abatteuse = base(3) + T1(0) + 2 rouges effectifs = 5 !
+    # Avec 4 Défenseurs -> attaque non parée ; avec 5 Défenseurs -> parée.
+    state.set_parcel_defenseurs(0, 4, 4)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
-    assert state.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre coupé
+    assert state.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
     assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)  # T1: gain_rouge=0
 
-    # Retour à 3 Arbres + 6 Défenseurs -> parée !
     state.set_parcel_arbres_souches(0, 4, 3, 0)
-    state.set_parcel_defenseurs(0, 4, 6)
+    state.set_parcel_defenseurs(0, 4, 5)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_parcel_arbres(0, 4) == 3
 
-    # Piste fixe T1..T6 (v5.4.2) : le Ratissage applique T1 en 5.2 sans déplacer les Tactiques en Étape 6
+    # Piste fixe T1..T6 : le Ratissage applique T1 en 5.2 sans déplacer les Tactiques en Étape 6
     st_fixed = GameState(cfg)
     st_fixed.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
     st_fixed.step = STEP_5_2_RATISSAGE
@@ -232,4 +157,3 @@ def test_v5_4_ratissage_flip_printed_red_mutualisation_and_t1_learning() -> None
         "T5",
         "T6",
     ]
-    assert all(st_fixed.get_apprentissage_at_rank(i) == 0 for i in range(6))

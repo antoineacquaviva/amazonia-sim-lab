@@ -165,16 +165,16 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     # B2 : RES_DILUTION_SABOTAGE fortement valorisée au Tour 1 vs faiblement au Tour 8
     cfg_sab = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=303)
     st_t1 = GameState(cfg_sab)
-    st_t1.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
-    st_t1.enter_furtivite(1, 0, 0, 2, 0, 2)  # Partenaire prêt pour Sabotage 4.1 sur (0, 2)
+    st_t1.set_player_hand(0, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_t1.place_defender_furtivite(1, 0, 0, 1, 2)  # Partenaire prêt en 2.1 sur Rive Sabotage du rayon 0
     st_t8 = st_t1.clone()
     st_t8.tour = 8
 
     obs_t1 = st_t1.get_observation(0)
     obs_t8 = st_t8.get_observation(0)
-    sc_sab_t1 = score_target_b2(obs_t1, cfg_sab, build_belief_summary(obs_t1, cfg_sab), ("FURTIVITE", 0, 2, 0), True)
-    sc_sab_t8 = score_target_b2(obs_t8, cfg_sab, build_belief_summary(obs_t8, cfg_sab), ("FURTIVITE", 0, 2, 0), True)
-    assert sc_sab_t1 > sc_sab_t8 + 60.0
+    sc_sab_t1 = score_target_b2(obs_t1, cfg_sab, build_belief_summary(obs_t1, cfg_sab), ("FURTIVITE", 0, 1), False)
+    sc_sab_t8 = score_target_b2(obs_t8, cfg_sab, build_belief_summary(obs_t8, cfg_sab), ("FURTIVITE", 0, 1), False)
+    assert sc_sab_t1 > sc_sab_t8 + 40.0
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +212,7 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     state.place_defender_gardien_pari(0, 1, 2)
     state.place_defender_gardien_pari(1, 4, 2)
     state.step = STEP_5_1_TACTIQUES
+    state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_parcel_defenseurs(1, 1, 3)  # Pare la frappe sur R -> allume case 1 -> cascade 1 -> 4 !
     resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)

@@ -8,12 +8,10 @@ from typing import Any
 import pytest
 
 from bots.bot_b0 import choose_b0, play_game_b0
-from campaigns.worker_main import build_palier1_cells, run_campaign_palier1
 from engine.core_engine import (
     CAUSE_REVE_RANG_1,
     CAUSE_REVEIL_GARDIENS,
     CAUSE_TOUR_8,
-    DEC_COLONIE_A_OPEN,
     DEC_MIGRATION_INSECTE_4_3,
     DEC_POSE_DEFENSEUR_2,
     DEC_REVISION_DEFENSEUR_2,
@@ -59,12 +57,11 @@ from engine.state import (
     PFLAG_SANCTUAIRE_SOUCHE,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
-    PIEGE_DECLENCHE,
     STATE_BUF_SIZE,
     STEP_1_2_DEAL,
     STEP_5_2_RATISSAGE,
     STEP_5_3_END_CHECK,
-    STEP_6_1_APPRENTISSAGE,
+    STEP_6_2_EVOLUTION,
     STEP_GAME_OVER,
     TACTIQUES_SPEC,
     TILE_R_BASE,
@@ -222,40 +219,46 @@ def test_04_sabotage_drawn_in_step1_rolls_zero_dice_and_loses_activation() -> No
 
 
 # ---------------------------------------------------------------------------
-# Test 5 : Furtivité à 4 emplacements jumeaux (tirage à l'entrée vs flip sur place)
+# Test 5 : Furtivité v6.1 par rayon (2 rives indépendantes Piège/Sabotage, zéro glissement)
 # ---------------------------------------------------------------------------
 def test_05_furtivite_4_twin_slots_pull_vs_in_place_flip() -> None:
     cfg = GameConfig(n_players=4, mode=1, exp_seed=55)
     state = GameState(cfg)
 
-    # Siège 0 pose son 1er Défenseur sur lisière 0, p=2, rive 0 (slot 0, face définitif)
-    state.enter_furtivite(seat=0, def_idx=0, lisiere=0, p=2, rive=0, face=FACE_DEFINITIF)
-    assert state.get_furtivite_slots(0, 2) == (FACE_DEFINITIF, 0, 0, 0)
-    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 1
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 0
+    # Siège 0 pose son 1er Défenseur sur rayon 0, rive 0 (Rive Piège, slot 0, face définitif)
+    state.place_defender_furtivite(seat=0, def_idx=0, ray=0, rive=0, face=FACE_DEFINITIF)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, 0, 0)
+    assert state.get_furtivite_nb_def_rive(0, 1, 0) == 1
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 0
 
-    # Siège 1 ENTRE avec son 2e Défenseur sur la rive 1 en face réflexion :
-    # le pion du siège 0 doit être tiré automatiquement sur le jumeau de la rive 1 (slot 3) !
-    state.enter_furtivite(seat=1, def_idx=1, lisiere=0, p=2, rive=1, face=FACE_REFLEXION)
-    assert state.get_furtivite_slots(0, 2) == (0, 0, FACE_REFLEXION, FACE_DEFINITIF)
-    assert state.get_furtivite_nb_def_rive(0, 2, 0) == 0
-    assert state.get_furtivite_nb_def_rive(0, 2, 1) == 2
+    # v6.1 : siège 1 pose sur rive 1 (Rive Sabotage) sans déplacer ni tirer siège 0 !
+    state.place_defender_furtivite(seat=1, def_idx=1, ray=0, rive=1, face=FACE_REFLEXION)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, FACE_REFLEXION, 0)
+    assert state.get_furtivite_nb_def_rive(0, 1, 0) == 1
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 1
 
-    # Retourner réflexion -> définitif sur place ne déplace ni ne tire aucun pion
+    # Retourner réflexion -> définitif sur place ne déplace aucun pion
     state.flip_defender2_to_definitif_in_place(seat=1)
-    assert state.get_furtivite_slots(0, 2) == (0, 0, FACE_DEFINITIF, FACE_DEFINITIF)
+    assert state.get_furtivite_slots(0, 1) == (FACE_DEFINITIF, 0, FACE_DEFINITIF, 0)
     assert state.is_player_def2_definitif(1) is True
 
-    # Case pleine (2 Défenseurs) : interdite à un 3e Défenseur d'un autre joueur
+    # Les deux rives ont encore 1 place libre chacune ; un 3e Défenseur peut compléter la rive 1
     legal_s2 = list_legal_targets(state, seat=2, is_first_defender=False)
-    assert ("FURTIVITE", 0, 2, 0) not in legal_s2
-    assert ("FURTIVITE", 0, 2, 1) not in legal_s2
+    assert ("FURTIVITE", 0, 0) in legal_s2
+    assert ("FURTIVITE", 0, 1) in legal_s2
+    state.place_defender_furtivite(seat=2, def_idx=1, ray=0, rive=1, face=FACE_DEFINITIF)
+    assert state.get_furtivite_nb_def_rive(0, 1, 1) == 2
+    legal_s3 = list_legal_targets(state, seat=3, is_first_defender=False)
+    assert ("FURTIVITE", 0, 0) in legal_s3
+    assert ("FURTIVITE", 0, 1) not in legal_s3
 
 
 # ---------------------------------------------------------------------------
-# Test 6 : Saut des Routes sur un rayon vs blocage latéral Furtivité
+# Test 6 : Saut des Routes sur un rayon & fermeture Furtivité sur rayon intégralement rasé
 # ---------------------------------------------------------------------------
 def test_06_route_bridge_radial_jump_and_lateral_blocking() -> None:
+    from engine.state import MACHINE_STATUS_RETIRED
+
     cfg = GameConfig(n_players=4, mode=1, exp_seed=66)
     state = GameState(cfg)
 
@@ -269,55 +272,64 @@ def test_06_route_bridge_radial_jump_and_lateral_blocking() -> None:
 
     # Vérifier la frappe T3 (SUR_PLACE + DEVANT + avancée 1) d'une Abatteuse en p=1
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
-    arbres_p3_before = state.get_parcel_arbres(0, 3)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3])
-    assert state.get_parcel_arbres(0, 3) == arbres_p3_before - 2
+    assert state.get_parcel_arbres(0, 3) == 0  # Abatteuse v6.1 coupe tous les Arbres de la parcelle
     pos_after, _, _ = state.get_machine_pos_status(0, MACHINE_ABATTEUSE)
     assert pos_after == 3  # A sauté la Route en p=2 !
 
-    # Latéralement : rive 0 de lisière 0 à p=2 fait face à la Route (0, 2) -> interdite !
-    # Tandis que la rive 1 de lisière 0 à p=2 fait face à (1, 2) intacte -> autorisée !
+    # Tant que le rayon 0 n'est pas 100 % rasé, sa Furtivité reste ouverte ; la Route (0, 2) est interdite
     legal_0 = list_legal_targets(state, seat=0, is_first_defender=True)
     assert ("FORET", 0, 2) not in legal_0
-    assert ("FURTIVITE", 0, 2, 0) not in legal_0
-    assert ("FURTIVITE", 0, 2, 1) in legal_0
+    assert ("FURTIVITE", 0, 0) in legal_0
+    assert ("FURTIVITE", 0, 1) in legal_0
     assert ("LISIERE", 0) not in legal_0  # Mode 1 : G/R/M interdit
+
+    # Dès que le rayon 0 est intégralement transformé en Routes (2 machines retirées), sa Furtivité est fermée
+    for p in range(1, cfg.p_max + 1):
+        state.set_parcel_arbres_souches(0, p, 0, 0)
+    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 0, MACHINE_STATUS_RETIRED)
+    state.set_machine_pos_status(0, MACHINE_BULLDOZER, 0, MACHINE_STATUS_RETIRED)
+    legal_0_razed = list_legal_targets(state, seat=0, is_first_defender=True)
+    assert ("FURTIVITE", 0, 0) not in legal_0_razed
+    assert ("FURTIVITE", 0, 1) not in legal_0_razed
+    assert ("FURTIVITE", 1, 0) in legal_0_razed
 
 
 # ---------------------------------------------------------------------------
-# Test 7 : Chaîne Piège Embuscade (Déf >= 1 vs 0) puis Parade classique immédiate
+# Test 7 : Chaîne Piège autonome SINGLE_STRIKE (même avec Déf == 0) puis Parade classique immédiate
 # ---------------------------------------------------------------------------
 def test_07_trap_ambush_vs_inert_and_classic_parade_immediate_discard() -> None:
     cfg = GameConfig(n_players=4, mode=1, exp_seed=77)
     state = GameState(cfg)
 
-    # Cas A : Piège INERTE si Défense == 0 -> l'Abatteuse T1 coupe 2 Arbres et le Piège ne pare pas
+    # Cas A (v6.1) : Piège AUTONOME sur (0, 1) avec 0 Défenseur et 0 Insecte -> pare et est défaussé aussitôt !
+    state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_parcel_piege(0, 1, PIEGE_ACTIF)
     state.set_parcel_defenseurs(0, 1, 0)
     state.set_parcel_insectes(0, 1, 0)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
-    assert state.get_parcel_arbres(0, 1) == 0
-    assert state.get_parcel_souches(0, 1) == 2
-    assert state.get_parcel_piege(0, 1) == PIEGE_ACTIF  # Non déclenché !
+    assert state.get_parcel_arbres(0, 1) == 2  # Intact !
+    assert state.get_parcel_souches(0, 1) == 0
+    assert state.get_parcel_piege(0, 1) == PIEGE_AUCUN
 
-    # Cas B : Piège ARMÉ sur (1, 3) avec 0 Défenseur mais 1 Insecte (Défense totale = 1 >= 1)
-    # Machine avec 3 jetons rouges (Seuil = 3 + 3 = 6), mais Embuscade pare sans défausser l'Insecte !
+    # Cas B : Piège autonome sur (1, 3) avec 0 Défenseur et 1 Insecte face à ASSAUT T4 (+3 rouges -> Seuil 6)
+    # Le Piège pare sans défausser l'Insecte puis est défaussé aussitôt !
     state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(1, MACHINE_ABATTEUSE, 3, 0)
     state.set_parcel_piege(1, 3, PIEGE_ACTIF)
     state.set_parcel_insectes(1, 3, 1)
-    resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
+    resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[4])
     assert state.get_parcel_arbres(1, 3) == 3  # Intact !
-    assert state.get_parcel_insectes(1, 3) == 1  # Épargné par l'Embuscade !
-    assert state.get_parcel_piege(1, 3) == PIEGE_DECLENCHE
+    assert state.get_parcel_insectes(1, 3) == 1  # Épargné par le Piège autonome !
+    assert state.get_parcel_piege(1, 3) == PIEGE_AUCUN
 
-    # Cas C : Parade classique sans Piège sur (2, 3) [Seuil imprimé = 3, +1 Rouge -> Seuil = 4]
+    # Cas C : Parade classique sans Piège sur (2, 3) en ASSAUT T4 [Seuil imprimé = 3, +1 Rouge -> Seuil = 4]
     # 1 Défenseur + 5 Insectes -> pare en défaussant immédiatement (4 - 1) = 3 Insectes !
     state.set_machine_pos_status(2, MACHINE_BULLDOZER, 3, MACHINE_STATUS_NORMAL)
     state.set_machine_tokens(2, MACHINE_BULLDOZER, 1, 0)
     state.set_parcel_defenseurs(2, 3, 1)
     state.set_parcel_insectes(2, 3, 5)
-    resolve_single_machine_attack(state, 2, MACHINE_BULLDOZER, TACTIQUES_SPEC[1])
+    resolve_single_machine_attack(state, 2, MACHINE_BULLDOZER, TACTIQUES_SPEC[4])
     assert state.get_parcel_arbres(2, 3) == 3
     assert state.get_parcel_insectes(2, 3) == 2  # 5 - 3 = 2 Insectes restants et libres
 
@@ -371,15 +383,16 @@ def test_09_machine_nid_contact_returns_nid_reconstructible_and_clears_insects()
     state.set_parcel_defenseurs(0, 2, 2)
     state.set_parcel_piege(0, 2, PIEGE_ACTIF)
 
-    # Abatteuse en p=1 avance en p=2 sur T3 (même si ses frappes sont parées par le Piège !)
+    # Abatteuse en p=1 avance en p=2 sur T3 (le Piège pare la frappe DEVANT puis est défaussé aussitôt)
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3])
 
     assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 2
+    assert state.get_parcel_arbres(0, 2) == 2  # Arbres protégés par le Piège autonome !
     assert state.get_parcel_nid(0, 2) == (0, False)
     assert state.get_parcel_insectes(0, 2) == 0  # Insectes défaussés au contact !
     assert state.get_parcel_defenseurs(0, 2) == 2  # Défenseurs préservés !
-    assert state.get_parcel_piege(0, 2) in (PIEGE_ACTIF, PIEGE_DECLENCHE)  # Piège préservé !
+    assert state.get_parcel_piege(0, 2) == PIEGE_AUCUN  # Défaussé aussitôt (SINGLE_STRIKE) !
     assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_UNCONSTRUCTED, 0)  # Reconstructible !
 
 
@@ -424,18 +437,17 @@ def test_11_ratissage_autonomy_when_t1_ejected_vs_learning_when_present() -> Non
     _ = step_until_decision(s_rat)
 
     # L'attaque autonome du Ratissage a bien eu lieu en 5.2 avec +1 puissance imprimée
-    assert s_rat.get_parcel_arbres(0, 4) == 1  # 3 - 2 = 1 Arbre
+    assert s_rat.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
     assert s_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
     assert s_rat.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
     # Piste T1..T6 inchangée (aucun Apprentissage ni glissement en Étape 6)
     assert [s_rat.get_tactique_at_rank(i) for i in range(6)] == track_before
-    assert all(s_rat.get_apprentissage_at_rank(i) == 0 for i in range(6))
 
 
 # ---------------------------------------------------------------------------
-# Test 12 : Étape 6.1 supprimée (aucune consommation Bug A ni déplacement Tactiques)
+# Test 12 : Bugs conservés en 6.2 et Piste fixe T1..T6
 # ---------------------------------------------------------------------------
-def test_12_bug_a_preserved_at_zero_and_consumed_when_positive() -> None:
+def test_12_bugs_preserved_and_fixed_track_in_step_6_2() -> None:
     cfg = GameConfig(n_players=6, mode=2, exp_seed=1212)
     assert cfg.profile_for_slot("SLOT_BUG_CERVEAU") == "B"
     state = GameState(cfg)
@@ -447,10 +459,9 @@ def test_12_bug_a_preserved_at_zero_and_consumed_when_positive() -> None:
     state.set_player_hand(0, m_card, 2, 5, 2, 2)
     state.set_machine_turn_stats(0, MACHINE_ABATTEUSE, damaged_count=2, gained_red=False, attacked=True)
 
-    state.step = STEP_6_1_APPRENTISSAGE
+    state.step = STEP_6_2_EVOLUTION
     _ = step_until_decision(state)
 
-    # Aucun Apprentissage en 6.1 : les Bugs restent intacts pour 3.2 (profil B) et T1..T6 reste fixe !
     assert state.get_bugs_at_case(1) == 2
     assert state.get_bugs_at_case(2) == 1
     assert [code_to_tile_id(state.get_tactique_at_rank(i)) for i in range(6)] == [
@@ -470,7 +481,6 @@ def test_13_flat_gardien_cascade_with_resonance_4_no_infinite_loop() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1313)
     state = GameState(cfg)
 
-    # Placer G1 en case 2, G2 en case 4 (Résonance !) et G5 en case 6, chacun avec 1 Défenseur en pari
     state.set_gardien_at_case(2, 1, face=1)
     state.set_gardien_at_case(4, 2, face=1)
     state.set_gardien_at_case(6, 5, face=1)
@@ -478,9 +488,6 @@ def test_13_flat_gardien_cascade_with_resonance_4_no_infinite_loop() -> None:
     state.place_defender_gardien_pari(1, 4, 2)
     state.place_defender_gardien_pari(2, 6, 2)
 
-    # Allumer uniquement la case 2 (Piège) :
-    # En 1->6, G1 s'ouvre en case 2 (consomme 1 Déf) -> allume Résonance 4 -> G2 s'ouvre en case 4
-    # (consomme 1 Déf, anti-boucle : ne ré-allume pas 4) et case 6 non allumée -> arrêt propre à 2 ouvertures !
     prim_creation_entite(state, "PIEGE", ray=0, p=2, light_trigger=True)
     opened = sweep_gardiens(state)
 
@@ -500,24 +507,23 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     s_reve = GameState(cfg_reve)
     s_reve.tour = 3
     for idx, r_num in enumerate((1, 2, 3, 4)):
-        s_reve.set_tactique_at_rank(idx, TILE_R_BASE + r_num)  # Bloc [R1..R4] en rangs 0..3
-    # Parcelle (0, 1) avec 0 Arbre mais 2 Souches (non rasée) -> doit repousser de +1 Arbre !
-    # Parcelle (1, 1) avec 2 Arbres et 1 Souche (plafond dotation=2) -> plafonnée à 2 Arbres !
+        s_reve.set_tactique_at_rank(idx, TILE_R_BASE + r_num)
+    # 0 Repousse Finale de base -> aucune Souche ne repousse automatiquement
     s_reve.set_parcel_arbres_souches(0, 1, 0, 2)
     s_reve.set_parcel_arbres_souches(1, 1, 2, 1)
-    s_reve.set_parcel_piege(0, 1, PIEGE_DECLENCHE)
+    s_reve.set_parcel_piege(0, 1, PIEGE_ACTIF)
     s_reve.step = STEP_5_3_END_CHECK
 
     res_a = step_until_decision(s_reve)
     assert isinstance(res_a, GameOver)
-    assert res_a.tour_fin == 3  # Pas de passage à tour + 1 (Étape 6 sautée) !
+    assert res_a.tour_fin == 3  # Pas de passage à tour + 1 (Étape 6 sautée)
     assert res_a.cause_fin == CAUSE_REVE_RANG_1
-    assert s_reve.get_parcel_arbres(0, 1) == 1
-    assert s_reve.get_parcel_souches(0, 1) == 1
-    assert s_reve.get_parcel_arbres(1, 1) == 2  # Plafonné à la dotation initiale !
-    assert s_reve.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Piège déclenché retiré avant fin
+    assert s_reve.get_parcel_arbres(0, 1) == 0
+    assert s_reve.get_parcel_souches(0, 1) == 2
+    assert s_reve.get_parcel_arbres(1, 1) == 2
+    assert s_reve.get_parcel_piege(0, 1) == PIEGE_ACTIF
 
-    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts, max 1 Déf/Gardien)
+    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts)
     cfg_gard = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=1415)
     s_gard = GameState(cfg_gard)
     s_gard.tour = 4
@@ -543,7 +549,7 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
 
 
 # ---------------------------------------------------------------------------
-# Test 15 : Parties complètes Mode 1 & Mode 2 + balayage multi-châssis jusqu'à GameOver
+# Test 15 : Parties complètes Mode 1 & Mode 2 jusqu'à GameOver
 # ---------------------------------------------------------------------------
 def _run_minimal_legal_automaton(state: GameState, *, active_mode2_play: bool = False) -> GameOver:
     """Automate déterministe légal minimal pilotant une partie complète jusqu'à GameOver."""
@@ -560,7 +566,6 @@ def _run_minimal_legal_automaton(state: GameState, *, active_mode2_play: bool = 
         chosen: Any = opts[0]
 
         if active_mode2_play:
-            # Exercer activement les constructions lisière, Furtivité, révision 2.2 et Migration
             if out.decision_type == "POSE_DEFENSEUR_1":
                 lis_opts = [o for o in opts if o[0] == "LISIERE"]
                 chosen = lis_opts[0] if lis_opts else opts[0]
@@ -574,14 +579,12 @@ def _run_minimal_legal_automaton(state: GameState, *, active_mode2_play: bool = 
                 col_or_bug = [o for o in opts if o[0] in ("COLONIE", "BUG")]
                 fwd = [o for o in opts if o[0] == "FORET"]
                 chosen = col_or_bug[0] if col_or_bug else (fwd[0] if fwd else opts[0])
-            elif out.decision_type == DEC_COLONIE_A_OPEN:
-                chosen = "OUVRIR"
 
         apply_choice(state, chosen)
 
 
-def test_15_full_game_mode1_and_mode2_and_chassis_sweep() -> None:
-    assert len(ALL_PRIMITIVES) == 8
+def test_15_full_game_mode1_and_mode2_determinism() -> None:
+    assert len(ALL_PRIMITIVES) == 7
 
     # Partie complète Mode 1 (Cœur symétrique, 4 joueurs -> fin au Tour 8)
     cfg_m1 = GameConfig(n_players=4, mode=1, exp_seed=20261117, rep_id=0)
@@ -596,20 +599,14 @@ def test_15_full_game_mode1_and_mode2_and_chassis_sweep() -> None:
     assert over_m1_a.cause_fin == CAUSE_TOUR_8
     assert 0.0 <= over_m1_a.ratio_arbres <= 1.0
 
-    # Partie complète Mode 2 (Asymétrie à vide, N=3 et N=6 avec constructions G/R/M + Migration A/A)
-    for n_pl in (3, 6):
+    # Parties complètes Mode 2 sur N=3..6
+    for n_pl in (3, 4, 5, 6):
         cfg_m2 = GameConfig(n_players=n_pl, mode=2, exp_seed=4242, rep_id=n_pl)
         s_m2 = GameState(cfg_m2)
         over_m2 = _run_minimal_legal_automaton(s_m2, active_mode2_play=True)
         assert 1 <= over_m2.tour_fin <= 8
         assert over_m2.cause_fin in (CAUSE_TOUR_8, CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS)
         assert 0.0 <= over_m2.ratio_arbres <= 1.0
-
-    # Vérification des 7 axes sur un échantillon couvrant tous les bits des 128 châssis (0..127)
-    for chassis_idx in (0, 1, 2, 4, 8, 16, 32, 64, 85, 127):
-        cfg_ch = GameConfig.from_chassis_index(chassis_idx, n_players=4, mode=2, exp_seed=700 + chassis_idx)
-        over_ch = _run_minimal_legal_automaton(GameState(cfg_ch), active_mode2_play=True)
-        assert 1 <= over_ch.tour_fin <= 8
 
 
 # ---------------------------------------------------------------------------
@@ -636,7 +633,6 @@ def test_15_full_game_mode1_and_mode2_and_chassis_sweep() -> None:
         "data/digest_palier2_coeur_muet.json",
         "scripts_cloud/export_api_doc.py",
         "scripts_cloud/fuzz_invariants.py",
-        "scripts_cloud/run_palier1_cloud.py",
         "scripts_cloud/studio_paths.py",
         "scripts_cloud/sync_studio.py",
         "scripts_cloud/build_spec_bundle.py",
@@ -656,24 +652,21 @@ def test_16_utf8_no_bom_and_lf_line_endings(rel_path: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 17 : Modificateurs transitoires 384B (Seuil parcelle, Flags, 1/tour, 6.1) + RAZ 6.2
+# Test 17 : Modificateurs transitoires 384B (Seuil parcelle, Flags, 1/tour) + RAZ 6.2
 # ---------------------------------------------------------------------------
 def test_17_transient_modifiers_384b_and_6_2_reset() -> None:
     cfg = GameConfig(n_players=6, mode=2, exp_seed=1717)
     state = GameState(cfg)
 
-    # Support de forte dilution (ex: 30 Sabotages + 12 Machines = 42 cartes <= 64 slots)
     state.add_permanent_sabotage(30, light_case_3=False)
     state.rebuild_and_shuffle_machine_deck(increment_reshuffle=True)
     assert state.deck_len == 42
 
-    # Seuil par parcelle + Matamata + Sanctuaire Souche + Auto-Parade + verrous 1/tour
     prim_mod_seuil(state, -1, ray=0, p=3)
     state.set_parcel_flag_turn(0, 3, PFLAG_MATAMATA_MARK, True)
-    state.set_parcel_arbres_souches(0, 3, 2, 1)  # 1 Souche présente -> Matamata -1 actif !
+    state.set_parcel_arbres_souches(0, 3, 2, 1)
     assert compute_parade_seuil(state, 0, MACHINE_ABATTEUSE, 3, TACTIQUES_SPEC[1]) == 1
 
-    # Sanctuaire Souche : un Bulldozer non paré laisse 1 Souche au lieu de créer une Route 0/0
     state.set_parcel_arbres_souches(1, 2, 0, 2)
     state.set_parcel_flag_turn(1, 2, PFLAG_SANCTUAIRE_SOUCHE, True)
     state.set_machine_pos_status(1, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
@@ -681,7 +674,7 @@ def test_17_transient_modifiers_384b_and_6_2_reset() -> None:
     assert state.get_parcel_souches(1, 2) == 1
     assert not state.is_route_forestiere(1, 2)
 
-    # Auto-Parade once (ex: G11 A Face 2) avec >= 2 Défenseurs
+    state.set_machine_pos_status(2, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     state.set_parcel_defenseurs(2, 1, 2)
     state.set_parcel_flag_turn(2, 1, PFLAG_AUTO_PARADE_ONCE, True)
     state.set_machine_tokens(2, MACHINE_ABATTEUSE, 5, 0)
@@ -689,16 +682,14 @@ def test_17_transient_modifiers_384b_and_6_2_reset() -> None:
     assert state.get_parcel_arbres(2, 1) == 2
     assert not state.has_parcel_flag_turn(2, 1, PFLAG_AUTO_PARADE_ONCE)
 
-    # Verrou 1/tour par slot + retrait volontaire mémorisé en 6.1 AVANT Bug A
     assert not state.has_slot_used_once_per_turn("G3")
     state.mark_slot_used_once_per_turn("G3")
     assert state.has_slot_used_once_per_turn("G3")
 
-    state.set_bugs_at_case(1, 1)  # 1 Bug sur rang 1 (T1)
-    state.step = STEP_6_1_APPRENTISSAGE
+    state.set_bugs_at_case(1, 1)
+    state.step = STEP_6_2_EVOLUTION
     _ = step_until_decision(state)
 
-    # Le Bug en case 1 reste en place (Apprentissage 6.1 supprimé) et tous les modificateurs transitoires sont RAZ en 6.2 :
     assert state.get_bugs_at_case(1) == 1
     assert not state.has_slot_used_once_per_turn("G3")
     assert state.get_parcel_seuil_mod_turn(0, 3) == 0
@@ -719,18 +710,15 @@ def test_18_bot_b0_strict_hidden_hand_isolation_and_gameplay() -> None:
     decideur = req_a.decideur
     neighbor = (decideur + 1) % cfg.n_players
 
-    # Modifier radicalement la main cachée et les dés du voisin dans s_b
     s_a.set_player_hand(neighbor, CARD_SABOTAGE, 0, 0, 0, 0)
     s_b.set_player_hand(neighbor, machine_card_code(decideur, MACHINE_BULLDOZER), 6, 6, 6, 0)
 
     req_b = step_until_decision(s_b)
     assert isinstance(req_b, DecisionRequest)
 
-    # B0 doit produire exactement la même décision (zéro fuite d'information privée adverse)
     assert s_a.get_observation(decideur) == s_b.get_observation(decideur)
     assert choose_b0(s_a, req_a) == choose_b0(s_b, req_b)
 
-    # Partie complète B0 en Mode 1 et Mode 2
     over_1 = play_game_b0(GameState(GameConfig(n_players=4, mode=1, exp_seed=3001)))
     over_2 = play_game_b0(GameState(GameConfig(n_players=5, mode=2, exp_seed=3002)))
     assert over_1.tour_fin == 8
@@ -738,32 +726,10 @@ def test_18_bot_b0_strict_hidden_hand_isolation_and_gameplay() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 19 : Plan expérimental Palier 1 (100k parties exactes & génération shard local)
+# Test 19 : Non-régression impasse totale (100 % Routes Forestières) + garde-fou
 # ---------------------------------------------------------------------------
-def test_19_palier1_worker_grid_and_local_shard(tmp_path: Path) -> None:
-    cells = build_palier1_cells(total_games=100_000)
-    assert sum(c[7] for c in cells) == 100_000
-    assert sum(c[7] for c in cells if c[0] == 1) == 50_000
-    assert sum(c[7] for c in cells if c[0] == 2) == 50_000
-
-    rc = run_campaign_palier1(
-        total_games=40,
-        task_index=0,
-        task_count=2,
-        workers=1,
-        local_out_dir=str(tmp_path),
-    )
-    assert rc == 0
-    assert (tmp_path / "shard_00.jsonl.gz").exists()
-
-
-# ---------------------------------------------------------------------------
-# Test 20 : Non-régression impasse totale (100 % Routes Forestières, rep_id=19901) + garde-fou
-# ---------------------------------------------------------------------------
-def test_20_impasse_total_razed_forest_and_max_steps_guard() -> None:
-    # 1. Graine exacte attrapée sur Cloud Run (tâche 1 : mode=1, chassis=4, N=4, rep_id=19901)
-    cfg_seed = GameConfig.from_chassis_index(
-        4,
+def test_19_impasse_total_razed_forest_and_max_steps_guard() -> None:
+    cfg_seed = GameConfig(
         n_players=4,
         mode=1,
         peuples=("E", "H", "O", "M"),
@@ -772,7 +738,7 @@ def test_20_impasse_total_razed_forest_and_max_steps_guard() -> None:
         coordonnateur_initial=(19901 - 19375) % 4,
         max_revision_passes=0,
     )
-    over_seed = play_game_b0(GameState(cfg_seed), max_steps=2000, chassis_id=4)
+    over_seed = play_game_b0(GameState(cfg_seed), max_steps=2000)
     assert 1 <= over_seed.tour_fin <= 8
     assert 0.0 <= over_seed.ratio_arbres <= 1.0
 

@@ -1,0 +1,4207 @@
+{
+  "meta": {
+    "schema_version": "6.1.0-alpha",
+    "source_studio_version": "v6.1",
+    "studio_sha256": {
+      "catalog_v6_0.json": {
+        "sha256": "bb27878aac7eb9bb0a3cee39aad6ad0cfeb2224618259ef995e1169c531e6f59",
+        "bytes": 55334,
+        "source": "docs/data/catalog_v6_0.json"
+      },
+      "spec_formelle_v6_0.json": {
+        "sha256": "923165c55b6c846dd9bb7670e613a5c944776aadca20a9d59c4eb2975d18d2d4",
+        "bytes": 25470,
+        "source": "docs/data/spec_formelle_v6_0.json"
+      },
+      "amazonia_data_v6_0.js": {
+        "sha256": "093aaff907059afe31406234ba28cad06ca782fea159f1ee2c4c01ec62b3e00d",
+        "bytes": 149882,
+        "source": "docs/data/amazonia_data_v6_0.js"
+      },
+      "livret_v6_0.js": {
+        "sha256": "1d35bea29629a503cf5dd318544be3c6dd9108c48dd09f4cd96a8f356cce917a",
+        "bytes": 88979,
+        "source": "docs/data/livret_v6_0.js"
+      }
+    },
+    "total_emplacements": 32,
+    "total_profils": 101
+  },
+  "peuples": {
+    "M": {
+      "code": "M",
+      "nom": "Mammifères",
+      "famille": "Animal Sauvage (Gardien)",
+      "badge": "bg-amber-100 text-amber-900 border-amber-300",
+      "icon": "🐆"
+    },
+    "R": {
+      "code": "R",
+      "nom": "Reptiles",
+      "famille": "Animal Sauvage (Gardien)",
+      "badge": "bg-emerald-100 text-emerald-900 border-emerald-300",
+      "icon": "🐍"
+    },
+    "O": {
+      "code": "O",
+      "nom": "Oiseaux",
+      "famille": "Animal Sauvage (Gardien)",
+      "badge": "bg-sky-100 text-sky-900 border-sky-300",
+      "icon": "🦜"
+    },
+    "H": {
+      "code": "H",
+      "nom": "Humains",
+      "famille": "Onirique (Rêve)",
+      "badge": "bg-rose-100 text-rose-900 border-rose-300",
+      "icon": "🏹"
+    },
+    "E": {
+      "code": "E",
+      "nom": "Entités Magiques",
+      "famille": "Onirique (Rêve)",
+      "badge": "bg-purple-100 text-purple-900 border-purple-300",
+      "icon": "✨"
+    },
+    "I": {
+      "code": "I",
+      "nom": "Insectes",
+      "famille": "Symbiotique (Croissance)",
+      "badge": "bg-lime-100 text-lime-900 border-lime-300",
+      "icon": "🐜"
+    }
+  },
+  "matrice_paires": {
+    "M_R": [
+      "G1",
+      "G2"
+    ],
+    "R_M": [
+      "G2",
+      "G1"
+    ],
+    "M_O": [
+      "G3",
+      "G4"
+    ],
+    "O_M": [
+      "G4",
+      "G3"
+    ],
+    "R_O": [
+      "G5",
+      "G6"
+    ],
+    "O_R": [
+      "G6",
+      "G5"
+    ],
+    "M_H": [
+      "G7",
+      "R3"
+    ],
+    "H_M": [
+      "R3",
+      "G7"
+    ],
+    "M_E": [
+      "G8",
+      "R7"
+    ],
+    "E_M": [
+      "R7",
+      "G8"
+    ],
+    "R_H": [
+      "G9",
+      "R4"
+    ],
+    "H_R": [
+      "R4",
+      "G9"
+    ],
+    "R_E": [
+      "G10",
+      "R8"
+    ],
+    "E_R": [
+      "R8",
+      "G10"
+    ],
+    "O_H": [
+      "G11",
+      "R5"
+    ],
+    "H_O": [
+      "R5",
+      "G11"
+    ],
+    "O_E": [
+      "G12",
+      "R9"
+    ],
+    "E_O": [
+      "R9",
+      "G12"
+    ],
+    "M_I": [
+      "G13",
+      "M1"
+    ],
+    "I_M": [
+      "M1",
+      "G13"
+    ],
+    "R_I": [
+      "G14",
+      "M2"
+    ],
+    "I_R": [
+      "M2",
+      "G14"
+    ],
+    "O_I": [
+      "G15",
+      "M3"
+    ],
+    "I_O": [
+      "M3",
+      "G15"
+    ],
+    "H_E": [
+      "R1",
+      "R2"
+    ],
+    "E_H": [
+      "R2",
+      "R1"
+    ],
+    "H_I": [
+      "R6",
+      "M4"
+    ],
+    "I_H": [
+      "M4",
+      "R6"
+    ],
+    "E_I": [
+      "R10",
+      "M5"
+    ],
+    "I_E": [
+      "M5",
+      "R10"
+    ]
+  },
+  "chassis_axes": [
+    {
+      "key": "Profil_Piste",
+      "num": 1,
+      "label": "1. Profil de Piste & Dotation Seuil Imprimé",
+      "defaultVal": "P4_2233",
+      "options": [
+        {
+          "val": "P4_2233",
+          "text": "P4_2233 : 4 parcelles [2,2,3,3] (10N Arbres · Standard)"
+        },
+        {
+          "val": "P4_2223",
+          "text": "P4_2223 : 4 parcelles [2,2,2,3] (9N Arbres)"
+        },
+        {
+          "val": "P4_1223",
+          "text": "P4_1223 : 4 parcelles [1,2,2,3] (8N Arbres)"
+        },
+        {
+          "val": "P5_22233",
+          "text": "P5_22233 : 5 parcelles [2,2,2,3,3] (12N Arbres)"
+        },
+        {
+          "val": "P5_22223",
+          "text": "P5_22223 : 5 parcelles [2,2,2,2,3] (11N Arbres)"
+        },
+        {
+          "val": "P5_12223",
+          "text": "P5_12223 : 5 parcelles [1,2,2,2,3] (10N Arbres)"
+        }
+      ]
+    },
+    {
+      "key": "Regle_Ouverture_Reve_Multiple",
+      "num": 2,
+      "label": "2. Ouverture multiple d’un Rêve (3.2)",
+      "defaultVal": "UNIQUE_PAR_TOUR",
+      "options": [
+        {
+          "val": "UNIQUE_PAR_TOUR",
+          "text": "Unique par tour (1 ouverture max/tour)"
+        },
+        {
+          "val": "PAR_DE_M_DESIGNE",
+          "text": "Cumulatif (1 ouverture par dé M désigné)"
+        }
+      ]
+    },
+    {
+      "key": "Offset_Seuil_Parade",
+      "num": 3,
+      "label": "3. Décalage du Seuil de Parade",
+      "defaultVal": 0,
+      "options": [
+        {
+          "val": 0,
+          "text": "Offset 0 (Défense ≥ Seuil Imprimé modifié)"
+        },
+        {
+          "val": 1,
+          "text": "Offset +1 (Exige +1 Défenseur de plus)"
+        }
+      ]
+    },
+    {
+      "key": "Placement_Initial_Machines",
+      "num": 5,
+      "label": "5. Placement initial des Machines",
+      "defaultVal": "MEME_PARCELLE_P1",
+      "options": [
+        {
+          "val": "MEME_PARCELLE_P1",
+          "text": "Standard : Abatteuse et Bulldozer en p=1"
+        },
+        {
+          "val": "BULLDOZER_P1_ABATTEUSE_P2",
+          "text": "Échelonné : Bulldozer en p=1, Abatteuse en p=2"
+        }
+      ]
+    },
+    {
+      "key": "Role_Abatteuse_Fin_De_Piste",
+      "num": 6,
+      "label": "6. Rôle de l’Abatteuse en Ratissage",
+      "defaultVal": "STANDARD_COUPE_ARBRE",
+      "options": [
+        {
+          "val": "STANDARD_COUPE_ARBRE",
+          "text": "Standard (Coupe uniquement les Arbres)"
+        },
+        {
+          "val": "ARRACHE_1_SOUCHE_SI_SANS_ARBRE",
+          "text": "Arrache 1 Souche s’il n’y a plus d’Arbre"
+        }
+      ]
+    },
+    {
+      "key": "Synergie_Binome_Machines",
+      "num": 7,
+      "label": "7. Puissance du binôme de machines",
+      "defaultVal": "INDIVIDUELLE",
+      "options": [
+        {
+          "val": "INDIVIDUELLE",
+          "text": "Individuelle (Propre à chaque machine)"
+        },
+        {
+          "val": "MUTUALISATION_PUISSANCE_MEME_PARCELLE",
+          "text": "Mutualisée sur une même parcelle"
+        }
+      ]
+    }
+  ],
+  "topologies": {
+    "validees": {
+      "P4_2233": [
+        2,
+        2,
+        3,
+        3
+      ],
+      "P4_2223": [
+        2,
+        2,
+        2,
+        3
+      ],
+      "P4_1223": [
+        1,
+        2,
+        2,
+        3
+      ],
+      "P5_22233": [
+        2,
+        2,
+        2,
+        3,
+        3
+      ],
+      "P5_22223": [
+        2,
+        2,
+        2,
+        2,
+        3
+      ],
+      "P5_12223": [
+        1,
+        2,
+        2,
+        2,
+        3
+      ]
+    },
+    "details_seuil_et_dotation": {
+      "P4_2233": {
+        "P_Max": 4,
+        "seuil_imprime_et_dotation": [
+          2,
+          2,
+          3,
+          3
+        ],
+        "arbres_par_joueur": 10
+      },
+      "P4_2223": {
+        "P_Max": 4,
+        "seuil_imprime_et_dotation": [
+          2,
+          2,
+          2,
+          3
+        ],
+        "arbres_par_joueur": 9
+      },
+      "P4_1223": {
+        "P_Max": 4,
+        "seuil_imprime_et_dotation": [
+          1,
+          2,
+          2,
+          3
+        ],
+        "arbres_par_joueur": 8
+      },
+      "P5_22233": {
+        "P_Max": 5,
+        "seuil_imprime_et_dotation": [
+          2,
+          2,
+          2,
+          3,
+          3
+        ],
+        "arbres_par_joueur": 12
+      },
+      "P5_22223": {
+        "P_Max": 5,
+        "seuil_imprime_et_dotation": [
+          2,
+          2,
+          2,
+          2,
+          3
+        ],
+        "arbres_par_joueur": 11
+      },
+      "P5_12223": {
+        "P_Max": 5,
+        "seuil_imprime_et_dotation": [
+          1,
+          2,
+          2,
+          2,
+          3
+        ],
+        "arbres_par_joueur": 10
+      }
+    },
+    "reserves_materiel": "illimitees (jetons et cartes Sabotage identiques)",
+    "plafond_repousse_parcelle": "dotation_initiale_arbres",
+    "repousse_finale_base": 0
+  },
+  "tactiques": [
+    {
+      "id": "T1",
+      "nom": "Sur place (Case 1)",
+      "cibles": [
+        "SUR_PLACE"
+      ],
+      "avancee": 0,
+      "gain_rouge": 0,
+      "mod_seuil": 0,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "CHARGE",
+      "mode_acte_2": "ASSAUT"
+    },
+    {
+      "id": "T2",
+      "nom": "Devant (Case 2)",
+      "cibles": [
+        "DEVANT"
+      ],
+      "avancee": 0,
+      "gain_rouge": 0,
+      "mod_seuil": 0,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "CHARGE",
+      "mode_acte_2": "ASSAUT"
+    },
+    {
+      "id": "T3",
+      "nom": "En avançant (Case 3)",
+      "cibles": [
+        "SUR_PLACE",
+        "DEVANT"
+      ],
+      "avancee": 1,
+      "gain_rouge": 0,
+      "mod_seuil": -1,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "CHARGE",
+      "mode_acte_2": "ASSAUT"
+    },
+    {
+      "id": "T4",
+      "nom": "Sur place (Case 4)",
+      "cibles": [
+        "SUR_PLACE"
+      ],
+      "avancee": 0,
+      "gain_rouge": 0,
+      "mod_seuil": 0,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "ASSAUT",
+      "mode_acte_2": "CHARGE"
+    },
+    {
+      "id": "T5",
+      "nom": "Devant (Case 5)",
+      "cibles": [
+        "DEVANT"
+      ],
+      "avancee": 0,
+      "gain_rouge": 0,
+      "mod_seuil": 0,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "ASSAUT",
+      "mode_acte_2": "CHARGE"
+    },
+    {
+      "id": "T6",
+      "nom": "En avançant (Case 6)",
+      "cibles": [
+        "SUR_PLACE",
+        "DEVANT"
+      ],
+      "avancee": 1,
+      "gain_rouge": 0,
+      "mod_seuil": -1,
+      "est_ratissage_profil": false,
+      "mode_acte_1": "ASSAUT",
+      "mode_acte_2": "CHARGE"
+    }
+  ],
+  "reglette_tactiques_reversible": {
+    "lecture_des_tours_1_8": "MIN",
+    "acte_1_tours": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "acte_1_face": "FACE_A",
+    "acte_1_charge_cases": [
+      1,
+      2,
+      3
+    ],
+    "acte_1_assaut_cases": [
+      4,
+      5,
+      6
+    ],
+    "acte_2_tours": [
+      5,
+      6,
+      7,
+      8
+    ],
+    "acte_2_face": "FACE_B",
+    "acte_2_assaut_cases": [
+      1,
+      2,
+      3
+    ],
+    "acte_2_charge_cases": [
+      4,
+      5,
+      6
+    ],
+    "charge_gain_mode": "FRAPPE_NON_PAREE",
+    "mode_charge": "jetons Puissance existants ignorés au seuil ; +1 jeton Puissance max/activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (hors attaque Devant dans le vide depuis la dernière parcelle)",
+    "mode_assaut": "tous les jetons Puissance comptent au seuil ; 0 jeton Puissance gagné"
+  },
+  "machine_damage_rules": {
+    "placement_initial_canonique": "BULLDOZER_P1_ABATTEUSE_P2",
+    "piege_autonome_portee": "SINGLE_STRIKE",
+    "ABATTEUSE": {
+      "arbres_coupes_max": 3,
+      "coupe_tous_les_arbres": true,
+      "souches_retirees": 0
+    },
+    "BULLDOZER": {
+      "arbres_coupes_max": 1,
+      "retire_toutes_souches_non_protegees": true,
+      "test_parade_unique": true
+    },
+    "repousse_finale_base": 0,
+    "ratissage": {
+      "pion_double_face": true,
+      "detache_de_case_1": true,
+      "mode_permanent": "ASSAUT",
+      "tactique_imprimee": "RATISSAGE_SUR_PLACE",
+      "mod_seuil": 0,
+      "gain_rouge": 0,
+      "bonus_puissance_imprime": 1,
+      "traite_comme_jeton_rouge_a_tous_egards": true,
+      "conserve_jetons_puissance_anterieurs": true,
+      "piste_tactiques_fixe": true,
+      "entree_definitive_derniere_parcelle": true
+    }
+  },
+  "machine_deck_rules": {
+    "cartes_machine_par_rayon": 2,
+    "types_par_rayon": [
+      "ABATTEUSE",
+      "BULLDOZER"
+    ],
+    "total_initial_formula": "2 * N",
+    "sabotage_dilution_permanente": true,
+    "sabotage_effet_propre": null,
+    "sabotage_perd_activation_et_pas_de_des": true,
+    "remelange_etape": "6.3",
+    "penurie_ordre": "sens_horaire_depuis_plus_arbres_debout"
+  },
+  "spec_formelle_v6_0": {
+    "schema_version": "6.1.0-alpha",
+    "date_consolidation": "2026-11-22",
+    "architecture_reference": {
+      "total_emplacements_synergie": 30,
+      "total_pistes_migration": 2,
+      "total_profils": 100,
+      "topologies_validees": {
+        "P4_2233": [
+          2,
+          2,
+          3,
+          3
+        ],
+        "P4_2223": [
+          2,
+          2,
+          2,
+          3
+        ],
+        "P4_1223": [
+          1,
+          2,
+          2,
+          3
+        ],
+        "P5_22233": [
+          2,
+          2,
+          2,
+          3,
+          3
+        ],
+        "P5_22223": [
+          2,
+          2,
+          2,
+          2,
+          3
+        ],
+        "P5_12223": [
+          1,
+          2,
+          2,
+          2,
+          3
+        ]
+      },
+      "reserves_materiel": "illimitees (jetons et cartes Sabotage identiques)",
+      "plafond_repousse_parcelle": "dotation_initiale_arbres",
+      "repousse_finale_base": 0,
+      "score_final": "arbres_debout_uniquement (0 Repousse Finale automatique de base)"
+    },
+    "principes_transverses": {
+      "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve, Nid) et chaque piste de Migration est gouvernée exclusivement par le joueur de son Peuple d'origine (champ peuple_origine). Zéro vote de groupe.",
+      "communication_muette": "Silence tactique complet tant que les paravents sont fermés (aucun échange verbal ou gestuel sur les coups, cartes ou dés). Sous Le Cri d'Alarme de l'Ara (ouverture anticipée), visibilité publique des cartes et dés mais pose individuelle sans concertation orale.",
+      "pont_routier_routes_forestieres": "Le long d'un rayon de Forêt, toute Route Forestière est systématiquement sautée : viser devant, avancer, reculer ou migrer désignent toujours la prochaine parcelle non rasée dans cette direction. Dès qu'un rayon est intégralement transformé en Routes Forestières (ses 2 machines définitivement retirées), sa zone de Furtivité au pied du rayon devient fermée et inaccessible en 2.1 et 2.2.",
+      "suppression_dette_et_verrouillage": "Zéro Insecte engagé et zéro verrouillage des parcelles ciblées. Les Insectes requis lors d’une parade classique sont défaussés immédiatement à la frappe. Tant qu'un Insecte est sur le plateau, il est libre. Tout Piège posé est autonome (aucune condition de présence sur la parcelle) : il pare exactement 1 frappe puis est défaussé aussitôt (SINGLE_STRIKE).",
+      "cascades_gardiens_a_plat": "On résout toujours intégralement l'action ou la tuile en cours avant d'examiner la Piste des Gardiens (signal binaire allumé/éteint par case 1..6, sans cumul de cardinalité). Partition stricte des 6 déclencheurs (« 1 événement = au plus 1 déclencheur ») : en 3.2 (par carte révélée) 3. Sabotage > 6. Insecte (déviation ±1 sur la Réglette des Tactiques) > 5. Rêve (REVE_TRIG=ACTIF : s'allume uniquement lorsqu'un Rêve portant >= 1 Défenseur annule effectivement >= 1 machine non déviée en 3.2 ; un Rêve sans Défenseur est totalement inerte) ; en 4.1 Furtivité et en 4.2 production de Nid aucun déclencheur n'est allumé ; en 5.1/5.2 (par frappe bloquée) 2. Piégeage (Piège autonome SINGLE_STRIKE défaussé aussitôt) > 6. Insecte (Parade classique avec dépense >= 1 Insecte) > 1. Parade (Défenseurs seuls ou parade automatique). Case 4. Gardien : 1re ouverture du tour de chaque autre Gardien distinct (anti-boucle conservé). Pari uniforme de 0, 1 ou 2 Défenseurs maximum par Gardien construit en 2.2 (glissés sous la tuile à chaque déclenchement). Balayage à plat de 1 à 6."
+    },
+    "etapes_tour": [
+      {
+        "numero": 1,
+        "code": "PREPARATION_ET_DES_SECRETS",
+        "nom": "Acte / Réglette, Distribution et Dés secrets (1.0–1.3)",
+        "regles": [
+          "1.0 Réglette des Tactiques réversible par blocs : Acte 1 (Tours 1–4, Face A) place les cases 1, 2, 3 en mode CHARGE et les cases 4, 5, 6 en mode ASSAUT. Au début du Tour 5, retournez la Réglette sur sa Face B (Acte 2, Tours 5–8) : permutation des deux blocs — cases 1, 2, 3 en mode ASSAUT et cases 4, 5, 6 en mode CHARGE. Actions fixes sur les deux faces : 1/4 = Sur place (mod_seuil = 0), 2/5 = Devant (mod_seuil = 0), 3/6 = En avançant (SUR_PLACE + DEVANT, avancée +1, mod_seuil = -1).",
+          "1.1 Élagage du test d'entrée en Ratissage : aucun passage en Ratissage n'est re-testé en début de tour (seule l'étape 6.3 fait basculer définitivement en Ratissage les machines situées sur la dernière parcelle non rasée de leur rayon). Mise en place canonique décalée (chassis_id = 24) : Bulldozer en parcelle 1, Abatteuse en parcelle 2 sur chaque rayon.",
+          "1.2 Distribution : chaque joueur hors pénurie pioche secrètement 1 carte du paquet Machine (incluant toutes les cartes Sabotage intégrées définitivement). Une carte Sabotage tirée n'active aucune machine (action du Contremaître perdue). S'il reste moins de cartes que de joueurs, distribution dans le sens horaire à partir du peuple ayant le plus d'Arbres debout.",
+          "1.3 Dés secrets sous paravent fermé (silence complet) : chaque joueur ayant reçu une carte Machine lance ses 2D6 et retient la plus petite valeur (Dé MIN unique du Tour 1 au Tour 8, modifié par les éventuelles Lois actives), qui désigne le rang 1..6 sur la Réglette des Tactiques."
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "POSE_DES_DEFENSEURS",
+        "nom": "Pose des Défenseurs, Rêves et Furtivité par rayon (2.1–2.2)",
+        "regles": [
+          "2.1 Première pose simultanée et fixe (paravent fermé) : chaque joueur place son 1er Défenseur irrévocable sur sa propre Forêt (parcelle non rasée), sur l'une des Tuiles de Synergie non construites de ses 2 lisières, sur un Rêve déjà présent sur la Réglette des Tactiques (1..6), ou sur une rive ouverte de Furtivité (Rive Piège ou Rive Sabotage, max 2 Défenseurs par rive) au pied de n'importe quel rayon non rasé (1..N). Seule la Piste des Gardiens reste réservée à la pose 2.2.",
+          "Topologie de Furtivité (« Chaud vs Calme » par rayon) : au pied de chaque rayon de forêt r (1..N), la zone de Furtivité comporte 2 rives indépendantes de 2 emplacements — Rive Piège (max 2 Défenseurs) et Rive Sabotage (max 2 Défenseurs) — ouvertes à tout joueur de la table en 2.1 comme en 2.2 (zéro glissement automatique). Garde-fou piste rasée : dès qu'un rayon r est intégralement transformé en Routes Forestières (ses 2 machines retirées), sa zone de Furtivité est fermée et inaccessible en 2.1 et 2.2.",
+          "2.2 Deuxième pose globale (réflexion -> choix définitif) : chaque joueur place son 2e Défenseur partout sur le plateau — Forêt non rasée, Tuile de Synergie en lisière, Rêve sur la Réglette des Tactiques (cumulable avec les Défenseurs posés en 2.1), rive ouverte de Furtivité d'un rayon non rasé, ou pari d'activation sur tout Gardien déjà construit (si >= 1 Animal Sauvage M/R/O ; 0, 1 ou 2 Défenseurs maximum par Gardien, glissés sous la tuile à chaque déclenchement). Un Gardien sans Défenseur reste inactif ce tour-ci."
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "CONSTRUCTION_ET_REVELATION",
+        "nom": "Construction obligatoire (3.1), Ouverture des Paravents et Rêves (3.2)",
+        "regles": [
+          "3.1 Construction obligatoire : toute tuile réunissant ses 2 constructeurs (ou 1 Défenseur + 1 Insecte avec La Brèche du Tamanoir) est obligatoirement construite AVANT l’ouverture des paravents.",
+          "3.1 Nid : posé sur une parcelle non rasée de l'un de ses 2 rayons ne contenant aucune machine ni aucun autre Nid, accompagné de tous ses Défenseurs constructeurs.",
+          "3.1 Rêve : un Rêve construit se pose par-dessus la case libre la plus à droite de la Réglette des Tactiques fixe 1..6 (case 6, puis case 5 si 6 est déjà occupée par un Rêve, etc.). Aucune Tactique n'est éjectée (les Insectes restent sur leur numéro de case imprimé). Ce Rêve est immédiatement présent sur la piste (sans Défenseur s'il vient d'être construit en 3.1).",
+          "3.1 Libération de bâtisseurs (Gardien/Rêve) : si 1 seul Défenseur est libéré parmi 2 (3 joueurs standard, ou 4-6 joueurs avec La Danse des Esprits-Fauves), le joueur du Peuple d'origine de la tuile choisit lequel et sa rive (1re parcelle adjacente non rasée). Si tous les Défenseurs bâtisseurs sont libérés (3 joueurs + Danse), chaque propriétaire choisit sa rive, dans la limite des Défenseurs réellement présents.",
+          "3.2 Révélation simultanée (paravents ouverts) — partition stricte « 1 carte révélée = au plus 1 déclencheur » : (a) 3. Sabotage si la carte révélée est un Sabotage ; (b) sinon 6. Insecte si un pion Insecte de la Réglette des Tactiques (SLOT_BUG_CERVEAU=B) dévie le dé M de ±1 rang ; (c) sinon 5. Rêve (REVE_TRIG=ACTIF figé) uniquement lorsqu'un Rêve portant >= 1 Défenseur s'active réellement en 3.2 en annulant au moins 1 machine sur une carte non déviée de ce rang (un Rêve sans Défenseur est totalement inerte). Résolution épurée des Rêves dans le socle (CLEAR_RANK_ONLY) : tout Rêve portant >= 1 Défenseur (posé en 2.1 et/ou 2.2) et visé par >= 1 machine applique uniquement le blocage — chaque Défenseur annule 1 machine du rang en priorisant la plus menaçante, les machines restantes exécutent la Tactique imprimée dessous, et le Rêve ne bouge pas (le déplacement des Rêves est porté exclusivement par les tuiles du Mode 4)."
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "FURTIVITE_NIDS_ET_MIGRATION",
+        "nom": "Furtivité (4.1), Production des Nids (4.2) et Migration des Insectes (4.3)",
+        "regles": [
+          "4.1 Furtivité « Chaud vs Calme » par rayon (1..N) : un pion seul sur une rive ne produit aucun effet (perdu à blanc) ; seule une rive portant un binôme complet de 2 Défenseurs est évaluée. Pour le rayon r, on compte m(r) = (cartes Machine du rayon r révélées en 3.2) + (machines du rayon r déjà en Ratissage permanent), soit 0, 1 ou 2. Garde-fou d'indépendance : m(r) dépend uniquement des cartes révélées à l'ouverture des paravents et des Ratissages actifs (ni une déviation d'Insecte ±1 en 3.2, ni une annulation par un Rêve en 3.2 ne modifie m(r) ; une carte Sabotage révélée en 3.2 ne compte pour aucun rayon). Rive Piège (pari « double menace ») : pari GAGNÉ si m(r) == 2 -> 1 jeton Piège est posé sur une parcelle non-Route (non piégée) du rayon r choisie uniquement par le joueur propriétaire du rayon r (gouvernance unitaire 1-clic, zéro débat) ; pari PERDU si m(r) == 0 ou 1. Rive Sabotage (pari « piste calme ») : pari GAGNÉ si m(r) == 0 -> 1 carte Sabotage est mise de côté pour rejoindre définitivement le paquet Machine au remélange 6.3 (sans allumer 3. Sabotage en 4.1) ; pari PERDU si m(r) == 1 ou 2.",
+          "4.2 Production des Nids : chaque Nid actif est résolu comme un bloc indivisible : (1) création de 1 ou 2 Insectes selon le nombre d'Insectes physiquement présents sur sa parcelle à cet instant précis (sans allumer le déclencheur 6. Insecte), puis (2) pouvoir 'après production' du Nid, puis seulement (3) balayage 1..6 des Gardiens.",
+          "4.3 Migration des Insectes (sans Furtivité) : chaque Insecte présent sur un rayon de Forêt peut rester sur place (0 cran) ou se déplacer d'1 cran le long de son rayon vers une parcelle non rasée voisine (en sautant les Routes Forestières ; jusqu'à 2 crans avec L'Envol du Batará Suiveur). Les zones de Furtivité ne sont pas accessibles aux Insectes. On retourne chaque jeton déplacé sur sa face verso pour suivi, puis on remet tous les jetons à l'endroit en fin de Migration.",
+          "4.3 Pistes centrales globales : depuis la dernière parcelle non rasée d'un rayon, 1 cran de Migration permet d'entrer en aller simple définitif sur n'importe quelle case 1..6 de la Réglette des Tactiques (Bug du Cerveau) ou de la Piste des Gardiens (Colonisation / Bouclier de lisière), sans limite de jetons par case."
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "ATTAQUES_ET_TEST_FIN",
+        "nom": "Attaques des Machines et Vérification de Fin de Partie (5.1–5.3)",
+        "regles": [
+          "Ordre des machines : Réglette des Tactiques de la case 1 à la case 6, puis machines en Ratissage (mode ASSAUT permanent, détaché de la case 1). Sur un même rayon au même rang (ou en Ratissage), l'Abatteuse agit toujours avant le Bulldozer ; entre rayons distincts au même rang, ordre libre entre les joueurs concernés.",
+          "Modes CHARGE et ASSAUT (Réglette réversible) : chaque machine est résolue d'un seul tenant (lecture dynamique des cibles -> frappes -> avancée éventuelle sur 3/6 -> gain éventuel de jeton Puissance). En mode CHARGE (Acte 1 cases 1–3 ; Acte 2 cases 4–6) : les jetons Puissance déjà sur la machine sont ignorés dans le calcul du seuil de parade ; gain plafonné à +1 jeton Puissance par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE figé — une attaque Devant lancée hors-plateau depuis la dernière parcelle ne fait jamais gagner de jeton). En mode ASSAUT (Acte 1 cases 4–6 ; Acte 2 cases 1–3 ; et Ratissage permanent) : tous les jetons Puissance comptent dans le seuil de parade ; aucun jeton Puissance n'est gagné. Dégâts non parés : l'Abatteuse coupe TOUS les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches (micro-règle souche supprimée) ; le Bulldozer coupe 1 Arbre en Souche puis retire toutes les Souches non protégées (0/0 = Route Forestière + Repli).",
+          "Chaîne stricte des parades à chaque frappe : (1) Bond du Jaguar (Loi auto : 2 jetons bleus défaussés -> toutes frappes restantes de la machine parées + recul) -> (2) Piquée de la Harpie -> (3) Piège autonome SINGLE_STRIKE (dès qu'un jeton Piège est présent sur la parcelle attaquée, il se déclenche de lui-même même avec 0 Défenseur et 0 Insecte sur place, sans consommer les Défenseurs ou Insectes présents, pare exactement cette unique frappe, est immédiatement défaussé et allume uniquement 2. Piégeage) -> (4) Parade classique (Défenseurs seuls -> 1. Parade ; Défenseurs + défausse immédiate des Insectes manquants -> 6. Insecte).",
+          "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
+          "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer, ou après une Abatteuse en Ratissage arrachant la dernière Souche sous l'option correspondante) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
+          "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
+          "Issue des paris Gardiens, Bouclier de lisière & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné : le Gardien reste en piste et passe Face 2 s'il est double-face ; >= 1 Défenseur restant -> pari perdu : si Bouclier de lisière SLOT_COLONISATION_GARDIENS=B et >= 1 Insecte sur sa case, défausser 1 Insecte pour garder le Gardien en piste sur sa face actuelle tout en laissant le pari PERDU, sinon retour immédiat en lisière Face 1). Test de fin de partie : priorité absolue au Tour 8 ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Réveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur les Gardiens et aucun pari perdu). Si atteint : fin immédiate de la partie et décompte des Arbres debout (0 Repousse Finale automatique de base)."
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "APPRENTISSAGE_ET_MENAGE",
+        "nom": "Ménage de fin de tour (6.2–6.3)",
+        "regles": [
+          "Ménage systématique (6.2) : Réglette des Tactiques 1..6 fixe (retournée sur Face B au début du Tour 5 pour l'Acte 2), retour en main de tous les Défenseurs (y compris ceux posés en 2.1/2.2 sur des Rêves, en Furtivité ou sur les Gardiens et ceux glissés sous une tuile) et remise à zéro des modificateurs transitoires.",
+          "Entrée en Ratissage & Clôture du tour (6.3) : passage du pion Coordonnateur au siège suivant, retournement définitif sur sa face Ratissage de toute machine située sur la dernière parcelle non rasée de son rayon (carte retirée définitivement du paquet Machine ; Assaut permanent Sur place avec +1 puissance imprimée), puis remélange des cartes Machine actives avec toutes les cartes Sabotage (révélées/écartées ce tour + nouvellement acquises en 4.1)."
+        ]
+      }
+    ],
+    "arbitrages_valides": {
+      "A01": "Lecture unique du Dé MIN (Tours 1 à 8) sous paravent : seul un joueur ayant tiré une carte Machine retient M = min(D1, D2) (ou max sous Loi). Ce rang 1..6 désigne la case visée sur la Réglette des Tactiques.",
+      "A02": "Rêves épurés & 1re pose 2.1 ouverte aux Rêves (v6.1) : un joueur peut poser son 1er Défenseur (2.1) comme son 2e Défenseur (2.2) sur un Rêve déjà présent sur la Réglette des Tactiques. En 3.2 dans le socle (CLEAR_RANK_ONLY), chaque Défenseur sur un Rêve visé annule 1 machine du rang (en priorisant la plus menaçante) et le Rêve ne bouge pas.",
+      "A03": "Furtivité « Chaud vs Calme » par piste de forêt (v6.1) : au pied de chaque rayon r (1..N), 2 rives de 2 emplacements (Rive Piège et Rive Sabotage) ouvertes à toute la table en 2.1 et 2.2 tant que le rayon r n'est pas intégralement rasé. En 4.1, seule une rive complète (2 Défenseurs) est évaluée selon m(r) = cartes Machine de r révélées en 3.2 + machines de r en Ratissage (indépendant de déviation Insecte ±1 et d'annulation Rêve ; Sabotage révélé = 0). Rive Piège gagnée si m(r) == 2 (le propriétaire du rayon r pose 1 Piège sur une parcelle non-Route non piégée de r) ; Rive Sabotage gagnée si m(r) == 0 (+1 carte Sabotage mise de côté pour 6.3 sans allumer 3. Sabotage).",
+      "A04": "Gouvernance unitaire : chaque tuile de Synergie et piste de Migration est décidée uniquement par son Peuple d'origine.",
+      "A05": "Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; suppression totale des Insectes engagés.",
+      "A06": "Pièges autonomes SINGLE_STRIKE (v6.1 figé) : suppression de la condition d'Embuscade — dès qu'un jeton Piège est présent sur une parcelle attaquée en 5.1/5.2, il se déclenche de lui-même (même avec 0 Défenseur et 0 Insecte sur place), ne consomme ni Défenseur ni Insecte présent, pare exactement 1 frappe puis est défaussé aussitôt, en allumant uniquement 2. Piégeage.",
+      "A07": "Zéro verrouillage des parcelles ciblées : Insectes toujours libres tant que présents ; seul un Piège déjà déclenché ce tour-ci ne peut plus payer de coût volontaire.",
+      "A08": "Pont routier : Routes Forestières systématiquement sautées le long d'un rayon, mais infranchissables/inoccupables latéralement.",
+      "A09": "Repli sur création de Route : recul automatique vers la bordure par défaut, vers le cœur seulement si bord tout rasé, retrait si rayon tout rasé ; Ratissage irréversible maintenu.",
+      "A10": "Autonomie du Ratissage en Assaut permanent, départ décalé & Abatteuse coupe-tout (v6.1) : mise en place canonique décalée BULLDOZER_P1_ABATTEUSE_P2 (chassis_id = 24 : Bulldozer en parcelle 1, Abatteuse en parcelle 2). L'Abatteuse coupe TOUS les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches (suppression définitive de la micro-règle souche). En 6.3 uniquement (test redondant en 1.1 supprimé), toute machine située sur la dernière parcelle non rasée de son rayon est retournée définitivement sur sa face Ratissage (carte retirée du paquet Machine ; Assaut permanent Sur place +1 puissance imprimée, 0 gain).",
+      "A11": "Réglette des Tactiques réversible par blocs & placement des Rêves (v6.0) : actions fixes 1/4 Sur place (0), 2/5 Devant (0), 3/6 En avançant (+1 parcelle, -1 seuil). Acte 1 (Tours 1–4, Face A) : 1–3 CHARGE / 4–6 ASSAUT. Acte 2 (Tours 5–8, Face B retournée début Tour 5) : 1–3 ASSAUT / 4–6 CHARGE. Un Rêve construit en 3.1 se pose par-dessus la case libre la plus à droite (6, puis 5, etc.) sans éjecter les Tactiques ni déplacer les Insectes.",
+      "A12": "Cascades de Gardiens : fin complète de l'effet en cours, marquage immédiat à l'ouverture, balayage à plat de 1 à 6 sans pile imbriquée.",
+      "A13": "Faces 2 et Lois passives : seule la face visible s'applique (Faces 2 autonomes) ; une Loi passive reçoit automatiquement son marqueur dès que sa case s'allume.",
+      "A14": "Éveil / Réveil de la Forêt 100 % Piste des Gardiens (v6.0) : actif uniquement si >= 1 Peuple Animal Sauvage (M, R ou O) est autour de la table, aux Tours 1..7 (priorité absolue au Tour 8). En 5.3, la Forêt s'éveille si les N Défenseurs de la table ont tous été engagés en 2.2 sur la Piste des Gardiens et qu'aucun pari n'est perdu (0 Défenseur restant). Un Gardien sauvé par Bouclier de lisière (SLOT_COLONISATION_GARDIENS=B) reste en piste sur sa face actuelle mais son pari reste PERDU.",
+      "A15": "Test de fin de partie & Suppression de la Repousse Finale de base (5.3, v6.0) : priorité absolue au Tour 8 (fin TOUR_8) ; aux Tours 1..7, vérification directe après issue des paris Gardiens de Sommeil du Contremaître (tous les Rêves en jeu en bloc continu cases 1..k) ou de Réveil de la Forêt 100 % Gardiens. En fin de partie, 0 Souche ne repousse automatiquement dans le cœur : le score compte uniquement les Arbres debout.",
+      "A16": "Contact Machine-Nid : tout mouvement entrant (avancée, recul, repli) renvoie le Nid reconstructible en lisière et défausse tous les Insectes de la parcelle.",
+      "A17": "Migration des Insectes recentrée Forêt & Pistes centrales (v6.1) : 0 ou 1 cran facultatif le long du rayon (en sautant les Routes Forestières) ou aller simple définitif depuis la dernière parcelle non rasée vers une case 1..6 de la Réglette des Tactiques ou de la Piste des Gardiens (retrait de la Furtivité des destinations d'Insectes).",
+      "A18": "Production des Nids : bloc indivisible (création selon état réel présent + pouvoir du Nid avant Gardiens) ; Miel des Ancêtres restreint aux jetons Insecte.",
+      "A19": "Cibles dynamiques : lues selon la position physique réelle de la machine à l’instant où elle attaque.",
+      "A20": "Matamata et chaîne des parades : Matamata vérifie la présence d'une Souche à chaque frappe ; ordre Jaguar -> Harpie -> Piège -> Parade classique.",
+      "A21": "Déclencheur 5. Rêve actif uniquement & transfert de l'avancée au Mode 4 (v6.1) : REVE_TRIG=ACTIF figé — 5. Rêve s'allume uniquement lorsqu'un Rêve portant >= 1 Défenseur annule effectivement au moins 1 machine (non déviée) en 3.2. Un Rêve sans Défenseur est totalement inerte. Grâce à l'ouverture de 2.1 aux Rêves, une table à 5J–6J peut allumer 5. Rêve via 2.1 tout en engageant ses N Défenseurs de 2.2 sur les Gardiens pour l'Éveil.",
+      "A22": "Pari uniforme sur les Gardiens & Partition stricte des 6 déclencheurs (v6.1) : actif si >= 1 Animal Sauvage (M/R/O) est à la table. Pari uniforme UNIFORM_MAX_2 réservé à 2.2 (0, 1 ou 2 Défenseurs maximum par Gardien construit cases 1..6, glissés sous la tuile à chaque déclenchement). Partition stricte (« 1 événement = au plus 1 déclencheur ») : en 3.2 Sabotage > Insecte sur Tactiques > Rêve actif ; en 4.1 et 4.2 Nids aucun déclencheur ; en 5.1/5.2 Piégeage (Piège autonome SINGLE_STRIKE) > Insecte en Parade >= 1 Insecte > Parade par Défenseurs seuls ; 4. Gardien sur 1re ouverture du tour de chaque autre Gardien distinct.",
+      "A23": "Réglette des Tactiques réversible Face A/B, gain Charge FRAPPE_NON_PAREE & Déviation par Insectes (v6.1 gelé) : en mode CHARGE les jetons Puissance existants sont ignorés au seuil et au plus +1 jeton Puissance est gagné par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE figé, hors attaque Devant dans le vide depuis la dernière parcelle). En mode ASSAUT tous les jetons Puissance comptent au seuil et 0 jeton n'est gagné.",
+      "A24": "Cartes Sabotage (dilution permanente, v5.5) : toutes identiques et sans effet propre (réserve illimitée). 1 Sabotage acquis en Furtivité 4.1 est mis de côté pour rejoindre définitivement le paquet Machine en 6.3 (sans allumer 3. Sabotage) ; 1 carte Sabotage révélée à l'ouverture des paravents en 3.2 fait perdre 1 activation au Contremaître, allume 3. Sabotage (partition stricte 3.2), puis est remélangée en fin de tour.",
+      "A25": "Séquence des attaques (v6.0) : Réglette 1..6 (mode CHARGE ou ASSAUT selon l'Acte) puis Ratissages (ASSAUT permanent détaché de la case 1) ; Abatteuse avant Bulldozer sur un même rayon, libre entre rayons distincts ; machine résolue d'un seul tenant."
+    }
+  },
+  "catalogue_tuiles": {
+    "G1": {
+      "id": "G1",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "R"
+      ],
+      "origine": "M",
+      "nomBase": "Le Bond du Jaguar",
+      "profils": {
+        "A": {
+          "nom": "Le Bond du Jaguar",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "MOD_PUISSANCE",
+          "tags": [
+            "SURCHAUFFE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>.<br><strong>Face 2 :</strong> Retournez jusqu’à 2 jetons rouges en bleus <em>Surchauffe</em> (répartis librement entre des machines).",
+          "temoin": "En Face 2, permet de retourner au plus 2 jetons rouges au total, répartis librement entre une ou deux machines.",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_JETON_ROUGE"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "Le Bond du Jaguar",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE / LOI 5",
+          "primitive": "MOD_SEUIL + MOD_PUISSANCE",
+          "tags": [
+            "SURCHAUFFE",
+            "PARADE_AUTO"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Réduisez de -2 le Seuil de Parade d’une machine portant au moins 1 jeton Puissance (rouge ou bleu) pour le reste du tour.<br><strong>Face 2 (Loi 5) :</strong> Dès qu’une machine porte ≥ 2 jetons bleus (<em>Surchauffe</em>) au moment de frapper, défaussez 2 bleus pour <strong>parer automatiquement toutes ses frappes encore à résoudre</strong> et la faire reculer immédiatement d’1 parcelle non rasée vers la bordure au lieu de son avancée (si elle n’est pas en Ratissage).",
+          "temoin": "1er maillon de la chaîne des parades (avant Harpie et Piège) : consomme automatiquement 2 bleus, allume 1. Parade et laisse un éventuel Piège intact (non déclenché).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU",
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_POSITION_MACHINE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G2": {
+      "id": "G2",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "M"
+      ],
+      "origine": "R",
+      "nomBase": "L’Étreinte de l’Anaconda",
+      "profils": {
+        "A": {
+          "nom": "L’Étreinte de l’Anaconda",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (MACHINE)",
+          "tags": [
+            "RECUL"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur une parcelle avec au moins 1 Défenseur.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle non rasée vers la bordure n’importe quelle machine non en Ratissage.",
+          "temoin": "Saute les Routes Forestières (et détruit par contact un éventuel Nid non protégé à l’arrivée). Les cibles de la machine se liront depuis sa nouvelle position réelle à l’instant où elle attaque.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "RES_POSITION_MACHINE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "L’Étreinte de l’Anaconda",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_MACHINE_PAREE_SANS_ELAN)",
+          "tags": [
+            "PARADE_TOTALE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas</strong> sur T3/T6.<br><strong>Face 2 (Loi 5) :</strong> Une machine dont toutes les frappes sont parées <strong>n’avance pas ET ne gagne pas de jeton Puissance rouge</strong> sur T3 à T6 (y compris en Ratissage).",
+          "temoin": "Une frappe annulée sur une parcelle déjà rasée en Route Forestière ne compte pas comme parée pour cette loi.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_JETON_ROUGE",
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_POSITION_MACHINE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "C": {
+          "nom": "La fuite sous les feuilles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (INSECTE TOUS)",
+          "tags": [
+            "INSECTES",
+            "MOBILITE"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez déplacer <strong>tous les Insectes</strong> d’une parcelle vers la prochaine parcelle non rasée du même rayon, côté bordure ou côté cœur.",
+          "temoin": "3 Insectes en p=1, Route en p=2, Nid en p=3 : les 3 arrivent ensemble en p=3 sans allumer la case 6 (tous les Insectes présents sur la roue sont libres).",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G3": {
+      "id": "G3",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "O"
+      ],
+      "origine": "M",
+      "nomBase": "La Voltige de l’Atèle",
+      "profils": {
+        "A": {
+          "nom": "La Voltige de l’Atèle",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (DEFENSEUR)",
+          "tags": [
+            "MOBILITE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Déplacez 1 Défenseur (y compris un constructeur resté en bordure de lisière en 3.1) vers une parcelle Forêt non rasée adjacente.",
+          "temoin": "Un constructeur en bordure peut rejoindre p=1 d’un rayon bordant sa lisière.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "B": {
+          "nom": "La Voltige de l’Atèle",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 4.1 -> 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_FURTIVITE_GLISSE_EN_FORET_ETAPE_5)",
+          "tags": [
+            "FURTIVITE",
+            "ARMEMENT",
+            "MOBILITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.1 :</strong> Une fois par tour, après l’action d’un binôme sur l’une des lisières de M ou O, 1 de ses Défenseurs glisse gratuitement sur une parcelle Forêt non rasée adjacente en face pour l’Étape 5.",
+          "temoin": "Idéal pour agir en Furtivité en 4.1 puis armer un Piège Embuscade en Forêt à l’Étape 5.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "C": {
+          "nom": "Le passage des singes-lianes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (TRAVERSEE M<->O)",
+          "tags": [
+            "MOBILITE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez faire passer un Défenseur du rayon des Mammifères à celui des Oiseaux, ou inversement, à la même profondeur. Les deux parcelles doivent être non rasées.",
+          "temoin": "Une Parade chez M ouvre G3 C : un Défenseur ayant paré traverse chez O à même profondeur. La première Parade reste acquise.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les sentinelles des lianes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (FURTIVITE -> PARCELLE_PIEGEE)",
+          "tags": [
+            "ARMEMENT",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez déplacer un Défenseur d’une case Furtivité vers une parcelle piégée des Mammifères ou des Oiseaux qui lui fait face.",
+          "temoin": "Un binôme a agi en Furtivité face à M p=2 piégée : à l’ouverture, 1 Défenseur rejoint M p=2 pour armer l’Embuscade.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "TRIG_2",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G4": {
+      "id": "G4",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "M"
+      ],
+      "origine": "O",
+      "nomBase": "Le Cri d’Alarme de l’Ara",
+      "profils": {
+        "A": {
+          "nom": "Le Cri d’Alarme de l’Ara",
+          "cycle": "SACRIFICE_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE / SACRIFICE 3.2",
+          "primitive": "MOD_SEUIL / DEPLACEMENT",
+          "tags": [
+            "REDEPLOIEMENT"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Ouverture) :</strong> Réduisez de −1 le Seuil de Parade sur une parcelle des rayons O ou M pour le reste du tour.<br><strong>Sacrifice (en 3.2 après révélation) :</strong> Déplacez jusqu’à 2 Défenseurs vers des parcelles ciblées et renvoyez ce Gardien sur sa Face 1 en lisière (sa case est immédiatement libérée).",
+          "temoin": "Le renvoi en lisière libère la case Gardien pour une future construction ; le Gardien repasse Face 1 et perd son marqueur « utilisé ».",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "B": {
+          "nom": "Le Cri d’Alarme de l’Ara",
+          "cycle": "SACRIFICE_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 2.1 / SACRIFICE DÉBUT 2",
+          "primitive": "MOD_LOI_DU_COEUR + PARTAGE_INFO",
+          "tags": [
+            "INFORMATION",
+            "PORTÉE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Loi 2.1) :</strong> Le peuple d’origine (O) et son voisin (M) posent leur 1er Défenseur à portée globale.<br><strong>Sacrifice (Début Étape 2) :</strong> Ouvrez tous les mini-paravents <strong>avant</strong> de placer les Défenseurs ce tour-ci (renvoyez G4 en lisière ; il perd son marqueur « utilisé »).",
+          "temoin": "Offre une visibilité publique complète des cartes et dés, mais la pose reste individuelle et sans concertation orale.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "TRIG_4"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G5": {
+      "id": "G5",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "O"
+      ],
+      "origine": "R",
+      "nomBase": "L’Affût de la Matamata",
+      "profils": {
+        "A": {
+          "nom": "L’Affût de la Matamata",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE (LOI TEMP 5)",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SOUCHES_REDUISENT_SEUIL)",
+          "tags": [
+            "SOUCHES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Désignez 1 parcelle non rasée : pour ce tour, réduisez de <strong>−1</strong> son Seuil de Parade à chaque frappe trouvant au moins 1 Souche sur place à cet instant.<br><strong>Face 2 :</strong> Désignez jusqu’à 2 parcelles non rasées : pour ce tour, réduisez de <strong>−1</strong> leur Seuil de Parade à chaque frappe trouvant au moins 1 Souche sur place à cet instant.",
+          "temoin": "Vérification dynamique à chaque frappe : si une Abatteuse crée une Souche sur la parcelle désignée, le Bulldozer suivant subit immédiatement le −1 au Seuil.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_SOUCHE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "L’Affût de la Matamata",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SOUCHES_REDUISENT_SEUIL)",
+          "tags": [
+            "SOUCHES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Loi 5) :</strong> Sur les rayons R et O, toute parcelle contenant au moins 1 Souche voit son Seuil de Parade réduit de <strong>−1</strong>.<br><strong>Face 2 (Loi 5) :</strong> Sur tout le plateau, toute parcelle contenant au moins 1 Souche voit son Seuil de Parade réduit de <strong>−1</strong>.",
+          "temoin": "Vérifié dynamiquement à chaque frappe sur le Seuil Imprimé : dès qu’au moins 1 Souche est présente sur la parcelle à cet instant, le Seuil diminue de −1.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_SOUCHE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "Le Perchoir du caïman",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SOUTIEN_MACHINE_VERS_DEVANT)",
+          "tags": [
+            "SOUTIEN",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Oiseaux, quand une machine frappe devant elle, chaque Défenseur situé sur la parcelle de la machine apporte aussi +1 point de Défense à la parcelle frappée.",
+          "temoin": "Ce point de soutien à distance suffit à armer un Piège Embuscade sur la parcelle devant la machine, même si celle-ci est vide de pion.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G6": {
+      "id": "G6",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "R"
+      ],
+      "origine": "O",
+      "nomBase": "L’Œil Double du Toucan",
+      "profils": {
+        "A": {
+          "nom": "L’Œil Double du Toucan",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE (3.2)",
+          "primitive": "PERMUTATION_PISTE (LECTURE_DE_M)",
+          "tags": [
+            "LECTURE_DE"
+          ],
+          "requires_options": {},
+          "texte": "En 3.2, décalez de -1 ou +1 rang la lecture du dé M d’un joueur sur la Piste des Tactiques.",
+          "temoin": "Si ouvert avant 3.2, prépare le décalage pour la révélation du tour courant.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "L’Œil Double du Toucan",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 1.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_DE_M_CHOIX_MIN_MAX)",
+          "tags": [
+            "LECTURE_DE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 1.3 :</strong> Le peuple d’origine (O) et son voisin (R) peuvent retenir le plus grand de leurs deux dés (M = max(D1, D2)) derrière leur paravent.",
+          "temoin": "Permet d’aller chercher volontairement les Rêves insérés aux rangs 5 et 6.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "C": {
+          "nom": "Le Vol en ciseaux",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (ECHANGE_ATOMIQUE)",
+          "tags": [
+            "FURTIVITE",
+            "INSECTES",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez échanger simultanément 1 Défenseur d’une parcelle des Oiseaux ou des Reptiles avec 1 Insecte de la case Furtivité qui lui fait face sur leur lisière commune (posez ce Défenseur sur un emplacement valide de la case en tirant l’éventuel autre Défenseur sur son jumeau).",
+          "temoin": "Avant 4.1, permet de former et d’orienter un binôme de 2 Défenseurs en Furtivité tout en envoyant l’Insecte défendre la forêt.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G7": {
+      "id": "G7",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "H"
+      ],
+      "origine": "M",
+      "nomBase": "Le Barrage du Capybara",
+      "profils": {
+        "A": {
+          "nom": "Le Barrage du Capybara",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE",
+            "SOUCHES"
+          ],
+          "requires_options": {},
+          "texte": "Posez 1 Piège sur une parcelle non rasée contenant au moins 1 Souche et aucun Piège, même occupée par une machine ou ciblée.",
+          "temoin": "Fonctionne sur toute la roue dès qu’une Souche est présente.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "RES_SOUCHE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "Le Barrage du Capybara",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 4.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_PIEGE_SOUS_MACHINE_OU_CIBLE)",
+          "tags": [
+            "POSE",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.1 :</strong> Les binômes en Furtivité peuvent poser un Piège <strong>même sur une parcelle occupée par une machine</strong> (et ce Piège s’arme immédiatement si au moins 1 Défenseur du binôme glisse dessus ou soutient la parcelle).",
+          "temoin": "Fait sauter le verrou majeur du minage en Furtivité.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "La Loutre géante",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_DEFENSEURS_APRES_PREMIER_DOUBLES)",
+          "tags": [
+            "PARADE_CLASSIQUE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Sur les rayons des Mammifères et des Humains, chaque Défenseur physiquement présent après le premier apporte <strong>2 points de Défense</strong> (D + max(0, D−1)).",
+          "temoin": "2 Défenseurs valent 3 points de Défense, épargnant les Insectes locaux.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Le barrage habité du Capybara",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez poser 1 Piège sur une parcelle non rasée sans Piège des Mammifères ou des Humains contenant au moins 1 Défenseur ou 1 Insecte, même occupée par une machine ou ciblée (allume la case 2).",
+          "temoin": "Pose un Piège immédiatement armé par la présence locale (un soutien distant seul ne suffit pas pour la pose).",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_2",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G8": {
+      "id": "G8",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "E"
+      ],
+      "origine": "M",
+      "nomBase": "Le Sillage du Boto",
+      "profils": {
+        "A": {
+          "nom": "Le Sillage du Boto",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE (3.2)",
+          "primitive": "DEPLACEMENT (CIBLAGE)",
+          "tags": [
+            "CIBLAGE"
+          ],
+          "requires_options": {},
+          "texte": "En 3.2 (ou à l’ouverture avant l’attaque de la machine), décalez d’1 parcelle non rasée dans le même sens le long de son rayon l’ensemble des frappes d’une machine non en Ratissage pour ce tour, sans déplacer la machine.",
+          "temoin": "Saute les Routes Forestières ; le décalage s’applique aux cibles lues depuis la position réelle de la machine à l’instant où elle attaque.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "Le Sillage du Boto",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_INVERSION_ETAPE_5_1_ET_5_2)",
+          "tags": [
+            "ORDRE_MACHINES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Sur 1 rayon au choix par tour, si l’Abatteuse et le Bulldozer sont tous deux actifs, vous pouvez résoudre le <strong>Bulldozer avant l’Abatteuse</strong> (quel que soit leur rang ou en Ratissage).",
+          "temoin": "Sur 3 Arbres sans Souche : le Bulldozer coupe 1 Arbre (0 Souche à terrasser), puis l’Abatteuse coupe les 2 Arbres restants en 2 Souches (évite la Route Forestière !).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G9": {
+      "id": "G9",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "H"
+      ],
+      "origine": "R",
+      "nomBase": "Le Guet du Caïman Noir",
+      "profils": {
+        "A": {
+          "nom": "Le Guet du Caïman Noir",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (SABOTAGE)",
+          "tags": [
+            "SABOTAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Ajoutez définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de fin de tour).<br><strong>Face 2 :</strong> Ajoutez définitivement 2 cartes Sabotage de la réserve au paquet Machine (mises de côté pour le remélange de fin de tour).",
+          "temoin": "Dilue durablement le paquet Machine en réaction à n’importe quel Déclencheur (réserve de cartes Sabotage illimitée).",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DILUTION_SABOTAGE",
+              "TRIG_3"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "Le Guet du Caïman Noir",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 4.1 / LOI 3.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SABOTAGE_ACTIF_ET_REVELATION)",
+          "tags": [
+            "SABOTAGE",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Loi 4.1) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong>.<br><strong>Face 2 (Loi 4.1 & 3.2) :</strong> Un binôme en Furtivité peut saboter sa parcelle cible même si une machine y est active ce tour-ci ou en <strong>Ratissage</strong> ; de plus, en 3.2, chaque carte Sabotage révélée derrière un paravent allume la <strong>case 3. Sabotage</strong> et retire <strong>1 jeton Puissance rouge</strong> d’une machine sur les rayons R ou H.",
+          "temoin": "En Face 2, chaque panne tirée en 3.2 déclenche une cascade sur la case 3 (une seule activation max du Gardien câblé en 3) et affaiblit les machines sur R/H avant que la carte Sabotage ne soit remélangée en 6.3.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DILUTION_SABOTAGE",
+              "TRIG_3",
+              "RES_JETON_ROUGE",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "La Peau de boue",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_ROUGES_IGNORES_DEVANT)",
+          "tags": [
+            "PARADE_CLASSIQUE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Sur les rayons des Reptiles et des Humains, ignorez tous les jetons Puissance rouges d’une machine quand elle frappe la parcelle située devant elle.",
+          "temoin": "Une machine T6 avec 2 rouges et 1 bleu frappant devant elle sur base 3 a un seuil de 3 + 0 - 1 - 2 = 1.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_JETON_ROUGE",
+              "RES_SEUIL_PARADE",
+              "TRIG_1"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G10": {
+      "id": "G10",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "E"
+      ],
+      "origine": "R",
+      "nomBase": "La Brume de la Dendrobate",
+      "profils": {
+        "A": {
+          "nom": "La Brume de la Dendrobate",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE (6.1)",
+          "primitive": "MOD_APPRENTISSAGE",
+          "tags": [
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "En 6.1 ce tour-ci, retirez 1 jeton Apprentissage à la tuile Tactique de votre choix.",
+          "temoin": "Mémorisé jusqu’en 6.1 et appliqué avant les Insectes Bug (permettant d’épargner un Bug si la Tactique tombe à 0 jeton).",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Brume de la Dendrobate",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5.3",
+          "primitive": "MOD_LOI_DU_COEUR + MOD_PUISSANCE",
+          "tags": [
+            "DECLENCHEMENT_EFFECTIF",
+            "SURCHAUFFE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, chaque Piège déclenché ce tour-ci retire 1 jeton Puissance rouge (ou retourne 1 rouge en bleu) sur chaque machine dont il a paré au moins une frappe.",
+          "temoin": "S’applique en 5.3 avant le retrait des Pièges déclenchés, une fois par couple Piège–machine parée.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_PIEGE",
+              "RES_JETON_ROUGE"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU",
+              "RES_JETON_ROUGE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "La Rainette géante",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            6
+          ],
+          "fenetre": "OUVERTURE (CASE 6)",
+          "primitive": "CREATION_ENTITE (SABOTAGE) avec coût",
+          "tags": [
+            "CONVERSION",
+            "SABOTAGE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<em>(Câblage obligatoire sur 6. Insecte)</em> À l’ouverture, vous pouvez défausser 1 Insecte d’une parcelle Forêt pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (allume la case 3).",
+          "temoin": "En 4.2, l’Insecte produit par un Nid peut payer ce coût après le bloc indivisible du Nid pour diluer durablement le paquet Machine.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_DILUTION_SABOTAGE",
+              "TRIG_3"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les éclaireurs de la Dendrobate",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI APRÈS PARADE PIÈGE",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_EMBUSCADE_CREE_SENTINELLE)",
+          "tags": [
+            "ARMEMENT",
+            "REACTION",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi :</strong> Une fois par tour, après une Parade par un Piège sur les rayons des Reptiles ou des Entités, vous pouvez créer 1 Insecte sur une <strong>autre</strong> parcelle piégée de ces deux rayons (allume la case 6).",
+          "temoin": "Une première Embuscade réussie crée la sentinelle qui arme immédiatement une seconde Embuscade.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "TRIG_6",
+              "TRIG_2"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G11": {
+      "id": "G11",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "H"
+      ],
+      "origine": "O",
+      "nomBase": "La Piquée de la Harpie",
+      "profils": {
+        "A": {
+          "nom": "La Piquée de la Harpie",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "MOD_SEUIL",
+          "tags": [
+            "PARADE_CLASSIQUE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Réduisez de -1 le Seuil de Parade sur une parcelle (-2 s’il s’y trouve ≥ 2 Défenseurs).<br><strong>Face 2 :</strong> Parez automatiquement 1 attaque sur une parcelle contenant ≥ 2 Défenseurs.",
+          "temoin": "2e maillon de la chaîne des parades (après Jaguar, avant Piège) : pare la frappe sans déclencher un éventuel Piège présent.",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Piquée de la Harpie",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SOUTIEN_LISIERE_DEFENSE)",
+          "tags": [
+            "SOUTIEN",
+            "ARMEMENT",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (Loi 5) :</strong> Tout Défenseur isolé sur une case Furtivité ajoute +1 en Défense aux deux parcelles Forêt non rasées en face (même profondeur p).<br><strong>Face 2 (Loi 5) :</strong> Tout Défenseur isolé sur une case Furtivité ajoute +1 en Défense aux deux parcelles Forêt non rasées en face (même profondeur p), et chaque Défenseur constructeur resté en bordure de lisière ajoute +1 en Défense aux parcelles p=1 non rasées adjacentes.",
+          "temoin": "Fournit un soutien à distance capable d’armer les Pièges Embuscade en face.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "C": {
+          "nom": "L’Oiseau indicateur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 2.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_DEFENSEUR_1_CASE_INSECTE)",
+          "tags": [
+            "FURTIVITE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 2.1 :</strong> Tout Peuple autour de la table peut poser son Premier Défenseur sur une case Furtivité de la lisière Oiseaux–Humains qui contient déjà au moins 1 Insecte.",
+          "temoin": "Offre un point d’ancrage global dès 2.1 (le Défenseur se pose sur l’un des 4 emplacements valides de la case).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "D": {
+          "nom": "La veille de la Harpie",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_FURTIVITE_ARME_PIEGES)",
+          "tags": [
+            "SOUTIEN",
+            "ARMEMENT",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Chaque case Furtivité contenant au moins 1 Défenseur (isolé ou en binôme) fournit au total 1 point de Défense aux parcelles <strong>piégées</strong> des Oiseaux ou des Humains qui lui font face.",
+          "temoin": "Permet à un binôme de travailler en Furtivité en 4.1 tout en armant à distance les Pièges en face à l’Étape 5.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "TRIG_2",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G12": {
+      "id": "G12",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "E"
+      ],
+      "origine": "O",
+      "nomBase": "Le Chant de l’Ibijau",
+      "profils": {
+        "A": {
+          "nom": "Le Chant de l’Ibijau",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "PERMUTATION_PISTE (REVE)",
+          "tags": [
+            "AVANCEE_REVE"
+          ],
+          "requires_options": {},
+          "texte": "Faites avancer d’1 rang vers la gauche une tuile Rêve de la Piste des Tactiques (en poussant d’un cran tout bloc contigu de Rêves, sans activer son effet).",
+          "temoin": "Si l’échange regroupe ainsi en bloc à gauche toutes les tuiles Rêves en jeu (rangs 1..k), le Sommeil du Contremaître sera validé lors de la vérification de fin de partie en 5.3.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "Le Chant de l’Ibijau",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN",
+          "tags": [
+            "RESONANCE"
+          ],
+          "requires_options": {},
+          "texte": "Retournez gratuitement un autre Gardien évolutif en jeu sur sa Face 2 (ou ouvrez immédiatement le Slot d’un autre Gardien encore disponible ce tour-ci).",
+          "temoin": "Ne peut pas retourner gratuitement le cycle nourri de G14 C, mais peut ouvrir son Slot.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "TRIG_4"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "Le Vautour-Roi",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            2
+          ],
+          "fenetre": "OUVERTURE (CASE 2)",
+          "primitive": "PERMUTATION_PISTE (REVE) avec coût",
+          "tags": [
+            "CONVERSION",
+            "AVANCEE_REVE"
+          ],
+          "requires_options": {},
+          "texte": "<em>(Câblage obligatoire sur 2. Piégeage)</em> À l’ouverture, vous pouvez retirer de la forêt 1 Piège non déclenché ce tour-ci pour faire avancer d’1 rang vers la gauche le Rêve le plus à gauche.",
+          "temoin": "Peut consommer le Piège tout juste posé en 4.1 pour avancer le Rêve le plus à gauche (vers le bloc de Rêves en tête ; victoire vérifiée en fin de 5.3). Un Piège ayant déjà paré ce tour ne peut pas payer ce coût.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_2",
+              "RES_PIEGE"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G13": {
+      "id": "G13",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "I"
+      ],
+      "origine": "M",
+      "nomBase": "La Brèche du Tamanoir",
+      "profils": {
+        "A": {
+          "nom": "La Brèche du Tamanoir",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (INSECTE)",
+          "tags": [
+            "INSECTES",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Posez 1 jeton Insecte sur une parcelle non rasée ou une case Furtivité contenant au moins 1 Défenseur.",
+          "temoin": "Peut compléter un binôme furtif avant 4.1 ou renforcer une Parade en 5.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_INSECTE",
+              "TRIG_6",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Brèche du Tamanoir",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 3.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_CONSTRUCTION_HYBRIDE_INSECTE)",
+          "tags": [
+            "INSECTES",
+            "CONSTRUCTION"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 3.1 :</strong> Vous pouvez construire une tuile en lisière avec <code>1 Défenseur + 1 Insecte</code> (pris sur une case Furtivité de cette même lisière et défaussé) au lieu de 2 Défenseurs.",
+          "temoin": "Accélère considérablement la mise en jeu des Tuiles de Synergie.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G14": {
+      "id": "G14",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "I"
+      ],
+      "origine": "R",
+      "nomBase": "L’Écaille du Téju",
+      "profils": {
+        "A": {
+          "nom": "L’Écaille du Téju",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (PIEGE) avec coût",
+          "tags": [
+            "CONVERSION",
+            "POSE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Défaussez 1 Insecte d’une parcelle Forêt pour poser 1 Piège sur cette parcelle ou une parcelle non rasée adjacente du même rayon sans Piège.",
+          "temoin": "Attention : ne défaussez pas le dernier pion qui devait fournir le point de Défense armant ce Piège !",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE",
+              "RES_PIEGE"
+            ],
+            "outputs_produits": [
+              "RES_PIEGE"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "B": {
+          "nom": "L’Écaille du Téju",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI DE CONTACT",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NID_INDESTRUCTIBLE_AU_CONTACT)",
+          "tags": [
+            "CONTACT",
+            "NID"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de contact :</strong> Les Nids de Croissance (M) de toute la roue et leurs Insectes sont préservés lorsqu’une machine entre ou recule sur leur parcelle.",
+          "temoin": "Protège les Nids et leurs Insectes contre tout mouvement de machine (avancée, recul, repli), mais pas contre la transformation de la parcelle en Route Forestière.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "Le ventre plein",
+          "cycle": "DOUBLE_FACE_CYCLE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "CREATION_ENTITE (CYCLE NOURRI)",
+          "tags": [
+            "POSE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 (À jeun) :</strong> Défaussez 1 Insecte d’une parcelle du rayon des Reptiles pour retourner ce Gardien sur <em>Rassasié</em>.<br><strong>Face 2 (Rassasié) :</strong> Posez 1 Piège sur une parcelle non rasée des Reptiles sans machine ni Piège, puis retournez ce Gardien sur <em>À jeun</em> (allume la case 2).",
+          "temoin": "Cycle fermé à 2 temps : le retournement sur À jeun est acquis avant la cascade de la case 2.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE",
+              "RES_PIEGE"
+            ],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_2"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les porteurs du Téju",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (INSECTE)",
+          "tags": [
+            "ARMEMENT",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez déplacer 1 Insecte d’une parcelle des Reptiles ou des Insectes vers une autre parcelle piégée du <strong>même rayon</strong>, à toute distance.",
+          "temoin": "Envoie une sentinelle armer un Piège en bout de rayon sans consommer le jeton.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G15": {
+      "id": "G15",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "I"
+      ],
+      "origine": "O",
+      "nomBase": "L’Envol du Batará Suiveur",
+      "profils": {
+        "A": {
+          "nom": "L’Envol du Batará Suiveur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (MIGRATION DIRECTE)",
+          "tags": [
+            "INSECTES",
+            "MIGRATION"
+          ],
+          "requires_options": {},
+          "texte": "Faites migrer immédiatement 1 Insecte depuis n’importe quelle parcelle ou case Furtivité de la roue vers une case 1..6 d’une piste globale (<code>Bug</code> ou <code>Colonie</code>, aller simple définitif).",
+          "temoin": "Permet de coloniser le Cerveau ou les Gardiens sans attendre d’atteindre la dernière parcelle non rasée.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "L’Envol du Batará Suiveur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 4.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_AILES_ESSAIM_2_CRANS)",
+          "tags": [
+            "INSECTES",
+            "MOBILITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.3 :</strong> En 4.3, chaque Insecte sur la roue peut se déplacer de <strong>0, 1 ou 2 crans</strong> (au lieu de 0 ou 1).",
+          "temoin": "Un Insecte peut traverser une lisière puis entrer sur la forêt voisine dans le même mouvement.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "R1": {
+      "id": "R1",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "E"
+      ],
+      "origine": "H",
+      "nomBase": "Le Tambour des Deux Mondes",
+      "profils": {
+        "A": {
+          "nom": "Le Tambour des Deux Mondes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "PERMUTATION_PISTE (TACTIQUE)",
+          "tags": [
+            "CERVEAU"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture en 3.2, avant l’avancée de ce Rêve, échangez deux tuiles Tactique adjacentes sur la piste centrale.",
+          "temoin": "Permet de repousser T6 vers la droite pour qu’elle soit éjectée par le prochain Rêve.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "Le Tambour des Deux Mondes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 3.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_REVE_DOUBLE_AVANCEE)",
+          "tags": [
+            "AVANCEE_REVE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 3.2 :</strong> Lorsqu’il s’ouvre en 3.2, ce Rêve avance de <strong>jusqu’à 2 rangs</strong> vers la gauche (plafonné au Rang 1) au lieu d’1.",
+          "temoin": "Accélère le regroupement des tuiles Rêves en tête de piste (rangs 1..k) pour déclencher le Sommeil du Contremaître.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "La Part rendue à la forêt",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "PERMUTATION_PISTE avec offrande",
+          "tags": [
+            "CONVERSION",
+            "AVANCEE_REVE"
+          ],
+          "requires_options": {},
+          "texte": "À chaque ouverture en 3.2, vous pouvez renvoyer 1 Gardien de la piste vers sa lisière (sur sa Face 1, en retirant son marqueur « utilisé ») pour faire avancer ce Rêve de <strong>jusqu’à 2 rangs</strong> au lieu d’1.",
+          "temoin": "Coût volontaire : ne déclenche pas un pouvoir de sacrifice et renvoie le Gardien en lisière Face 1 sans marqueur « utilisé ».",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R2": {
+      "id": "R2",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "H"
+      ],
+      "origine": "E",
+      "nomBase": "Le Voile de l’Oubli",
+      "profils": {
+        "A": {
+          "nom": "Le Voile de l’Oubli",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2 -> 6.1",
+          "primitive": "MOD_APPRENTISSAGE (-2)",
+          "tags": [
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "En 6.1 ce tour-ci, retirez jusqu’à 2 jetons Apprentissage sur la Piste des Tactiques.",
+          "temoin": "Appliqué en 6.1 avant les Insectes Bug : permet de provoquer une égalité en tête ou d’épargner un Bug sur une case ramenée à 0.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "Le Voile de l’Oubli",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 6.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_PARADE_ANNULE_APPRENTISSAGE)",
+          "tags": [
+            "PARADE_TOTALE",
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 6.1 :</strong> Une machine dont toutes les frappes sont parées ce tour-ci ne rapporte <strong>aucun jeton Apprentissage</strong> (même via son gain de Puissance T4/T5/T6).",
+          "temoin": "Une frappe annulée sur une parcelle déjà rasée en Route Forestière ne compte pas comme parée.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE",
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R3": {
+      "id": "R3",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "M"
+      ],
+      "origine": "H",
+      "nomBase": "La Danse des Esprits-Fauves",
+      "profils": {
+        "A": {
+          "nom": "La Danse des Esprits-Fauves",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "DEPLACEMENT (2 DEFENSEURS)",
+          "tags": [
+            "REDEPLOIEMENT",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture en 3.2, déplacez jusqu’à 2 Défenseurs (y compris des constructeurs restés en lisière en 3.1) vers des parcelles Forêt non rasées.",
+          "temoin": "Recycle immédiatement les bâtisseurs après la révélation des cibles.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "La Danse des Esprits-Fauves",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 3.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_CONSTRUCTEURS_REJOIGNENT_FORET)",
+          "tags": [
+            "CONSTRUCTION",
+            "MOBILITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 3.1 :</strong> Lors d’une construction (G ou R), le Peuple d’origine de la tuile construite libère <strong>1 des 2 Défenseurs bâtisseurs</strong> vers la 1re parcelle adjacente non rasée de son choix (ou <strong>tous les Défenseurs bâtisseurs à N=3 joueurs</strong>, chacun choisissant sa rive).",
+          "temoin": "Prend effet dès la construction de R3 B pour ses propres bâtisseurs (dans la limite des Défenseurs réellement présents).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R4": {
+      "id": "R4",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "R"
+      ],
+      "origine": "H",
+      "nomBase": "Le Sommeil de la Pierre-Serpent",
+      "profils": {
+        "A": {
+          "nom": "Le Sommeil de la Pierre-Serpent",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "MOD_PUISSANCE (SURCHAUFFE)",
+          "tags": [
+            "SURCHAUFFE"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture en 3.2, retournez 1 jeton Puissance rouge d’une machine sur sa face bleue <em>Surchauffe</em>.",
+          "temoin": "Réduit de 2 le seuil brut de la machine dès ce tour.",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "RES_JETON_ROUGE"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "Le Sommeil de la Pierre-Serpent",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 3.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SABOTAGE_REVELE_PROLIFERE)",
+          "tags": [
+            "SABOTAGE",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 3.2 :</strong> En 3.2, si au moins 1 Défenseur occupe une case Furtivité et qu’au moins 1 carte Sabotage est révélée à l’ouverture des paravents, ajoutez définitivement <strong>+1 nouvelle carte Sabotage</strong> de la réserve au paquet Machine (sans allumer la case 3).",
+          "temoin": "Amplifie boule de neige la dilution du paquet Machine (1 carte bonus max par tour) tant qu’une présence furtive accompagne la révélation d’une panne.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DILUTION_SABOTAGE",
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "Le Rêve de la seconde rive",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE"
+          ],
+          "requires_options": {},
+          "texte": "Face à une Route Forestière de l’autre rayon sur la lisière Humains–Reptiles, vous pouvez poser 1 Piège sur la parcelle non rasée sans Piège en face, même ne portant que des Souches, ciblée ou occupée par une machine (allume la case 2).",
+          "temoin": "Transforme une Route subie sur une rive en protection pour l’autre rive.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_2",
+              "RES_SOUCHE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "D": {
+          "nom": "Le guetteur de pierre",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "DEPLACEMENT + CREATION_ENTITE (GROUPE)",
+          "tags": [
+            "POSE",
+            "ARMEMENT",
+            "FURTIVITE"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez déplacer 1 Défenseur d’une case Furtivité vers une parcelle non rasée sans Piège des Humains ou des Reptiles qui lui fait face, et y poser 1 Piège (groupe atomique, allume la case 2).",
+          "temoin": "Fournit simultanément le Piège et son Défenseur d’armement avant les cascades de la case 2.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_2",
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R5": {
+      "id": "R5",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "O"
+      ],
+      "origine": "H",
+      "nomBase": "La Vision des Plumes Claires",
+      "profils": {
+        "A": {
+          "nom": "La Vision des Plumes Claires",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (REACTIVER_GARDIEN)",
+          "tags": [
+            "RESONANCE"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture en 3.2, ouvrez immédiatement un Gardien disponible sur la Piste des Gardiens.",
+          "temoin": "Allume aussi le Déclencheur 4 en résonance après l’effet du Gardien.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_4",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "La Vision des Plumes Claires",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 1.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_DE_M_CHOIX_MIN_MAX)",
+          "tags": [
+            "LECTURE_DE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 1.3 :</strong> Le peuple d’origine de ce Rêve (H) peut retenir le plus grand de ses deux dés (M = max(D1, D2)) derrière son paravent.",
+          "temoin": "Permet aux Humains de cibler délibérément les Rêves en fin de piste.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "Le Rêve du nid vide",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE",
+            "PARCELLE_VIDE"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez poser 1 Piège sur une parcelle ciblée des Humains ou des Oiseaux qui ne contient ni Défenseur, ni Insecte, ni Piège (allume la case 2).",
+          "temoin": "Pose un Piège d’urgence sur cible vide : il suffira d’y amener 1 point de Défense (local ou soutenu à distance) avant la frappe pour déclencher l’Embuscade.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_2",
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "D": {
+          "nom": "Le rêve du veilleur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE (INSECTE)",
+          "tags": [
+            "ARMEMENT",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez créer 1 Insecte sur une parcelle piégée des Humains ou des Oiseaux (allume la case 6).",
+          "temoin": "Arme un Piège déjà en place (attention à ne pas faire partir cet Insecte en 4.3 sans relève).",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_INSECTE",
+              "TRIG_6",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R6": {
+      "id": "R6",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "I"
+      ],
+      "origine": "H",
+      "nomBase": "Le Miel des Ancêtres",
+      "profils": {
+        "A": {
+          "nom": "Le Miel des Ancêtres",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE (INSECTE)",
+          "tags": [
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Posez 1 Insecte de la réserve sur une parcelle non rasée d’un rayon de cette paire (H ou I).",
+          "temoin": "Fournit un Insecte dès l’Étape 3.2 avant l’action des binômes en 4.1.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_INSECTE",
+              "TRIG_6",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "Le Miel des Ancêtres",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (ACTIVER_NID)",
+          "tags": [
+            "INSECTES",
+            "NID"
+          ],
+          "requires_options": {},
+          "texte": "Déclenchez immédiatement la création de jetons Insecte d’1 Nid en jeu (+1 ou +2 selon les Insectes présents sur sa parcelle à cet instant, même sans Défenseur dessus ; allume la case 6 sans déclencher le pouvoir propre du Nid).",
+          "temoin": "Production hors phase restreinte aux seuls jetons Insecte ; l’activation complète du Nid en 4.2 reste disponible.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_INSECTE",
+              "TRIG_6",
+              "RES_DEFENSEUR",
+              "TRIG_4",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "La Terra Preta",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI REPOUSSE FINALE",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_REPOUSSE_DEUX_SOUCHES)",
+          "tags": [
+            "SOUCHES",
+            "REPOUSSE_FINALE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de Repousse finale :</strong> À la fin de la partie, sur chaque parcelle non rasée des Humains ou des Insectes ayant conservé au moins 1 Souche, retournez jusqu’à <strong>2 Souches</strong> en Arbres debout (dans la limite de la dotation initiale de la parcelle).",
+          "temoin": "Une parcelle H avec 3 Souches rend 2 Arbres debout au décompte final.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SOUCHE",
+              "RES_ARBRE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "D": {
+          "nom": "Les chemins du veilleur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 4.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NIDS_DESSERVENT_PIEGES)",
+          "tags": [
+            "ARMEMENT",
+            "RESEAU",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.3 :</strong> En 4.3, chaque Insecte quittant un Nid situé chez les Humains ou les Insectes peut utiliser 1 cran pour rejoindre directement une parcelle piégée du même rayon, à toute distance.",
+          "temoin": "Transforme tout Nid H/I en répartiteur direct de sentinelles vers les Pièges.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_2",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R7": {
+      "id": "R7",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "M"
+      ],
+      "origine": "E",
+      "nomBase": "L’Ombre du Maître des Bois",
+      "profils": {
+        "A": {
+          "nom": "L’Ombre du Maître des Bois",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "DEPLACEMENT (MACHINE)",
+          "tags": [
+            "RECUL"
+          ],
+          "requires_options": {},
+          "texte": "Faites reculer d’1 parcelle non rasée vers la bordure une machine non en Ratissage située sur les rayons E ou M.",
+          "temoin": "Retarde l’entrée en Ratissage et modifie dynamiquement les cibles que cette machine lira à l’Étape 5.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "L’Ombre du Maître des Bois",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_ENDIGUEMENT_RATISSAGE)",
+          "tags": [
+            "LOI_5",
+            "RATISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 (Endiguement du Ratissage) :</strong> Les machines en <strong>Ratissage</strong> sur les rayons E et M et leurs rayons voisins immédiats subissent -1 à leur Seuil de Parade (annulant le +1 imprimé de la face Ratissage).",
+          "temoin": "En mode Ratissage sur E, M ou leurs voisins immédiats, le Seuil de Parade est réduit de -1 (compensant le +1 de puissance imprimé sur la face Ratissage).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "Le bras mort du fleuve",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 4.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_PASSAGE_DIRECT_INSECTES)",
+          "tags": [
+            "INSECTES",
+            "MOBILITE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.3 :</strong> En 4.3, un Insecte peut utiliser son déplacement (1 cran) pour traverser directement entre les rayons des Entités et des Mammifères à la même profondeur.",
+          "temoin": "Court-circuite la case Furtivité intermédiaire entre E et M.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R8": {
+      "id": "R8",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "R"
+      ],
+      "origine": "E",
+      "nomBase": "Le Mirage du Fleuve-Miroir",
+      "profils": {
+        "A": {
+          "nom": "Le Mirage du Fleuve-Miroir",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE"
+          ],
+          "requires_options": {},
+          "texte": "Posez 1 Piège sur une parcelle non rasée sans Piège des rayons E ou R, même occupée par une machine ou ciblée.",
+          "temoin": "Pose un Piège directement sur une cible révélée en 3.2.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "Le Mirage du Fleuve-Miroir",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI TERRASSEMENT",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_DERNIERE_SOUCHE_INDESTRUCTIBLE)",
+          "tags": [
+            "SOUCHES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de terrassement (Sanctuarisation) :</strong> Sur les rayons E et R, les Bulldozers laissent <strong>1 Souche</strong> lors du terrassement <strong>uniquement si au moins 1 Défenseur ou 1 Insecte est présent sur la parcelle</strong>.",
+          "temoin": "Tant qu’au moins 1 Défenseur ou 1 Insecte tient la parcelle lors de la frappe, un Bulldozer non paré ne peut pas créer de Route Forestière sur E et R.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "RES_SOUCHE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "C": {
+          "nom": "Le Mapinguari",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 3.2 ANNULATION",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_REVE_ANNULE_MACHINE_RECULE)",
+          "tags": [
+            "RECUL"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 3.2 :</strong> Chaque machine dont ce Rêve annule l’attaque en 3.2 recule immédiatement d’1 parcelle vers la bordure, si elle le peut.",
+          "temoin": "S’applique à chaque machine annulée par R8 C, quel que soit le mode d’ouverture des Rêves.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "D": {
+          "nom": "L’appel des berges gardées",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "DEPLACEMENT + MOD_PUISSANCE",
+          "tags": [
+            "ARMEMENT",
+            "SURCHAUFFE"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez transférer 1 Défenseur d’une parcelle des Entités ou des Reptiles vers une autre parcelle piégée de ces deux rayons ; puis retourner 1 jeton rouge en bleu sur une machine qui cible la destination.",
+          "temoin": "Arme une Embuscade tout en infligeant Surchauffe à la machine menaçante.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "RES_JETON_ROUGE"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU",
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R9": {
+      "id": "R9",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "O"
+      ],
+      "origine": "E",
+      "nomBase": "L’Écho des Voix Célestes",
+      "profils": {
+        "A": {
+          "nom": "L’Écho des Voix Célestes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "MOD_SEUIL (-2 RAYON)",
+          "tags": [
+            "PARADE_CLASSIQUE"
+          ],
+          "requires_options": {},
+          "texte": "Réduisez de -2 le Seuil de Parade sur toutes les parcelles d’un rayon au choix pour ce tour.",
+          "temoin": "Sécurise tout un rayon soumis à une double frappe.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "L’Écho des Voix Célestes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 6.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_EGALITE_FAIT_AVANCER_REVE)",
+          "tags": [
+            "AVANCEE_REVE",
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 6.2 :</strong> En cas d’égalité en tête de l’Apprentissage à l’Étape 6.2 (y compris égalité générale à 0), c’est ce Rêve qui avance d’1 rang vers la gauche (r → r−1). S’il complète ainsi le bloc de toutes les tuiles Rêves en jeu en tête de piste (rangs 1..k), la fin de partie par Sommeil se déclenche immédiatement (Repousse Finale).",
+          "temoin": "Si l’avancée de R9 sur égalité en 6.2 place en bloc toutes les tuiles Rêves en jeu aux premiers rangs à gauche, la fin de partie par Sommeil se déclenche immédiatement avant le ménage.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE",
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R10": {
+      "id": "R10",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "I"
+      ],
+      "origine": "E",
+      "nomBase": "La Nuée des Songes",
+      "profils": {
+        "A": {
+          "nom": "La Nuée des Songes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "MOD_SEUIL (SCALING INSECTES)",
+          "tags": [
+            "INSECTES",
+            "PARADE_CLASSIQUE"
+          ],
+          "requires_options": {},
+          "texte": "Réduisez le Seuil de Parade d’une machine de -1 par Insecte présent sur son rayon (<code>NB_INSECTES_RAYON</code>).",
+          "temoin": "Calculé au moment de la résolution de l’ouverture.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "B": {
+          "nom": "La Nuée des Songes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "PERMUTATION_PISTE avec coût",
+          "tags": [
+            "CONVERSION",
+            "INSECTES",
+            "AVANCEE_REVE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Conversion 3.2 :</strong> À l’ouverture de ce Rêve, vous pouvez défausser 1 Insecte présent sur la roue pour le faire avancer d’1 rang supplémentaire vers la gauche (plafonné au Rang 1).",
+          "temoin": "Convertit un Insecte de la roue en 1 rang d’avancée supplémentaire pour R10 vers le bloc de tête (rangs 1..k).",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        },
+        "D": {
+          "nom": "La relève des lucioles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "3.2",
+          "primitive": "CREATION_ENTITE + DEPLACEMENT (GROUPE)",
+          "tags": [
+            "POSE",
+            "REDEPLOIEMENT",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Vous pouvez poser 1 Piège sur une parcelle sans Piège des Entités ou des Insectes contenant au moins 1 Défenseur et 1 Insecte, puis déplacer 1 Insecte de cette parcelle vers une autre parcelle non rasée du même rayon, à toute distance (groupe atomique, allume la case 2).",
+          "temoin": "Le Défenseur reste pour armer le nouveau Piège tandis que l’Insecte est redéployé ailleurs.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_2",
+              "RES_DEFENSEUR",
+              "TRIG_5"
+            ],
+            "portee": "PISTE_TACTIQUES"
+          }
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "M1": {
+      "id": "M1",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "M"
+      ],
+      "origine": "I",
+      "nomBase": "La Fourmilière Coupe-Feuilles",
+      "profils": {
+        "A": {
+          "nom": "La Fourmilière Coupe-Feuilles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "DEPLACEMENT (DEFENSEUR)",
+          "tags": [
+            "MOBILITE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, déplacez 1 Défenseur présent sur ce Nid vers n’importe quelle autre parcelle Forêt non rasée du plateau.",
+          "temoin": "Résolu au sein du bloc indivisible du Nid avant le balayage de la case 6 ; le Défenseur rejoint n’importe quel front pour l’Étape 5.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Fourmilière Coupe-Feuilles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_CARAPACES_EPARGNE_INSECTE)",
+          "tags": [
+            "PARADE_CLASSIQUE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 (Carapaces) :</strong> Une fois par tour, lors d’une Parade classique sur la parcelle de ce Nid à laquelle contribue au moins 1 Défenseur, épargnez 1 des Insectes qui devaient être défaussés immédiatement.",
+          "temoin": "Économise immédiatement 1 Insecte au moment de la frappe parée et maintient la masse critique sur le Nid.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1",
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "La piste des fourmis légionnaires",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "DEPLACEMENT (INSECTE RAYON)",
+          "tags": [
+            "INSECTES",
+            "MOBILITE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Après sa production en 4.2, vous pouvez déplacer 1 Insecte de ce Nid vers toute autre parcelle non rasée de son rayon.",
+          "temoin": "Un Insecte envoyé sur la dernière parcelle non rasée en 4.2 peut ensuite migrer vers une piste globale dès 4.3 du même tour !",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les fourmis sentinelles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "DEPLACEMENT (2 INSECTES -> PIEGES)",
+          "tags": [
+            "ARMEMENT",
+            "DISPERSION",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, vous pouvez envoyer jusqu’à <strong>2 Insectes</strong> de ce Nid vers des parcelles piégées de son rayon, à toute distance (1 Insecte max par destination).",
+          "temoin": "Arme deux Embuscades distinctes sur le rayon tout en laissant le mouvement 4.3 disponible.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_2"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M2": {
+      "id": "M2",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "R"
+      ],
+      "origine": "I",
+      "nomBase": "La Termitière à Glu",
+      "profils": {
+        "A": {
+          "nom": "La Termitière à Glu",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "MOD_PUISSANCE (SURCHAUFFE)",
+          "tags": [
+            "SURCHAUFFE"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, retournez 1 jeton Puissance rouge d’une machine de ce rayon (ou d’un rayon voisin) sur sa face bleue <em>Surchauffe</em>.",
+          "temoin": "Source récurrente de Surchauffe à chaque tour.",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "RES_JETON_ROUGE"
+            ],
+            "outputs_produits": [
+              "RES_JETON_BLEU"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "B": {
+          "nom": "La Termitière à Glu",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 4.1",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_INSECTE_FURTIF_PERMANENT)",
+          "tags": [
+            "FURTIVITE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.1 :</strong> Sur les deux lisières qui bordent ce rayon, lorsqu’un binôme est formé par <code>1 Défenseur + 1 Insecte</code>, l’Insecte n’est pas défaussé.",
+          "temoin": "L’action du binôme s’oriente sur la rive occupée par le Défenseur, et l’Insecte reste disponible sur la case Furtivité.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LISIERES_ADJACENTES"
+          }
+        },
+        "C": {
+          "nom": "La souche creuse",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI CONTACT MACHINE",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NID_CONTACT_SOUCHE)",
+          "tags": [
+            "CONTACT",
+            "SOUCHES",
+            "NID"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de contact :</strong> Quand une machine entre sur cette parcelle, ce Nid et ses Insectes survivent au contact si la parcelle porte au moins <strong>1 Souche</strong> à cet instant.",
+          "temoin": "Une Abatteuse T3 qui crée 2 Souches devant elle permet au Nid de survivre lors de son avancée immédiate après ses frappes.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SOUCHE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "La termitière gardée",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI CONTACT MACHINE",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NID_CONTACT_PIEGE_GARDE)",
+          "tags": [
+            "CONTACT",
+            "PRESENCE",
+            "NID"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de contact :</strong> Quand une machine entre sur ce Nid, le Nid et ses Insectes survivent au contact si sa parcelle contient 1 Piège ET au moins 1 Défenseur ou 1 Insecte.",
+          "temoin": "Comme un Piège déclenché reste en place jusqu’en 5.3, il protège encore le Nid lors de l’avancée immédiate d’une machine T3/T6 parée ! En revanche, si plus aucun Défenseur ni Insecte n’est présent à l’entrée de la machine, le Nid retourne en lisière.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M3": {
+      "id": "M3",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "O"
+      ],
+      "origine": "I",
+      "nomBase": "La Branche des Guêpes Cazadores",
+      "profils": {
+        "A": {
+          "nom": "La Branche des Guêpes Cazadores",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "DEPLACEMENT (2 INSECTES)",
+          "tags": [
+            "INSECTES",
+            "MOBILITE"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, déplacez immédiatement d’1 cran jusqu’à 2 Insectes présents sur ce Nid (avant l’Étape 4.3).",
+          "temoin": "Donne une portée effective de 2 crans aux Insectes produits.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Branche des Guêpes Cazadores",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 4.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NID_AUTONOME)",
+          "tags": [
+            "NID",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.2 (Pouponnière) :</strong> Ce Nid s’active aussi sans Défenseur en 4.2 s’il contient déjà au moins 2 Insectes à l’instant où ce Nid est résolu (1 activation max/tour).",
+          "temoin": "Génère +2 Insectes chaque tour en autonomie complète.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_DEFENSEUR"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "C": {
+          "nom": "Le Scarabée Hercule",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_INSECTES_DEFENSE_DOUBLE)",
+          "tags": [
+            "PARADE_CLASSIQUE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5 :</strong> Sur la parcelle de ce Nid, chaque Insecte physiquement présent apporte <strong>2 points de Défense</strong> (lors d’une Parade classique, défaussez immédiatement le nombre d’Insectes arrondi au supérieur du manque).",
+          "temoin": "1 Défenseur + 2 Insectes (5 en Défense) parent un Seuil de 5 en ne défaussant immédiatement que 2 Insectes au lieu de 4.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE",
+              "TRIG_1"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les guêpes aux aguets",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "POSE",
+            "ARMEMENT"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, si ce Nid contient au moins 1 Insecte et aucun Piège, vous pouvez poser 1 Piège sur sa parcelle (allume la case 2).",
+          "temoin": "Auto-piège le Nid qui est immédiatement armé par sa propre production d’Insectes.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_PIEGE",
+              "TRIG_2"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M4": {
+      "id": "M4",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "H"
+      ],
+      "origine": "I",
+      "nomBase": "La Ruche des Mélipones",
+      "profils": {
+        "A": {
+          "nom": "La Ruche des Mélipones",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "CREATION_ENTITE (SABOTAGE) avec coût",
+          "tags": [
+            "CONVERSION",
+            "SABOTAGE",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid pour ajouter définitivement 1 carte Sabotage de la réserve au paquet Machine (mise de côté pour le remélange de fin de tour).",
+          "temoin": "Résolu dans le bloc indivisible du Nid : enrichit définitivement le paquet Machine, puis au balayage suivant les cases 3 et 6 sont examinées dans l’ordre 1 → 6.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_DILUTION_SABOTAGE",
+              "TRIG_3"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Ruche des Mélipones",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_PIEGE_GLISSE_VERS_CENTRE)",
+          "tags": [
+            "DECLENCHEMENT_EFFECTIF",
+            "PERSISTANCE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, sur ce rayon, chaque Piège ayant paré au moins une frappe ce tour-ci glisse sur la prochaine parcelle non rasée vers le cœur (si elle est sans Piège, sans allumer la case 2) au lieu d’être retiré.",
+          "temoin": "Résolu du cœur vers la bordure ; un Piège non déclenché reste sur place.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "RES_PIEGE"
+            ],
+            "outputs_produits": [
+              "RES_SEUIL_PARADE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Les mélipones convoyeurs",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5.3 RÉCUPÉRATION",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_CONVOI_PIEGE_INSECTE)",
+          "tags": [
+            "PERSISTANCE",
+            "ARMEMENT",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5.3 :</strong> À la fin des attaques, une fois par tour, vous pouvez faire glisser ensemble 1 Piège déclenché ce tour-ci de ce rayon ET 1 Insecte présent sur sa parcelle vers la prochaine parcelle non rasée côté cœur, si elle est sans Piège.",
+          "temoin": "Convoie à la fois le Piège et sa sentinelle d’armement pour le tour suivant.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_2"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M5": {
+      "id": "M5",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "E"
+      ],
+      "origine": "I",
+      "nomBase": "La Clairière du Jardin du Diable",
+      "profils": {
+        "A": {
+          "nom": "La Clairière du Jardin du Diable",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "4.2 APRÈS PRODUCTION",
+          "primitive": "CREATION_ENTITE (SANCTUAIRE_SOUCHE) avec coût",
+          "tags": [
+            "SOUCHES",
+            "CONVERSION"
+          ],
+          "requires_options": {},
+          "texte": "Après production en 4.2, vous pouvez défausser 1 Insecte de ce Nid : jusqu’à la fin du tour, les Bulldozers laissent toujours 1 Souche sur cette parcelle lors du terrassement, s’il y en a (<code>SANCTUAIRE_SOUCHE</code>).",
+          "temoin": "Peut être payé même à 0 Souche actuelle ; persiste jusqu’à la fin du tour même si le Nid est détruit.",
+          "economie_bot": {
+            "role": "PRODUCTEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_SOUCHE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "B": {
+          "nom": "La Clairière du Jardin du Diable",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 4.3",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_TUNNEL_MIGRATION_DIRECTE)",
+          "tags": [
+            "INSECTES",
+            "MIGRATION"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 4.3 (Tunnel du cœur) :</strong> Une fois par tour, défaussez 1 Insecte de ce Nid pour en faire migrer un autre directement du Nid vers une piste globale.",
+          "temoin": "Permet un aller simple définitif vers une case 1..6 de Bug ou Colonie dès p=1, sans traverser tout le rayon.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "C": {
+          "nom": "Le Figuier étrangleur",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI TERRASSEMENT BULLDOZER",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_SOUCHES_PROTEGEES_PAR_NID)",
+          "tags": [
+            "SOUCHES",
+            "NID"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi de terrassement :</strong> Sur la parcelle de ce Nid, les Bulldozers coupent normalement jusqu’à 1 Arbre mais <strong>ne terrassent aucune Souche</strong>.",
+          "temoin": "Même non paré, un Bulldozer ne peut jamais raser cette parcelle en Route Forestière tant que le Nid est en place et qu’il reste au moins 1 Arbre ou 1 Souche.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "RES_SOUCHE",
+              "RES_ARBRE"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        },
+        "D": {
+          "nom": "Le jardin des relèveuses",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI 5.3 PRÉ-RETRAIT",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_NID_RELEVE_APRES_EMBUSCADE)",
+          "tags": [
+            "RENOUVELLEMENT",
+            "INSECTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 5.3 :</strong> Si un Piège a paré au moins une frappe sur la parcelle de ce Nid pendant qu’il était actif ce tour-ci, créez-y 1 Insecte avant le retrait des Pièges (allume la case 6).",
+          "temoin": "Allume la case 6 en 5.3 juste avant la vérification de fin de partie (pouvant ainsi ouvrir un dernier Gardien et l'éveiller en Face 2 pour le tour suivant !).",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [],
+            "outputs_produits": [
+              "TRIG_6"
+            ],
+            "portee": "LOCAL_RAYON"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "SLOT_BUG_CERVEAU": {
+      "id": "SLOT_BUG_CERVEAU",
+      "famille": "MIGRATION",
+      "couple": [
+        "I",
+        "*"
+      ],
+      "origine": "I",
+      "nomBase": "Slot Migration : Bug du Cerveau",
+      "profils": {
+        "A": {
+          "nom": "Court-circuit d’Apprentissage (Standard)",
+          "cycle": "CONSOMME_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "HOOK 6.1",
+          "primitive": "MOD_APPRENTISSAGE (-1)",
+          "tags": [
+            "MIGRATION",
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "En 6.1, après les gains et déductions de Surchauffe, défaussez automatiquement l’Insecte pour retirer -1 jeton Apprentissage à la Tactique qui occupe ce rang (s’il y en a).",
+          "temoin": "Appliqué en 6.1 après les retraits volontaires de tuiles : si la case est déjà à 0 jeton, l’Insecte Bug n’est pas défaussé et reste sur son numéro d’emplacement.",
+          "economie_bot": {
+            "role": "CONSOMMATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE",
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "Déviation Synaptique (Contrôle 3.2)",
+          "cycle": "CONSOMME_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "HOOK 3.2",
+          "primitive": "PERMUTATION_PISTE (LECTURE_DE_M)",
+          "tags": [
+            "MIGRATION",
+            "LECTURE_DE"
+          ],
+          "requires_options": {},
+          "texte": "Lorsqu’un joueur obtient ce rang avec son dé M en 3.2, le gouverneur de la piste (Insectes, ou ce joueur si I est absent) peut défausser l’Insecte pour décaler la lecture de ce dé M d’1 rang (M−1 ou M+1, borné de 1 à 6).",
+          "temoin": "Permet de dévier une lecture vers un Rêve voisin.",
+          "economie_bot": {
+            "role": "CONTROLE",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "C": {
+          "nom": "La Cigale dans l’engrenage",
+          "cycle": "PASSIF_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "LOI 6.2",
+          "primitive": "MOD_LOI_DU_COEUR (LOI_BUG_BLOQUE_AVANCEE_APPRENTISSAGE)",
+          "tags": [
+            "MIGRATION",
+            "APPRENTISSAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Loi 6.2 :</strong> Une Tactique qui occupe un rang portant au moins 1 Insecte ne peut pas avancer par Apprentissage en 6.2. L’Insecte reste sur son numéro de rang.",
+          "temoin": "Même lorsque la Cigale bloque l’avancée du vainqueur en 6.2, 100 % des jetons d’Apprentissage de toutes les tuiles sont remis à zéro.",
+          "economie_bot": {
+            "role": "MODULATEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_APPRENTISSAGE",
+              "RES_POSITION_MACHINE",
+              "RES_POSITION_PISTE"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "SLOT_COLONISATION_GARDIENS": {
+      "id": "SLOT_COLONISATION_GARDIENS",
+      "famille": "MIGRATION",
+      "couple": [
+        "I",
+        "*"
+      ],
+      "origine": "I",
+      "nomBase": "Slot Migration : Colonisation des Gardiens",
+      "profils": {
+        "A": {
+          "nom": "Carburant Symbiotique (Standard)",
+          "cycle": "CONSOMME_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "HOOK 4.3 FIN",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (REACTIVER_GARDIEN)",
+          "tags": [
+            "MIGRATION",
+            "RESONANCE"
+          ],
+          "requires_options": {},
+          "texte": "À la fin de chaque Étape 4.3, vous pouvez défausser l’Insecte pour ouvrir immédiatement le Gardien disponible de cette case (marquez son ouverture normalement).",
+          "temoin": "Examiné des cases 1 à 6 à chaque tour, même sans nouvelle migration.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE",
+              "TRIG_4"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "B": {
+          "nom": "Bouclier de lisière",
+          "cycle": "CONSOMME_ONESHOT",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "5.3 ISSUE PARIS GARDIENS",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (PROTEGER_LISIERE)",
+          "tags": [
+            "MIGRATION",
+            "PROTECTION"
+          ],
+          "requires_options": {},
+          "texte": "En 5.3, lorsqu'un Gardien perd son pari (≥ 1 Défenseur restant sur sa tuile), s'il y a au moins 1 jeton Insecte sur sa case de la Piste des Gardiens, défaussez 1 jeton Insecte de cette case pour empêcher le retour en lisière (le Gardien reste sur la piste sur sa face actuelle). Le pari reste toutefois considéré comme PERDU (ne compte pas pour l'Éveil de la Forêt et ne fait pas passer en Face 2).",
+          "temoin": "Protège la présence du Gardien sur la piste en cas de pari perdu, sans valider le pari pour l’Éveil ni déclencher Face 2.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6",
+              "RES_INSECTE"
+            ],
+            "outputs_produits": [
+              "RES_DEFENSEUR",
+              "RES_POSITION_PISTE",
+              "TRIG_4"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        },
+        "C": {
+          "nom": "Les Lucioles",
+          "cycle": "PASSIF_CONTINU",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "HOOK 4.3 FIN",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (AUTO)",
+          "tags": [
+            "MIGRATION",
+            "RESONANCE"
+          ],
+          "requires_options": {},
+          "texte": "À la fin de chaque Étape 4.3, chaque case occupée par au moins 1 Insecte ouvre automatiquement son Gardien disponible. <strong>L’Insecte reste sur sa case.</strong>",
+          "temoin": "Assure une ouverture automatique récurrente chaque tour tant que le Gardien n’a pas encore été utilisé.",
+          "economie_bot": {
+            "role": "CATALYSEUR",
+            "inputs_requis": [
+              "TRIG_1",
+              "TRIG_2",
+              "TRIG_3",
+              "TRIG_4",
+              "TRIG_5",
+              "TRIG_6"
+            ],
+            "outputs_produits": [
+              "RES_POSITION_PISTE",
+              "TRIG_4"
+            ],
+            "portee": "GLOBAL_PLATEAU"
+          }
+        }
+      },
+      "peuple_origine": "I"
+    }
+  }
+}

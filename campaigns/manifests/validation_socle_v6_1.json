@@ -1,0 +1,13 @@
+{
+  "campaign_name": "validation_socle_v6_1",
+  "description": "Campagne Macro officielle du socle scellé v6.1 (Mode 2 à tuiles neutres sur le châssis canonique unique P4_2233, B0 / B1 / B2, N=3..6, 570 parties/config = PPCM exact des 19/15/6/1 tables A>=1, soit 6 840 parties).",
+  "mode": 2,
+  "bots": ["B0", "B1", "B2"],
+  "k_max": 3,
+  "seed": 20261201,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 570,
+  "slot_profile_comparisons": {}
+}

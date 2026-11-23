@@ -18,10 +18,10 @@ LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
-STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v5_5.json"
-STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v5_5.json"
-STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v5_5.js"
-SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v5_5.json"
+STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v6_0.json"
+STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
+STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
+SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v6_0.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -271,45 +271,60 @@ def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
 
 
 def verify_studio_coherence() -> None:
-    """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python.
+    """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python v6.1.
 
-    Contrôles actifs (Socle figé v5.5) :
-    - docs/data/spec_formelle_v5_5.json == data/spec_bundle_v5_5.json['spec_formelle_v5_5'] ;
-    - Topologies (P4_*, P5_*) == engine.state.TOPOLOGIES_DOTATION ;
-    - 6 axes du châssis (clés + valeurs) == engine.state.CHASSIS_AXES_OPTIONS.
+    Contrôles actifs :
+    - docs/data/spec_formelle_v6_0.json == data/spec_bundle_v6_0.json['spec_formelle_v6_0'] ;
+    - Topologie canonique P4_2233 dans catalog_v6_0.json == engine.state.CANONICAL_DOTATION (2,2,3,3) ;
+    - Cohérence interne Studio (amazonia_data_v6_0.js <-> data/spec_bundle_v6_0.json) ;
+    - Réglette des Tactiques T1..T6 == engine.state.TACTIQUES_SPEC ;
+    - Empreintes SHA-256 de data/studio_lock.json alignées avec docs/data/.
     """
-    for req_file in (STUDIO_CATALOG_FILE, STUDIO_SPEC_FILE, STUDIO_JS_FILE, SPEC_BUNDLE_FILE):
+    studio_lock_file = ROOT / "data" / "studio_lock.json"
+    for req_file in (
+        STUDIO_CATALOG_FILE,
+        STUDIO_SPEC_FILE,
+        STUDIO_JS_FILE,
+        SPEC_BUNDLE_FILE,
+        studio_lock_file,
+    ):
         if not req_file.is_file():
             raise FileNotFoundError(f"Fichier Studio/Simulateur manquant : {req_file}")
 
     catalog: dict[str, Any] = json.loads(STUDIO_CATALOG_FILE.read_text(encoding="utf-8"))
     spec_doc: dict[str, Any] = json.loads(STUDIO_SPEC_FILE.read_text(encoding="utf-8"))
     bundle: dict[str, Any] = json.loads(SPEC_BUNDLE_FILE.read_text(encoding="utf-8"))
+    lock_doc: dict[str, Any] = json.loads(studio_lock_file.read_text(encoding="utf-8"))
     studio_js = _load_studio_js_catalog_and_axes(STUDIO_JS_FILE)
 
     errors: list[str] = []
 
-    # 1. Cohérence spec_formelle_v5_5.json <-> bundle
-    if bundle.get("spec_formelle_v5_5") != spec_doc:
+    # 1. Cohérence spec_formelle_v6_0.json <-> bundle
+    if bundle.get("spec_formelle_v6_0") != spec_doc:
         errors.append(
-            "Désynchronisation entre docs/data/spec_formelle_v5_5.json et "
-            "data/spec_bundle_v5_5.json['spec_formelle_v5_5']"
+            "Désynchronisation entre docs/data/spec_formelle_v6_0.json et "
+            "data/spec_bundle_v6_0.json['spec_formelle_v6_0']"
         )
 
-    from engine.state import CHASSIS_AXES_OPTIONS, TOPOLOGIES_DOTATION
+    from engine.state import CANONICAL_DOTATION, CANONICAL_PROFIL_PISTE, TACTIQUES_SPEC
 
-    # 2. Topologies déclarées dans docs/data/catalog_v5_5.json <-> engine.state.TOPOLOGIES_DOTATION
-    cat_topos: dict[str, tuple[int, ...]] = {
-        str(code): tuple(int(x) for x in meta["seuil_imprime_et_dotation"])
-        for code, meta in catalog.get("topologies", {}).items()
-    }
-    if cat_topos != TOPOLOGIES_DOTATION:
+    # 2. Châssis canonique unique P4_2233 : docs/data/catalog_v6_0.json <-> engine.state
+    topos_cat = catalog.get("topologies", {})
+    if CANONICAL_PROFIL_PISTE not in topos_cat:
         errors.append(
-            f"Topologies docs/data/catalog_v5_5.json ({cat_topos}) != "
-            f"engine.state.TOPOLOGIES_DOTATION ({TOPOLOGIES_DOTATION})"
+            f"Topologie canonique {CANONICAL_PROFIL_PISTE!r} absente de docs/data/catalog_v6_0.json"
         )
+    else:
+        cat_dot = tuple(
+            int(x) for x in topos_cat[CANONICAL_PROFIL_PISTE]["seuil_imprime_et_dotation"]
+        )
+        if cat_dot != CANONICAL_DOTATION:
+            errors.append(
+                f"Dotation {CANONICAL_PROFIL_PISTE} dans catalog_v6_0.json ({cat_dot}) != "
+                f"engine.state.CANONICAL_DOTATION ({CANONICAL_DOTATION})"
+            )
 
-    # 3. 6 axes du châssis : Studio <-> spec_bundle <-> engine.state.CHASSIS_AXES_OPTIONS
+    # 3. Cohérence interne Studio <-> spec_bundle sur les métadonnées Studio
     studio_axes_raw: list[dict[str, Any]] = studio_js["CHASSIS_AXES_SPEC"]
     bundle_axes_raw: list[dict[str, Any]] = bundle["chassis_axes"]
 
@@ -319,24 +334,48 @@ def verify_studio_coherence() -> None:
             for ax in axes_list
         ]
 
-    studio_axes = _norm_axes(studio_axes_raw)
-    bundle_axes = _norm_axes(bundle_axes_raw)
-    engine_axes = [(name.lower(), tuple(opts)) for name, opts in CHASSIS_AXES_OPTIONS]
-
-    if len(studio_axes) != 6 or studio_axes != bundle_axes or studio_axes != engine_axes:
+    if _norm_axes(studio_axes_raw) != _norm_axes(bundle_axes_raw):
         errors.append(
-            f"Écart sur les 6 axes du châssis :\n"
-            f"  Studio : {studio_axes}\n"
-            f"  Bundle : {bundle_axes}\n"
-            f"  Engine : {engine_axes}"
+            "Désynchronisation entre docs/data/amazonia_data_v6_0.js['CHASSIS_AXES_SPEC'] "
+            "et data/spec_bundle_v6_0.json['chassis_axes']"
         )
+
+    # 4. Réglette des Tactiques T1..T6 : spec_bundle <-> engine.state.TACTIQUES_SPEC
+    bundle_tactiques = bundle.get("tactiques", [])
+    if len(bundle_tactiques) != 6:
+        errors.append(f"tactiques bundle invalides (attendu 6, obtenu {len(bundle_tactiques)})")
+    else:
+        for idx, b_tac in enumerate(bundle_tactiques, start=1):
+            e_tac = TACTIQUES_SPEC[idx]
+            if (
+                tuple(b_tac.get("cibles", ())) != e_tac.cibles
+                or int(b_tac.get("avancee", -99)) != e_tac.avancee
+                or int(b_tac.get("mod_seuil", -99)) != e_tac.mod_seuil
+                or int(b_tac.get("gain_rouge", -99)) != e_tac.gain_rouge
+            ):
+                errors.append(
+                    f"Écart Tactique T{idx} entre spec_bundle ({b_tac}) et TACTIQUES_SPEC ({e_tac})"
+                )
+
+    # 5. Empreintes SHA-256 du Studio verrouillées dans data/studio_lock.json
+    for fname, info in lock_doc.get("files", {}).items():
+        expected_sha = str(info.get("sha256", "")).lower()
+        target_f = DOCS_DATA_DIR / str(fname)
+        if not target_f.is_file():
+            errors.append(f"Fichier Studio listé dans studio_lock.json introuvable : {fname}")
+        else:
+            actual_sha = hashlib.sha256(target_f.read_bytes()).hexdigest().lower()
+            if actual_sha != expected_sha:
+                errors.append(
+                    f"Empreinte SHA-256 Studio divergente sur {fname} : "
+                    f"attendu {expected_sha[:12]}, obtenu {actual_sha[:12]}"
+                )
 
     if errors:
         raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Socle v5.5 Studio (docs/data/ <-> simulateur : "
-        f"spec_formelle, {len(TOPOLOGIES_DOTATION)} topologies, "
-        f"{len(engine_axes)} axes châssis) : OK"
+        f"[4/8] Cohérence Socle v6.1 Studio (docs/data/ <-> simulateur : "
+        f"spec_formelle, châssis unique {CANONICAL_PROFIL_PISTE}, 6 tactiques, studio_lock) : OK"
     )
 
 

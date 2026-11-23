@@ -1,8 +1,9 @@
-"""Fuzzer déterministe d'invariants physiques exécuté sous PyPy 3.11 (porte [6/6] verify_lot)."""
+"""Fuzzer déterministe d'invariants physiques exécuté sous PyPy 3.11 (porte [8/8] verify_lot)."""
 
 from __future__ import annotations
 
 import argparse
+import itertools
 import multiprocessing
 import os
 import platform
@@ -19,19 +20,32 @@ from bots.heuristic_engine import play_game_b1, play_game_b2
 from engine.core_engine import apply_choice, step_until_decision
 from engine.primitives import GameOver
 from engine.state import (
-    NUM_CHASSIS,
+    CANONICAL_P_MAX,
+    CANONICAL_PROFIL_PISTE,
+    FURT_RIVE_PIEGE,
+    FURT_RIVE_SABOTAGE,
+    MACHINE_ABATTEUSE,
+    MACHINE_BULLDOZER,
+    MACHINE_STATUS_NORMAL,
     PEUPLES_ORDER,
+    PIEGE_AUCUN,
     TRACK_LEN,
     GameConfig,
     GameState,
 )
 from engine.telemetry import TelemetryTracker
 
+_ALL_TABLES_BY_N: dict[int, tuple[tuple[str, ...], ...]] = {
+    n: tuple(itertools.combinations(PEUPLES_ORDER, n)) for n in (3, 4, 5, 6)
+}
+
 
 def _check_board_invariants(state: GameState) -> None:
     cfg = state.cfg
     n = cfg.n_players
     p_max = cfg.p_max
+    assert cfg.profil_piste == CANONICAL_PROFIL_PISTE
+    assert p_max == CANONICAL_P_MAX
     dotation = cfg.dotation_arbres
 
     for r in range(n):
@@ -48,85 +62,77 @@ def _check_board_invariants(state: GameState) -> None:
             if arbres == 0 and souches == 0:
                 assert state.get_parcel_defenseurs(r, p) == 0, "Défenseur sur Route Forestière"
                 assert state.get_parcel_insectes(r, p) == 0, "Insecte sur Route Forestière"
+                assert state.get_parcel_piege(r, p) == PIEGE_AUCUN, "Piège sur Route Forestière"
                 if cfg.mode >= 2:
                     assert state.get_parcel_nid(r, p)[0] == 0, "Nid sur Route Forestière"
 
-    for l_idx in range(n):
+        # Furtivité v6.1 par rayon (rives 0=Piège et 1=Sabotage sur p=1 ; aucune occupation sur p>=2 ni Insectes)
+        d_piege = state.get_furtivite_nb_def_rive(r, 1, FURT_RIVE_PIEGE)
+        d_sab = state.get_furtivite_nb_def_rive(r, 1, FURT_RIVE_SABOTAGE)
+        assert 0 <= d_piege <= 2, f"Plus de 2 Défenseurs Rive Piège sur rayon {r} : {d_piege}"
+        assert 0 <= d_sab <= 2, f"Plus de 2 Défenseurs Rive Sabotage sur rayon {r} : {d_sab}"
+        if not state.is_ray_furtivite_open(r) and state.step <= 31:
+            assert d_piege == 0 and d_sab == 0, f"Défenseurs en Furtivité sur rayon rasé {r}"
         for p in range(1, p_max + 1):
-            s0, s1, s2, s3 = state.get_furtivite_slots(l_idx, p)
-            d0 = (1 if s0 else 0) + (1 if s1 else 0)
-            d1 = (1 if s2 else 0) + (1 if s3 else 0)
-            tot = d0 + d1
-            assert 0 <= tot <= 2, f"Plus de 2 Défenseurs en Furtivité ({l_idx},{p}) : {tot}"
-            if tot == 2:
-                assert d0 == 2 or d1 == 2, "Binôme Furtivité scindé sur les 2 rives"
-            assert state.get_furtivite_insectes(l_idx, p) >= 0
+            assert state.get_furtivite_insectes(r, p) == 0, "Insecte en Furtivité (interdit en v6.1)"
+            if p >= 2:
+                assert state.get_furtivite_slots(r, p) == (0, 0, 0, 0)
 
     for c in range(1, TRACK_LEN + 1):
         assert state.get_bugs_at_case(c) >= 0
         assert state.get_colonie_at_case(c) >= 0
 
+    # Conservation stricte des machines normales : au début d'un tour (avant pioche) ou après 6.3
+    active_normal_machines = sum(
+        1
+        for r in range(n)
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+        if state.get_machine_pos_status(r, mt)[1] == MACHINE_STATUS_NORMAL
+    )
+    assert 0 <= active_normal_machines <= 2 * n
+    assert state.sabotage_deck_count >= 0
+
 
 def _fuzz_range(bounds: tuple[int, int, int]) -> int:
     start_idx, end_idx, total = bounds
-    rotations = tuple(PEUPLES_ORDER[rot:] + PEUPLES_ORDER[:rot] for rot in range(6))
 
-    # Socle gelé v5.5 : 20 % Mode 1, 40 % Mode 2, 40 % Mode 4 (catalogue actif 32 slots)
+    # Socle scellé v6.1 : 20 % Mode 1, 50 % Mode 2, 30 % Mode 4 (catalogue actif 30 tuiles)
     t1 = (total * 20) // 100
-    t2 = (total * 60) // 100
+    t2 = (total * 70) // 100
 
     for game_idx in range(start_idx, end_idx):
         mode = 1 if game_idx < t1 else (2 if game_idx < t2 else 4)
         n_players = 3 + (game_idx % 4)
-        chassis_id = (game_idx * 17) % NUM_CHASSIS
-        peuples = rotations[game_idx % 6][:n_players]
+        tables_n = _ALL_TABLES_BY_N[n_players]
+        peuples = tables_n[(game_idx // 4) % len(tables_n)]
         bot_sel = game_idx % 5  # 0,1,2 -> B0 ; 3 -> B1 ; 4 -> B2
 
-        cfg = GameConfig.from_chassis_index(
-            chassis_id,
+        cfg = GameConfig(
             n_players=n_players,
             mode=mode,
             peuples=peuples,
             exp_seed=900_000 + mode * 10_000,
             rep_id=game_idx,
             max_revision_passes=0 if bot_sel < 3 else 3,
-            reve_activation_mode=(
-                "1_DEF_1_MACHINE",
-                "1_DEF_ALL_RANK",
-                "BINOME_ALL_RANK",
-            )[game_idx % 3]
-            if mode == 2
-            else "1_DEF_1_MACHINE",
-            gardien_bet_cap_policy=("UNIFORM_MAX_2", "MAX_2_RES_MAX_1")[game_idx % 2]
-            if mode == 2
-            else "UNIFORM_MAX_2",
-            reve_advance_mode=("CLEAR_RANK_ONLY", "JUMP_PUSH")[(game_idx // 2) % 2]
-            if mode == 2
-            else "CLEAR_RANK_ONLY",
-            gardien_4_trigger_mode="DISTINCT_OPEN_1",
-            tile_profiles=(
-                (
-                    ("SLOT_BUG_CERVEAU", "B"),
-                    ("SLOT_COLONISATION_GARDIENS", "B" if mode == 4 else ("B", "A")[(game_idx // 8) % 2]),
-                )
-                if mode >= 2
-                else ()
-            ),
         )
 
         state = GameState(cfg)
         trk = TelemetryTracker() if (game_idx % 20 == 0) else None
 
         if bot_sel == 3:
-            over = play_game_b1(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            over = play_game_b1(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
+            if trk is not None and mode <= 2:
+                assert trk.summary().mem_debt_score == 0
             continue
 
         if bot_sel == 4:
-            over = play_game_b2(state, max_steps=2000, chassis_id=chassis_id, telemetry=trk)
+            over = play_game_b2(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
+            if trk is not None and mode <= 2:
+                assert trk.summary().mem_debt_score == 0
             continue
 
         steps = 0
@@ -153,6 +159,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 _check_board_invariants(state)
                 assert 1 <= out.tour_fin <= 8
                 assert 0.0 <= out.ratio_arbres <= 1.0
+                if trk is not None and mode <= 2:
+                    assert trk.summary().mem_debt_score == 0
                 break
 
             choice = choose_b0(state, out)
@@ -162,7 +170,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
 
 
 def run_fuzzer(total_games: int = 1000, workers: int | None = None) -> tuple[float, float]:
-    """Joue `total_games` parties (Modes 1, 2, 3 ; B0, B1, B2) sur N=3..6 et châssis 0..127."""
+    """Joue `total_games` parties (Modes 1, 2, 4 ; B0, B1, B2) sur N=3..6 et les 42 tables de Peuples."""
     n_workers = workers if workers is not None else min(4, max(1, os.cpu_count() or 1))
     t0 = time.perf_counter()
 

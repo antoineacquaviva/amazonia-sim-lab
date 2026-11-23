@@ -52,7 +52,6 @@ def _gov(state: GameState, peuple_code: str) -> int:
 
 
 def _nid_1cran_moves(state: GameState, r: int, p: int) -> list[tuple[Any, ...]]:
-    n = state.cfg.n_players
     opts: list[tuple[Any, ...]] = []
     p_fwd = state.next_non_razed_towards_heart(r, p)
     if p_fwd is not None:
@@ -60,13 +59,6 @@ def _nid_1cran_moves(state: GameState, r: int, p: int) -> list[tuple[Any, ...]]:
     p_back = state.next_non_razed_towards_border(r, p)
     if p_back is not None:
         opts.append(("FORET", r, p_back))
-    right_l = r
-    left_l = (r - 1) % n
-    for l_adj in (right_l, left_l):
-        if state.get_furtivite_insectes(l_adj, p) < 15:
-            cand = ("FURTIVITE", l_adj, p)
-            if cand not in opts:
-                opts.append(cand)
     if p == state.last_non_razed_parcel(r):
         for c in range(1, TRACK_LEN + 1):
             opts.append(("BUG", c))

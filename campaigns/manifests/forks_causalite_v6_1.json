@@ -1,0 +1,17 @@
+{
+  "campaign_name": "forks_causalite_v6_1",
+  "description": "Campagne Micro de forks contrefactuels appariés (CRN) du socle scellé v6.1 (Mode 2, B2, châssis unique P4_2233, N=3..6, 120 trajectoires/table = 480 trajectoires) : impact marginal causal exact (Delta V ± IC 95 %) en 2.1, 2.2, Furtivité Rive Piège / Rive Sabotage, 4.1 Pose Piège et 5.3 Éveil.",
+  "campaign_kind": "MICRO_FORKS",
+  "micro_forks": true,
+  "mode": 2,
+  "bot": "B2",
+  "k_max": 3,
+  "seed": 20261202,
+  "player_counts": [3, 4, 5, 6],
+  "table_selection": "ALL_PEUPLE_COMBOS",
+  "min_animaux_sauvages": 1,
+  "games_per_configuration": 120,
+  "fork_selection_rollouts": 3,
+  "fork_eval_rollouts": 4,
+  "slot_profile_comparisons": {}
+}

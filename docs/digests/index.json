@@ -2,6 +2,22 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "forks_causalite_v6_1",
+      "label": "Campagne Micro de forks contrefactuels appariés (CRN) du socle scellé v6.1 (Mode 2, B2, chassis_id = 24 / config_index_192 = 5, SINGLE_STRIKE, N=3..6, 120 trajectoires/table = 480 trajectoires) : mesure l'impact marginal causal exact (Delta V ± IC 95 %) sur (1) la 1re pose 2.1 (B2 vs B0 Réflexe, et DEF1 sur Rêve en 2.1 vs sans Rêve 2.1), (2) la 2e pose 2.2 (K=3 vs K=0 vs paravents ouverts : valeur de la révision muette et coût du silence), (3) les binômes Furtivité « Chaud vs Calme » (Rive Piège et Rive Sabotage vs contrefactuels purs dès 2.1), (4) la pose du Piège autonome en 4.1 par le propriétaire du rayon, (5) les tentatives d'Éveil 100 % Gardiens vs survie, et (6) le duel plein-match CRN CHARGE_GAIN FRAPPE_NON_PAREE vs DEGAT_EFFECTIF. (480 parties)",
+      "file": "digest_forks_causalite_v6_1.json",
+      "campaign": "forks_causalite_v6_1",
+      "generated_at_utc": "2026-11-22T19:16:50Z",
+      "total_games": 480
+    },
+    {
+      "id": "validation_socle_v6_1",
+      "label": "Campagne Macro officielle du socle scellé v6.1 (schema_version 6.1.0-alpha) en Mode 2 à tuiles neutres sur P4_2233 + départ décalé canonique (chassis_id = 24, config_index_192 = 5 : Bulldozer p=1, Abatteuse p=2) : Abatteuse coupe tous les Arbres debout et ne touche jamais aux Souches, Pièges autonomes SINGLE_STRIKE défaussés aussitôt après 1 frappe, Rêves ouverts en 2.1 et recentrés sur le blocage pur (CLEAR_RANK_ONLY, REVE_TRIG=ACTIF), Furtivité « Chaud vs Calme » par rayon, et duel 1x2 CHARGE_GAIN in {DEGAT_EFFECTIF, FRAPPE_NON_PAREE} sur B0 Réflexe / B1 / B2 et N=3..6 (570 parties/config = PPCM exact des 19/15/6/1 tables A>=1, soit 13 680 parties). (13680 parties)",
+      "file": "digest_validation_socle_v6_1.json",
+      "campaign": "validation_socle_v6_1",
+      "generated_at_utc": "2026-11-22T19:10:23Z",
+      "total_games": 13680
+    },
+    {
       "id": "audit_exhaustif_socle_v6_0",
       "label": "Audit comparatif exhaustif Mode 2 du socle v6.0 (Référentiel d'acceptation v6.x Blocs 1 & 2 + Cartographie Rasoir d'Ockham) : déplacement des Rêves figé sur ADV=SAUT, châssis canonique unique P4_2233 (chassis_id=0, 570 parties/config = PPCM exact des 19/15/6/1 tables A>=1 soit 41 040 parties) croisant 2x3 REVE_TRIG in {PASSIF, ACTIF} x ADV_COST in {1DEF, 2DEF, ONIRIQUE_COUNT} sur B0/B1/B2 et N=3..6. (41040 parties)",
       "file": "digest_audit_exhaustif_socle_v6_0.json",
