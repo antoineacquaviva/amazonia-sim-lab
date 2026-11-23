@@ -8,6 +8,7 @@ from itertools import combinations, permutations
 from typing import Any
 
 from bots.belief_and_ticks import (
+    TargetFilter,
     resolve_step2_2_from_state,
     resolve_step2_full_with_ticks,
 )
@@ -24,7 +25,9 @@ from engine.core_engine import (
     step_until_decision,
 )
 from engine.primitives import GameOver
+from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    ANIMAUX_SAUVAGES,
     FURT_RIVE_PIEGE,
     FURT_RIVE_SABOTAGE,
     PEUPLES_ORDER,
@@ -43,6 +46,8 @@ __all__ = (
     "MirrorBlock",
     "aggregate_micro_forks",
     "all_canonical_mirror_pairs",
+    "balanced_neighbor_mirror_pairs",
+    "balanced_neighbor_mirror_tables",
     "inter_block_ci95",
     "micro_fork",
     "mirror_peuples",
@@ -98,6 +103,153 @@ def all_canonical_mirror_pairs(
             id_b = "-".join(mir)
             pairs.append((id_a, circle, id_b, mir))
     return tuple(pairs)
+
+
+# Système de triplets 2-fold exact (hémi-icosaèdre sur 6 peuples, n'inclut pas H-E-I) :
+# chacune des 15 paires de voisins apparaît exactement 2 fois et chaque peuple exactement 5 fois.
+_HEMI_ICOSAHEDRON_10: frozenset[frozenset[str]] = frozenset(
+    frozenset((PEUPLES_ORDER[a], PEUPLES_ORDER[b], PEUPLES_ORDER[c]))
+    for a, b, c in (
+        (0, 1, 2),
+        (0, 2, 3),
+        (0, 3, 4),
+        (0, 4, 5),
+        (0, 5, 1),
+        (1, 2, 4),
+        (2, 3, 5),
+        (3, 4, 1),
+        (4, 5, 2),
+        (5, 1, 3),
+    )
+)
+
+_ALL_15_NEIGHBOR_EDGES: tuple[tuple[str, str], ...] = tuple(
+    (PEUPLES_ORDER[i], PEUPLES_ORDER[j])
+    if PEUPLES_ORDER[i] < PEUPLES_ORDER[j]
+    else (PEUPLES_ORDER[j], PEUPLES_ORDER[i])
+    for i in range(len(PEUPLES_ORDER))
+    for j in range(i + 1, len(PEUPLES_ORDER))
+)
+
+
+def _circle_neighbor_edges(circle: tuple[str, ...]) -> tuple[tuple[str, str], ...]:
+    n = len(circle)
+    out: list[tuple[str, str]] = []
+    for i in range(n):
+        a = circle[i]
+        b = circle[(i + 1) % n]
+        out.append((a, b) if a < b else (b, a))
+    return tuple(out)
+
+
+def _greedy_balance_mirror_pairs(
+    pairs: list[tuple[str, tuple[str, ...], str, tuple[str, ...]]],
+    *,
+    exp_seed: int,
+    n_players: int,
+) -> list[tuple[str, tuple[str, ...], str, tuple[str, ...]]]:
+    """Ordonne des paires miroirs pour équilibrer les 15 arêtes de voisinage et les 6 peuples sur tout préfixe."""
+    edge_cnt: dict[tuple[str, str], int] = {e: 0 for e in _ALL_15_NEIGHBOR_EDGES}
+    peuple_cnt: dict[str, int] = {p: 0 for p in PEUPLES_ORDER}
+    subset_cnt: dict[tuple[str, ...], int] = {}
+
+    rem = [
+        (
+            item,
+            _circle_neighbor_edges(item[1]),
+            tuple(sorted(item[1])),
+            rand_u64(exp_seed, n_players, SRC_BOT_TIEBREAK, 91, idx, 0),
+        )
+        for idx, item in enumerate(pairs)
+    ]
+    ordered: list[tuple[str, tuple[str, ...], str, tuple[str, ...]]] = []
+
+    while rem:
+        best_pos = 0
+        best_key: tuple[int, int, int, int, int, str] | None = None
+        for pos, (item, edges, sub_k, tie_u64) in enumerate(rem):
+            e_max = 0
+            e_sq_delta = 0
+            for e in edges:
+                c_e = edge_cnt[e]
+                e_max = max(e_max, c_e + 1)
+                e_sq_delta += 2 * c_e + 1
+            p_sq_delta = 0
+            for p_code in item[1]:
+                p_sq_delta += 2 * peuple_cnt[p_code] + 1
+            s_cur = subset_cnt.get(sub_k, 0)
+            cand_key = (e_max, e_sq_delta, s_cur, p_sq_delta, tie_u64, item[0])
+            if best_key is None or cand_key < best_key:
+                best_key = cand_key
+                best_pos = pos
+        chosen_item, chosen_edges, chosen_sub, _ = rem.pop(best_pos)
+        ordered.append(chosen_item)
+        for e in chosen_edges:
+            edge_cnt[e] += 1
+        for p_code in chosen_item[1]:
+            peuple_cnt[p_code] += 1
+        subset_cnt[chosen_sub] = subset_cnt.get(chosen_sub, 0) + 1
+    return ordered
+
+
+def balanced_neighbor_mirror_pairs(
+    n_players: int,
+    *,
+    min_animaux_sauvages: int = 0,
+    exp_seed: int = 20261201,
+) -> tuple[tuple[str, tuple[str, ...], str, tuple[str, ...]], ...]:
+    """Ordonne les paires de cercles miroirs à `n_players` joueurs en équilibrant les 15 paires de voisins.
+
+    Propriétés garanties (indépendantes de `PYTHONHASHSEED`) :
+    - Chaque entrée `(id_a, circle_a, id_b, circle_b)` est une paire miroir exacte (`mirror_peuples(circle_a) == circle_b`).
+    - À `N=3` : les 10 premières paires forment le système 2-fold exact (chaque arête apparaît 2 fois,
+      chaque peuple 5 fois, y compris sous `min_animaux_sauvages=1`).
+    - À `N=4`, `N=5`, `N=6` : les préfixes équilibrés couvrent équitablement toutes les 15 paires de voisins
+      (et donc les 30 lisières) sans biais de troncature sur `M`/`R` ni blocage sur un cercle unique à 6J.
+    """
+    assert 3 <= n_players <= 6
+    valid = [
+        item
+        for item in all_canonical_mirror_pairs(n_players)
+        if sum(1 for p in item[1] if p in ANIMAUX_SAUVAGES) >= min_animaux_sauvages
+    ]
+    if n_players == 3:
+        block_1 = [item for item in valid if frozenset(item[1]) in _HEMI_ICOSAHEDRON_10]
+        block_2 = [item for item in valid if frozenset(item[1]) not in _HEMI_ICOSAHEDRON_10]
+        return tuple(
+            _greedy_balance_mirror_pairs(block_1, exp_seed=exp_seed, n_players=n_players)
+            + _greedy_balance_mirror_pairs(block_2, exp_seed=exp_seed + 1, n_players=n_players)
+        )
+    return tuple(_greedy_balance_mirror_pairs(valid, exp_seed=exp_seed, n_players=n_players))
+
+
+def balanced_neighbor_mirror_tables(
+    n_players: int,
+    *,
+    min_animaux_sauvages: int = 0,
+    max_tables: int | None = None,
+    exp_seed: int = 20261201,
+) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Retourne une séquence de tables `(table_id, peuples)` groupées par paires miroirs équilibrées."""
+    pairs = balanced_neighbor_mirror_pairs(
+        n_players,
+        min_animaux_sauvages=min_animaux_sauvages,
+        exp_seed=exp_seed,
+    )
+    if not pairs:
+        return ()
+    if max_tables is not None:
+        if max_tables <= 0:
+            return ()
+        if max_tables == 1:
+            return ((pairs[0][0], pairs[0][1]),)
+        n_pairs = min(len(pairs), max_tables // 2)
+        pairs = pairs[:n_pairs]
+    out: list[tuple[str, tuple[str, ...]]] = []
+    for id_a, c_a, id_b, c_b in pairs:
+        out.append((id_a, c_a))
+        out.append((id_b, c_b))
+    return tuple(out)
 
 
 @dataclass(frozen=True, slots=True)
@@ -304,8 +456,14 @@ def _advance_to_target_2_2_anchor(
         apply_choice(state, chooser(state, out))
 
 
-def _resolve_only_2_1_ticks(state: GameState, scorer: Any) -> None:
+def _resolve_only_2_1_ticks(
+    state: GameState,
+    scorer: Any,
+    *,
+    target_filter: TargetFilter | None = None,
+) -> None:
     from bots.belief_and_ticks import (
+        _filter_legal_targets,
         _pick_best_target_isolated,
         build_belief_summary,
         compute_private_urgency,
@@ -336,7 +494,12 @@ def _resolve_only_2_1_ticks(state: GameState, scorer: Any) -> None:
         for s in ordered_1:
             obs_s = state.get_observation(s)
             bel_s = build_belief_summary(obs_s, cfg)
-            legal_1 = list_legal_targets(state, s, is_first_defender=True)
+            legal_1 = _filter_legal_targets(
+                list_legal_targets(state, s, is_first_defender=True),
+                target_filter,
+                is_first_defender=True,
+                fallback_if_empty=True,
+            )
             if not legal_1:
                 apply_step2_def1(state, s, ("PASSER_IMPASSE",), check_legal=False)
             else:
@@ -645,31 +808,17 @@ def run_v6_1_causal_forks_on_config(
     dv_eveil = 0.0
     rollouts = 0
 
-    def _no_reve_2_1_scorer(o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool) -> float:
-        if is_f and t[0] == "REVE_ACTIVATION":
-            return -1_000_000.0
-        return scorer(o, c, b, t, is_f)
+    def _allow_no_reve_2_1(t: tuple[Any, ...], is_f: bool) -> bool:
+        return not (is_f and t[0] == "REVE_ACTIVATION")
 
-    def _no_furt_piege_scorer(
-        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
-    ) -> float:
-        if t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_PIEGE:
-            return -1_000_000.0
-        return scorer(o, c, b, t, is_f)
+    def _allow_no_furt_piege(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return not (t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_PIEGE)
 
-    def _no_furt_sabotage_scorer(
-        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
-    ) -> float:
-        if t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_SABOTAGE:
-            return -1_000_000.0
-        return scorer(o, c, b, t, is_f)
+    def _allow_no_furt_sabotage(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return not (t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_SABOTAGE)
 
-    def _no_gardien_2_2_scorer(
-        o: Any, c: GameConfig, b: Any, t: tuple[Any, ...], is_f: bool
-    ) -> float:
-        if t[0] == "GARDIEN_PARI":
-            return -1_000_000.0
-        return scorer(o, c, b, t, is_f)
+    def _allow_no_gardien_2_2(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return t[0] != "GARDIEN_PARI"
 
     def _paired_post_2_2_eval(
         s_a: GameState, s_b: GameState, seed_offset: int, mult_s: int, mult_r: int
@@ -705,10 +854,11 @@ def run_v6_1_causal_forks_on_config(
                 s_no_rp = pre_2_1_snap.clone()
                 resolve_step2_full_with_ticks(
                     s_no_rp,
-                    _no_furt_piege_scorer,
+                    scorer,
                     k_max_passes=k_max_future,
                     epsilon_base=eps_b,
                     epsilon_step=12.0,
+                    target_filter=_allow_no_furt_piege,
                 )
                 if cur_state.raw_used_bytes() != s_no_rp.raw_used_bytes():
                     has_furt_rp = True
@@ -721,10 +871,11 @@ def run_v6_1_causal_forks_on_config(
                 s_no_rs = pre_2_1_snap.clone()
                 resolve_step2_full_with_ticks(
                     s_no_rs,
-                    _no_furt_sabotage_scorer,
+                    scorer,
                     k_max_passes=k_max_future,
                     epsilon_base=eps_b,
                     epsilon_step=12.0,
+                    target_filter=_allow_no_furt_sabotage,
                 )
                 if cur_state.raw_used_bytes() != s_no_rs.raw_used_bytes():
                     has_furt_rs = True
@@ -740,9 +891,10 @@ def run_v6_1_causal_forks_on_config(
             s_surv = pre_2_2_snap.clone()
             resolve_step2_2_from_state(
                 s_surv,
-                _no_gardien_2_2_scorer,
+                scorer,
                 k_max_passes=k_max_future,
                 epsilon_base=eps_b,
+                target_filter=_allow_no_gardien_2_2,
             )
             dv_eveil = _paired_post_2_2_eval(cur_state, s_surv, 830_000, 37, 43)
 
@@ -775,7 +927,7 @@ def run_v6_1_causal_forks_on_config(
             advance_step2_to_2_2(s_b0_21)
 
             s_noreve_21 = state.clone()
-            _resolve_only_2_1_ticks(s_noreve_21, _no_reve_2_1_scorer)
+            _resolve_only_2_1_ticks(s_noreve_21, scorer, target_filter=_allow_no_reve_2_1)
 
             # Avancer l'état réel sur 2.1 -> début 2.2
             _resolve_only_2_1_ticks(state, scorer)
@@ -859,7 +1011,9 @@ def run_v6_1_causal_forks_on_config(
                     s_noreve_other = state.clone() if check_reve_here else None
                     _resolve_only_2_1_ticks(state, scorer)
                     if s_noreve_other is not None:
-                        _resolve_only_2_1_ticks(s_noreve_other, _no_reve_2_1_scorer)
+                        _resolve_only_2_1_ticks(
+                            s_noreve_other, scorer, target_filter=_allow_no_reve_2_1
+                        )
                         if state.raw_used_bytes() != s_noreve_other.raw_used_bytes():
                             has_2_1_reve = True
                             acc_rv = 0.0

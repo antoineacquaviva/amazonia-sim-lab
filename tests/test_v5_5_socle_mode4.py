@@ -426,9 +426,11 @@ def test_baseline_mode4_v5_5_manifest_plan() -> None:
     # 3 bots * 4 N * 1 profil = 12 configurations ; 12 * 120 = 1 440 parties (châssis unique P4_2233)
     assert plan["total_configurations"] == 12
     assert plan["total_games"] == 1440
-    # Toutes les 42 tables uniques (C(6,3)+C(6,4)+C(6,5)+C(6,6)) présentes
-    unique_tables = {u["peuples"] for u in plan["units"]}
-    assert len(unique_tables) == 42
+    # Tous les 42 sous-ensembles distincts de Peuples (C(6,3)+C(6,4)+C(6,5)+C(6,6)) + multi-cercles miroirs à 4..6J
+    unique_subsets = {frozenset(u["peuples"]) for u in plan["units"]}
+    assert len(unique_subsets) == 42
+    circles_6j = {u["peuples"] for u in plan["units"] if u["n_players"] == 6}
+    assert len(circles_6j) >= 20  # fin du cercle unique à 6J (60 paires miroirs = 120 cercles orientés)
 
 
 def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribution(

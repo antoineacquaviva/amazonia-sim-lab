@@ -27,17 +27,64 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RETIRED,
     PEUPLES_ORDER,
     PIEGE_AUCUN,
+    STEP_3_2_REVEAL,
+    STEP_5_2_RATISSAGE,
+    STEP_5_3_END_CHECK,
     TRACK_LEN,
     GameConfig,
     GameState,
+    is_tactique_code,
+    unpack_machine_card,
 )
 from engine.telemetry import TelemetryTracker
 
 _ALL_TABLES_BY_N: dict[int, tuple[tuple[str, ...], ...]] = {
     n: tuple(itertools.combinations(PEUPLES_ORDER, n)) for n in (3, 4, 5, 6)
 }
+
+
+class BoundAttackInvariantTracker(TelemetryTracker):
+    """Vérifie l'invariant bout-en-bout 3.2 -> 5.2 sur chaque tour de chaque partie.
+
+    Toute machine liée à une Tactique (1..6) en sortie de 3.2 doit avoir attaqué avant
+    la fin de 5.2 (`attacked == True`), sauf si elle a quitté la partie (`RETIRED` / `pos == 0`).
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._bound_end_3_2: list[tuple[int, int, int, int]] = []
+        self.checked_bindings: int = 0
+        self.violations: list[str] = []
+
+    def on_step_transition(self, state: GameState, prev_step: int, next_step: int) -> None:
+        if prev_step == STEP_3_2_REVEAL:
+            bound: list[tuple[int, int, int, int]] = []
+            n = state.cfg.n_players
+            for s in range(n):
+                card, _, _, _, bound_t = state.get_player_hand(s)
+                if 1 <= card <= 2 * n and is_tactique_code(bound_t):
+                    ray, mt = unpack_machine_card(card)
+                    pos, st, _ = state.get_machine_pos_status(ray, mt)
+                    if st == MACHINE_STATUS_NORMAL and pos > 0:
+                        bound.append((state.tour, ray, mt, bound_t))
+            self._bound_end_3_2 = bound
+        elif prev_step == STEP_5_2_RATISSAGE and next_step == STEP_5_3_END_CHECK:
+            for b_tour, ray, mt, bound_t in self._bound_end_3_2:
+                self.checked_bindings += 1
+                pos, st, _ = state.get_machine_pos_status(ray, mt)
+                _, _, attacked = state.get_machine_turn_stats(ray, mt)
+                if not attacked and st != MACHINE_STATUS_RETIRED and pos > 0:
+                    msg = (
+                        f"Invariant 3.2->5.2 violé : tour={b_tour}, ray={ray}, m_type={mt}, "
+                        f"bound_t=T{bound_t}, pos={pos}, status={st}, attacked={attacked}"
+                    )
+                    self.violations.append(msg)
+                    raise AssertionError(msg)
+            self._bound_end_3_2 = []
+        super().on_step_transition(state, prev_step, next_step)
 
 
 def _check_board_invariants(state: GameState) -> None:
@@ -117,13 +164,14 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
         )
 
         state = GameState(cfg)
-        trk = TelemetryTracker() if (game_idx % 20 == 0) else None
+        trk = BoundAttackInvariantTracker()
 
         if bot_sel == 3:
             over = play_game_b1(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
-            if trk is not None and mode <= 2:
+            assert not trk.violations
+            if mode <= 2:
                 assert trk.summary().mem_debt_score == 0
             continue
 
@@ -131,7 +179,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             over = play_game_b2(state, max_steps=2000, telemetry=trk)
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
-            if trk is not None and mode <= 2:
+            assert not trk.violations
+            if mode <= 2:
                 assert trk.summary().mem_debt_score == 0
             continue
 
@@ -159,7 +208,8 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 _check_board_invariants(state)
                 assert 1 <= out.tour_fin <= 8
                 assert 0.0 <= out.ratio_arbres <= 1.0
-                if trk is not None and mode <= 2:
+                assert not trk.violations
+                if mode <= 2:
                     assert trk.summary().mem_debt_score == 0
                 break
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, ClassVar, NamedTuple
 
-from engine.rng import SRC_MACHINE_SHUFFLE, shuffle_deterministic
+from engine.rng import SRC_MACHINE_SHUFFLE, rand_u64
 
 __all__ = (
     "ABATTEUSE_INIT_PARCEL",
@@ -556,16 +556,19 @@ class GameConfig:
         return None
 
     def profile_for_slot(self, slot_id: str) -> str | None:
-        """Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A)."""
+        """Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE)."""
         if self.mode == 1:
             return None
         if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
+            for s_id, prof in self.tile_profiles:
+                if s_id == slot_id and prof == "NEUTRE":
+                    return None
             return "B"
         if self.mode == 2:
             return None
         for s_id, prof in self.tile_profiles:
             if s_id == slot_id:
-                return prof
+                return None if prof == "NEUTRE" else prof
         return "A"
 
 
@@ -2238,7 +2241,7 @@ class GameState:
             self.light_trigger(3)
 
     def rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None:
-        """Reconstitue le paquet Machine hors Sièges/retirées + Sabotages et le mélange."""
+        """Reconstitue le paquet Machine hors Ratissages/retirées + Sabotages avec mélange stable par carte."""
         if increment_reshuffle:
             self.reshuffle_count += 1
         # Intégrer définitivement les Sabotages acquis durant le tour
@@ -2246,22 +2249,27 @@ class GameState:
         self.sabotage_deck_count = total_sabotages
         self.sabotage_pending_count = 0
 
-        cards: list[int] = []
+        exp_seed = self.cfg.exp_seed
+        rep_id = self.cfg.rep_id
+        reshuffle_idx = self.reshuffle_count
+        keyed_cards: list[tuple[int, int, int]] = []
         for r in range(self.cfg.n_players):
             for m_type in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
                 _, st, _ = self.get_machine_pos_status(r, m_type)
                 if st == MACHINE_STATUS_NORMAL:
-                    cards.append(machine_card_code(r, m_type))
-        cards.extend([CARD_SABOTAGE] * total_sabotages)
+                    c_code = machine_card_code(r, m_type)
+                    k_val = rand_u64(
+                        exp_seed, rep_id, SRC_MACHINE_SHUFFLE, reshuffle_idx, c_code, 0
+                    )
+                    keyed_cards.append((k_val, c_code, 0))
+        for sab_copy in range(total_sabotages):
+            k_val = rand_u64(
+                exp_seed, rep_id, SRC_MACHINE_SHUFFLE, reshuffle_idx, CARD_SABOTAGE, sab_copy
+            )
+            keyed_cards.append((k_val, CARD_SABOTAGE, sab_copy))
 
-        shuffled = shuffle_deterministic(
-            cards,
-            self.cfg.exp_seed,
-            self.cfg.rep_id,
-            SRC_MACHINE_SHUFFLE,
-            self.reshuffle_count,
-            0,
-        )
+        keyed_cards.sort()
+        shuffled = [c_code for _, c_code, _ in keyed_cards]
         self._store_deck_cards(shuffled)
 
     def _store_deck_cards(self, cards: list[int]) -> None:

@@ -365,7 +365,7 @@ def _compute_b2_resource_and_trigger_values(
                 v_open = 38.0 + (reveil_awaken_bonus if g_slot.face == 1 else 0.0)
                 if econ is not None:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
-                    node = econ.get((g_slot.tile_id, prof or "A"))
+                    node = econ.get((g_slot.tile_id, prof)) if prof is not None else None
                     if node is not None:
                         v_open += sum(
                             res_val.get(out_tok, 20.0) * 0.45 for out_tok in node.outputs_produits
@@ -380,7 +380,7 @@ def _compute_b2_resource_and_trigger_values(
                 g_slot = gardiens[c - 1]
                 if g_slot.tile_id is not None and g_slot.remaining_defenders >= 1:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
-                    node = econ.get((g_slot.tile_id, prof or "A"))
+                    node = econ.get((g_slot.tile_id, prof)) if prof is not None else None
                     if node is not None:
                         for out_tok in node.outputs_produits:
                             if out_tok.startswith("TRIG_"):
@@ -452,7 +452,9 @@ def _score_tile_construction_b2(
         return struct_v
 
     econ = get_economie_catalog()
-    prof = cfg.profile_for_slot(tile_id) or "A"
+    prof = cfg.profile_for_slot(tile_id)
+    if prof is None:
+        return struct_v
     node = econ.get((tile_id, prof))
     if node is None:
         return struct_v
@@ -2205,7 +2207,8 @@ def _choose_policy(
         tid = str(decision.context.get("tile_id", ""))
         if is_b2 and obs.mode >= 3 and tid:
             econ = get_economie_catalog()
-            node = econ.get((tid, cfg.profile_for_slot(tid) or "A"))
+            prof_g = cfg.profile_for_slot(tid)
+            node = econ.get((tid, prof_g)) if prof_g is not None else None
             if node is not None and node.is_law:
                 case_weights = {
                     1: 110.0,

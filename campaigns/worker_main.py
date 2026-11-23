@@ -23,6 +23,7 @@ from bots.bot_b0 import play_game_b0
 from bots.bot_b3_rh import play_game_b3
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from campaigns.designs import (
+    balanced_neighbor_mirror_tables,
     mirror_peuples,
     run_v6_1_causal_forks_on_config,
 )
@@ -31,6 +32,8 @@ from campaigns.digest_builder import (
     build_prompt_gemini_markdown,
     build_self_contained_digest,
 )
+from engine.core_engine import ensure_builtin_migration_registered
+from engine.effects.registry import list_registered_tiles
 from engine.primitives import CAUSE_REVE_RANG_1, CAUSE_REVEIL_GARDIENS, CAUSE_TOUR_8
 from engine.state import (
     ANIMAUX_SAUVAGES,
@@ -58,6 +61,46 @@ CANONICAL_32_SLOTS: tuple[str, ...] = (
     "SLOT_BUG_CERVEAU",
     "SLOT_COLONISATION_GARDIENS",
 )
+CANONICAL_32_SLOTS_SET: frozenset[str] = frozenset(CANONICAL_32_SLOTS)
+NATIVE_MIGRATION_SLOTS: frozenset[str] = frozenset(
+    {"SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"}
+)
+NEUTRAL_TILE_PROFILE: str = "NEUTRE"
+
+ALLOWED_MANIFEST_KEYS: frozenset[str] = frozenset(
+    {
+        "schema_version",
+        "manifest_type",
+        "campaign_name",
+        "target_path",
+        "description",
+        "campaign_kind",
+        "micro_forks",
+        "fork_selection_rollouts",
+        "fork_eval_rollouts",
+        "mode",
+        "bot",
+        "bots",
+        "k_max",
+        "seed",
+        "player_counts",
+        "table_selection",
+        "min_animaux_sauvages",
+        "games_per_configuration",
+        "include_full_tile_metrics",
+        "include_v6_audit_blocks",
+        "base_instance",
+        "slot_profile_comparisons",
+    }
+)
+ALLOWED_BASE_INSTANCE_KEYS: frozenset[str] = frozenset(
+    {"bundle_id", "peuples_cercle", "profile_overrides"}
+)
+ALLOWED_TABLE_SELECTIONS: frozenset[str] = frozenset(
+    {"DEFAULT", "ALL_PEUPLE_COMBOS", "BALANCED_CIRCLES"}
+)
+ALLOWED_CAMPAIGN_KINDS: frozenset[str] = frozenset({"MACRO", "MICRO_FORKS"})
+ALLOWED_BUNDLE_IDS: frozenset[str] = frozenset({"STANDARD_A"})
 
 METADATA_TOKEN_URL: str = (
     "http://metadata.google.internal/computeMetadata/v1/"
@@ -236,21 +279,88 @@ def _sanitize_slug(raw: str) -> str:
     return cleaned or "campagne_v6_1"
 
 
+def _validate_tile_profile_executable(
+    slot_id: str,
+    profile: str,
+    *,
+    mode: int,
+    registered_tiles: frozenset[tuple[str, str]],
+) -> tuple[str, str]:
+    """Vérifie qu'un couple `(slot_id, profile)` est exécutable dans le moteur (registre ou migration native)."""
+    s_norm = str(slot_id).strip()
+    p_norm = str(profile).strip().upper()
+    if s_norm not in CANONICAL_32_SLOTS_SET:
+        raise ValueError(
+            f"Emplacement de tuile inconnu dans le manifeste : {slot_id!r} "
+            "(attendu G1..G15, R1..R10, M1..M5, SLOT_BUG_CERVEAU ou SLOT_COLONISATION_GARDIENS)"
+        )
+    if not p_norm:
+        raise ValueError(f"Profil vide interdit pour l'emplacement {s_norm!r}")
+    if p_norm == NEUTRAL_TILE_PROFILE:
+        return s_norm, p_norm
+    if s_norm in NATIVE_MIGRATION_SLOTS:
+        if (s_norm, p_norm) not in registered_tiles:
+            raise ValueError(
+                f"Profil de migration non implémenté dans le moteur : {s_norm}:{p_norm} "
+                "(seuls 'B' et 'NEUTRE' sont exécutables en v6.1)"
+            )
+        return s_norm, p_norm
+    if mode < 3:
+        raise ValueError(
+            f"Profil de tuile {s_norm}:{p_norm} demandé en mode={mode} : "
+            "les effets de tuiles G/R/M ne s'exécutent qu'en Mode 3 ou 4."
+        )
+    if (s_norm, p_norm) not in registered_tiles:
+        raise ValueError(
+            f"Profil de tuile non enregistré dans le moteur : {s_norm}:{p_norm} "
+            "(aucun gestionnaire @register_tile actif)"
+        )
+    return s_norm, p_norm
+
+
 def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
-    """Résout un manifeste JSON `campaigns/<nom>.json` en plan exécutable déterministe v6.1."""
+    """Valide strictement et résout un manifeste JSON `campaigns/<nom>.json` en plan déterministe v6.1."""
+    if not isinstance(manifest, dict):
+        raise TypeError("Le manifeste de campagne doit être un objet JSON.")
+
+    unknown_keys = sorted(str(k) for k in manifest if str(k) not in ALLOWED_MANIFEST_KEYS)
+    if unknown_keys:
+        raise ValueError(
+            f"Clé(s) ou axe(s) inconnu(s)/obsolète(s) dans le manifeste : {unknown_keys}"
+        )
+
+    if "mode" not in manifest:
+        raise ValueError(
+            "Champ obligatoire 'mode' absent du manifeste (attendu 1, 2, 3 ou 4, aligné sur GameConfig)."
+        )
+    mode = int(manifest["mode"])
+    if mode not in (1, 2, 3, 4):
+        raise ValueError(f"mode invalide (attendu 1..4) : {mode}")
+
+    default_cfg = GameConfig(mode=mode)
+
     campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v6_1")))
-    raw_players = manifest.get("player_counts", [4])
+    raw_players = manifest.get("player_counts", [default_cfg.n_players])
+    if not isinstance(raw_players, (list, tuple)) or not raw_players:
+        raise ValueError(f"player_counts invalide (attendu liste non vide dans 3..6) : {raw_players!r}")
     player_counts = sorted({int(n) for n in raw_players})
-    if not player_counts or any(n not in (3, 4, 5, 6) for n in player_counts):
+    if any(n not in (3, 4, 5, 6) for n in player_counts):
         raise ValueError(f"player_counts invalide (attendu 3..6) : {player_counts}")
 
-    games_per_cfg = max(1, int(manifest.get("games_per_configuration", 1)))
+    games_per_cfg = int(manifest.get("games_per_configuration", 1))
+    if games_per_cfg < 1:
+        raise ValueError(f"games_per_configuration doit être >= 1 (reçu {games_per_cfg})")
+
+    if "bot" in manifest and "bots" in manifest:
+        raise ValueError("Spécifier soit 'bot', soit 'bots', mais pas les deux simultanément.")
     raw_bots = manifest.get("bots")
     if raw_bots is not None:
         if isinstance(raw_bots, str):
             bot_list = [raw_bots.strip().upper()]
-        else:
+        elif isinstance(raw_bots, (list, tuple)):
             bot_list = [str(b).strip().upper() for b in raw_bots]
+        else:
+            raise ValueError(f"Format invalide pour 'bots' : {raw_bots!r}")
     else:
         bot_list = [str(manifest.get("bot", "B2")).strip().upper()]
     bot_list = list(dict.fromkeys(bot_list))
@@ -259,28 +369,90 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} (attendu B0/B1/B2/B3)"
         )
     bot_name = bot_list[0]
-    k_max_default = int(manifest.get("k_max", 0 if bot_name == "B0" else 3))
-    mode = int(manifest.get("mode", 2))
-    if mode not in (1, 2, 3, 4):
-        raise ValueError(f"mode invalide (attendu 1..4) : {mode}")
+
+    has_explicit_k_max = "k_max" in manifest
+    if has_explicit_k_max:
+        explicit_k_max = int(manifest["k_max"])
+        if not (0 <= explicit_k_max <= 4):
+            raise ValueError(f"k_max invalide (attendu 0..4) : {explicit_k_max}")
+    else:
+        explicit_k_max = default_cfg.max_revision_passes
+    k_max_default = 0 if bot_name == "B0" else explicit_k_max
+
     exp_seed = int(manifest.get("seed", 20261201))
     include_full_tile_metrics = bool(manifest.get("include_full_tile_metrics", False))
 
-    # 1. Résolution du génome de base Mode 4 (30 tuiles G/R/M en profil A + 2 migrations natives B)
-    base_inst = manifest.get("base_instance", {})
-    bundle_id = str(base_inst.get("bundle_id", "STANDARD_A")).strip().upper()
+    campaign_kind = str(manifest.get("campaign_kind", "MACRO")).strip().upper()
+    if campaign_kind not in ALLOWED_CAMPAIGN_KINDS:
+        raise ValueError(
+            f"campaign_kind invalide : {campaign_kind!r} (attendu {sorted(ALLOWED_CAMPAIGN_KINDS)})"
+        )
+    is_micro_forks = bool(manifest.get("micro_forks", False)) or (campaign_kind == "MICRO_FORKS")
+    fork_n_sel = int(manifest.get("fork_selection_rollouts", 3))
+    fork_n_eval = int(manifest.get("fork_eval_rollouts", 4))
+    if fork_n_sel < 1 or fork_n_eval < 2:
+        raise ValueError(
+            f"Rollouts de micro-forks invalides : selection={fork_n_sel} (>=1), eval={fork_n_eval} (>=2)"
+        )
+
+    # Registre réel des effets exécutables (30 tuiles Mode 4 + 2 migrations natives)
+    ensure_builtin_migration_registered()
+    registered_tiles: frozenset[tuple[str, str]] = frozenset(list_registered_tiles())
+
+    # 1. Validation & résolution du génome de base Mode 4
+    base_inst_raw = manifest.get("base_instance", {})
+    if not isinstance(base_inst_raw, dict):
+        raise TypeError("base_instance doit être un objet JSON.")
+    unknown_base_keys = sorted(
+        str(k) for k in base_inst_raw if str(k) not in ALLOWED_BASE_INSTANCE_KEYS
+    )
+    if unknown_base_keys:
+        raise ValueError(f"Clé(s) inconnue(s) dans base_instance : {unknown_base_keys}")
+
+    bundle_id = str(base_inst_raw.get("bundle_id", "STANDARD_A")).strip().upper()
+    if bundle_id not in ALLOWED_BUNDLE_IDS:
+        raise ValueError(
+            f"base_instance.bundle_id invalide : {bundle_id!r} (attendu {sorted(ALLOWED_BUNDLE_IDS)})"
+        )
     base_map: dict[str, str] = {slot_id: "A" for slot_id in CANONICAL_32_SLOTS}
     base_map["SLOT_BUG_CERVEAU"] = "B"
     base_map["SLOT_COLONISATION_GARDIENS"] = "B"
 
-    for slot_id, prof in dict(base_inst.get("profile_overrides", {})).items():
-        if slot_id in base_map:
-            base_map[str(slot_id)] = str(prof).strip().upper()
+    raw_overrides = base_inst_raw.get("profile_overrides", {})
+    if not isinstance(raw_overrides, dict):
+        raise TypeError("base_instance.profile_overrides doit être un objet JSON.")
+    for slot_id, prof in raw_overrides.items():
+        s_ok, p_ok = _validate_tile_profile_executable(
+            str(slot_id), str(prof), mode=mode, registered_tiles=registered_tiles
+        )
+        base_map[s_ok] = p_ok
 
-    # 2. Variantes de profils Mode 4 comparés (produit cartésien sur slot_profile_comparisons)
+    # 2. Validation & résolution des variantes de profils comparés (slot_profile_comparisons)
     raw_comps = manifest.get("slot_profile_comparisons", {})
-    ordered_comp_slots = [s for s in CANONICAL_32_SLOTS if raw_comps.get(s)]
-    comp_lists = [[str(p).strip().upper() for p in raw_comps[s]] for s in ordered_comp_slots]
+    if not isinstance(raw_comps, dict):
+        raise TypeError("slot_profile_comparisons doit être un objet JSON.")
+    validated_comps: dict[str, list[str]] = {}
+    for raw_slot, raw_profs in raw_comps.items():
+        slot_s = str(raw_slot).strip()
+        if slot_s not in CANONICAL_32_SLOTS_SET:
+            raise ValueError(
+                f"Emplacement inconnu dans slot_profile_comparisons : {raw_slot!r}"
+            )
+        if not isinstance(raw_profs, (list, tuple)) or not raw_profs:
+            raise ValueError(
+                f"Liste de profils vide ou invalide pour {slot_s!r} dans slot_profile_comparisons."
+            )
+        prof_list: list[str] = []
+        for p_item in raw_profs:
+            _, p_ok = _validate_tile_profile_executable(
+                slot_s, str(p_item), mode=mode, registered_tiles=registered_tiles
+            )
+            if p_ok not in prof_list:
+                prof_list.append(p_ok)
+        validated_comps[slot_s] = prof_list
+
+    ordered_comp_slots = [s for s in CANONICAL_32_SLOTS if s in validated_comps]
+    comp_lists = [validated_comps[s] for s in ordered_comp_slots]
 
     base_slots_canonical = ",".join(f"{s}:{base_map[s]}" for s in CANONICAL_32_SLOTS)
     resolved_32_slots_sha256 = hashlib.sha256(base_slots_canonical.encode("utf-8")).hexdigest()
@@ -329,28 +501,33 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 if base_map[s] != "A":
                     tested_tiles_set.append((s, base_map[s]))
 
-    is_micro_forks = bool(manifest.get("micro_forks", False)) or (
-        str(manifest.get("campaign_kind", "MACRO")).strip().upper() == "MICRO_FORKS"
-    )
-    fork_n_sel = max(1, int(manifest.get("fork_selection_rollouts", 3)))
-    fork_n_eval = max(2, int(manifest.get("fork_eval_rollouts", 4)))
-
-    # 3. Construction des unités de calcul (CRN strict par paires miroirs et par bot)
-    base_peuples_raw = base_inst.get("peuples_cercle", [])
+    # 3. Construction des unités de calcul (cercles de voisinage équilibrés en paires miroirs CRN)
+    base_peuples_raw = base_inst_raw.get("peuples_cercle", [])
+    if not isinstance(base_peuples_raw, (list, tuple)):
+        raise TypeError("base_instance.peuples_cercle doit être une liste de codes Peuples.")
     base_peuples: tuple[str, ...] = tuple(str(p).strip().upper() for p in base_peuples_raw)
-    table_selection = str(manifest.get("table_selection", "DEFAULT")).strip().upper()
-    min_animaux = max(0, int(manifest.get("min_animaux_sauvages", 0)))
+    if base_peuples:
+        if len(base_peuples) not in (3, 4, 5, 6) or len(set(base_peuples)) != len(base_peuples):
+            raise ValueError(f"base_instance.peuples_cercle invalide : {base_peuples!r}")
+        if any(p not in PEUPLES_ORDER for p in base_peuples):
+            raise ValueError(f"Peuple inconnu dans base_instance.peuples_cercle : {base_peuples!r}")
+
+    table_selection = str(manifest.get("table_selection", "BALANCED_CIRCLES")).strip().upper()
+    if table_selection not in ALLOWED_TABLE_SELECTIONS:
+        raise ValueError(
+            f"table_selection invalide : {table_selection!r} "
+            f"(attendu {sorted(ALLOWED_TABLE_SELECTIONS)})"
+        )
+    min_animaux = int(manifest.get("min_animaux_sauvages", 0))
+    if not (0 <= min_animaux <= 3):
+        raise ValueError(f"min_animaux_sauvages invalide (attendu 0..3) : {min_animaux}")
 
     units: list[dict[str, Any]] = []
     config_idx = 0
     for b_name in bot_list:
-        b_k_max = 0 if b_name == "B0" else int(manifest.get("k_max", 4 if b_name == "B3" else 3))
+        b_k_max = 0 if b_name == "B0" else explicit_k_max
         for n_pl in player_counts:
-            if (
-                len(base_peuples) == n_pl
-                and len(set(base_peuples)) == n_pl
-                and all(p in PEUPLES_ORDER for p in base_peuples)
-            ):
+            if len(base_peuples) == n_pl:
                 mir = mirror_peuples(base_peuples)
                 t1_id = "-".join(base_peuples)
                 t2_id = "-".join(mir)
@@ -361,20 +538,26 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     )
                 else:
                     candidate_tables = ((t1_id, base_peuples),)
-            elif table_selection == "ALL_PEUPLE_COMBOS":
-                all_combs = tuple(
-                    ("-".join(comb), comb)
-                    for comb in itertools.combinations(PEUPLES_ORDER, n_pl)
-                    if sum(1 for p in comb if p in ANIMAUX_SAUVAGES) >= min_animaux
+            elif table_selection in ("ALL_PEUPLE_COMBOS", "BALANCED_CIRCLES"):
+                candidate_tables = balanced_neighbor_mirror_tables(
+                    n_pl,
+                    min_animaux_sauvages=min_animaux,
+                    max_tables=games_per_cfg,
+                    exp_seed=exp_seed,
                 )
-                candidate_tables = all_combs[: min(games_per_cfg, len(all_combs))]
             else:
-                all_t = tuple(
-                    (tid, pl)
-                    for tid, pl in DEFAULT_TABLES_BY_N[n_pl]
-                    if sum(1 for p in pl if p in ANIMAUX_SAUVAGES) >= min_animaux
+                # DEFAULT : sous-ensemble compact de paires miroirs équilibrées (sans biais M/R ni ordre fixe)
+                candidate_tables = balanced_neighbor_mirror_tables(
+                    n_pl,
+                    min_animaux_sauvages=min_animaux,
+                    max_tables=min(games_per_cfg, 10),
+                    exp_seed=exp_seed,
                 )
-                candidate_tables = all_t[: min(games_per_cfg, len(all_t))]
+
+            if not candidate_tables:
+                raise ValueError(
+                    f"Aucune table légale pour n_players={n_pl} et min_animaux_sauvages={min_animaux}"
+                )
 
             n_tables = len(candidate_tables)
             base_per_tbl = games_per_cfg // n_tables
@@ -453,6 +636,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
         "micro_forks": is_micro_forks,
+        "table_selection": table_selection,
         "games_per_configuration": games_per_cfg,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),

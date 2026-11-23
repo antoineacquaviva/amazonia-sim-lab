@@ -324,7 +324,8 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
     assert plan["total_configurations"] == 12
     assert plan["total_games"] == 6_840
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
-    assert len({u["peuples"] for u in plan["units"]}) == 41
+    assert len({frozenset(u["peuples"]) for u in plan["units"]}) == 41
+    assert len({u["peuples"] for u in plan["units"] if u["n_players"] == 6}) >= 20
 
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_validation_socle_v6_1"

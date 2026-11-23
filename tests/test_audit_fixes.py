@@ -436,7 +436,7 @@ def test_manifest_crn_mirror_and_duckdb_mode4(tmp_path: Path, monkeypatch: Any) 
         "games_per_configuration": 4,
         "bot": "B0",
         "mode": 4,
-        "slot_profile_comparisons": {"G7": ["A", "B"]},
+        "slot_profile_comparisons": {"G7": ["A", "NEUTRE"]},
         "base_instance": {
             "bundle_id": "STANDARD_A",
             "peuples_cercle": ["M", "R", "O", "H"],
@@ -448,7 +448,7 @@ def test_manifest_crn_mirror_and_duckdb_mode4(tmp_path: Path, monkeypatch: Any) 
     assert len(plan["resolved_32_slots_sha256"]) == 64
     assert plan["profil_piste"] == "P4_2233"
 
-    for v_id in ("G7:A", "G7:B"):
+    for v_id in ("G7:A", "G7:NEUTRE"):
         v_units = [u for u in plan["units"] if u["variant_id"] == v_id]
         assert len(v_units) == 2
         assert v_units[0]["rep_start"] == 0

@@ -3,12 +3,12 @@
   "manifest_type": "campaign_plan",
   "campaign_name": "micro_validation",
   "target_path": "campaigns/micro_validation.json",
-  "description": "Micro-tir de validation bout-en-bout v6.1 Mode 4 (G7:A vs G7:B, N=3..4)",
+  "description": "Micro-tir de validation bout-en-bout v6.1 Mode 4 (G7:A vs G7:NEUTRE, N=3..4)",
   "mode": 4,
   "player_counts": [3, 4],
   "games_per_configuration": 4,
   "slot_profile_comparisons": {
-    "G7": ["A", "B"]
+    "G7": ["A", "NEUTRE"]
   },
   "base_instance": {
     "bundle_id": "STANDARD_A",

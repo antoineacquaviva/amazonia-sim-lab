@@ -236,6 +236,17 @@ def build_tested_tiles_rules(
             raise KeyError(f"Emplacement de tuile inconnu dans spec_bundle : {slot_id!r}")
         slot_obj = catalogue[slot_id]
         profils_map = slot_obj.get("profils", {})
+        if prof_key == "NEUTRE":
+            out.append(
+                {
+                    "slot": slot_id,
+                    "profil": "NEUTRE",
+                    "nom": f"{slot_obj.get('nomBase', slot_id)} (Neutralisée)",
+                    "famille": str(slot_obj.get("famille", "")),
+                    "texte": "Tuile volontairement neutralisée (sans effet propre) pour protocole A/B apparié.",
+                }
+            )
+            continue
         if prof_key not in profils_map:
             raise KeyError(f"Profil {prof_key!r} inconnu pour l'emplacement {slot_id!r}")
         prof_obj = profils_map[prof_key]

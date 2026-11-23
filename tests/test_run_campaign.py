@@ -30,7 +30,7 @@ def _sample_manifest() -> dict[str, object]:
         "games_per_configuration": 2,
         "bot": "B0",
         "slot_profile_comparisons": {
-            "G7": ["A", "B"],
+            "G7": ["A", "NEUTRE"],
         },
         "base_instance": {
             "bundle_id": "STANDARD_A",
@@ -57,7 +57,7 @@ def test_resolve_manifest_plan_cartesian_and_totals() -> None:
     assert plan["profil_piste"] == "P4_2233"
     assert plan["total_configurations"] == 2 * 2  # 2 N * 2 profils G7 (châssis unique P4_2233)
     assert plan["total_games"] == 8
-    assert plan["tested_tiles"] == (("G7", "A"), ("G7", "B"))
+    assert plan["tested_tiles"] == (("G7", "A"), ("G7", "NEUTRE"))
 
 
 def test_local_manifest_worker_duckdb_and_studio_index(
@@ -130,7 +130,7 @@ def test_local_manifest_worker_duckdb_and_studio_index(
     assert parquet_path.exists()
     assert digest["totals"]["total_games"] == 4
     assert "G7:A" in digest["tile_metrics"]
-    assert "G7:B" in digest["tile_metrics"]
+    assert "G7:NEUTRE" in digest["tile_metrics"]
 
     studio_digest, studio_idx = publish_to_studio_digests(
         campaign_name="test_micro_unit",
@@ -369,14 +369,14 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
     ):
         assert isinstance(sf[key], str) and len(sf[key]) > 20
 
-    # 2. Tuiles testées auto-détectées (G7:A et G7:B) + tile_metrics préservé
+    # 2. Tuiles testées auto-détectées (G7:A et G7:NEUTRE) + tile_metrics préservé
     assert [(t["slot"], t["profil"]) for t in digest["tested_tiles_rules"]] == [
         ("G7", "A"),
-        ("G7", "B"),
+        ("G7", "NEUTRE"),
     ]
     for entry in digest["tested_tiles_rules"]:
         assert {"slot", "profil", "nom", "famille", "texte"} <= set(entry.keys())
-    assert set(digest["tile_metrics"].keys()) == {"G7:A", "G7:B"}
+    assert set(digest["tile_metrics"].keys()) == {"G7:A", "G7:NEUTRE"}
 
     # 3. Résultats DuckDB complets : quantiles, CVaR_20%, intervalles inter-blocs, telemetry
     assert digest["totals"]["total_games"] == 16

@@ -134,7 +134,7 @@ Configuration immuable d'une partie sur le socle canonique v6.1 (`P4_2233`, Mode
 
 **Méthodes :**
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
-- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A).
+- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE).
 
 ### Classe `ParcelObs`
 
@@ -375,7 +375,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `machines_on_parcel(self, ray: int, p: int) -> list[int]` — Retourne la liste des types de machines physiquement présentes sur (ray, p).
 - `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
 - `add_permanent_sabotage(self, count: int=1, *, light_case_3: bool=True) -> None` — Ajoute définitivement +count cartes Sabotage (mises de côté pour le remélange 6.3).
-- `rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None` — Reconstitue le paquet Machine hors Sièges/retirées + Sabotages et le mélange.
+- `rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None` — Reconstitue le paquet Machine hors Ratissages/retirées + Sabotages avec mélange stable par carte.
 - `remove_machine_card_from_deck_if_present(self, card_code: int) -> None` — Retire une carte Machine du paquet restant si elle passe en Siège en 1.1.
 - `draw_next_machine_card(self) -> int` — Pioche la prochaine carte du paquet Machine (ou CARD_NONE si paquet épuisé).
 - `get_player_hand(self, seat: int) -> tuple[int, int, int, int, int]` — Retourne (card_code, d1, d2, lecture_m, bound_tactique) pour seat.

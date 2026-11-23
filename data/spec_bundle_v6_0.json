@@ -4,18 +4,18 @@
     "source_studio_version": "v6.1",
     "studio_sha256": {
       "catalog_v6_0.json": {
-        "sha256": "bb27878aac7eb9bb0a3cee39aad6ad0cfeb2224618259ef995e1169c531e6f59",
-        "bytes": 55334,
+        "sha256": "12f71c3ffa32fa7c28700ec41982154b7e74b2c450c1097e852aad809bade9ee",
+        "bytes": 55292,
         "source": "docs/data/catalog_v6_0.json"
       },
       "spec_formelle_v6_0.json": {
-        "sha256": "923165c55b6c846dd9bb7670e613a5c944776aadca20a9d59c4eb2975d18d2d4",
-        "bytes": 25470,
+        "sha256": "88917e7b611e7833f4feea46810e9380b4b361a1dc7e2254622deaad1070e45f",
+        "bytes": 25449,
         "source": "docs/data/spec_formelle_v6_0.json"
       },
       "amazonia_data_v6_0.js": {
-        "sha256": "093aaff907059afe31406234ba28cad06ca782fea159f1ee2c4c01ec62b3e00d",
-        "bytes": 149882,
+        "sha256": "4869b36836a71304b19a48b260a19a26cc301ff5b221dadbd0286e3bbe0d02b1",
+        "bytes": 149861,
         "source": "docs/data/amazonia_data_v6_0.js"
       },
       "livret_v6_0.js": {
@@ -695,7 +695,7 @@
           "Modes CHARGE et ASSAUT (Réglette réversible) : chaque machine est résolue d'un seul tenant (lecture dynamique des cibles -> frappes -> avancée éventuelle sur 3/6 -> gain éventuel de jeton Puissance). En mode CHARGE (Acte 1 cases 1–3 ; Acte 2 cases 4–6) : les jetons Puissance déjà sur la machine sont ignorés dans le calcul du seuil de parade ; gain plafonné à +1 jeton Puissance par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE figé — une attaque Devant lancée hors-plateau depuis la dernière parcelle ne fait jamais gagner de jeton). En mode ASSAUT (Acte 1 cases 4–6 ; Acte 2 cases 1–3 ; et Ratissage permanent) : tous les jetons Puissance comptent dans le seuil de parade ; aucun jeton Puissance n'est gagné. Dégâts non parés : l'Abatteuse coupe TOUS les Arbres debout de la parcelle en Souches et ne touche jamais aux Souches (micro-règle souche supprimée) ; le Bulldozer coupe 1 Arbre en Souche puis retire toutes les Souches non protégées (0/0 = Route Forestière + Repli).",
           "Chaîne stricte des parades à chaque frappe : (1) Bond du Jaguar (Loi auto : 2 jetons bleus défaussés -> toutes frappes restantes de la machine parées + recul) -> (2) Piquée de la Harpie -> (3) Piège autonome SINGLE_STRIKE (dès qu'un jeton Piège est présent sur la parcelle attaquée, il se déclenche de lui-même même avec 0 Défenseur et 0 Insecte sur place, sans consommer les Défenseurs ou Insectes présents, pare exactement cette unique frappe, est immédiatement défaussé et allume uniquement 2. Piégeage) -> (4) Parade classique (Défenseurs seuls -> 1. Parade ; Défenseurs + défausse immédiate des Insectes manquants -> 6. Insecte).",
           "Contact Machine-Nid : tout mouvement de machine (avancée, recul, repli depuis une Route) entrant sur la parcelle d'un Nid non protégé renvoie ce Nid en lisière (reconstructible) et défausse tous les Insectes de la parcelle (Défenseurs et Piège restent).",
-          "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer, ou après une Abatteuse en Ratissage arrachant la dernière Souche sous l'option correspondante) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
+          "Création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer ; l'Abatteuse coupe tous les Arbres debout mais ne retire jamais de Souches) : recul automatique des machines présentes vers la prochaine parcelle non rasée côté bordure, ou vers le cœur uniquement si tout est déjà rasé côté bordure (maintien irréversible du mode Ratissage ; retrait définitif de la partie si tout le rayon est rasé).",
           "Fin des attaques : effets 'à la fin des attaques' (ex. Ruches des Mélipones) et retrait de tout Piège ayant paré au moins 1 frappe durant le tour.",
           "Issue des paris Gardiens, Bouclier de lisière & Vérification de fin de partie (5.3) : retrait des Pièges déclenchés, puis résolution des paris Gardiens (0 Défenseur restant -> pari gagné : le Gardien reste en piste et passe Face 2 s'il est double-face ; >= 1 Défenseur restant -> pari perdu : si Bouclier de lisière SLOT_COLONISATION_GARDIENS=B et >= 1 Insecte sur sa case, défausser 1 Insecte pour garder le Gardien en piste sur sa face actuelle tout en laissant le pari PERDU, sinon retour immédiat en lisière Face 1). Test de fin de partie : priorité absolue au Tour 8 ; aux Tours 1..7, Sommeil du Contremaître (toutes les tuiles Rêves en jeu en bloc continu 1..k) ou Réveil de la Forêt 100 % Piste des Gardiens (les N Défenseurs de la table engagés en 2.2 sur les Gardiens et aucun pari perdu). Si atteint : fin immédiate de la partie et décompte des Arbres debout (0 Repousse Finale automatique de base)."
         ]

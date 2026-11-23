@@ -68,7 +68,8 @@
     "FRAPPE_NON_PAREE",
     "PIEGE_SCOPE",
     "TURN_PARCEL",
-    "SINGLE_STRIKE"
+    "SINGLE_STRIKE",
+    "arrachant la dernière Souche"
   ],
   "banned_in_catalogue_tuiles": [
     "en Siège",

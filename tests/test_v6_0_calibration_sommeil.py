@@ -58,7 +58,8 @@ def test_v6_1_cross_table_digest_by_variant_x_bot_x_n_players(
     assert list(plan["player_counts"]) == [3, 4, 5, 6]
     assert plan["profil_piste"] == "P4_2233"
     assert all(u["n_animaux_sauvages"] >= 1 for u in plan["units"])
-    assert len({u["peuples"] for u in plan["units"]}) == 41
+    assert len({frozenset(u["peuples"]) for u in plan["units"]}) == 41
+    assert len({u["peuples"] for u in plan["units"] if u["n_players"] == 6}) >= 20
 
     micro_manifest: dict[str, Any] = dict(manifest)
     micro_manifest["campaign_name"] = "micro_cross_v6_1"

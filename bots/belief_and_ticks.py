@@ -43,6 +43,7 @@ from engine.state import (
 
 __all__ = (
     "BeliefSummary",
+    "TargetFilter",
     "TargetScorer",
     "build_belief_summary",
     "compute_private_urgency",
@@ -62,6 +63,7 @@ _MIN_2D6_PROBS: tuple[float, ...] = (
 )
 
 TargetScorer = Callable[[PlayerObservation, GameConfig, "BeliefSummary", tuple[Any, ...], bool], float]
+TargetFilter = Callable[[tuple[Any, ...], bool], bool]
 
 
 @runtime_checkable
@@ -526,6 +528,21 @@ def _current_def2_target_public(state: GameState, seat: int) -> tuple[Any, ...] 
     return None
 
 
+def _filter_legal_targets(
+    targets: tuple[Any, ...],
+    target_filter: TargetFilter | None,
+    *,
+    is_first_defender: bool,
+    fallback_if_empty: bool,
+) -> tuple[Any, ...]:
+    if target_filter is None:
+        return targets
+    filtered = tuple(t for t in targets if target_filter(t, is_first_defender))
+    if filtered or not fallback_if_empty:
+        return filtered
+    return targets
+
+
 def resolve_step2_2_from_state(
     state: GameState,
     scorer: TargetScorer,
@@ -534,6 +551,7 @@ def resolve_step2_2_from_state(
     epsilon_base: float = 28.0,
     epsilon_step: float = 12.0,
     counterfactual_open_paravents: bool = False,
+    target_filter: TargetFilter | None = None,
     telemetry: Any | None = None,
 ) -> dict[str, int]:
     """Résout l'Étape 2.2 (pose initiale Ticks 1..3 + jusqu'à K_max passes de révision muette).
@@ -573,7 +591,12 @@ def resolve_step2_2_from_state(
                 state, s, counterfactual_open_paravents=counterfactual_open_paravents
             )
             bel_s = build_belief_summary(obs_s, cfg)
-            legal_2 = list_legal_targets(state, s, is_first_defender=False)
+            legal_2 = _filter_legal_targets(
+                list_legal_targets(state, s, is_first_defender=False),
+                target_filter,
+                is_first_defender=False,
+                fallback_if_empty=True,
+            )
             if not legal_2:
                 apply_step2_def2(
                     state,
@@ -629,12 +652,17 @@ def resolve_step2_2_from_state(
             cur_spot = _current_def2_target_public(state, s)
             if cur_spot is None:
                 continue
-            legal_alt = tuple(
-                t
-                for t in list_legal_targets(
-                    state, s, is_first_defender=False, exclude_own_def2=True
-                )
-                if t != cur_spot
+            legal_alt = _filter_legal_targets(
+                tuple(
+                    t
+                    for t in list_legal_targets(
+                        state, s, is_first_defender=False, exclude_own_def2=True
+                    )
+                    if t != cur_spot
+                ),
+                target_filter,
+                is_first_defender=False,
+                fallback_if_empty=False,
             )
             if not legal_alt:
                 apply_step2_def2(
@@ -712,12 +740,17 @@ def resolve_step2_2_from_state(
                     # Impossible d'allumer 4. Gardien assez de fois pour consommer tous les paris dessus !
                     need_gard_retreat = True
             if need_gard_retreat:
-                legal_non_pari = tuple(
-                    t
-                    for t in list_legal_targets(
-                        state, s, is_first_defender=False, exclude_own_def2=True
-                    )
-                    if t[0] != "GARDIEN_PARI"
+                legal_non_pari = _filter_legal_targets(
+                    tuple(
+                        t
+                        for t in list_legal_targets(
+                            state, s, is_first_defender=False, exclude_own_def2=True
+                        )
+                        if t[0] != "GARDIEN_PARI"
+                    ),
+                    target_filter,
+                    is_first_defender=False,
+                    fallback_if_empty=False,
                 )
                 if legal_non_pari:
                     bel_s = build_belief_summary(obs_s, cfg)
@@ -776,12 +809,17 @@ def resolve_step2_2_from_state(
                     return st_c == LISIERE_UNCONSTRUCTED and nb_cc == 1
                 return True
 
-            legal_viable = tuple(
-                t
-                for t in list_legal_targets(
-                    state, s, is_first_defender=False, exclude_own_def2=True
-                )
-                if _is_viable_fallback(t, obs_s)
+            legal_viable = _filter_legal_targets(
+                tuple(
+                    t
+                    for t in list_legal_targets(
+                        state, s, is_first_defender=False, exclude_own_def2=True
+                    )
+                    if _is_viable_fallback(t, obs_s)
+                ),
+                target_filter,
+                is_first_defender=False,
+                fallback_if_empty=False,
             )
             if legal_viable:
                 bel_s = build_belief_summary(obs_s, cfg)
@@ -883,6 +921,7 @@ def resolve_step2_full_with_ticks(
     epsilon_base: float = 28.0,
     epsilon_step: float = 12.0,
     counterfactual_open_paravents: bool = False,
+    target_filter: TargetFilter | None = None,
     telemetry: Any | None = None,
 ) -> dict[str, int]:
     """Résout intégralement l'Étape 2 (2.1 en Ticks 1..3 puis 2.2 en Ticks 1..3 + révision)."""
@@ -913,7 +952,12 @@ def resolve_step2_full_with_ticks(
                     state, s, counterfactual_open_paravents=counterfactual_open_paravents
                 )
                 bel_s = build_belief_summary(obs_s, cfg)
-                legal_1 = list_legal_targets(state, s, is_first_defender=True)
+                legal_1 = _filter_legal_targets(
+                    list_legal_targets(state, s, is_first_defender=True),
+                    target_filter,
+                    is_first_defender=True,
+                    fallback_if_empty=True,
+                )
                 if not legal_1:
                     apply_step2_def1(
                         state, s, ("PASSER_IMPASSE",), check_legal=False, telemetry=telemetry
@@ -940,6 +984,7 @@ def resolve_step2_full_with_ticks(
             epsilon_base=epsilon_base,
             epsilon_step=epsilon_step,
             counterfactual_open_paravents=counterfactual_open_paravents,
+            target_filter=target_filter,
             telemetry=telemetry,
         )
     return {"passes_executed": 0, "revision_moves": 0}

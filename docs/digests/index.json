@@ -43,51 +43,63 @@
     },
     {
       "id": "baseline_mode4_v5_5",
-      "label": "État des lieux initial Mode 4 sur le socle gelé v5.5 : catalogue complet 32 emplacements (base STANDARD_A + SLOT_BUG_CERVEAU=B Déviation + SLOT_COLONISATION_GARDIENS=B Bouclier de lisière), courbe de progression multi-bots B0 < B1 < B2, tables N=3..6 sur toutes les combinaisons de Peuples (42 tables, min_animaux_sauvages=0), 6 châssis canoniques (chassis_id 0..5), comptabilité defense_attribution et tile_metrics complet sur les 32 emplacements (8 640 parties). (8640 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] État des lieux initial Mode 4 sur le socle gelé v5.5 : catalogue complet 32 emplacements (base STANDARD_A + SLOT_BUG_CERVEAU=B Déviation + SLOT_COLONISATION_GARDIENS=B Bouclier de lisière), courbe de progression multi-bots B0 < B1 < B2, tables N=3..6 sur toutes les combinaisons de Peuples (42 tables, min_animaux_sauvages=0), 6 châssis canoniques (chassis_id 0..5), comptabilité defense_attribution et tile_metrics complet sur les 32 emplacements (8 640 parties). (8640 parties)",
       "file": "digest_baseline_mode4_v5_5.json",
       "campaign": "baseline_mode4_v5_5",
       "generated_at_utc": "2026-11-21T05:29:25Z",
-      "total_games": 8640
+      "total_games": 8640,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "validation_socle_v5_5",
-      "label": "Validation du socle Mode 2 v5.4.7 : partition stricte des 6 déclencheurs (4.2 Nids retiré de 6. Insecte ; 6. Insecte exclusivement en 3.2 Bug ou 5.1 Parade avec dépense >= 1 Insecte), case 4. Gardien verrouillée sur DISTINCT_OPEN_1, Bouclier de lisière SLOT_COLONISATION_GARDIENS=B, et politique B2 corrigée (valorisation réaliste Sabotage 4.1 + arbitrage Migration 4.3 forêt / Bug / Bouclier). Mode 2, bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 5 760 parties. (5760 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] Validation du socle Mode 2 v5.4.7 : partition stricte des 6 déclencheurs (4.2 Nids retiré de 6. Insecte ; 6. Insecte exclusivement en 3.2 Bug ou 5.1 Parade avec dépense >= 1 Insecte), case 4. Gardien verrouillée sur DISTINCT_OPEN_1, Bouclier de lisière SLOT_COLONISATION_GARDIENS=B, et politique B2 corrigée (valorisation réaliste Sabotage 4.1 + arbitrage Migration 4.3 forêt / Bug / Bouclier). Mode 2, bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), 5 760 parties. (5760 parties)",
       "file": "digest_validation_socle_v5_5.json",
       "campaign": "validation_socle_v5_5",
       "generated_at_utc": "2026-11-20T23:13:13Z",
-      "total_games": 5760
+      "total_games": 5760,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "calibration_declencheurs_v5_4",
-      "label": "Calibration Mode 2 v5.4.6 : partition stricte des 6 déclencheurs de la Piste des Gardiens (3.2 : Sabotage > Insecte > Rêve ; 5.1 : Piégeage > Insecte > Parade ; 4.1 sans déclencheur 2/3), Bouclier de lisière sur SLOT_COLONISATION_GARDIENS=B, et duel sur la case 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, reve_advance_mode=CLEAR_RANK_ONLY, gardien_bet_cap_policy=UNIFORM_MAX_2, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=B. (11520 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] Calibration Mode 2 v5.4.6 : partition stricte des 6 déclencheurs de la Piste des Gardiens (3.2 : Sabotage > Insecte > Rêve ; 5.1 : Piégeage > Insecte > Parade ; 4.1 sans déclencheur 2/3), Bouclier de lisière sur SLOT_COLONISATION_GARDIENS=B, et duel sur la case 4. Gardien (DISTINCT_OPEN_1 vs DISTINCT_WON_2). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, reve_advance_mode=CLEAR_RANK_ONLY, gardien_bet_cap_policy=UNIFORM_MAX_2, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=B. (11520 parties)",
       "file": "digest_calibration_declencheurs_v5_4.json",
       "campaign": "calibration_declencheurs_v5_4",
       "generated_at_utc": "2026-11-20T22:00:46Z",
-      "total_games": 11520
+      "total_games": 11520,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "calibration_pari_max2_v5_4",
-      "label": "Calibration Mode 2 v5.4.5 : Éveil de la Forêt 100 % Piste des Gardiens (sortie des Rêves de l'Éveil), plafond de pari Gardiens à 2 Défenseurs max (UNIFORM_MAX_2 vs MAX_2_RES_MAX_1 sur 4. Gardien), et avancée des Rêves (JUMP_PUSH vs CLEAR_RANK_ONLY). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A. (23040 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] Calibration Mode 2 v5.4.5 : Éveil de la Forêt 100 % Piste des Gardiens (sortie des Rêves de l'Éveil), plafond de pari Gardiens à 2 Défenseurs max (UNIFORM_MAX_2 vs MAX_2_RES_MAX_1 sur 4. Gardien), et avancée des Rêves (JUMP_PUSH vs CLEAR_RANK_ONLY). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A. (23040 parties)",
       "file": "digest_calibration_pari_max2_v5_4.json",
       "campaign": "calibration_pari_max2_v5_4",
       "generated_at_utc": "2026-11-20T14:58:40Z",
-      "total_games": 23040
+      "total_games": 23040,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "calibration_mobilisation_croisee_v5_4",
-      "label": "Calibration Mode 2 v5.4.4 : Pari unique sur les Gardiens (max 1 Défenseur/Gardien cases 1..6), consommation symétrique sur les Rêves, et Éveil de la Forêt par mobilisation croisée (Gardiens + Rêves). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A, croisement 2x2 reveil_reves_policy in {PARITY, PARITY_CAP_ONIRIQUE} x reve_advance_mode in {JUMP_PUSH, FREE_SLOT_ONLY}. (23040 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] Calibration Mode 2 v5.4.4 : Pari unique sur les Gardiens (max 1 Défenseur/Gardien cases 1..6), consommation symétrique sur les Rêves, et Éveil de la Forêt par mobilisation croisée (Gardiens + Rêves). Bot B2, N=3..6, toutes combinaisons de Peuples avec A >= 1 Animal Sauvage, 6 châssis canoniques (chassis_id 0..5), reve_activation_mode=1_DEF_1_MACHINE, SLOT_BUG_CERVEAU=B, SLOT_COLONISATION_GARDIENS=A, croisement 2x2 reveil_reves_policy in {PARITY, PARITY_CAP_ONIRIQUE} x reve_advance_mode in {JUMP_PUSH, FREE_SLOT_ONLY}. (23040 parties)",
       "file": "digest_calibration_mobilisation_croisee_v5_4.json",
       "campaign": "calibration_mobilisation_croisee_v5_4",
       "generated_at_utc": "2026-11-20T13:43:51Z",
-      "total_games": 23040
+      "total_games": 23040,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "calibration_reves_fixes_v5_4",
-      "label": "Calibration Mode 2 v5.4.2 : Piste des Tactiques fixe T1..T6, purge Apprentissage 6.1, SLOT_BUG_CERVEAU=B, activation des Rêves en 2.2 (Options A/B/C), bot B2, N=3..6, toutes combinaisons de Peuples (0, 1 et 2 Peuples Oniriques), 6 profils de piste canoniques. (17280 parties)",
+      "label": "[ARCHIVÉ — BIAISÉ v5.5] Calibration Mode 2 v5.4.2 : Piste des Tactiques fixe T1..T6, purge Apprentissage 6.1, SLOT_BUG_CERVEAU=B, activation des Rêves en 2.2 (Options A/B/C), bot B2, N=3..6, toutes combinaisons de Peuples (0, 1 et 2 Peuples Oniriques), 6 profils de piste canoniques. (17280 parties)",
       "file": "digest_calibration_reves_fixes_v5_4.json",
       "campaign": "calibration_reves_fixes_v5_4",
       "generated_at_utc": "2026-11-20T06:04:19Z",
-      "total_games": 17280
+      "total_games": 17280,
+      "status": "biased_legacy_v5_5",
+      "bias_notice": "Bilan historique v5.4.2–v5.5 entaché par l'ancien bug moteur (machines non annulées sous Rêve ne jouant pas la Tactique imprimée en 5.1) et par l'échantillonnage sur cercle fixe. Conservé pour archive uniquement."
     },
     {
       "id": "diagnostic_reveil_zero_degat_v5_4",
