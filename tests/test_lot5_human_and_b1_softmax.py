@@ -68,7 +68,14 @@ def _prepare_step2_state(
         rep_id=rep_id,
     )
     st = GameState(cfg)
-    step_until_decision(st)
+    while st.step < STEP_2_1_DEF1:
+        req_s1 = step_until_decision(st)
+        from engine.core_engine import apply_choice as _ac
+        from engine.primitives import DecisionRequest as _DR
+
+        if not isinstance(req_s1, _DR) or st.step >= STEP_2_1_DEF1:
+            break
+        _ac(st, req_s1.options[0])
     assert st.step == STEP_2_1_DEF1
     if step == STEP_2_2_DEF2:
         for seat in range(cfg.n_players):

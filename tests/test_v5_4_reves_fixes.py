@@ -6,13 +6,15 @@ from __future__ import annotations
 
 from bots.heuristic_engine import play_game_b2
 from engine.core_engine import (
+    DEC_CHOIX_CIBLE_REVE_3_2,
+    apply_choice,
     apply_step2_def1,
     apply_step2_def2,
     insert_reve_on_track,
     list_legal_targets,
     step_until_decision,
 )
-from engine.primitives import prim_permutation_piste
+from engine.primitives import DecisionRequest, prim_permutation_piste
 from engine.state import (
     FACE_DEFINITIF,
     MACHINE_ABATTEUSE,
@@ -63,14 +65,14 @@ def test_reve_construction_rightmost_free_and_jump_push_advance() -> None:
         "R1",
     ]
 
-    # Primitive Mode 4 : Avancée de R1 (index 5) alors que index 4 porte R2 -> SAUTE vers index 3
+    # v6.2 (INV-15) : poussée de bloc contigu vers la gauche (R2, R1 glissent ensemble vers 3, 4)
     assert prim_permutation_piste(st, "ADVANCE_REVE_LEFT", rank_a=5) is True
     assert [code_to_tile_id(st.get_tactique_at_rank(i)) for i in range(6)] == [
         "T1",
         "T2",
         "T3",
-        "R1",
         "R2",
+        "R1",
         "T6",
     ]
 
@@ -111,7 +113,7 @@ def test_step_2_1_and_2_2_reve_activation_open_while_gardien_stays_def2_only() -
 
 def test_reve_activation_1_def_1_machine_and_telemetry() -> None:
     def _run_case(n_defs: int) -> tuple[int, int, int | None, int, int, int]:
-        cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=5423)
+        cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=5423)
         st = GameState(cfg)
         st.set_tactique_at_rank(4, TILE_R_BASE + 1)  # R1 sur case 5 (sous-jacente : T5)
         st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
@@ -125,10 +127,14 @@ def test_reve_activation_1_def_1_machine_and_telemetry() -> None:
         st.set_player_hand(3, 0, 0, 0, 0, 0)
         for s in range(n_defs):
             st.place_defender_reve_activation(s, 5, FACE_DEFINITIF)
-        st.set_parcel_insectes(2, 1, 1)
+        st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3 (I présent)
         st.step = STEP_3_2_REVEAL
         trk = TelemetryTracker()
-        _ = step_until_decision(st, telemetry=trk)
+        res = step_until_decision(st, telemetry=trk)
+        if isinstance(res, DecisionRequest) and res.decision_type == DEC_CHOIX_CIBLE_REVE_3_2:
+            assert (1,) in res.options
+            apply_choice(st, (1,), telemetry=trk)
+            _ = step_until_decision(st, telemetry=trk)
         ts = trk.summary()
         return (
             st.get_player_hand(0)[4],
@@ -139,7 +145,7 @@ def test_reve_activation_1_def_1_machine_and_telemetry() -> None:
             ts.machines_bypassed_inactive_reve,
         )
 
-    # Scellé v6.1 : 1_DEF_1_MACHINE + blocage pur (le Rêve reste en index 4)
+    # v6.2 : 1_DEF_1_MACHINE avec choix propriétaire sur surcharge + blocage pur (Rêve reste en index 4)
     assert _run_case(0) == (5, 5, 4, 0, 0, 2)
     assert _run_case(1) == (5, 0, 4, 1, 1, 1)
     assert _run_case(2) == (0, 0, 4, 1, 2, 0)

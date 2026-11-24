@@ -382,9 +382,11 @@ def _targeted_parcels_after_revelation(state: GameState) -> list[tuple[int, int]
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st, _ = state.get_machine_pos_status(r, mt)
+            _, _, attacked = state.get_machine_turn_stats(r, mt)
             if (
                 st == MACHINE_STATUS_RATISSAGE
                 and pos > 0
+                and not attacked
                 and not state.is_route_forestiere(r, pos)
                 and (r, pos) not in targeted
             ):
@@ -395,7 +397,8 @@ def _targeted_parcels_after_revelation(state: GameState) -> list[tuple[int, int]
         if 1 <= card <= 12 and bound_t in TACTIQUES_SPEC:
             rm, mt = (card - 1) // 2, (card - 1) % 2
             pos, st, _ = state.get_machine_pos_status(rm, mt)
-            if st == MACHINE_STATUS_NORMAL and pos > 0:
+            _, _, attacked = state.get_machine_turn_stats(rm, mt)
+            if st == MACHINE_STATUS_NORMAL and pos > 0 and not attacked:
                 spec = TACTIQUES_SPEC[bound_t]
                 for c_kind in spec.cibles:
                     if c_kind == "SUR_PLACE" and not state.is_route_forestiere(rm, pos):
@@ -1098,6 +1101,8 @@ def g12_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
 @register_tile("G13", "A", hooks=(HOOK_GARDIEN_OUVERTURE, HOOK_EFFECT_RESUME))
 def g13_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
     """Pose 1 Insecte sur une parcelle non rasée portant >= 1 Défenseur."""
+    if not state.cfg.has_insectes_peuple:
+        return None
     if hook == HOOK_GARDIEN_OUVERTURE:
         n = state.cfg.n_players
         p_max = state.cfg.p_max
@@ -1198,6 +1203,8 @@ def g14_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
 @register_tile("G15", "A", hooks=(HOOK_GARDIEN_OUVERTURE, HOOK_EFFECT_RESUME))
 def g15_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> Any:
     """Fait migrer immédiatement 1 Insecte de la roue vers une case 1..6 de Bug ou Colonie."""
+    if not state.cfg.has_insectes_peuple:
+        return None
     if hook == HOOK_GARDIEN_OUVERTURE:
         n = state.cfg.n_players
         p_max = state.cfg.p_max

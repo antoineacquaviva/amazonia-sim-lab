@@ -61,6 +61,7 @@ from engine.state import (
     MATRICE_PAIRES,
     PIEGE_ACTIF,
     STEP_1_3_DICE,
+    STEP_2_1_DEF1,
     STEP_3_2_REVEAL,
     STEP_4_1_FURTIVITE,
     STEP_5_3_END_CHECK,
@@ -189,30 +190,30 @@ def test_panier2_tile_driven_reve_advance_and_sommeil_contremaitre_5_3() -> None
 
 def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -> None:
     """Ouverture Gardien, Face 1 -> Face 2 en 5.3, cascade plate 1..6, Lois passives & min/max dé."""
-    # 1) Cascade plate 1..6 + Face 1 -> Face 2 sur pari gagné en 5.3 (G9:A sur case 3 + G1:A sur case 4)
+    # 1) Cascade plate 1..6 + Face 1 -> Face 2 sur pari gagné en 5.3 (G9:A sur case 3 + G1:A sur case 6 Résonance)
     cfg = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "I"), exp_seed=7404)
     st = GameState(cfg)
     st.tour = 2
     st.set_gardien_at_case(3, 9, face=1)
-    st.set_gardien_at_case(4, 1, face=1)
+    st.set_gardien_at_case(6, 1, face=1)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(1, 6, FACE_DEFINITIF)
     sab_before = st.sabotage_pending_count
 
-    # Déclenchement case 3 -> ouvre G9:A (+1 Sabotage) -> allume case 4 (Résonance) -> ouvre G1:A !
+    # Déclenchement case 3 -> ouvre G9:A (+1 Sabotage) -> allume case 6 (Résonance) -> ouvre G1:A !
     st.light_trigger(3)
     opened = sweep_gardiens(st)
     assert opened == 2
     assert st.sabotage_pending_count == sab_before + 1
     assert st.count_gardien_pari_defenders_at_case(3) == 0
-    assert st.count_gardien_pari_defenders_at_case(4) == 0
+    assert st.count_gardien_pari_defenders_at_case(6) == 0
     assert st.get_gardien_at_case(3) == (9, 1)  # Reste Face 1 jusqu'en 5.3
 
     st.step = STEP_5_3_END_CHECK
     res_53 = step_until_decision(st)
     assert not isinstance(res_53, GameOver)
     assert st.get_gardien_at_case(3) == (9, 2)  # Passé Face 2 en 5.3 sur pari gagné !
-    assert st.get_gardien_at_case(4) == (1, 2)
+    assert st.get_gardien_at_case(6) == (1, 2)
 
     # 2) Loi passive d'inversion min/max de lecture du dé secret via HOOK_1_3_LECTURE_DE
     def _invert_die_to_max(state: GameState, _hook: str, ctx: dict[str, Any]) -> None:
@@ -236,7 +237,11 @@ def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -
         for s in range(4):
             st_d.set_player_hand(s, machine_card_code(s, MACHINE_ABATTEUSE), 0, 0, 0, 0)
         st_d.step = STEP_1_3_DICE
-        _ = step_until_decision(st_d)
+        while st_d.step < STEP_2_1_DEF1:
+            req_d = step_until_decision(st_d)
+            if not isinstance(req_d, DecisionRequest) or st_d.step >= STEP_2_1_DEF1:
+                break
+            apply_choice(st_d, req_d.options[0])
         checked_diff = 0
         for s in range(4):
             _, d1, d2, lec_m, _ = st_d.get_player_hand(s)

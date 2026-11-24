@@ -325,6 +325,8 @@ def r5_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
 @register_tile("R6", "A", hooks=(HOOK_3_2_OUVERTURE_REVE, HOOK_EFFECT_RESUME))
 def r6_a_handler(state: GameState, hook: str, ctx: dict[str, Any]) -> None:
     """Pose 1 Insecte sur une parcelle non rasée d'un rayon H ou I (light_trigger=False)."""
+    if not state.cfg.has_insectes_peuple:
+        return
     if hook == HOOK_3_2_OUVERTURE_REVE:
         hi_rays = _rays_for_peuples(state, "H", "I")
         if not hi_rays:

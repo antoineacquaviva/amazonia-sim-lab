@@ -12,6 +12,7 @@ from pathlib import Path
 from bots.heuristic_engine import play_game_b2
 from campaigns.worker_main import _execute_manifest_unit, resolve_manifest_plan
 from engine.core_engine import (
+    DEC_BOUCLIER_LISIERE_5_3,
     DEC_POSE_PIEGE_FURTIVITE_4_1,
     _advance_continuation,
     _resolve_nid_block,
@@ -51,12 +52,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger() -> None:
-    """Partition stricte 3.2 (3. Sabotage > 6. Insecte Bug > 5. Rêve actif) et 4.1 sans déclencheur 2/3."""
+    """Séquence 3.2 v6.2 (3. Sabotage -> 5. Insecte Bug -> 4. Rêve actif y compris sur machine déviée C3-04) et 4.1 sans déclencheur 2/3."""
     load_all_effects()
     cfg = GameConfig(
         n_players=4,
         mode=2,
-        peuples=("M", "R", "O", "H"),
+        peuples=("M", "R", "O", "I"),
     )
     st = GameState(cfg)
     st.tour = 2
@@ -67,17 +68,17 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
     # Poser 1 Bug sur le rang 4 (case 4) pour dévier le siège 1 vers le rang 5 (Rêve défendu !)
     st.set_bugs_at_case(4, 1)
 
-    # Placer des Gardiens avec paris sur cases 3, 5, 6 (1 Défenseur chacun)
+    # Placer des Gardiens avec paris sur cases 3 (Sabotage), 4 (Rêve), 5 (Insecte)
     st.set_gardien_at_case(3, 1, face=1)
-    st.set_gardien_at_case(5, 2, face=1)
-    st.set_gardien_at_case(6, 3, face=1)
+    st.set_gardien_at_case(4, 2, face=1)
+    st.set_gardien_at_case(5, 3, face=1)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
 
     # Mains sous paravent :
     # - Siège 0 : CARD_SABOTAGE -> allume 3. Sabotage uniquement
-    # - Siège 1 : Machine (ray 0 Abatteuse) dé M=4 -> déviée par Bug vers M=5 (Rêve) -> allume 6. Insecte UNIQUEMENT (PAS 5. Rêve !)
+    # - Siège 1 : Machine (ray 0 Abatteuse) dé M=4 -> déviée par Bug vers M=5 (Rêve) -> allume 5. Insecte ET 4. Rêve (C3-04 v6.2)
     # - Siège 2 : Machine (ray 1 Abatteuse) dé M=2 -> pas sur Rêve, pas de Bug -> 0 déclencheur
     # - Siège 3 : CARD_SABOTAGE -> 2e Sabotage (mais case 3 n'a qu'1 Déf)
     st.set_player_hand(0, CARD_SABOTAGE, 0, 0, 0, 0)
@@ -98,37 +99,39 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
         res_c = _advance_continuation(st)
         assert res_c is None
 
-    # Vérification de la partition stricte :
+    # Vérification v6.2 (INV-09 & INV-15 / C3-04) :
     # - 3. Sabotage s'est allumée (siège 0/3) -> Gardien 3 consommé
     assert st.count_gardien_pari_consumed_at_case(3) == 1
-    # - 6. Insecte s'est allumée (déviation Bug siège 1) -> Gardien 6 consommé
-    assert st.count_gardien_pari_consumed_at_case(6) == 1
-    # - 5. Rêve NE S'EST PAS ALLUMÉE car siège 1 avait déjà consommé son déclencheur sur 6. Insecte !
-    assert st.count_gardien_pari_consumed_at_case(5) == 0
-    assert st.count_gardien_pari_defenders_at_case(5) == 1
+    # - 5. Insecte s'est allumée (déviation Bug siège 1) -> Gardien 5 consommé
+    assert st.count_gardien_pari_consumed_at_case(5) == 1
+    # - 4. Rêve s'est AUSSI allumée car le Rêve a annulé >= 1 machine (déviée ou non, C3-04) !
+    assert st.count_gardien_pari_consumed_at_case(4) == 1
+    assert st.count_gardien_pari_defenders_at_case(4) == 0
 
-    # Cas 2 (v6.1 REVE_TRIG=ACTIF figé) :
-    # - Rêve SANS Défenseur -> inerte, 5. Rêve NE S'ALLUME PAS
+    # Cas 2 (REVE_TRIG=ACTIF) :
+    # - Rêve SANS Défenseur -> inerte, 4. Rêve NE S'ALLUME PAS
     st2_inert = GameState(cfg)
     st2_inert.tour = 2
     st2_inert.set_tactique_at_rank(4, TILE_R_BASE + 3)  # R3 sur case 5, 0 Défenseur
-    st2_inert.set_gardien_at_case(5, 2, face=1)
-    st2_inert.place_defender_gardien_pari(0, 5, FACE_DEFINITIF)
+    st2_inert.set_gardien_at_case(4, 2, face=1)
+    st2_inert.place_defender_gardien_pari(0, 4, FACE_DEFINITIF)
     st2_inert.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)
     for s in (1, 2, 3):
         st2_inert.set_player_hand(s, machine_card_code(s, MACHINE_ABATTEUSE), 1, 1, 1, 0)
     st2_inert.step = STEP_3_2_REVEAL
     _run_step_3_2(st2_inert)
+    while st2_inert._continuation:
+        assert _advance_continuation(st2_inert) is None
     assert st2_inert.get_player_hand(0)[4] == 5
-    assert st2_inert.count_gardien_pari_consumed_at_case(5) == 0
+    assert st2_inert.count_gardien_pari_consumed_at_case(4) == 0
 
-    # - Rêve AVEC 1 Défenseur (posé en 2.1) -> annule la machine ET allume 5. Rêve !
+    # - Rêve AVEC 1 Défenseur (posé en 2.1) -> annule la machine ET allume 4. Rêve !
     st2 = GameState(cfg)
     st2.tour = 2
     st2.set_tactique_at_rank(4, TILE_R_BASE + 3)  # R3 sur case 5
     st2.place_defender_reve_activation(1, 5, FACE_DEFINITIF, def_idx=0)
-    st2.set_gardien_at_case(5, 2, face=1)
-    st2.place_defender_gardien_pari(0, 5, FACE_DEFINITIF)
+    st2.set_gardien_at_case(4, 2, face=1)
+    st2.place_defender_gardien_pari(0, 4, FACE_DEFINITIF)
     st2.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)
     for s in (1, 2, 3):
         st2.set_player_hand(s, machine_card_code(s, MACHINE_ABATTEUSE), 1, 1, 1, 0)
@@ -137,8 +140,8 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
     while st2._continuation:
         assert _advance_continuation(st2) is None
     assert st2.get_player_hand(0)[4] == 0
-    assert st2.count_gardien_pari_consumed_at_case(5) == 1
-    assert st2.count_gardien_pari_defenders_at_case(5) == 0
+    assert st2.count_gardien_pari_consumed_at_case(4) == 1
+    assert st2.count_gardien_pari_defenders_at_case(4) == 0
 
     # Cas 3 : Furtivité 4.1 « Chaud vs Calme » (pose d'un Piège et acquisition d'un Sabotage) N'allume ni 2. Piégeage ni 3. Sabotage !
     st3 = GameState(cfg)
@@ -172,19 +175,19 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
 
 
 def test_strict_partition_5_1_piegeage_gt_insecte_gt_parade() -> None:
-    """Partition stricte 5.1 (au plus 1 déclencheur par frappe bloquée) : 2. Piégeage > 6. Insecte > 1. Parade."""
+    """Partition stricte 5.1 (au plus 1 déclencheur par frappe bloquée) : 2. Piégeage > 5. Insecte > 1. Parade."""
     load_all_effects()
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"))
 
-    # Cas A : Frappe arrêtée par un Piège armé -> allume 2. Piégeage UNIQUEMENT (PAS 1. Parade ni 6. Insecte)
+    # Cas A : Frappe arrêtée par un Piège armé -> allume 2. Piégeage UNIQUEMENT (PAS 1. Parade ni 5. Insecte)
     st_a = GameState(cfg)
     st_a.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_a.set_gardien_at_case(1, 1, face=1)
     st_a.set_gardien_at_case(2, 2, face=1)
-    st_a.set_gardien_at_case(6, 3, face=1)
+    st_a.set_gardien_at_case(5, 3, face=1)
     st_a.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_a.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st_a.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_a.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     st_a.set_parcel_piege(0, 1, PIEGE_ACTIF)
     st_a.set_parcel_defenseurs(0, 1, 1)
     st_a.set_parcel_insectes(0, 1, 2)
@@ -192,24 +195,24 @@ def test_strict_partition_5_1_piegeage_gt_insecte_gt_parade() -> None:
     resolve_single_machine_attack(st_a, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
     assert st_a.count_gardien_pari_consumed_at_case(2) == 1
     assert st_a.count_gardien_pari_consumed_at_case(1) == 0
-    assert st_a.count_gardien_pari_consumed_at_case(6) == 0
+    assert st_a.count_gardien_pari_consumed_at_case(5) == 0
 
-    # Cas B : Parade classique qui défausse >= 1 Insecte -> allume 6. Insecte UNIQUEMENT (PAS 1. Parade ni 2. Piégeage)
+    # Cas B : Parade classique qui défausse >= 1 Insecte -> allume 5. Insecte UNIQUEMENT (PAS 1. Parade ni 2. Piégeage)
     st_b = GameState(cfg)
     st_b.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_b.set_gardien_at_case(1, 1, face=1)
     st_b.set_gardien_at_case(2, 2, face=1)
-    st_b.set_gardien_at_case(6, 3, face=1)
+    st_b.set_gardien_at_case(5, 3, face=1)
     st_b.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_b.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st_b.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_b.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     # Seuil sur p=1 (P4_2233, T1) = 2 : 1 Défenseur + 1 Insecte -> défausse 1 Insecte
     st_b.set_parcel_defenseurs(0, 1, 1)
     st_b.set_parcel_insectes(0, 1, 1)
 
     resolve_single_machine_attack(st_b, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1])
     assert st_b.get_parcel_insectes(0, 1) == 0
-    assert st_b.count_gardien_pari_consumed_at_case(6) == 1
+    assert st_b.count_gardien_pari_consumed_at_case(5) == 1
     assert st_b.count_gardien_pari_consumed_at_case(1) == 0
     assert st_b.count_gardien_pari_consumed_at_case(2) == 0
 
@@ -218,10 +221,10 @@ def test_strict_partition_5_1_piegeage_gt_insecte_gt_parade() -> None:
     st_c.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_c.set_gardien_at_case(1, 1, face=1)
     st_c.set_gardien_at_case(2, 2, face=1)
-    st_c.set_gardien_at_case(6, 3, face=1)
+    st_c.set_gardien_at_case(5, 3, face=1)
     st_c.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_c.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st_c.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_c.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     # Seuil sur p=1 = 2 : 2 Défenseurs (+ 1 Insecte non dépensé !) -> 0 Insecte défaussé -> 1. Parade uniquement
     st_c.set_parcel_defenseurs(0, 1, 2)
     st_c.set_parcel_insectes(0, 1, 1)
@@ -230,11 +233,11 @@ def test_strict_partition_5_1_piegeage_gt_insecte_gt_parade() -> None:
     assert st_c.get_parcel_insectes(0, 1) == 1
     assert st_c.count_gardien_pari_consumed_at_case(1) == 1
     assert st_c.count_gardien_pari_consumed_at_case(2) == 0
-    assert st_c.count_gardien_pari_consumed_at_case(6) == 0
+    assert st_c.count_gardien_pari_consumed_at_case(5) == 0
 
 
 def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
-    """v5.4.7 : la production d'un Nid en 4.2 crée des Insectes mais n'allume JAMAIS 6. Insecte."""
+    """La production d'un Nid en 4.2 crée des Insectes mais n'allume JAMAIS 5. Insecte."""
     load_all_effects()
     cfg = GameConfig(
         n_players=4,
@@ -243,33 +246,33 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
     )
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(6, 1, face=1)
-    st.place_defender_gardien_pari(0, 6, FACE_DEFINITIF)
+    st.set_gardien_at_case(5, 1, face=1)
+    st.place_defender_gardien_pari(0, 5, FACE_DEFINITIF)
     st.set_parcel_nid(0, 1, 1, active_ce_tour=False)
     st.set_parcel_insectes(0, 1, 0)
 
-    # Production 4.2 (0 Insecte -> +1 Insecte) : NE DOIT PAS allumer 6. Insecte ni ouvrir le Gardien !
+    # Production 4.2 (0 Insecte -> +1 Insecte) : NE DOIT PAS allumer 5. Insecte ni ouvrir le Gardien !
     _resolve_nid_block(st, 1)
     assert st.get_parcel_insectes(0, 1) == 1
-    assert not st.is_trigger_lit(6)
-    assert st.count_gardien_pari_consumed_at_case(6) == 0
-    assert st.count_gardien_pari_defenders_at_case(6) == 1
+    assert not st.is_trigger_lit(5)
+    assert st.count_gardien_pari_consumed_at_case(5) == 0
+    assert st.count_gardien_pari_defenders_at_case(5) == 1
 
-    # Production 4.2 à seuil +2 (2 Insectes -> +2 Insectes = 4) : toujours AUCUN déclenchement 6. Insecte !
+    # Production 4.2 à seuil +2 (2 Insectes -> +2 Insectes = 4) : toujours AUCUN déclenchement 5. Insecte !
     st.set_parcel_insectes(0, 1, 2)
     st.set_nid_activated(1, False)
     _resolve_nid_block(st, 1)
     assert st.get_parcel_insectes(0, 1) == 4
-    assert not st.is_trigger_lit(6)
-    assert st.count_gardien_pari_consumed_at_case(6) == 0
-    assert st.count_gardien_pari_defenders_at_case(6) == 1
+    assert not st.is_trigger_lit(5)
+    assert st.count_gardien_pari_consumed_at_case(5) == 0
+    assert st.count_gardien_pari_defenders_at_case(5) == 1
 
 
 def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
-    """Case 4. Gardien scellée sur la règle native DISTINCT_OPEN_1 (anti-boucle conservé)."""
+    """Case 6. Résonance (v6.2) sur la règle native DISTINCT_OPEN_1 (anti-boucle conservé)."""
     load_all_effects()
 
-    # 1re ouverture de chaque autre Gardien distinct allume 4 ; 2e ouverture du même NON
+    # 1re ouverture de chaque autre Gardien distinct allume 6 ; 2e ouverture du même NON
     cfg1 = GameConfig(
         n_players=5,
         mode=2,
@@ -278,34 +281,34 @@ def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
     st1 = GameState(cfg1)
     st1.set_gardien_at_case(1, 1, face=1)
     st1.set_gardien_at_case(2, 2, face=1)
-    st1.set_gardien_at_case(4, 3, face=1)
+    st1.set_gardien_at_case(6, 3, face=1)
     st1.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st1.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
     st1.place_defender_gardien_pari(2, 2, FACE_DEFINITIF)
-    st1.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
-    st1.place_defender_gardien_pari(4, 4, FACE_DEFINITIF)
+    st1.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
+    st1.place_defender_gardien_pari(4, 6, FACE_DEFINITIF)
 
-    # 1re ouverture case 1 -> allume 4 -> ouvre 4 (anti-boucle : 4 ne se ré-allume pas)
+    # 1re ouverture case 1 -> allume 6 -> ouvre 6 (anti-boucle : 6 ne se ré-allume pas)
     st1.light_trigger(1)
     assert sweep_gardiens(st1) == 2
-    assert st1.count_gardien_pari_consumed_at_case(4) == 1
-    assert st1.count_gardien_pari_defenders_at_case(4) == 1
+    assert st1.count_gardien_pari_consumed_at_case(6) == 1
+    assert st1.count_gardien_pari_defenders_at_case(6) == 1
 
-    # 2e ouverture du MÊME Gardien (case 1) -> n'allume PAS 4 !
+    # 2e ouverture du MÊME Gardien (case 1) -> n'allume PAS 6 !
     st1.light_trigger(1)
     assert sweep_gardiens(st1) == 1
-    assert st1.count_gardien_pari_consumed_at_case(4) == 1
-    assert st1.count_gardien_pari_defenders_at_case(4) == 1
+    assert st1.count_gardien_pari_consumed_at_case(6) == 1
+    assert st1.count_gardien_pari_defenders_at_case(6) == 1
 
-    # 1re ouverture d'un 2e autre Gardien distinct (case 2) -> allume 4 -> consomme le 2e Déf sur 4 !
+    # 1re ouverture d'un 2e autre Gardien distinct (case 2) -> allume 6 -> consomme le 2e Déf sur 6 !
     st1.light_trigger(2)
     assert sweep_gardiens(st1) == 2
-    assert st1.count_gardien_pari_consumed_at_case(4) == 2
-    assert st1.count_gardien_pari_defenders_at_case(4) == 0
+    assert st1.count_gardien_pari_consumed_at_case(6) == 2
+    assert st1.count_gardien_pari_defenders_at_case(6) == 0
 
 
 def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
-    """Bouclier de lisière natif : sauve la tuile en 5.3 contre 1 Insecte, mais le pari reste PERDU."""
+    """Bouclier de lisière facultatif (INV-18) : sauve la tuile en 5.3 contre 1 Insecte, mais le pari reste PERDU."""
     load_all_effects()
     cfg = GameConfig(
         n_players=4,
@@ -350,11 +353,14 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     st.light_trigger(2)
     sweep_gardiens(st)
 
-    # Le pari sauvé par Bouclier de lisière doit quand même rester PERDU pour l'Éveil !
+    # En 5.3, I choisit d'utiliser le Bouclier ; le pari reste PERDU pour l'Éveil !
     trk = TelemetryTracker()
     st.step = STEP_5_3_END_CHECK
     res = step_until_decision(st, telemetry=trk)
-    assert not isinstance(res, GameOver), "Un pari sauvé par Bouclier de lisière reste PERDU pour l'Éveil !"
+    assert isinstance(res, DecisionRequest) and res.decision_type == DEC_BOUCLIER_LISIERE_5_3
+    apply_choice(st, "UTILISER_BOUCLIER", telemetry=trk)
+    res_after = step_until_decision(st, telemetry=trk)
+    assert not isinstance(res_after, GameOver), "Un pari sauvé par Bouclier de lisière reste PERDU pour l'Éveil !"
 
     # Case 1 : Bouclier a défaussé l'Insecte, G1 reste en piste sur Face 1
     assert st.get_colonie_at_case(1) == 0

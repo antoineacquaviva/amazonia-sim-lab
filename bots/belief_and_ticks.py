@@ -9,6 +9,8 @@ from typing import Any, Protocol, runtime_checkable
 
 from engine.core_engine import (
     advance_step2_to_2_2,
+    apply_mammifere_duel_choice,
+    apply_oiseau_plume_choice,
     apply_step2_def1,
     apply_step2_def2,
     clear_step2_pending_wait,
@@ -18,7 +20,9 @@ from engine.core_engine import (
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
     CANONICAL_DOTATION,
+    CARD_ECAILLE,
     CARD_SABOTAGE,
+    DUEL_TERRITOIRE_TENU,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
@@ -28,10 +32,14 @@ from engine.state import (
     MAX_P,
     NUM_PARCELS,
     PIEGE_ACTIF,
+    PLUME_CALME,
+    PLUME_CHAUD,
+    PLUME_KIND_RAY,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     TACTIQUES_SPEC,
     TRACK_LEN,
+    TRIG_RESONANCE,
     GameConfig,
     GameState,
     PlayerObservation,
@@ -119,9 +127,9 @@ def _next_non_razed_obs(obs: PlayerObservation, p_max: int, r: int, from_p: int)
 def _machine_effective_tokens_obs(
     machines: tuple[Any, ...], r: int, m_type: int
 ) -> tuple[int, int]:
+    """Jetons physiques (rouges, bleus) de la machine (v6.2 : zéro +1 virtuel en Ratissage, INV-12)."""
     m_self = machines[r * 2 + m_type]
-    rouges = m_self.rouges + (1 if m_self.status == MACHINE_STATUS_RATISSAGE else 0)
-    return rouges, m_self.bleus
+    return m_self.rouges, m_self.bleus
 
 
 def _prob_at_least_k(probs: list[float], k: int) -> float:
@@ -171,7 +179,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
     own_hand = obs.hand_of(own_seat)
     machines = obs.machines
 
-    drew_sab = (not own_hand.has_card) or (own_hand.card == CARD_SABOTAGE)
+    drew_sab = (not own_hand.has_card) or (own_hand.card in (CARD_SABOTAGE, CARD_ECAILLE))
     own_cancelled = False
     own_cancel_prob = 0.0
 
@@ -244,7 +252,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
                 if p_dev is not None:
                     _add_strike(r, m_type, p_dev, spec.mod_seuil, prob, is_charge=chg)
 
-    # 1. Machines en Ratissage : certitude publique (prob = 1.0, ASSAUT permanent : SUR_PLACE, +1 rouge imprimé)
+    # 1. Machines en Ratissage : certitude publique (prob = 1.0, ASSAUT permanent : SUR_PLACE, jetons physiques)
     normal_deck_machines: list[tuple[int, int, int]] = []
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -272,7 +280,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
         if h.card is None:
             unknown_seats.append(s)
             continue
-        if h.card == CARD_SABOTAGE:
+        if h.card in (CARD_SABOTAGE, CARD_ECAILLE):
             known_sabotages += 1
             continue
         if 1 <= h.card <= 2 * n:
@@ -319,7 +327,7 @@ def build_belief_summary(obs: PlayerObservation, cfg: GameConfig) -> BeliefSumma
             item for item in normal_deck_machines if item[0] not in known_machine_cards
         ]
         m_rem = len(unseen_machines)
-        sab_rem = max(0, obs.sabotage_deck_count - known_sabotages)
+        sab_rem = max(0, obs.sabotage_deck_count + obs.ecaille_deck_count - known_sabotages)
         denom = max(1, m_rem + sab_rem)
         p_sab_prior = sab_rem / denom
 
@@ -784,6 +792,33 @@ def _filter_legal_targets(
     return targets
 
 
+def _apply_step2_tick_accessories(
+    state: GameState,
+    seat: int,
+    target: tuple[Any, ...],
+    obs: PlayerObservation,
+    belief: BeliefSummary,
+) -> None:
+    """Active les accessoires Step 2 (M Duel DEFI, O Plume de Vigie) de manière isolée sur `obs`."""
+    cfg = state.cfg
+    if not cfg.accessories_enabled:
+        return
+    p_code = cfg.peuples[seat]
+    if p_code == "M" and target[0] == "FORET":
+        r_m, p_m = int(target[1]), int(target[2])
+        if obs.duel_state != DUEL_TERRITOIRE_TENU and not obs.is_route(r_m, p_m):
+            idx_m = r_m * MAX_P + (p_m - 1)
+            if belief.parcel_strike_prob[idx_m] >= 0.15 or obs.duel_state == 0:
+                apply_mammifere_duel_choice(state, True, r_m, p_m)
+    elif p_code == "O" and not obs.oiseau_plume[3]:
+        own_h = obs.hand_of(seat)
+        if own_h.card is not None and 1 <= own_h.card <= 2 * obs.n_players:
+            r_o, _ = unpack_machine_card(own_h.card)
+            apply_oiseau_plume_choice(state, (PLUME_CHAUD, PLUME_KIND_RAY, r_o))
+        elif (not own_h.has_card) or own_h.card in (CARD_SABOTAGE, CARD_ECAILLE):
+            apply_oiseau_plume_choice(state, (PLUME_CALME, PLUME_KIND_RAY, seat))
+
+
 def resolve_step2_2_from_state(
     state: GameState,
     scorer: TargetScorer,
@@ -861,6 +896,7 @@ def resolve_step2_2_from_state(
                 apply_step2_def2(
                     state, s, (act_kind, target_2), check_legal=False, telemetry=telemetry
                 )
+                _apply_step2_tick_accessories(state, s, target_2, obs_s, bel_s)
             remaining.remove(s)
 
     # 2. Passes de révision 1..max_passes par gain marginal Delta_V_i > epsilon_r
@@ -937,6 +973,7 @@ def resolve_step2_2_from_state(
                     telemetry=telemetry,
                 )
                 if moved:
+                    _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
                     moved_in_pass += 1
                     total_rev_moves += 1
             else:
@@ -970,16 +1007,16 @@ def resolve_step2_2_from_state(
             if cfg.mode == 2 and not eveil_valid:
                 # En Mode 2 neutre, parier n'a de sens que pour l'Éveil 100 % Gardiens (Tours 1..7)
                 need_gard_retreat = True
-            if pari_c == 4:
-                res_bets = obs_s.gardien_pari_defenders(4)
+            if pari_c == TRIG_RESONANCE:
+                res_bets = obs_s.gardien_pari_defenders(TRIG_RESONANCE)
                 distinct_other_cases = sum(
                     1
-                    for ck in (1, 2, 3, 5, 6)
+                    for ck in (1, 2, 3, 4, 5)
                     if obs_s.gardien_present_at_case(ck)
                     and obs_s.gardien_pari_defenders(ck) >= 1
                 )
                 if distinct_other_cases < res_bets:
-                    # Impossible d'allumer 4. Gardien assez de fois pour consommer tous les paris dessus !
+                    # Impossible d'allumer 6. Résonance assez de fois pour consommer tous les paris dessus !
                     need_gard_retreat = True
             if need_gard_retreat:
                 legal_non_pari = _filter_legal_targets(
@@ -1013,6 +1050,7 @@ def resolve_step2_2_from_state(
                         telemetry=telemetry,
                     )
                     if moved:
+                        _apply_step2_tick_accessories(state, s, fallback_t, obs_s, bel_s)
                         total_rev_moves += 1
 
     # 3b. Retrait propre en fin de passes « en réflexion » des Défenseurs restés seuls (1/2) sur un
@@ -1084,6 +1122,7 @@ def resolve_step2_2_from_state(
                         telemetry=telemetry,
                     )
                     if moved:
+                        _apply_step2_tick_accessories(state, s, fallback_t, obs_s, bel_s)
                         total_rev_moves += 1
 
     if post_revision_hook is not None and max_passes > 0:
@@ -1219,6 +1258,7 @@ def resolve_step2_full_with_ticks(
                         sous_etape_salt=210 + current_tick,
                     )
                     apply_step2_def1(state, s, t_best, check_legal=False, telemetry=telemetry)
+                    _apply_step2_tick_accessories(state, s, t_best, obs_s, bel_s)
                 rem_1.remove(s)
         advance_step2_to_2_2(state, telemetry=telemetry)
 

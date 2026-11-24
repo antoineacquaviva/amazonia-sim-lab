@@ -100,10 +100,10 @@ def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_single_strike() -> 
     st0.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st0.set_gardien_at_case(1, 1, 1)
     st0.set_gardien_at_case(2, 2, 1)
-    st0.set_gardien_at_case(6, 3, 1)
+    st0.set_gardien_at_case(5, 3, 1)
     st0.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st0.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st0.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st0.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     st0.set_parcel_piege(0, 1, PIEGE_ACTIF)
     st0.set_parcel_defenseurs(0, 1, 0)
     st0.set_parcel_insectes(0, 1, 0)
@@ -114,7 +114,7 @@ def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_single_strike() -> 
     assert st0.get_parcel_piege(0, 1) == PIEGE_AUCUN  # Défaussé aussitôt (SINGLE_STRIKE)
     assert st0.count_gardien_pari_consumed_at_case(2) == 1
     assert st0.count_gardien_pari_consumed_at_case(1) == 0
-    assert st0.count_gardien_pari_consumed_at_case(6) == 0
+    assert st0.count_gardien_pari_consumed_at_case(5) == 0
     assert trk0.summary().ok_pieges_triggered == 1
 
     # B) Parcelle portant Piège + 1 Défenseur + 2 Insectes face à Seuil 5 :
@@ -122,10 +122,10 @@ def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_single_strike() -> 
     st_co = GameState(cfg_ss)
     st_co.set_gardien_at_case(1, 1, 1)
     st_co.set_gardien_at_case(2, 2, 1)
-    st_co.set_gardien_at_case(6, 3, 1)
+    st_co.set_gardien_at_case(5, 3, 1)
     st_co.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_co.place_defender_gardien_pari(1, 2, FACE_DEFINITIF)
-    st_co.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_co.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     st_co.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_co.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=3, bleus=0)
     st_co.set_parcel_piege(0, 1, PIEGE_ACTIF)
@@ -139,7 +139,7 @@ def test_v6_1_autonomous_piege_zero_def_preserves_allies_and_single_strike() -> 
     assert st_co.get_parcel_piege(0, 1) == PIEGE_AUCUN
     assert st_co.count_gardien_pari_consumed_at_case(2) == 1
     assert st_co.count_gardien_pari_consumed_at_case(1) == 0
-    assert st_co.count_gardien_pari_consumed_at_case(6) == 0
+    assert st_co.count_gardien_pari_consumed_at_case(5) == 0
 
     # C) SINGLE_STRIKE quand Abatteuse ET Bulldozer frappent (0, 4) :
     #    le Piège pare la 1re frappe (Abatteuse), est défaussé aussitôt, et laisse passer le Bulldozer !
@@ -196,7 +196,7 @@ def test_v6_1_piege_no_stacking_persistence_nid_traversal_and_route_clear() -> N
     _ = step_until_decision(st_full, telemetry=trk_full)
     assert trk_full.summary().ok_furt_rive_piege_lost == 1
 
-    # 2) Persistance d'un Piège non déclenché & préservation lors d'un Contact Machine-Nid :
+    # 2) Persistance d'un Piège non déclenché & cohabitation sans écrasement hors Route (INV-16 v6.2) :
     st_nid = GameState(cfg)
     st_nid.tour = 2
     st_nid.set_parcel_piege(0, 2, PIEGE_ACTIF)
@@ -207,18 +207,23 @@ def test_v6_1_piege_no_stacking_persistence_nid_traversal_and_route_clear() -> N
     st_nid.set_machine_pos_status(0, MACHINE_BULLDOZER, 3, MACHINE_STATUS_NORMAL)
     st_nid.set_parcel_arbres_souches(0, 3, 1, 0)
     resolve_single_machine_attack(st_nid, 0, MACHINE_BULLDOZER, TACTIQUES_SPEC[1])
-    # (0,3) devient Route -> Bulldozer recule sur (0,2) -> renvoie le Nid et défausse les 3 Insectes,
-    # MAIS le Piège non déclenché et le Défenseur sur (0,2) restent intacts !
+    # (0,3) devient Route -> Bulldozer recule sur (0,2) -> v6.2 INV-16 zéro écrasement hors Route :
+    # Nid, Insectes, Piège et Défenseur sur (0,2) restent tous intacts !
     assert st_nid.is_route_forestiere(0, 3) is True
     assert st_nid.get_machine_pos_status(0, MACHINE_BULLDOZER)[0] == 2
-    assert st_nid.get_parcel_nid(0, 2)[0] == 0
-    assert st_nid.get_parcel_insectes(0, 2) == 0
+    assert st_nid.get_parcel_nid(0, 2)[0] == 1
+    assert st_nid.get_parcel_insectes(0, 2) == 3
     assert st_nid.get_parcel_defenseurs(0, 2) == 1
     assert st_nid.get_parcel_piege(0, 2) == PIEGE_ACTIF
 
-    # Passage par 5.3 + 6.2 + 6.3 : le Piège non déclenché sur (0,2) persiste au Tour 3 !
+    # Passage par 5.3 + 6.2 + 6.1 + 6.3 : le Piège non déclenché sur (0,2) persiste au Tour 3 !
     st_nid.step = STEP_5_3_END_CHECK
-    _ = step_until_decision(st_nid)
+    while st_nid.tour < 3:
+        r_t3 = step_until_decision(st_nid)
+        assert isinstance(r_t3, DecisionRequest)
+        if st_nid.tour >= 3:
+            break
+        apply_choice(st_nid, r_t3.options[0])
     assert st_nid.tour == 3
     assert st_nid.get_parcel_piege(0, 2) == PIEGE_ACTIF
 
@@ -245,19 +250,18 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=9201)
 
     # A) 1 Bug dévie 1 machine (M=5 -> 6) ET 1 autre carte non déviée pointe déjà sur M=6 (Rêve avec 2 Défenseurs) :
-    #    - La carte déviée allume 6. Insecte ;
-    #    - La carte NON déviée annulée par le 2e Défenseur allume 5. Rêve !
-    #    Chaque carte n'allume qu'au plus 1 déclencheur ("1 événement = au plus 1 déclencheur").
+    #    - La déviation Bug allume 5. Insecte ;
+    #    - Le Rêve défendu qui annule les machines allume 4. Rêve !
     st = GameState(cfg)
     st.tour = 2
     st.set_tactique_at_rank(5, TILE_R_BASE + 1)  # R1 sur case 6
     st.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)  # 2.1
     st.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=1)  # 2.2
     st.set_bugs_at_case(5, 1)
-    st.set_gardien_at_case(5, 1, 1)
-    st.set_gardien_at_case(6, 2, 1)
-    st.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
+    st.set_gardien_at_case(4, 1, 1)
+    st.set_gardien_at_case(5, 2, 1)
+    st.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(3, 5, FACE_DEFINITIF)
     st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)  # Sera déviée 5 -> 6
     st.set_player_hand(1, machine_card_code(1, MACHINE_BULLDOZER), 6, 6, 6, 0)  # Non déviée sur 6
     st.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
@@ -271,8 +275,8 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     _ = step_until_decision(st)
     assert st.get_player_hand(0)[4] == 0
     assert st.get_player_hand(1)[4] == 0
-    assert st.has_gardien_opened_this_turn(6) is True
     assert st.has_gardien_opened_this_turn(5) is True
+    assert st.has_gardien_opened_this_turn(4) is True
 
     # B) Surplus de Défenseurs : 2 Défenseurs (2.1 + 2.2) sur un Rêve face à 1 seule machine ->
     #    1 seul Défenseur consommé, 1 reste non consommé, et 6.2 rend proprement tous les Défenseurs
@@ -305,33 +309,33 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     )
     reve_slot = next(i for i, tid in enumerate(cfg.lisiere_slots) if tid.startswith("R"))
     st_t1.set_lisiere_tile_state(reve_slot, LISIERE_UNCONSTRUCTED, 2)
-    st_t1.set_gardien_at_case(5, 1, 1)
-    st_t1.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
+    st_t1.set_gardien_at_case(4, 1, 1)
+    st_t1.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
     st_t1.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
         st_t1.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
     st_t1.set_parcel_insectes(3, 1, 1)
     st_t1.step = STEP_3_1_CONSTRUCT
     _ = step_until_decision(st_t1)
-    # Le Rêve a été construit en case 6 en 3.1, mais sans Défenseur dessus -> inerte en 3.2, 5. Rêve NON allumé !
+    # Le Rêve a été construit en case 6 en 3.1, mais sans Défenseur dessus -> inerte en 3.2, 4. Rêve NON allumé !
     assert st_t1.get_tactique_at_rank(5) >= TILE_R_BASE
-    assert st_t1.has_gardien_opened_this_turn(5) is False
+    assert st_t1.has_gardien_opened_this_turn(4) is False
     assert st_t1.get_player_hand(0)[4] == 6
 
 
 def test_v6_1_6j_eveil_unlocked_by_2_1_reve_lighting_case_5() -> None:
-    """À 6 joueurs, un 1er Défenseur (2.1) posé sur un Rêve allume 5. Rêve en 3.2 pendant que les 6
+    """À 6 joueurs, un 1er Défenseur (2.1) posé sur un Rêve allume 4. Rêve en 3.2 pendant que les 6
     seconds Défenseurs (2.2) sont engagés sur la Piste des Gardiens -> victoire CAUSE_REVEIL_GARDIENS !
     """
     cfg = GameConfig(n_players=6, mode=2, peuples=("M", "R", "O", "H", "E", "I"), exp_seed=9206)
     st = GameState(cfg)
     st.tour = 4
     insert_reve_on_track(st, 1)  # R1 sur case 6
-    # 4 Gardiens construits sur cases 3 (Sabotage), 4 (Résonance), 5 (Rêve), 6 (Insecte)
+    # 4 Gardiens construits sur cases 3 (Sabotage), 4 (Rêve), 5 (Insecte), 6 (Résonance)
     st.set_gardien_at_case(3, 1, 1)
-    st.set_gardien_at_case(4, 2, 1)
-    st.set_gardien_at_case(5, 3, 1)
-    st.set_gardien_at_case(6, 4, 1)
+    st.set_gardien_at_case(4, 3, 1)
+    st.set_gardien_at_case(5, 4, 1)
+    st.set_gardien_at_case(6, 2, 1)
     st.set_bugs_at_case(2, 1)
 
     # Étape 2.1 : siège 3 (H) pose son 1er Défenseur sur R1 (case 6) !
@@ -341,14 +345,14 @@ def test_v6_1_6j_eveil_unlocked_by_2_1_reve_lighting_case_5() -> None:
         apply_step2_def1(st, s, ("FORET", s, 1))
 
     # Étape 2.2 : les N=6 joueurs engagent tous leur 2e Défenseur sur la Piste des Gardiens :
-    # - 2 sur case 3 (Sabotage), 2 sur case 4 (Résonance), 1 sur case 5 (Rêve !), 1 sur case 6 (Insecte)
+    # - 2 sur case 3 (Sabotage), 1 sur case 4 (Rêve !), 1 sur case 5 (Insecte), 2 sur case 6 (Résonance)
     st.step = STEP_2_2_DEF2
     apply_step2_def2(st, 0, ("POSER_REFLEXION", ("GARDIEN_PARI", 3)))
     apply_step2_def2(st, 1, ("POSER_REFLEXION", ("GARDIEN_PARI", 3)))
-    apply_step2_def2(st, 2, ("POSER_REFLEXION", ("GARDIEN_PARI", 4)))
-    apply_step2_def2(st, 3, ("POSER_REFLEXION", ("GARDIEN_PARI", 4)))
-    apply_step2_def2(st, 4, ("POSER_REFLEXION", ("GARDIEN_PARI", 5)))
-    apply_step2_def2(st, 5, ("POSER_REFLEXION", ("GARDIEN_PARI", 6)))
+    apply_step2_def2(st, 2, ("POSER_REFLEXION", ("GARDIEN_PARI", 6)))
+    apply_step2_def2(st, 3, ("POSER_REFLEXION", ("GARDIEN_PARI", 6)))
+    apply_step2_def2(st, 4, ("POSER_REFLEXION", ("GARDIEN_PARI", 4)))
+    apply_step2_def2(st, 5, ("POSER_REFLEXION", ("GARDIEN_PARI", 5)))
     lock_all_def2_in_place(st)
     assert st.is_eveil_attempt_eligible() is True
 
@@ -478,7 +482,7 @@ def test_v6_1_charge_gain_frozen_frappe_non_paree_and_t3_t6_edge_cases() -> None
     # 3) T3 / T6 (En avançant en Charge) :
     #    3a) Depuis p=1 avec Route en p=2 et Nid + Insectes en p=3 :
     #        frappe SUR_PLACE (0,1), saute le Pont routier (0,2) pour frapper DEVANT (0,3),
-    #        avance sur (0,3) en déclenchant Contact Machine-Nid, et plafonne le gain à +1 jeton !
+    #        avance sur (0,3) en cohabitant sans écrasement (INV-16), et plafonne le gain à +1 jeton !
     st_adv = GameState(cfg_fnp)
     st_adv.tour = 1  # T3 = Charge
     st_adv.set_parcel_arbres_souches(0, 2, 0, 0)  # Pont routier en p=2
@@ -492,8 +496,8 @@ def test_v6_1_charge_gain_frozen_frappe_non_paree_and_t3_t6_edge_cases() -> None
     assert st_adv.get_parcel_arbres(0, 1) == 0  # Frappe SUR_PLACE
     assert st_adv.get_parcel_arbres(0, 3) == 0  # Frappe DEVANT à travers le Pont routier (coupe tous les Arbres)
     assert st_adv.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 3  # Avancée en p=3
-    assert st_adv.get_parcel_nid(0, 3)[0] == 0  # Contact Machine-Nid !
-    assert st_adv.get_parcel_insectes(0, 3) == 0
+    assert st_adv.get_parcel_nid(0, 3)[0] == 1  # INV-16 : zéro écrasement hors Route !
+    assert st_adv.get_parcel_insectes(0, 3) == 1
     assert st_adv.get_machine_tokens(0, MACHINE_ABATTEUSE)[0] == 1  # Plafonné à +1 !
     assert trk_adv.summary().charge_gains == 1
 

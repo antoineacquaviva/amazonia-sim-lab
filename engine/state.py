@@ -1,4 +1,4 @@
-"""État de jeu déterministe scellé sur bytearray(384) et vue isolée PlayerObservation."""
+"""État de jeu déterministe scellé sur bytearray(384) et vue isolée PlayerObservation (v6.2)."""
 
 from __future__ import annotations
 
@@ -13,14 +13,24 @@ __all__ = (
     "ANIMAUX_SAUVAGES",
     "BUF_CAPACITY",
     "BULLDOZER_INIT_PARCEL",
+    "CALE_ECAILLE",
+    "CALE_NONE",
+    "CALE_SABOTAGE",
     "CANONICAL_ARBRES_PAR_RAYON",
     "CANONICAL_DOTATION",
     "CANONICAL_PROFIL_PISTE",
     "CANONICAL_P_MAX",
+    "CARD_ECAILLE",
     "CARD_NONE",
     "CARD_SABOTAGE",
+    "CHAMAN_CHANT",
+    "CHAMAN_NONE",
+    "CHAMAN_TAMBOUR",
     "DECK_SLOTS_CAPACITY",
     "DOUBLE_FACE_UPGRADE_GARDIENS",
+    "DUEL_DEFI",
+    "DUEL_NONE",
+    "DUEL_TERRITOIRE_TENU",
     "FACE_DEFINITIF",
     "FACE_REFLEXION",
     "FAMILLE_CROISSANCE",
@@ -29,9 +39,11 @@ __all__ = (
     "FURT_RIVE_PIEGE",
     "FURT_RIVE_SABOTAGE",
     "GARDIEN_BET_CAP",
+    "GUARDIAN_ICONS_ORDER",
     "LISIERE_ABSENT",
     "LISIERE_CONSTRUCTED",
     "LISIERE_EJECTED",
+    "LISIERE_ROOTED",
     "LISIERE_UNCONSTRUCTED",
     "MACHINE_ABATTEUSE",
     "MACHINE_BULLDOZER",
@@ -39,6 +51,7 @@ __all__ = (
     "MACHINE_STATUS_RATISSAGE",
     "MACHINE_STATUS_RETIRED",
     "MATRICE_PAIRES",
+    "MAX_ECAILLES",
     "MAX_N",
     "MAX_P",
     "MIN_FREE_RESERVE_BYTES",
@@ -50,6 +63,11 @@ __all__ = (
     "PFLAG_SANCTUAIRE_SOUCHE",
     "PIEGE_ACTIF",
     "PIEGE_AUCUN",
+    "PLUME_CALME",
+    "PLUME_CHAUD",
+    "PLUME_KIND_RANK",
+    "PLUME_KIND_RAY",
+    "PLUME_NONE",
     "RATISSAGE_TACTIQUE_SPEC",
     "STATE_BUF_SIZE",
     "STEP_1_2_DEAL",
@@ -64,6 +82,7 @@ __all__ = (
     "STEP_5_1_TACTIQUES",
     "STEP_5_2_RATISSAGE",
     "STEP_5_3_END_CHECK",
+    "STEP_6_1_ENRACINEMENT",
     "STEP_6_2_EVOLUTION",
     "STEP_6_3_END_TURN",
     "STEP_GAME_OVER",
@@ -71,6 +90,12 @@ __all__ = (
     "TACTIQUES_SPEC",
     "TILE_R_BASE",
     "TRACK_LEN",
+    "TRIG_INSECTE",
+    "TRIG_PARADE",
+    "TRIG_PIEGEAGE",
+    "TRIG_RESONANCE",
+    "TRIG_REVE",
+    "TRIG_SABOTAGE",
     "FurtiviteCellObs",
     "GameConfig",
     "GameState",
@@ -108,7 +133,7 @@ NUM_NIDS: int = 5  # M1..M5
 TRACK_LEN: int = 6
 DECK_SLOTS_CAPACITY: int = 64  # 32 octets * 2 nibbles (supporte N=6 + forte dilution Sabotage)
 
-# Châssis canonique unique v6.1 scellé : P4_2233, Bulldozer p=1 / Abatteuse p=2, pari Gardiens max 2
+# Châssis canonique unique v6.2 : P4_2233, Bulldozer p=1 / Abatteuse p=2, pari Gardiens max 2
 CANONICAL_PROFIL_PISTE: str = "P4_2233"
 CANONICAL_P_MAX: int = 4
 CANONICAL_DOTATION: tuple[int, ...] = (2, 2, 3, 3)
@@ -116,6 +141,22 @@ CANONICAL_ARBRES_PAR_RAYON: int = 10
 BULLDOZER_INIT_PARCEL: int = 1
 ABATTEUSE_INIT_PARCEL: int = 2
 GARDIEN_BET_CAP: int = 2
+
+# Piste des Gardiens v6.2 : 6 icônes dédiées dans l'ordre gauche -> droite (Résonance en 6e position)
+TRIG_PARADE: int = 1
+TRIG_PIEGEAGE: int = 2
+TRIG_SABOTAGE: int = 3
+TRIG_REVE: int = 4
+TRIG_INSECTE: int = 5
+TRIG_RESONANCE: int = 6
+GUARDIAN_ICONS_ORDER: tuple[str, ...] = (
+    "PARADE",
+    "PIEGEAGE",
+    "SABOTAGE",
+    "REVE",
+    "INSECTE",
+    "RESONANCE",
+)
 
 # Bitmasks transitoires par parcelle (TRANS_PARCEL_FLAGS, RAZ en 6.2 — hooks Mode 4)
 PFLAG_SANCTUAIRE_SOUCHE: int = 1 << 0  # M5:A (laisse 1 Souche au terrassement Bulldozer)
@@ -131,7 +172,7 @@ MACHINE_STATUS_NORMAL: int = 0
 MACHINE_STATUS_RATISSAGE: int = 1
 MACHINE_STATUS_RETIRED: int = 2
 
-# États des pièges sur parcelle Forêt (v6.1 SINGLE_STRIKE : actif ou défaussé aussitôt)
+# États des pièges sur parcelle Forêt (v6.2 SINGLE_STRIKE : actif ou défaussé aussitôt)
 PIEGE_AUCUN: int = 0
 PIEGE_ACTIF: int = 1
 
@@ -142,27 +183,50 @@ FACE_DEFINITIF: int = 2
 FURT_RIVE_PIEGE: int = 0
 FURT_RIVE_SABOTAGE: int = 1
 
+# Accessoires 3 + 3 v6.2
+CHAMAN_NONE: int = 0
+CHAMAN_TAMBOUR: int = 1
+CHAMAN_CHANT: int = 2
+
+DUEL_NONE: int = 0
+DUEL_DEFI: int = 1
+DUEL_TERRITOIRE_TENU: int = 2
+
+PLUME_NONE: int = 0
+PLUME_CHAUD: int = 1
+PLUME_CALME: int = 2
+PLUME_KIND_RAY: int = 0
+PLUME_KIND_RANK: int = 1
+
+CALE_NONE: int = 0
+CALE_SABOTAGE: int = 1
+CALE_ECAILLE: int = 2
+
+MAX_ECAILLES: int = 4
+
 # États des tuiles de Synergie en lisière
 LISIERE_ABSENT: int = 0
 LISIERE_UNCONSTRUCTED: int = 1
 LISIERE_CONSTRUCTED: int = 2
 LISIERE_EJECTED: int = 3
+LISIERE_ROOTED: int = 3
 
 # Familles de tuiles de Synergie
 FAMILLE_GARDIEN: str = "GARDIEN"
 FAMILLE_REVE: str = "REVE"
 FAMILLE_CROISSANCE: str = "CROISSANCE"
 
-# Codes cartes du paquet Machine (4 bits : 0..13)
+# Codes jetons du sac opaque (4 bits : 0..14 ; 15 = sentinelle masquée)
 CARD_NONE: int = 0
 # 1..12 = machine (ray * 2 + m_type + 1)
 CARD_SABOTAGE: int = 13
+CARD_ECAILLE: int = 14
 
 # Codes tuiles sur la Piste des Tactiques / Rêves
 # 1..6 = T1..T6 ; 101..110 = R1..R10
 TILE_R_BASE: int = 100
 
-# Étapes et sous-étapes de la machine à états (v6.1 : démarrage direct 1.2, fin 5.3 -> 6.2 -> 6.3)
+# Étapes et sous-étapes de la machine à états (v6.2 : 1.2 -> ... -> 5.3 -> 6.1 -> 6.2 -> 6.3)
 STEP_1_2_DEAL: int = 12
 STEP_1_3_DICE: int = 13
 STEP_2_1_DEF1: int = 21
@@ -175,6 +239,7 @@ STEP_4_3_MIGRATION: int = 43
 STEP_5_1_TACTIQUES: int = 51
 STEP_5_2_RATISSAGE: int = 52
 STEP_5_3_END_CHECK: int = 53
+STEP_6_1_ENRACINEMENT: int = 61
 STEP_6_2_EVOLUTION: int = 62
 STEP_6_3_END_TURN: int = 63
 STEP_GAME_OVER: int = 99
@@ -184,15 +249,9 @@ _FLAG_PARAVENTS_OUVERTS: int = 1 << 0
 _FLAG_STEP2_LOCKED: int = 1 << 1
 _FLAG_REPOUSSE_APPLIED: int = 1 << 2
 
-# Gardiens évolutifs double-face Mode 4 (passage Face 1 -> Face 2 en 5.3 sur pari gagné)
+# Gardiens évolutifs double-face v6.2 (les 15 Gardiens passent Face 2 en 5.3 sur pari gagné)
 DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = frozenset(
-    (
-        ("G1", "A"),
-        ("G2", "A"),
-        ("G5", "A"),
-        ("G9", "A"),
-        ("G11", "A"),
-    )
+    (f"G{i}", "A") for i in range(1, 16)
 )
 
 # Peuples canoniques (0..5), Animaux Sauvages (M/R/O) et Peuples Oniriques (H/E)
@@ -438,6 +497,7 @@ class _Mem:
     STEP: int = _Layout.alloc(1, "STEP")
     COORDONNATEUR: int = _Layout.alloc(1, "COORDONNATEUR")
     FLAGS: int = _Layout.alloc(1, "FLAGS")
+    # bits 0..4 = icônes 1..5 (PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE) ; bits 5..7 = compteur 0..7 icône 6 (RESONANCE)
     TRIGGERS_LIT: int = _Layout.alloc(1, "TRIGGERS_LIT")
 
     # 2. Parcelles Forêt : MAX_N=6 * MAX_P=5 = 30 parcelles (88 octets)
@@ -447,9 +507,8 @@ class _Mem:
     FORET_DEFENSEURS: int = _Layout.alloc((NUM_PARCELS + 1) // 2, "FORET_DEFENSEURS")  # 15 octets (4 bits/parcelle)
     NIDS_STATE: int = _Layout.alloc(NUM_NIDS, "NIDS_STATE")  # 5 octets M1..M5 (parcelle + bit activé)
 
-    # 3. Furtivité : 6 rayons * 5 prof = 30 cases à 4 emplacements jumeaux (45 octets)
-    FURTIVITE_SLOTS: int = _Layout.alloc(NUM_PARCELS, "FURTIVITE_SLOTS")  # 4 slots * 2 bits/case
-    FURTIVITE_INSECTES: int = _Layout.alloc((NUM_PARCELS + 1) // 2, "FURTIVITE_INSECTES")  # 15 octets
+    # 3. Furtivité par rayon : 6 rayons * 4 slots (2 rives * 2 places, 2 bits/slot ; zéro Insecte en Furtivité) (6 octets)
+    FURTIVITE_SLOTS: int = _Layout.alloc(MAX_N, "FURTIVITE_SLOTS")
 
     # 4. Suivi des pions Défenseurs des joueurs : 6 sièges * 2 pions (13 octets)
     PLAYER_DEF_LOC: int = _Layout.alloc(MAX_N * 2, "PLAYER_DEF_LOC")
@@ -477,7 +536,17 @@ class _Mem:
     DECK_CARDS: int = _Layout.alloc(DECK_SLOTS_CAPACITY // 2, "DECK_CARDS")  # 32 octets (64 cartes)
     PLAYER_HANDS: int = _Layout.alloc(MAX_N * 2, "PLAYER_HANDS")  # 12 octets (2 octets/joueur)
 
-    # 9. Plage dédiée de modificateurs transitoires de tour, RAZ systématique en 6.2 (86 octets)
+    # 9. Accessoires 3 + 3 persistants & Enracinement volontaire v6.2 (27 octets)
+    ECAILLE_COUNTS: int = _Layout.alloc(1, "ECAILLE_COUNTS")  # lo4 = deck, hi4 = pending (max 4)
+    CROC_LOC: int = _Layout.alloc(1, "CROC_LOC")  # 0 = réserve R, 1..30 = parcel_idx + 1
+    MACHINE_CALE: int = _Layout.alloc((NUM_MACHINES + 3) // 4, "MACHINE_CALE")  # 3 octets (2 bits/machine)
+    MACHINE_ALTERATION_MASK: int = _Layout.alloc(2, "MACHINE_ALTERATION_MASK")  # 12 bits (1/machine)
+    MACHINE_PASSENGER_INS: int = _Layout.alloc(NUM_MACHINES // 2, "MACHINE_PASSENGER_INS")  # 6 octets (4 bits/machine)
+    DUEL_STATE: int = _Layout.alloc(1, "DUEL_STATE")  # bits 0..4 = loc, 5..6 = status (0/1/2)
+    OISEAU_PERCHOIR_CARD: int = _Layout.alloc(1, "OISEAU_PERCHOIR_CARD")  # 0 ou code carte 1..14 (masqué aux autres)
+    ROOTED_TILES: int = _Layout.alloc(NUM_SYNERGY_SLOTS, "ROOTED_TILES")  # 12 octets (1/slot lisière)
+
+    # 10. Plage dédiée de modificateurs transitoires de tour, RAZ systématique en 6.2 (92 octets)
     TRANSIENT_START: int = _Layout._cursor
     TRANS_MACHINE_STATS: int = _Layout.alloc(NUM_MACHINES // 2, "TRANS_MACHINE_STATS")  # 6 octets
     TRANS_MACHINE_SEUIL_MOD: int = _Layout.alloc(NUM_MACHINES // 2, "TRANS_MACHINE_SEUIL_MOD")  # 6 octets
@@ -489,6 +558,11 @@ class _Mem:
     TRANS_ONCE_PER_TURN: int = _Layout.alloc(8, "TRANS_ONCE_PER_TURN")  # 8 octets = 64 bits
     TRANS_GARDIEN_OPENED_MASK: int = _Layout.alloc(1, "TRANS_GARDIEN_OPENED_MASK")  # bits 0..5 = cases 1..6 ouvertes ce tour
     TRANS_BUG_DEVIATED_MASK: int = _Layout.alloc(1, "TRANS_BUG_DEVIATED_MASK")  # bits 0..5 = sièges déviés par Bug en 3.2
+    TRANS_HUMAIN_CHAMAN: int = _Layout.alloc(1, "TRANS_HUMAIN_CHAMAN")  # lo2 = def0, bits 2..3 = def1 (0/1/2)
+    TRANS_OISEAU_DE_ENVOL: int = _Layout.alloc(1, "TRANS_OISEAU_DE_ENVOL")  # bits 0..2 = valeur 0..6, bit 3 = retenu
+    TRANS_OISEAU_PLUME: int = _Layout.alloc(1, "TRANS_OISEAU_PLUME")  # bits 0..1 = face, bit 2 = kind, 3..5 = idx, 6 = locked
+    TRANS_ALTERED_SEATS_MASK: int = _Layout.alloc(1, "TRANS_ALTERED_SEATS_MASK")  # bits 0..5 = sièges altérés en 3.2
+    TRANS_PUSHED_HEART_MASK: int = _Layout.alloc(2, "TRANS_PUSHED_HEART_MASK")  # 12 bits = machines poussées vers cœur en 5.1
     TRANSIENT_END: int = _Layout._cursor
 
     USED_BYTES: int = _Layout._cursor
@@ -513,7 +587,7 @@ def get_layout_report() -> dict[str, Any]:
 
 @dataclass(frozen=True, slots=True)
 class GameConfig:
-    """Configuration immuable d'une partie sur le socle canonique v6.1 (`P4_2233`, Mode 1..4)."""
+    """Configuration immuable d'une partie sur le socle canonique v6.2 (`P4_2233`, Mode 1..4)."""
 
     n_players: int = 4
     mode: int = 2
@@ -525,6 +599,9 @@ class GameConfig:
 
     # Sélections de profils optionnelles Mode 3/4 (Panier 2) : ((slot_id, profile_key), ...)
     tile_profiles: tuple[tuple[str, str], ...] = ()
+
+    # Drapeau optionnel de comparaison B0' (socle symétrique pur sans 3+3 ni Enracinement)
+    symmetric_core_only: bool = False
 
     # Champs dérivés immuables calculés à l'initialisation
     profil_piste: str = CANONICAL_PROFIL_PISTE
@@ -540,7 +617,7 @@ class GameConfig:
         assert 3 <= self.n_players <= MAX_N, f"n_players invalide : {self.n_players}"
         assert self.mode in (1, 2, 3, 4), f"mode invalide : {self.mode}"
         assert self.profil_piste == CANONICAL_PROFIL_PISTE, (
-            f"Châssis scellé v6.1 unique : attendu {CANONICAL_PROFIL_PISTE}, reçu {self.profil_piste}"
+            f"Châssis scellé v6.2 unique : attendu {CANONICAL_PROFIL_PISTE}, reçu {self.profil_piste}"
         )
         assert 0 <= self.coordonnateur_initial < self.n_players
 
@@ -582,6 +659,21 @@ class GameConfig:
             object.__setattr__(self, "total_gardiens_partie", g_count)
             object.__setattr__(self, "total_reves_partie", r_count)
 
+    @property
+    def has_insectes_peuple(self) -> bool:
+        """Vrai uniquement si le Peuple Insectes ('I') siège autour de la table (clôture Essaim INV-21)."""
+        return "I" in self.peuples
+
+    @property
+    def accessories_enabled(self) -> bool:
+        """Vrai si les accessoires 3+3 sont actifs (actifs par défaut en Mode >= 2 sauf symmetric_core_only)."""
+        return self.mode >= 2 and not self.symmetric_core_only
+
+    @property
+    def enracinement_enabled(self) -> bool:
+        """Vrai si l'Enracinement volontaire au ménage est actif (actif par défaut en Mode >= 2 sauf symmetric_core_only)."""
+        return self.mode >= 2 and not self.symmetric_core_only
+
     def seat_of_peuple(self, peuple_code: str) -> int | None:
         """Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table."""
         for idx, code in enumerate(self.peuples):
@@ -590,7 +682,7 @@ class GameConfig:
         return None
 
     def profile_for_slot(self, slot_id: str) -> str | None:
-        """Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE)."""
+        """Retourne le profil actif d'un emplacement (v6.2 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE)."""
         if self.mode == 1:
             return None
         if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
@@ -669,9 +761,9 @@ class HandObs(NamedTuple):
 _MASKED_HAS_CARD_SENTINEL: int = 0x0F
 _ZERO_DECK_BYTES: bytes = b"\x00" * (DECK_SLOTS_CAPACITY // 2)
 _ZERO_TRANSIENT_BYTES: bytes = b"\x00" * (_Mem.TRANSIENT_END - _Mem.TRANSIENT_START)
+_ZERO_6_BYTES: bytes = b"\x00" * MAX_N
 _ZERO_12_BYTES: bytes = b"\x00" * 12
 _ZERO_15_BYTES: bytes = b"\x00" * 15
-_ZERO_30_BYTES: bytes = b"\x00" * 30
 
 
 class PlayerObservation:
@@ -822,19 +914,15 @@ class PlayerObservation:
         rows: list[tuple[FurtiviteCellObs, ...]] = []
         for l_idx in range(n):
             row: list[FurtiviteCellObs] = []
-            l_base = l_idx * MAX_P
             for p_off in range(p_max):
-                idx = l_base + p_off
-                sb = buf[_Mem.FURTIVITE_SLOTS + idx]
+                sb = buf[_Mem.FURTIVITE_SLOTS + l_idx] if p_off == 0 else 0
                 s0, s1, s2, s3 = sb & 3, (sb >> 2) & 3, (sb >> 4) & 3, (sb >> 6) & 3
-                fb = buf[_Mem.FURTIVITE_INSECTES + (idx >> 1)]
-                f_ins = ((fb >> 4) & 0x0F) if (idx & 1) else (fb & 0x0F)
                 row.append(
                     FurtiviteCellObs(
                         (s0, s1, s2, s3),
                         (1 if s0 else 0) + (1 if s1 else 0),
                         (1 if s2 else 0) + (1 if s3 else 0),
-                        f_ins,
+                        0,
                     )
                 )
             rows.append(tuple(row))
@@ -952,23 +1040,23 @@ class PlayerObservation:
         return False
 
     def furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]:
-        """Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1)."""
-        idx = lisiere * MAX_P + (p - 1)
-        sb = self._snap[_Mem.FURTIVITE_SLOTS + idx]
+        """Retourne (nb_total_defenseurs, nb_insectes=0) sur la case Furtivité (lisiere, p) en O(1)."""
+        if p != 1:
+            return 0, 0
+        sb = self._snap[_Mem.FURTIVITE_SLOTS + lisiere]
         nb_d = (
             (1 if (sb & 3) else 0)
             + (1 if ((sb >> 2) & 3) else 0)
             + (1 if ((sb >> 4) & 3) else 0)
             + (1 if ((sb >> 6) & 3) else 0)
         )
-        fb = self._snap[_Mem.FURTIVITE_INSECTES + (idx >> 1)]
-        ins = ((fb >> 4) & 0x0F) if (idx & 1) else (fb & 0x0F)
-        return nb_d, ins
+        return nb_d, 0
 
     def furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int:
         """Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1)."""
-        idx = lisiere * MAX_P + (p - 1)
-        sb = self._snap[_Mem.FURTIVITE_SLOTS + idx]
+        if p != 1:
+            return 0
+        sb = self._snap[_Mem.FURTIVITE_SLOTS + lisiere]
         if rive == 0:
             return (1 if (sb & 3) else 0) + (1 if ((sb >> 2) & 3) else 0)
         return (1 if ((sb >> 4) & 3) else 0) + (1 if ((sb >> 6) & 3) else 0)
@@ -994,8 +1082,7 @@ class PlayerObservation:
 
     def furtivite_ray_rive_split(self, ray: int, rive: int) -> tuple[int, int]:
         """Retourne `(nb_reflexion, nb_definitif)` sur la rive `rive` au pied du rayon `ray`."""
-        idx = ray * MAX_P
-        sb = self._snap[_Mem.FURTIVITE_SLOTS + idx]
+        sb = self._snap[_Mem.FURTIVITE_SLOTS + ray]
         s_a = (sb & 3) if rive == 0 else ((sb >> 4) & 3)
         s_b = ((sb >> 2) & 3) if rive == 0 else ((sb >> 6) & 3)
         n_ref = (1 if s_a == FACE_REFLEXION else 0) + (1 if s_b == FACE_REFLEXION else 0)
@@ -1032,7 +1119,7 @@ class PlayerObservation:
         return None
 
     def mobilized_machines_for_ray(self, ray: int) -> int:
-        """Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : cartes Machine révélées du rayon + Ratissages."""
+        """Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : jetons Machine révélés du rayon + Ratissages."""
         assert self.paravents_ouverts, "mobilized_machines_for_ray requiert paravents_ouverts"
         cnt = 0
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -1075,18 +1162,15 @@ class PlayerObservation:
         return ps & 0x07, (ps >> 3) & 0x03
 
     def machine_effective_rouges(self, r: int, m_type: int) -> int:
-        """Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage)."""
+        """Retourne le nombre de jetons rouges physiques (v6.2 INV-12 : 0 bonus imprimé en Ratissage)."""
         m_idx = r * 2 + m_type
-        ps = self._snap[_Mem.MACHINE_POS_STATUS + m_idx]
         rb = self._snap[_Mem.MACHINE_ROUGES_BLEUS + m_idx]
-        r_tok = (rb >> 4) & 0x0F
-        st = (ps >> 3) & 0x03
-        return r_tok + (1 if st == MACHINE_STATUS_RATISSAGE else 0)
+        return (rb >> 4) & 0x0F
 
     def is_sommeil_victory(self) -> bool:
-        """Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche."""
+        """Vrai si tous les Rêves en jeu sont en bloc à gauche ET aucun Rêve n'a été enraciné (INV-22)."""
         total_r = self._cfg.total_reves_partie
-        if total_r <= 0:
+        if total_r <= 0 or self.has_any_rooted_reve:
             return False
         buf = self._snap
         for i in range(total_r):
@@ -1287,16 +1371,171 @@ class PlayerObservation:
             buf[_Mem.PISTE_BUGS + rank_0_5],
         )
 
+    # --- Accesseurs v6.2 (6 icônes, Accessoires 3+3, Enracinement, Bâtisseurs en attente) ---
+    @property
+    def has_insectes_peuple(self) -> bool:
+        return self._cfg.has_insectes_peuple
 
-# --- Encodage compact des localisations de pions Défenseurs (0..186, 255) ---
+    @property
+    def accessories_enabled(self) -> bool:
+        return self._cfg.accessories_enabled
+
+    @property
+    def enracinement_enabled(self) -> bool:
+        return self._cfg.enracinement_enabled
+
+    def is_trigger_lit(self, case_num: int) -> bool:
+        """Retourne True si l'icône Gardien `1..6` est allumée (compteur > 0 pour 6=RESONANCE)."""
+        assert 1 <= case_num <= TRACK_LEN
+        b = self._snap[_Mem.TRIGGERS_LIT]
+        if case_num == TRIG_RESONANCE:
+            return ((b >> 5) & 0x07) > 0
+        return bool(b & (1 << (case_num - 1)))
+
+    @property
+    def resonance_pending_count(self) -> int:
+        """Nombre d'activations Résonance (icône 6) en attente sans écrasement (0..7)."""
+        return (self._snap[_Mem.TRIGGERS_LIT] >> 5) & 0x07
+
+    @property
+    def ecaille_deck_count(self) -> int:
+        return self._snap[_Mem.ECAILLE_COUNTS] & 0x0F
+
+    @property
+    def ecaille_pending_count(self) -> int:
+        return (self._snap[_Mem.ECAILLE_COUNTS] >> 4) & 0x0F
+
+    @property
+    def croc_parcel(self) -> tuple[int, int] | None:
+        """Retourne `(ray, p)` si le Croc Reptile est posé sur le plateau, sinon None (en réserve)."""
+        loc = self._snap[_Mem.CROC_LOC]
+        if loc == 0:
+            return None
+        p_idx = loc - 1
+        return p_idx // MAX_P, (p_idx % MAX_P) + 1
+
+    def machine_cale(self, r: int, m_type: int) -> int:
+        """Retourne CALE_NONE (0), CALE_SABOTAGE (1) ou CALE_ECAILLE (2) sous la machine."""
+        m_idx = r * 2 + m_type
+        return (self._snap[_Mem.MACHINE_CALE + (m_idx >> 2)] >> ((m_idx & 3) * 2)) & 0x03
+
+    def machine_has_alteration(self, r: int, m_type: int) -> bool:
+        """Retourne True si la machine porte un jeton d'Altération des Entités (E)."""
+        m_idx = r * 2 + m_type
+        mask = self._snap[_Mem.MACHINE_ALTERATION_MASK] | (
+            self._snap[_Mem.MACHINE_ALTERATION_MASK + 1] << 8
+        )
+        return bool(mask & (1 << m_idx))
+
+    def machine_passenger_insects(self, r: int, m_type: int) -> int:
+        """Nombre d'Insectes passagers (M1) embarqués sur cette machine."""
+        m_idx = r * 2 + m_type
+        b = self._snap[_Mem.MACHINE_PASSENGER_INS + (m_idx >> 1)]
+        return ((b >> 4) & 0x0F) if (m_idx & 1) else (b & 0x0F)
+
+    @property
+    def duel_state(self) -> tuple[int, int, int]:
+        """Retourne `(status, ray, p)` du jeton Duel Mammifère (`(DUEL_NONE, 0, 0)` si en réserve)."""
+        raw = self._snap[_Mem.DUEL_STATE]
+        st = (raw >> 5) & 0x03
+        loc = raw & 0x1F
+        if st == DUEL_NONE or loc == 0:
+            return (DUEL_NONE, 0, 0)
+        p_idx = loc - 1
+        return (st, p_idx // MAX_P, (p_idx % MAX_P) + 1)
+
+    def humain_chaman_archetype(self, def_idx: int) -> int:
+        """Archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du Défenseur `def_idx` (0 ou 1) de H."""
+        assert def_idx in (0, 1)
+        b = self._snap[_Mem.TRANS_HUMAIN_CHAMAN]
+        return (b & 0x03) if def_idx == 0 else ((b >> 2) & 0x03)
+
+    @property
+    def oiseau_has_perchoir(self) -> bool:
+        """Vrai si un jeton est actuellement posé face cachée sur le Perchoir de Vigie de O."""
+        return self._snap[_Mem.OISEAU_PERCHOIR_CARD] != CARD_NONE
+
+    @property
+    def oiseau_perchoir_card(self) -> int | None:
+        """Code carte sur le Perchoir de O (None si masqué pour autrui ou vide si CARD_NONE)."""
+        raw = self._snap[_Mem.OISEAU_PERCHOIR_CARD]
+        if raw == _MASKED_HAS_CARD_SENTINEL:
+            return None
+        return raw
+
+    @property
+    def oiseau_de_envol(self) -> int | None:
+        """Valeur (1..6) du Dé d'Envol de O, ou None si masqué/non lancé."""
+        raw = self._snap[_Mem.TRANS_OISEAU_DE_ENVOL] & 0x07
+        if raw == 0:
+            return None
+        return raw
+
+    @property
+    def oiseau_plume(self) -> tuple[int, int, int, bool]:
+        """Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée)."""
+        raw = self._snap[_Mem.TRANS_OISEAU_PLUME]
+        face = raw & 0x03
+        if face == PLUME_NONE:
+            return (PLUME_NONE, 0, 0, False)
+        kind = (raw >> 2) & 0x01
+        idx = (raw >> 3) & 0x07
+        locked = bool(raw & 0x40)
+        return (face, kind, idx, locked)
+
+    def is_slot_rooted(self, slot_idx: int) -> bool:
+        """Vrai si la tuile de lisière `slot_idx` a été enracinée volontairement."""
+        return self._snap[_Mem.ROOTED_TILES + slot_idx] != 0
+
+    @property
+    def has_any_rooted_reve(self) -> bool:
+        """Vrai si au moins un Rêve a été enraciné (rendant le Sommeil impossible, INV-22)."""
+        if self._cfg.mode < 2:
+            return False
+        buf = self._snap
+        for idx in range(2 * self._cfg.n_players):
+            b = buf[_Mem.ROOTED_TILES + idx]
+            if b != 0 and (b & 0x40):
+                return True
+        return False
+
+    @property
+    def rooted_tiles(self) -> tuple[tuple[int, str, int, int, int], ...]:
+        """Tuiles enracinées : tuple de `(slot_idx, tile_id, ray, p, tier_souches)`."""
+        if self._cfg.mode < 2:
+            return ()
+        buf = self._snap
+        l_slots = self._cfg.lisiere_slots
+        out: list[tuple[int, str, int, int, int]] = []
+        for idx in range(2 * self._cfg.n_players):
+            b = buf[_Mem.ROOTED_TILES + idx]
+            if b != 0:
+                p_idx = (b & 0x1F) - 1
+                tier = 2 if (b & 0x20) else 1
+                out.append((idx, l_slots[idx], p_idx // MAX_P, (p_idx % MAX_P) + 1, tier))
+        return tuple(out)
+
+    def waiting_defenders_count(self, seat: int) -> int:
+        """Nombre de Défenseurs couchés « en attente » devant `seat` (après construction 3.1)."""
+        buf = self._snap
+        cnt = 0
+        if buf[_Mem.PLAYER_DEF_LOC + seat * 2] == _LOC_WAITING:
+            cnt += 1
+        if buf[_Mem.PLAYER_DEF_LOC + seat * 2 + 1] == _LOC_WAITING:
+            cnt += 1
+        return cnt
+
+
+# --- Encodage compact des localisations de pions Défenseurs (0..187, 255) ---
 # 0 : en main
 # 1..30 : parcelle Forêt (1 + r * MAX_P + (p - 1))
 # 31..150 : slot jumeau Furtivité (31 + (l * MAX_P + (p - 1)) * 4 + slot_0_3)
 # 151..162 : tuile Synergie en lisière (151 + lisiere_slot_idx)
 # 163..168 : Gardien ciblé en pari d'activation 2.2 (actif, non consommé : 163 + (case_1_6 - 1))
 # 169..174 : Rêve sur piste ciblé en activation 2.1/2.2 (actif, non consommé : 169 + (case_1_6 - 1))
-# 175..180 : Défenseur consommé par ouverture d'un Gardien (mis de côté jusqu'en 6.2 : 175 + (case_1_6 - 1))
+# 175..180 : Défenseur consommé par ouverture d'un Gardien (encoche latérale jusqu'en 6.2 : 175 + (case_1_6 - 1))
 # 181..186 : Défenseur consommé par annulation d'une machine sur un Rêve en 3.2 (181 + (case_1_6 - 1))
+# 187 : Défenseur couché « en attente » devant son propriétaire après construction (INV-19)
 # 255 : impasse (aucune case légale disponible ce tour, pion consommé hors plateau jusqu'en 6.2)
 _LOC_HAND: int = 0
 _LOC_FORET_BASE: int = 1
@@ -1306,6 +1545,7 @@ _LOC_GARDIEN_PARI_BASE: int = _LOC_LISIERE_BASE + NUM_SYNERGY_SLOTS  # 163
 _LOC_REVE_ACTIVATION_BASE: int = _LOC_GARDIEN_PARI_BASE + TRACK_LEN  # 169
 _LOC_GARDIEN_PARI_CONSUMED_BASE: int = _LOC_REVE_ACTIVATION_BASE + TRACK_LEN  # 175
 _LOC_REVE_ACTIVATION_CONSUMED_BASE: int = _LOC_GARDIEN_PARI_CONSUMED_BASE + TRACK_LEN  # 181
+_LOC_WAITING: int = _LOC_REVE_ACTIVATION_CONSUMED_BASE + TRACK_LEN  # 187
 _LOC_IMPASSE: int = 255
 
 
@@ -1490,22 +1730,45 @@ class GameState:
 
     @triggers_lit.setter
     def triggers_lit(self, mask: int) -> None:
-        assert 0 <= mask <= 0x3F
+        assert 0 <= mask <= 0xFF
         self._buf[_Mem.TRIGGERS_LIT] = mask
 
+    def get_resonance_pending_count(self) -> int:
+        """Compteur individuel (0..7) d'activations en attente sur l'icône 6 (RESONANCE, INV-09)."""
+        return (self._buf[_Mem.TRIGGERS_LIT] >> 5) & 0x07
+
     def light_trigger(self, case_num: int) -> None:
-        """Allume le signal binaire d'une case 1..6 sur la Piste des Gardiens."""
-        assert 1 <= case_num <= 6
-        if self.cfg.mode >= 2:
-            self._buf[_Mem.TRIGGERS_LIT] |= 1 << (case_num - 1)
+        """Allume l'icône Gardien `1..6` (incrémente le compteur 3 bits sans écrasement sur 6=RESONANCE)."""
+        assert 1 <= case_num <= TRACK_LEN
+        if self.cfg.mode < 2:
+            return
+        if case_num == TRIG_INSECTE and not self.cfg.has_insectes_peuple:
+            return
+        cur = self._buf[_Mem.TRIGGERS_LIT]
+        if case_num == TRIG_RESONANCE:
+            cnt = min(7, ((cur >> 5) & 0x07) + 1)
+            self._buf[_Mem.TRIGGERS_LIT] = (cur & 0x1F) | (cnt << 5)
+        else:
+            self._buf[_Mem.TRIGGERS_LIT] = cur | (1 << (case_num - 1))
 
     def is_trigger_lit(self, case_num: int) -> bool:
-        assert 1 <= case_num <= 6
-        return bool(self._buf[_Mem.TRIGGERS_LIT] & (1 << (case_num - 1)))
+        assert 1 <= case_num <= TRACK_LEN
+        cur = self._buf[_Mem.TRIGGERS_LIT]
+        if case_num == TRIG_RESONANCE:
+            return ((cur >> 5) & 0x07) > 0
+        return bool(cur & (1 << (case_num - 1)))
 
     def clear_trigger(self, case_num: int) -> None:
-        assert 1 <= case_num <= 6
-        self._buf[_Mem.TRIGGERS_LIT] &= ~(1 << (case_num - 1))
+        """Éteint l'icône `1..5` ou décrémente d'1 le compteur de l'icône `6` (RESONANCE)."""
+        assert 1 <= case_num <= TRACK_LEN
+        cur = self._buf[_Mem.TRIGGERS_LIT]
+        if case_num == TRIG_RESONANCE:
+            cnt = (cur >> 5) & 0x07
+            if cnt > 0:
+                cnt -= 1
+            self._buf[_Mem.TRIGGERS_LIT] = (cur & 0x1F) | (cnt << 5)
+        else:
+            self._buf[_Mem.TRIGGERS_LIT] = cur & ~(1 << (case_num - 1))
 
     # ------------------------------------------------------------------
     # Accesseurs Parcelles Forêt & Routes Forestières
@@ -1652,7 +1915,7 @@ class GameState:
     def _assert_active_furtivite(self, lisiere: int, p: int) -> int:
         assert 0 <= lisiere < self.cfg.n_players
         assert 1 <= p <= self.cfg.p_max
-        return lisiere * MAX_P + (p - 1)
+        return lisiere
 
     def lisiere_ray_for_rive(self, lisiere: int, rive: int) -> int:
         assert 0 <= lisiere < self.cfg.n_players
@@ -1662,11 +1925,14 @@ class GameState:
     def get_furtivite_slot_face(self, lisiere: int, p: int, slot_0_3: int) -> int:
         idx = self._assert_active_furtivite(lisiere, p)
         assert 0 <= slot_0_3 <= 3
+        if p != 1:
+            return FACE_VIDE
         b = self._buf[_Mem.FURTIVITE_SLOTS + idx]
         return (b >> (slot_0_3 * 2)) & 0x03
 
     def set_furtivite_slot_face(self, lisiere: int, p: int, slot_0_3: int, face: int) -> None:
         idx = self._assert_active_furtivite(lisiere, p)
+        assert p == 1, "Furtivité v6.2 indexée uniquement par rayon (p=1)"
         assert 0 <= slot_0_3 <= 3
         assert face in (FACE_VIDE, FACE_REFLEXION, FACE_DEFINITIF)
         shift = slot_0_3 * 2
@@ -1675,6 +1941,8 @@ class GameState:
 
     def get_furtivite_slots(self, lisiere: int, p: int) -> tuple[int, int, int, int]:
         idx = self._assert_active_furtivite(lisiere, p)
+        if p != 1:
+            return (FACE_VIDE, FACE_VIDE, FACE_VIDE, FACE_VIDE)
         b = self._buf[_Mem.FURTIVITE_SLOTS + idx]
         return (b & 0x03, (b >> 2) & 0x03, (b >> 4) & 0x03, (b >> 6) & 0x03)
 
@@ -1695,13 +1963,12 @@ class GameState:
         )
 
     def get_furtivite_insectes(self, lisiere: int, p: int) -> int:
-        idx = self._assert_active_furtivite(lisiere, p)
-        return self._get_nibble(_Mem.FURTIVITE_INSECTES, idx)
+        self._assert_active_furtivite(lisiere, p)
+        return 0
 
     def set_furtivite_insectes(self, lisiere: int, p: int, count: int) -> None:
-        idx = self._assert_active_furtivite(lisiere, p)
-        assert 0 <= count <= 15
-        self._set_nibble(_Mem.FURTIVITE_INSECTES, idx, count)
+        self._assert_active_furtivite(lisiere, p)
+        assert count == 0, "Insectes en Furtivité strictement interdits en v6.2"
 
     # ------------------------------------------------------------------
     # Suivi individuel des Défenseurs 1 & 2 par joueur + primitives de pose
@@ -1732,6 +1999,8 @@ class GameState:
         """Décode une localisation brute en (kind, a, b, c)."""
         if raw_loc == _LOC_HAND:
             return ("HAND", 0, 0, 0)
+        if raw_loc == _LOC_WAITING:
+            return ("WAITING", 0, 0, 0)
         if raw_loc == _LOC_IMPASSE:
             return ("IMPASSE", 0, 0, 0)
         if _LOC_FORET_BASE <= raw_loc < _LOC_FURT_BASE:
@@ -1765,6 +2034,20 @@ class GameState:
             case_1_6 = (raw_loc - _LOC_REVE_ACTIVATION_CONSUMED_BASE) + 1
             return ("REVE_ACTIVATION_CONSUMED", case_1_6, 0, 0)
         return ("IMPASSE", 0, 0, 0)
+
+    def mark_defender_waiting(self, seat: int, def_idx: int) -> None:
+        """Couche le Défenseur (seat, def_idx) « en attente » devant son propriétaire (après construction 3.1, INV-19)."""
+        self.remove_player_defender(seat, def_idx)
+        self.set_player_def_loc_raw(seat, def_idx, _LOC_WAITING)
+
+    def list_waiting_defenders(self) -> list[tuple[int, int]]:
+        """Retourne tous les `(seat, def_idx)` actuellement couchés « en attente »."""
+        out: list[tuple[int, int]] = []
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                if self.get_player_def_loc_raw(s, d) == _LOC_WAITING:
+                    out.append((s, d))
+        return out
 
     def remove_player_defender(self, seat: int, def_idx: int) -> None:
         """Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main."""
@@ -2204,10 +2487,9 @@ class GameState:
         return (b >> 4) & 0x0F, b & 0x0F
 
     def get_machine_effective_rouges(self, ray: int, m_type: int) -> int:
-        """Retourne la puissance rouge totale (jetons rouges + 1 imprimé si face Ratissage)."""
+        """Retourne le nombre de jetons rouges physiques (v6.2 INV-12 : 0 bonus imprimé en Ratissage)."""
         r_tok, _ = self.get_machine_tokens(ray, m_type)
-        _, st, _ = self.get_machine_pos_status(ray, m_type)
-        return r_tok + (1 if st == MACHINE_STATUS_RATISSAGE else 0)
+        return r_tok
 
     def set_machine_tokens(self, ray: int, m_type: int, rouges: int, bleus: int) -> None:
         idx = self._machine_idx(ray, m_type)
@@ -2224,9 +2506,9 @@ class GameState:
         return out
 
     def is_sommeil_victory(self) -> bool:
-        """Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche."""
+        """Vrai si tous les Rêves en jeu sont en bloc à gauche ET aucun Rêve n'est enraciné (INV-22)."""
         total_r = self.cfg.total_reves_partie
-        if total_r <= 0:
+        if total_r <= 0 or self.has_any_rooted_reve():
             return False
         for i in range(total_r):
             if not is_reve_code(self.get_tactique_at_rank(i)):
@@ -2234,7 +2516,7 @@ class GameState:
         return True
 
     # ------------------------------------------------------------------
-    # Paquet Machine, Sabotages par dilution & Mains secrètes
+    # Sac opaque (Machines, Sabotages, Écailles) & Mains secrètes
     # ------------------------------------------------------------------
     @property
     def deck_len(self) -> int:
@@ -2273,6 +2555,48 @@ class GameState:
         self._buf[_Mem.SABOTAGE_PENDING_COUNT] = val
 
     @property
+    def ecaille_deck_count(self) -> int:
+        return self._buf[_Mem.ECAILLE_COUNTS] & 0x0F
+
+    @ecaille_deck_count.setter
+    def ecaille_deck_count(self, val: int) -> None:
+        assert 0 <= val <= MAX_ECAILLES
+        cur = self._buf[_Mem.ECAILLE_COUNTS]
+        self._buf[_Mem.ECAILLE_COUNTS] = (cur & 0xF0) | val
+
+    @property
+    def ecaille_pending_count(self) -> int:
+        return (self._buf[_Mem.ECAILLE_COUNTS] >> 4) & 0x0F
+
+    @ecaille_pending_count.setter
+    def ecaille_pending_count(self, val: int) -> None:
+        assert 0 <= val <= MAX_ECAILLES
+        cur = self._buf[_Mem.ECAILLE_COUNTS]
+        self._buf[_Mem.ECAILLE_COUNTS] = (cur & 0x0F) | (val << 4)
+
+    def count_active_cale_ecaille(self) -> int:
+        """Nombre de jetons Écaille actuellement glissés en cale sous des machines."""
+        cnt = 0
+        for r in range(self.cfg.n_players):
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                if self.get_machine_cale(r, mt) == CALE_ECAILLE:
+                    cnt += 1
+        return cnt
+
+    def count_total_ecailles_in_play(self) -> int:
+        """Total physique d'Écailles sorties de la réserve Reptile (sac + attente + cales <= 4)."""
+        return self.ecaille_deck_count + self.ecaille_pending_count + self.count_active_cale_ecaille()
+
+    def add_ecaille_to_bag(self, count: int = 1) -> int:
+        """Ajoute jusqu'à `count` jetons Écaille depuis la réserve Reptile (plafond physique 4). Retourne le nombre ajouté."""
+        assert count >= 1
+        avail = max(0, MAX_ECAILLES - self.count_total_ecailles_in_play())
+        added = min(count, avail)
+        if added > 0:
+            self.ecaille_pending_count += added
+        return added
+
+    @property
     def reshuffle_count(self) -> int:
         return self._buf[_Mem.RESHUFFLE_COUNT]
 
@@ -2282,20 +2606,25 @@ class GameState:
         self._buf[_Mem.RESHUFFLE_COUNT] = val
 
     def add_permanent_sabotage(self, count: int = 1, *, light_case_3: bool = True) -> None:
-        """Ajoute définitivement +count cartes Sabotage (mises de côté pour le remélange 6.3)."""
+        """Ajoute définitivement +count jetons Sabotage (rejoignent le sac au ménage 6.3)."""
         assert count >= 1
         self.sabotage_pending_count += count
         if light_case_3:
-            self.light_trigger(3)
+            self.light_trigger(TRIG_SABOTAGE)
 
     def rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None:
-        """Reconstitue le paquet Machine hors Ratissages/retirées + Sabotages avec mélange stable par carte."""
+        """Reconstitue le sac opaque hors Ratissages/retirées + Sabotages + Écailles et vide le Perchoir."""
         if increment_reshuffle:
             self.reshuffle_count += 1
-        # Intégrer définitivement les Sabotages acquis durant le tour
+        # Le jeton du Perchoir retourne au sac au ménage (INV-05)
+        self._buf[_Mem.OISEAU_PERCHOIR_CARD] = CARD_NONE
+        # Intégrer définitivement les Sabotages et Écailles acquis durant le tour
         total_sabotages = self.sabotage_deck_count + self.sabotage_pending_count
         self.sabotage_deck_count = total_sabotages
         self.sabotage_pending_count = 0
+        total_ecailles = min(MAX_ECAILLES, self.ecaille_deck_count + self.ecaille_pending_count)
+        self.ecaille_deck_count = total_ecailles
+        self.ecaille_pending_count = 0
 
         exp_seed = self.cfg.exp_seed
         rep_id = self.cfg.rep_id
@@ -2315,6 +2644,11 @@ class GameState:
                 exp_seed, rep_id, SRC_MACHINE_SHUFFLE, reshuffle_idx, CARD_SABOTAGE, sab_copy
             )
             keyed_cards.append((k_val, CARD_SABOTAGE, sab_copy))
+        for ec_copy in range(total_ecailles):
+            k_val = rand_u64(
+                exp_seed, rep_id, SRC_MACHINE_SHUFFLE, reshuffle_idx, CARD_ECAILLE, ec_copy
+            )
+            keyed_cards.append((k_val, CARD_ECAILLE, ec_copy))
 
         keyed_cards.sort()
         shuffled = [c_code for _, c_code, _ in keyed_cards]
@@ -2523,7 +2857,7 @@ class GameState:
         self._buf[_Mem.TRANS_BUG_DEVIATED_MASK] |= 1 << seat
 
     def get_reve_advance_dest_rank(self, rank_0_5: int) -> int | None:
-        """Hook Mode 4 : retourne l'index `0..5` de la 1re case libre à gauche, ou None."""
+        """Retourne l'index `0..5` de la 1re case non-Rêve à gauche de `rank_0_5`, ou None si bloqué au bord."""
         assert 0 <= rank_0_5 < TRACK_LEN
         if rank_0_5 == 0:
             return None
@@ -2532,18 +2866,352 @@ class GameState:
                 return j
         return None
 
+    def _migrate_reve_defenders(self, src_rank_0_5: int, dst_rank_0_5: int) -> None:
+        """Déplace tous les Défenseurs (actifs + consommés) solidaires d'un Rêve de src_rank_0_5 vers dst_rank_0_5."""
+        if src_rank_0_5 == dst_rank_0_5:
+            return
+        src_act = _LOC_REVE_ACTIVATION_BASE + src_rank_0_5
+        dst_act = _LOC_REVE_ACTIVATION_BASE + dst_rank_0_5
+        src_con = _LOC_REVE_ACTIVATION_CONSUMED_BASE + src_rank_0_5
+        dst_con = _LOC_REVE_ACTIVATION_CONSUMED_BASE + dst_rank_0_5
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if raw == src_act:
+                    self.set_player_def_loc_raw(s, d, dst_act)
+                elif raw == src_con:
+                    self.set_player_def_loc_raw(s, d, dst_con)
+
+    def shift_reve_block_left(self, rank_0_5: int) -> int | None:
+        """Glisse le Rêve en `rank_0_5` d'1 rang à gauche en poussant tout bloc contigu et ses Défenseurs (INV-15).
+
+        Retourne le nouvel index `rank_0_5 - 1` du Rêve poussé, ou None s'il est bloqué contre le rang 1.
+        """
+        assert 0 <= rank_0_5 < TRACK_LEN
+        code = self.get_tactique_at_rank(rank_0_5)
+        assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
+        dest = self.get_reve_advance_dest_rank(rank_0_5)
+        if dest is None:
+            return None
+        # dest est non-Rêve (0 Défenseur Rêve dessus) ; dest+1..rank_0_5 forment le bloc contigu de Rêves
+        for i in range(dest, rank_0_5):
+            moved_code = self.get_tactique_at_rank(i + 1)
+            self.set_tactique_at_rank(i, moved_code)
+            self._migrate_reve_defenders(i + 1, i)
+        # Le rang libéré retrouve sa Tactique fixe imprimée (rank_0_5 + 1)
+        self.set_tactique_at_rank(rank_0_5, rank_0_5 + 1)
+        return rank_0_5 - 1
+
+    def swap_tactique_ranks(self, rank_a: int, rank_b: int) -> None:
+        """Échange les tuiles Rêve présentes aux rangs `rank_a` et `rank_b` avec leurs Défenseurs solidaires."""
+        assert 0 <= rank_a < TRACK_LEN and 0 <= rank_b < TRACK_LEN
+        if rank_a == rank_b:
+            return
+        code_a = self.get_tactique_at_rank(rank_a)
+        code_b = self.get_tactique_at_rank(rank_b)
+        self.set_tactique_at_rank(rank_a, code_b if is_reve_code(code_b) else (rank_a + 1))
+        self.set_tactique_at_rank(rank_b, code_a if is_reve_code(code_a) else (rank_b + 1))
+        act_a = _LOC_REVE_ACTIVATION_BASE + rank_a
+        act_b = _LOC_REVE_ACTIVATION_BASE + rank_b
+        con_a = _LOC_REVE_ACTIVATION_CONSUMED_BASE + rank_a
+        con_b = _LOC_REVE_ACTIVATION_CONSUMED_BASE + rank_b
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if raw == act_a:
+                    self.set_player_def_loc_raw(s, d, act_b)
+                elif raw == act_b:
+                    self.set_player_def_loc_raw(s, d, act_a)
+                elif raw == con_a:
+                    self.set_player_def_loc_raw(s, d, con_b)
+                elif raw == con_b:
+                    self.set_player_def_loc_raw(s, d, con_a)
+
+    # ------------------------------------------------------------------
+    # Accessoires 3 + 3 (H, M, O, E, R, I) & Enracinement volontaire v6.2
+    # ------------------------------------------------------------------
+    def get_croc_parcel(self) -> tuple[int, int] | None:
+        """Retourne `(ray, p)` si le Croc Reptile est en forêt, ou None s'il est en réserve."""
+        loc = self._buf[_Mem.CROC_LOC]
+        if loc == 0:
+            return None
+        p_idx = loc - 1
+        return p_idx // MAX_P, (p_idx % MAX_P) + 1
+
+    def set_croc_parcel(self, ray: int, p: int) -> None:
+        """Pose ou déplace le Croc Reptile sur la parcelle `(ray, p)` (peut cohabiter avec un Piège)."""
+        idx = self._assert_active_parcel(ray, p)
+        assert not self.is_route_forestiere(ray, p), "Croc interdit sur Route Forestière"
+        self._buf[_Mem.CROC_LOC] = idx + 1
+
+    def clear_croc(self) -> None:
+        """Renvoie le Croc dans la réserve Reptile."""
+        self._buf[_Mem.CROC_LOC] = 0
+
+    def get_machine_cale(self, ray: int, m_type: int) -> int:
+        """Retourne CALE_NONE (0), CALE_SABOTAGE (1) ou CALE_ECAILLE (2) sous la machine."""
+        return self._get_crumb(_Mem.MACHINE_CALE, self._machine_idx(ray, m_type))
+
+    def set_machine_cale(self, ray: int, m_type: int, cale_type: int) -> None:
+        """Pose (ou retire via CALE_NONE) une cale Sabotage/Écaille sous une machine mobile (max 1)."""
+        assert cale_type in (CALE_NONE, CALE_SABOTAGE, CALE_ECAILLE)
+        self._set_crumb(_Mem.MACHINE_CALE, self._machine_idx(ray, m_type), cale_type)
+
+    def has_machine_alteration(self, ray: int, m_type: int) -> bool:
+        """Vrai si la machine porte un jeton d'Altération des Entités (max 1 par machine mobile)."""
+        m_idx = self._machine_idx(ray, m_type)
+        mask = self._buf[_Mem.MACHINE_ALTERATION_MASK] | (
+            self._buf[_Mem.MACHINE_ALTERATION_MASK + 1] << 8
+        )
+        return bool(mask & (1 << m_idx))
+
+    def set_machine_alteration(self, ray: int, m_type: int, active: bool) -> None:
+        """Pose ou retire le jeton d'Altération des Entités sur la machine `(ray, m_type)`."""
+        m_idx = self._machine_idx(ray, m_type)
+        mask = self._buf[_Mem.MACHINE_ALTERATION_MASK] | (
+            self._buf[_Mem.MACHINE_ALTERATION_MASK + 1] << 8
+        )
+        if active:
+            mask |= 1 << m_idx
+        else:
+            mask &= ~(1 << m_idx)
+        self._buf[_Mem.MACHINE_ALTERATION_MASK] = mask & 0xFF
+        self._buf[_Mem.MACHINE_ALTERATION_MASK + 1] = (mask >> 8) & 0xFF
+
+    def was_seat_altered_this_turn(self, seat: int) -> bool:
+        """Vrai si la machine révélée par `seat` en 3.2 a été altérée (recul sans frappe)."""
+        assert 0 <= seat < MAX_N
+        return bool(self._buf[_Mem.TRANS_ALTERED_SEATS_MASK] & (1 << seat))
+
+    def mark_seat_altered_this_turn(self, seat: int) -> None:
+        """Marque le siège `seat` comme ayant eu sa machine altérée en 3.2."""
+        assert 0 <= seat < MAX_N
+        self._buf[_Mem.TRANS_ALTERED_SEATS_MASK] |= 1 << seat
+
+    def get_machine_passenger_insects(self, ray: int, m_type: int) -> int:
+        """Nombre d'Insectes passagers (M1) actuellement embarqués sur cette machine."""
+        return self._get_nibble(_Mem.MACHINE_PASSENGER_INS, self._machine_idx(ray, m_type))
+
+    def set_machine_passenger_insects(self, ray: int, m_type: int, count: int) -> None:
+        """Définit le nombre d'Insectes passagers (0..15) sur la machine (0 si I absent)."""
+        assert 0 <= count <= 15
+        if count > 0 and not self.cfg.has_insectes_peuple:
+            return
+        self._set_nibble(_Mem.MACHINE_PASSENGER_INS, self._machine_idx(ray, m_type), count)
+
+    def get_duel_state(self) -> tuple[int, int, int]:
+        """Retourne `(status, ray, p)` du jeton Duel Mammifère (`(DUEL_NONE, 0, 0)` si en réserve)."""
+        raw = self._buf[_Mem.DUEL_STATE]
+        st = (raw >> 5) & 0x03
+        loc = raw & 0x1F
+        if st == DUEL_NONE or loc == 0:
+            return (DUEL_NONE, 0, 0)
+        p_idx = loc - 1
+        return (st, p_idx // MAX_P, (p_idx % MAX_P) + 1)
+
+    def set_duel_defi(self, ray: int, p: int) -> None:
+        """Pose ou déplace le jeton Duel face `DEFI` sur la parcelle `(ray, p)`."""
+        idx = self._assert_active_parcel(ray, p)
+        assert not self.is_route_forestiere(ray, p), "Duel interdit sur Route Forestière"
+        self._buf[_Mem.DUEL_STATE] = (DUEL_DEFI << 5) | (idx + 1)
+
+    def flip_duel_to_territoire_tenu(self) -> bool:
+        """Bascule le Duel de `DEFI` vers `TERRITOIRE_TENU` en place. Retourne True si basculé."""
+        raw = self._buf[_Mem.DUEL_STATE]
+        st = (raw >> 5) & 0x03
+        loc = raw & 0x1F
+        if st == DUEL_DEFI and loc != 0:
+            self._buf[_Mem.DUEL_STATE] = (DUEL_TERRITOIRE_TENU << 5) | loc
+            return True
+        return False
+
+    def clear_duel(self) -> None:
+        """Renvoie le jeton Duel dans la réserve Mammifère."""
+        self._buf[_Mem.DUEL_STATE] = 0
+
+    def is_duel_territoire_tenu_at(self, ray: int, p: int) -> bool:
+        """Vrai si le jeton Duel est sur `(ray, p)` face `TERRITOIRE_TENU` (bloque avancée rangs 3/6)."""
+        st, dr, dp = self.get_duel_state()
+        return st == DUEL_TERRITOIRE_TENU and dr == ray and dp == p
+
+    def get_humain_chaman_archetype(self, def_idx: int) -> int:
+        """Retourne l'archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du pion `def_idx` (0 ou 1) de H."""
+        assert def_idx in (0, 1)
+        b = self._buf[_Mem.TRANS_HUMAIN_CHAMAN]
+        return (b & 0x03) if def_idx == 0 else ((b >> 2) & 0x03)
+
+    def set_humain_chaman_archetype(self, def_idx: int, archetype: int) -> None:
+        """Enregistre l'archétype du pion `def_idx` de H et impose automatiquement l'autre au binôme."""
+        assert def_idx in (0, 1)
+        assert archetype in (CHAMAN_NONE, CHAMAN_TAMBOUR, CHAMAN_CHANT)
+        if archetype == CHAMAN_NONE:
+            self._buf[_Mem.TRANS_HUMAIN_CHAMAN] = 0
+            return
+        other = CHAMAN_CHANT if archetype == CHAMAN_TAMBOUR else CHAMAN_TAMBOUR
+        if def_idx == 0:
+            self._buf[_Mem.TRANS_HUMAIN_CHAMAN] = archetype | (other << 2)
+        else:
+            self._buf[_Mem.TRANS_HUMAIN_CHAMAN] = other | (archetype << 2)
+
+    def is_chant_on_reve_case(self, case_1_6: int) -> bool:
+        """Vrai si le pion Chamane `CHANT` des Humains (H) défend (actif ou consommé) le Rêve en `case_1_6`."""
+        seat_h = self.cfg.seat_of_peuple("H")
+        if seat_h is None or not self.cfg.accessories_enabled:
+            return False
+        act_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        con_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        for d in (0, 1):
+            if self.get_humain_chaman_archetype(d) == CHAMAN_CHANT:
+                raw = self.get_player_def_loc_raw(seat_h, d)
+                if raw == act_raw or raw == con_raw:
+                    return True
+        return False
+
+    @property
+    def oiseau_perchoir_card(self) -> int:
+        """Code jeton (CARD_NONE ou 1..14) posé face cachée sur le Perchoir de Vigie de O."""
+        return self._buf[_Mem.OISEAU_PERCHOIR_CARD]
+
+    @oiseau_perchoir_card.setter
+    def oiseau_perchoir_card(self, card_code: int) -> None:
+        assert 0 <= card_code <= CARD_ECAILLE
+        self._buf[_Mem.OISEAU_PERCHOIR_CARD] = card_code
+
+    def get_oiseau_de_envol(self) -> tuple[int, bool]:
+        """Retourne `(valeur_1_6_ou_0, retenu_en_double_horizon)` du Dé d'Envol de O."""
+        b = self._buf[_Mem.TRANS_OISEAU_DE_ENVOL]
+        return b & 0x07, bool(b & 0x08)
+
+    def set_oiseau_de_envol(self, val: int, chose_de_envol: bool = False) -> None:
+        assert 0 <= val <= 6
+        self._buf[_Mem.TRANS_OISEAU_DE_ENVOL] = val | (0x08 if chose_de_envol else 0)
+
+    def get_oiseau_plume(self) -> tuple[int, int, int, bool]:
+        """Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée)."""
+        raw = self._buf[_Mem.TRANS_OISEAU_PLUME]
+        face = raw & 0x03
+        if face == PLUME_NONE:
+            return (PLUME_NONE, 0, 0, False)
+        return (face, (raw >> 2) & 0x01, (raw >> 3) & 0x07, bool(raw & 0x40))
+
+    def set_oiseau_plume(
+        self, face: int, kind: int, idx: int, *, locked: bool = False
+    ) -> None:
+        """Pose ou ajuste la Plume de Vigie (`face`: CHAUD/CALME, `kind`: RAY/RANK, `idx`: 0..5)."""
+        assert face in (PLUME_NONE, PLUME_CHAUD, PLUME_CALME)
+        if face == PLUME_NONE:
+            self._buf[_Mem.TRANS_OISEAU_PLUME] = 0
+            return
+        assert kind in (PLUME_KIND_RAY, PLUME_KIND_RANK)
+        assert 0 <= idx < TRACK_LEN
+        self._buf[_Mem.TRANS_OISEAU_PLUME] = (
+            face | (kind << 2) | (idx << 3) | (0x40 if locked else 0)
+        )
+
+    def lock_oiseau_plume(self) -> None:
+        """Fige la Plume de Vigie lorsque O retourne son 2e pion sur Définitif (INV-03)."""
+        raw = self._buf[_Mem.TRANS_OISEAU_PLUME]
+        if (raw & 0x03) != PLUME_NONE:
+            self._buf[_Mem.TRANS_OISEAU_PLUME] = raw | 0x40
+
+    def is_slot_rooted(self, slot_idx: int) -> bool:
+        """Vrai si l'emplacement de lisière `slot_idx` a été enraciné volontairement."""
+        assert 0 <= slot_idx < NUM_SYNERGY_SLOTS
+        return self._buf[_Mem.ROOTED_TILES + slot_idx] != 0
+
+    def get_slot_rooted_info(self, slot_idx: int) -> tuple[int, int, int, bool] | None:
+        """Retourne `(ray, p, tier_souches 1|2, is_reve)` si `slot_idx` est enraciné, sinon None."""
+        assert 0 <= slot_idx < NUM_SYNERGY_SLOTS
+        b = self._buf[_Mem.ROOTED_TILES + slot_idx]
+        if b == 0:
+            return None
+        p_idx = (b & 0x1F) - 1
+        return p_idx // MAX_P, (p_idx % MAX_P) + 1, (2 if (b & 0x20) else 1), bool(b & 0x40)
+
+    def root_tile_at_parcel(
+        self, slot_idx: int, ray: int, p: int, tier_souches: int = 1
+    ) -> None:
+        """Enracine la tuile construite `slot_idx` au pied de `ray` face à `(ray, p)` (INV-22)."""
+        assert 0 <= slot_idx < 2 * self.cfg.n_players
+        assert tier_souches in (1, 2)
+        p_idx = self._assert_active_parcel(ray, p)
+        assert not self.is_route_forestiere(ray, p), "Enracinement interdit face à une Route Forestière"
+        tid = self.cfg.lisiere_slots[slot_idx]
+        fam = SYNERGY_META[tid][0]
+        is_r = fam == FAMILLE_REVE
+        self._buf[_Mem.ROOTED_TILES + slot_idx] = (
+            (p_idx + 1) | (0x20 if tier_souches == 2 else 0) | (0x40 if is_r else 0)
+        )
+        self.set_lisiere_tile_state(slot_idx, LISIERE_ROOTED, 0)
+
+    def list_rooted_tiles(self) -> list[tuple[int, str, int, int, int]]:
+        """Liste toutes les tuiles enracinées : `(slot_idx, tile_id, ray, p, tier_souches)`."""
+        if self.cfg.mode < 2:
+            return []
+        out: list[tuple[int, str, int, int, int]] = []
+        for idx in range(2 * self.cfg.n_players):
+            b = self._buf[_Mem.ROOTED_TILES + idx]
+            if b != 0:
+                p_idx = (b & 0x1F) - 1
+                tier = 2 if (b & 0x20) else 1
+                out.append((idx, self.cfg.lisiere_slots[idx], p_idx // MAX_P, (p_idx % MAX_P) + 1, tier))
+        return out
+
+    def has_any_rooted_reve(self) -> bool:
+        """Vrai si au moins un Rêve a été enraciné (Sommeil du Contremaître impossible, INV-22)."""
+        if self.cfg.mode < 2:
+            return False
+        for idx in range(2 * self.cfg.n_players):
+            b = self._buf[_Mem.ROOTED_TILES + idx]
+            if b != 0 and (b & 0x40):
+                return True
+        return False
+
+    def was_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> bool:
+        """Vrai si une création de Route en bordure a déjà poussé cette machine vers le cœur (INV-13)."""
+        m_idx = self._machine_idx(ray, m_type)
+        mask = self._buf[_Mem.TRANS_PUSHED_HEART_MASK] | (
+            self._buf[_Mem.TRANS_PUSHED_HEART_MASK + 1] << 8
+        )
+        return bool(mask & (1 << m_idx))
+
+    def mark_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> None:
+        """Marque la machine comme déjà poussée d'1 parcelle vers le cœur sur création de Route en bordure."""
+        m_idx = self._machine_idx(ray, m_type)
+        mask = self._buf[_Mem.TRANS_PUSHED_HEART_MASK] | (
+            self._buf[_Mem.TRANS_PUSHED_HEART_MASK + 1] << 8
+        )
+        mask |= 1 << m_idx
+        self._buf[_Mem.TRANS_PUSHED_HEART_MASK] = mask & 0xFF
+        self._buf[_Mem.TRANS_PUSHED_HEART_MASK + 1] = (mask >> 8) & 0xFF
+
     def reset_transient_modifiers(self) -> None:
         """Remet intégralement à zéro la plage dédiée de modificateurs transitoires en 6.2."""
         self._buf[_Mem.TRANSIENT_START : _Mem.TRANSIENT_END] = _ZERO_TRANSIENT_BYTES
 
     def cleanup_end_of_turn_6_2(self) -> None:
-        """Ménage rapide de fin de tour 6.2 par tranches mémoire contiguës."""
+        """Ménage rapide de fin de tour 6.2 par tranches mémoire contiguës + descente Insectes passagers (INV-21)."""
         buf = self._buf
+        # Descente sur place au ménage de tout Insecte passager non dépensé (M1 / INV-21)
+        for r in range(self.cfg.n_players):
+            for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                p_ins = self.get_machine_passenger_insects(r, mt)
+                if p_ins > 0:
+                    self.set_machine_passenger_insects(r, mt, 0)
+                    if self.cfg.has_insectes_peuple:
+                        pos, st, _ = self.get_machine_pos_status(r, mt)
+                        if (
+                            st != MACHINE_STATUS_RETIRED
+                            and pos >= 1
+                            and not self.is_route_forestiere(r, pos)
+                        ):
+                            cur_i = self.get_parcel_insectes(r, pos)
+                            self.set_parcel_insectes(r, pos, min(255, cur_i + p_ins))
         buf[_Mem.TRIGGERS_LIT] = 0
         for m_off in range(NUM_NIDS):
             buf[_Mem.NIDS_STATE + m_off] &= 0x7F  # Effacer bit activé ce tour
         buf[_Mem.FORET_DEFENSEURS : _Mem.FORET_DEFENSEURS + 15] = _ZERO_15_BYTES
-        buf[_Mem.FURTIVITE_SLOTS : _Mem.FURTIVITE_SLOTS + NUM_PARCELS] = _ZERO_30_BYTES
+        buf[_Mem.FURTIVITE_SLOTS : _Mem.FURTIVITE_SLOTS + MAX_N] = _ZERO_6_BYTES
         buf[_Mem.PLAYER_DEF_LOC : _Mem.PLAYER_DEF_LOC + MAX_N * 2] = _ZERO_12_BYTES
         buf[_Mem.PLAYER_DEF2_DEF_MASK] = 0
         buf[_Mem.PLAYER_HANDS : _Mem.PLAYER_HANDS + MAX_N * 2] = _ZERO_12_BYTES
@@ -2561,8 +3229,16 @@ class GameState:
         n = self.cfg.n_players
         assert 0 <= seat_id < n
         masked = bytearray(self._buf)
-        # Purge totale de l'ordre futur du paquet Machine
+        # Purge totale de l'ordre futur du sac opaque
         masked[_Mem.DECK_CARDS : _Mem.DECK_CARDS + (DECK_SLOTS_CAPACITY // 2)] = _ZERO_DECK_BYTES
+        seat_o = self.cfg.seat_of_peuple("O")
+        # Le jeton du Perchoir de O reste STRICTEMENT FACE CACHÉE pour autrui même paravents ouverts (INV-05/06)
+        if (
+            seat_o is not None
+            and seat_id != seat_o
+            and masked[_Mem.OISEAU_PERCHOIR_CARD] != CARD_NONE
+        ):
+            masked[_Mem.OISEAU_PERCHOIR_CARD] = _MASKED_HAS_CARD_SENTINEL
         # Purge stricte des mains et dés adverses tant que les paravents sont fermés
         if not (masked[_Mem.FLAGS] & _FLAG_PARAVENTS_OUVERTS):
             for s in range(MAX_N):
@@ -2572,4 +3248,6 @@ class GameState:
                 has_c = (masked[hp] & 0x0F) != CARD_NONE and s < n
                 masked[hp] = _MASKED_HAS_CARD_SENTINEL if has_c else 0
                 masked[hp + 1] = 0
+            if seat_o is not None and seat_id != seat_o:
+                masked[_Mem.TRANS_OISEAU_DE_ENVOL] = 0
         return PlayerObservation(seat_id, self.cfg, bytes(masked))

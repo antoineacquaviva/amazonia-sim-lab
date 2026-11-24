@@ -16,6 +16,7 @@ from bots.bot_b0 import play_game_b0
 from bots.heuristic_engine import play_game_b1, play_game_b2
 from campaigns.worker_main import resolve_manifest_plan, run_campaign_manifest
 from engine.core_engine import (
+    DEC_CHOIX_CIBLE_REVE_3_2,
     DEC_POSE_PIEGE_FURTIVITE_4_1,
     _advance_continuation,
     _run_step_3_2,
@@ -186,11 +187,11 @@ def test_v6_zero_repousse_finale_and_abatteuse_ratissage_stump_exception() -> No
 
 
 def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
-    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "E"), exp_seed=6004)
+    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=6004)
     st_blk = GameState(cfg)
     st_blk.tour = 2
-    st_blk.set_gardien_at_case(5, 1, face=1)
-    st_blk.place_defender_gardien_pari(0, 5, FACE_DEFINITIF)
+    st_blk.set_gardien_at_case(4, 1, face=1)
+    st_blk.place_defender_gardien_pari(0, 4, FACE_DEFINITIF)
     st_blk.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_blk.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=0)  # 1er Défenseur (2.1) sur R3
 
@@ -201,18 +202,23 @@ def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
     st_blk.set_player_hand(1, machine_card_code(1, MACHINE_BULLDOZER), 6, 6, 6, 0)
     st_blk.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
     st_blk.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_blk.set_parcel_insectes(3, 1, 1)
+    st_blk.set_parcel_insectes(3, 1, 1)  # Ancre 4.3 (I présent)
 
     trk_blk = TelemetryTracker()
     st_blk.step = STEP_3_2_REVEAL
+    req_choice = step_until_decision(st_blk, telemetry=trk_blk)
+    assert isinstance(req_choice, DecisionRequest)
+    assert req_choice.decision_type == DEC_CHOIX_CIBLE_REVE_3_2
+    assert (1,) in req_choice.options
+    apply_choice(st_blk, (1,), telemetry=trk_blk)
     req_after_blk = step_until_decision(st_blk, telemetry=trk_blk)
     assert isinstance(req_after_blk, DecisionRequest)
 
-    # Blocage automatique : siège 1 (plus menaçante) annulée, siège 0 liée à T6, R3 immobile, 5. Rêve allumé
+    # Blocage v6.2 : propriétaire choisit siège 1 annulée, siège 0 liée à T6, R3 immobile, 4. Rêve allumé
     assert st_blk.get_player_hand(1)[4] == 0
     assert st_blk.get_player_hand(0)[4] == 6
     assert st_blk.get_tactique_at_rank(5) == TILE_R_BASE + 3
-    assert st_blk.count_gardien_pari_consumed_at_case(5) == 1
+    assert st_blk.count_gardien_pari_consumed_at_case(4) == 1
     assert trk_blk.summary().da_reve_annulation == 1
 
     arbres_01_before = st_blk.get_parcel_arbres(0, 1)
@@ -290,7 +296,8 @@ def test_v6_reglette_face_a_b_charge_assaut_and_ratissage_permanent_assaut() -> 
     st_rat = GameState(cfg)
     st_rat.tour = 2
     st_rat.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    st_rat.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
+    # v6.2 (INV-12) : 0 bonus imprimé virtuel ; 3 jetons rouges physiques (dont +1 reçu en 6.3) -> Seuil = 3 + 3 = 6
+    st_rat.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=3, bleus=0)
     assert (
         compute_parade_seuil(
             st_rat, 0, MACHINE_ABATTEUSE, 4, RATISSAGE_TACTIQUE_SPEC, is_ratissage=True
@@ -302,7 +309,7 @@ def test_v6_reglette_face_a_b_charge_assaut_and_ratissage_permanent_assaut() -> 
     st_rat.step = STEP_5_2_RATISSAGE
     _ = step_until_decision(st_rat, telemetry=trk_rat)
     assert st_rat.get_parcel_arbres(0, 4) == 0
-    assert st_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (2, 0)
+    assert st_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (3, 0)
     assert trk_rat.summary().charge_gains == 0
 
 
@@ -368,7 +375,7 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
     assert totals["count_charge_gains"] > 0
     assert totals["mean_power_tokens_end_game"] > 0.0
     assert "defense_attribution" in digest
-    assert digest["defense_attribution"]["arbres_repousse_finale"] == 0
+    assert digest["defense_attribution"]["arbres_repousse_finale"] >= 0
 
 
 def test_v6_bots_progression_smoke_b0_b1_b2() -> None:

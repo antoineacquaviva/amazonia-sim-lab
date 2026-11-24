@@ -59,6 +59,7 @@ def _play_game_b2_with_placebo_filter(state: GameState) -> GameOver:
         if isinstance(out, GameOver):
             return out
         if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            "HUMAIN_CHAMAN_2_1",
             DEC_POSE_DEFENSEUR_1,
             DEC_POSE_DEFENSEUR_2,
         ):
@@ -88,8 +89,12 @@ def test_placebo_action_filter_matches_standard_b2_exact_50_seeds() -> None:
         # A. Égalité exacte des poses dès le Tour 1
         s_ref = GameState(cfg)
         s_plc = GameState(cfg)
-        step_until_decision(s_ref)
-        step_until_decision(s_plc)
+        for st_cur in (s_ref, s_plc):
+            while st_cur.step < STEP_2_1_DEF1:
+                req_s1 = step_until_decision(st_cur)
+                if isinstance(req_s1, GameOver) or st_cur.step >= STEP_2_1_DEF1:
+                    break
+                apply_choice(st_cur, choose_b2(st_cur, req_s1))
         assert s_ref.step == STEP_2_1_DEF1 and s_plc.step == STEP_2_1_DEF1
         resolve_step2_full_with_ticks(
             s_ref, score_target_b2, k_max_passes=3, epsilon_base=24.0, epsilon_step=12.0
