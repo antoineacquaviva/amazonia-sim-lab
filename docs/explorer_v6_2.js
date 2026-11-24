@@ -404,7 +404,10 @@
     xrayFocusId: null,         // tileId | null
     capotOpenIds: new Set(),   // Set<tileId>
     allCapotsOpen: false,
-    readingGuideOpen: false,   // Panneau Guide de lecture fermé par défaut
+    readingGuideOpen: false,   // Didacticiel visuel Guide de lecture fermé par défaut
+    guideTab: 'gardien',       // 'gardien' | 'autres'
+    guideSpot: null,           // null | '1'..'9'
+    guideCapotPreviewOpen: false,
     wheelSelection: null,      // null | { kind: 'peuple', code } | { kind: 'border', p1, p2 }
     filters: {
       search: '',
@@ -2284,141 +2287,629 @@
     `;
   }
 
+  function guideSpotAttrs(spotId) {
+    const id = String(spotId);
+    const active = explorerState.guideSpot === id;
+    return {
+      active,
+      cls: active ? 'is-active-spot' : '',
+      handlers: `onclick="AmazoniaExplorerV62.setGuideSpot('${id}')" onmouseenter="AmazoniaExplorerV62.hoverGuideSpot('${id}')" onmouseleave="AmazoniaExplorerV62.hoverGuideSpot(null)"`
+    };
+  }
+
+  function renderGuidePin(spotId, label) {
+    const meta = guideSpotAttrs(spotId);
+    const id = escapeHtml(spotId);
+    return `<button type="button" class="exp-guide-pin ${meta.cls}" data-guide-spot="${id}" onclick="event.stopPropagation(); AmazoniaExplorerV62.setGuideSpot('${id}')" title="Mettre en avant le point ${id} : ${escapeHtml(label)}" aria-label="Point ${id} : ${escapeHtml(label)}">${id}</button>`;
+  }
+
+  function renderGuideCallout(opts) {
+    const meta = guideSpotAttrs(opts.spot);
+    const dirCls = opts.side === 'right' ? 'is-from-right' : 'is-from-left';
+    const zoneAttr = opts.zone ? ` data-guide-zone="${escapeHtml(opts.zone)}"` : '';
+    return `
+      <article class="exp-guide-bubble ${dirCls} ${meta.cls}" data-guide-spot="${escapeHtml(opts.spot)}"${zoneAttr} ${meta.handlers}>
+        <div class="exp-guide-bubble-head">
+          <span class="exp-guide-num">${escapeHtml(opts.spot)}</span>
+          <h4 class="exp-guide-card-title">${opts.title}</h4>
+        </div>
+        ${opts.bodyHtml}
+      </article>
+    `;
+  }
+
+  function renderGuideSpecimenGardien() {
+    const cat = getCatalogue();
+    const peuplesMap = getPeuplesMap();
+    const tileId = cat.G7 ? 'G7' : (Object.keys(cat).find(id => cat[id] && cat[id].famille === 'GARDIEN') || Object.keys(cat)[0]);
+    const tile = cat[tileId];
+    const prof = tile ? getTileProfile(tileId) : null;
+    if (!tile || !prof) return '';
+
+    const originCode = tile.origine || 'M';
+    const neighborCode = getTileNeighbor(tile) || 'H';
+    const originP = peuplesMap[originCode] || { icon: '🐻', nom: originCode };
+    const neighborP = peuplesMap[neighborCode] || { icon: '🥁', nom: neighborCode };
+    const parsedFaces = parseTileFaces(tile, prof);
+    const vecRaw = String(prof.vecteurs || 'V1 -> V3').trim();
+    const vecTip = formatVectorTooltip(vecRaw);
+    const vecDisplay = vecRaw.replace('->', '➔');
+    const medallionHtml = renderTileMedallionHtml(tile.id);
+    const inputs = Array.isArray(prof.entrees) ? prof.entrees : [];
+    const outputs = Array.isArray(prof.sorties) ? prof.sorties : [];
+    const payments = Array.isArray(prof.paiement) ? prof.paiement : [];
+    const syncStatus = String(prof.engine_sync_status || 'ACTIVE_VERIFIED');
+    const dec = prof.decision_joueur || {};
+    const prix = prof.prix_estime || {};
+    const parFaceEntries = prix.par_face ? Object.entries(prix.par_face) : [];
+    const vecKeys = ['V1', 'V2', 'V3', 'V4', 'V5'];
+
+    // Paire de lisière réelle pour le bandeau supérieur
+    const matrice = getMatricePaires();
+    const borderPair = matrice[originCode + '_' + neighborCode] || [tileId, 'R3'];
+    const mateId = borderPair.find(id => id !== tileId) || 'R3';
+    const div = computeBorderDivergence(tileId, mateId);
+    const mA = getStateMeta(div.primaryOutA);
+    const mB = getStateMeta(div.primaryOutB);
+
+    const s1 = guideSpotAttrs('1');
+    const s2 = guideSpotAttrs('2');
+    const s3 = guideSpotAttrs('3');
+    const s4 = guideSpotAttrs('4');
+    const s5 = guideSpotAttrs('5');
+    const s6 = guideSpotAttrs('6');
+    const s7 = guideSpotAttrs('7');
+    const s8 = guideSpotAttrs('8');
+    const s9 = guideSpotAttrs('9');
+
+    const renderDemoChip = (tok, kindCls) => {
+      const m = getStateMeta(tok);
+      return `<span class="exp-state-chip ${kindCls}">${m.icon} ${escapeHtml(m.label)}</span>`;
+    };
+
+    const bannerStageHtml = `
+      <div class="exp-guide-stage-row exp-guide-stage-banner">
+        <div class="exp-guide-col-left">
+          ${renderGuideCallout({
+            spot: '1',
+            zone: '1',
+            side: 'left',
+            title: 'Bandeau de lisière &amp; Géométrie 2K3',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Frontière partagée entre deux Peuples voisins (<code>${escapeHtml(originCode)} ↔ ${escapeHtml(neighborCode)}</code>). Distingue les <strong>3 lisières 100 % fluides</strong> (<code>E–O</code>, <code>H–M</code>, <code>R–I</code>) des <strong>12 lisières Mixtes (2K3)</strong> pouvant porter un Twist.
+              </p>
+            `
+          })}
+        </div>
+
+        <div class="exp-guide-col-center">
+          <div class="exp-guide-specimen-label">Exemple réel — Bandeau de lisière (Mode 1)</div>
+          <div class="exp-guide-banner-mock">
+            <div class="exp-guide-target ${s1.cls}" data-guide-spot="1" ${s1.handlers}>
+              ${renderGuidePin('1', 'Bandeau de lisière & Géométrie 2K3')}
+              <div class="exp-border-title">
+                <span class="exp-orient-half exp-p-${originCode} exp-guide-mini-chip">${renderPeupleIconHtml(originCode, originP.icon)} ${originCode}</span>
+                <span>↔</span>
+                <span class="exp-orient-half exp-p-${neighborCode} exp-guide-mini-chip">${renderPeupleIconHtml(neighborCode, neighborP.icon)} ${neighborCode}</span>
+                <span style="color:#64748b;font-weight:600;font-size:0.72rem;">${escapeHtml(originP.nom)} – ${escapeHtml(neighborP.nom)}</span>
+                <span class="exp-geo-badge is-fluid">🌿 100 % fluide</span>
+              </div>
+            </div>
+
+            <div class="exp-guide-target ${s2.cls}" data-guide-spot="2" ${s2.handlers}>
+              ${renderGuidePin('2', 'Preuve de Divergence (✓ 0 boucle)')}
+              <span class="exp-divergence-proof">
+                <strong>Divergence :</strong>
+                <span>${escapeHtml(tileId)} (${mA.icon} ${escapeHtml(mA.label)})</span>
+                <span style="font-weight:800;color:#059669;">≠</span>
+                <span>${escapeHtml(mateId)} (${mB.icon} ${escapeHtml(mB.label)})</span>
+                <span style="color:#059669;font-weight:700;">· ✓ 0 boucle</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-guide-col-right">
+          ${renderGuideCallout({
+            spot: '2',
+            side: 'right',
+            title: 'Preuve de Divergence (✓ 0 boucle)',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Garantit que les deux tuiles face-à-face produisent deux sorties différentes (<code>≠</code>), sans boucle d’état fermée à deux sur la lisière.
+              </p>
+            `
+          })}
+        </div>
+      </div>
+    `;
+
+    const cardStageHtml = `
+      <div class="exp-guide-stage-row exp-guide-stage-card">
+        <div class="exp-guide-col-left">
+          ${renderGuideCallout({
+            spot: '3',
+            zone: '2',
+            side: 'left',
+            title: 'En-tête d’identité &amp; Gouvernance',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Dans <strong>[Origine → Voisin · ID]</strong>, le Peuple de gauche (<code>${escapeHtml(originCode)}</code>) gouverne la tuile et fixe sa famille : <code>🛡️ Gardien</code> recto-verso, <code>🌙 Rêve</code> ou <code>🪹 Nid</code>.
+              </p>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '5',
+            side: 'left',
+            title: 'Obligations du modèle',
+            bodyHtml: `
+              <div class="exp-guide-mini-pills">
+                <span class="exp-role-badge exp-role-eveil">☀️ Catalyseur d’Éveil</span>
+                <span class="exp-role-badge exp-role-reve">🌙 Levier de Rêve</span>
+                <span class="exp-role-badge exp-role-enrac">🌱 Enracinement</span>
+                <span class="exp-role-badge exp-role-a0">🔓 Autonome A=0</span>
+              </div>
+              <p class="exp-guide-text">
+                Signale les garanties structurelles portées par cet emplacement (aucun badge = emplacement libre de toute obligation dure).
+              </p>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '7',
+            zone: '4',
+            side: 'left',
+            title: 'Zone Joueur : 6 icônes v6.2 &amp; Faces',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Rampe fixe gauche → droite (<code>Parade</code>, <code>Piégeage</code>, <code>Sabotage</code>, <code>Rêve</code>, <code>Insecte</code>, <code>Résonance</code>) avec <strong>★</strong> sur le câblage recommandé. <code>Face 2 · Éveillé</code> rappelle <strong>🌱 2 Souches si enraciné</strong> (contre <code>1 Souche</code> en Face 1). Sur Rêves &amp; Nids : badge de fenêtre naturelle et cartouche <strong>🌱 Enraciné</strong> (voir planche 2).
+              </p>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '8',
+            zone: '5',
+            side: 'left',
+            title: 'Chaîne de flux physique cliquable',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Équation en pied de carte : <strong>[Entrées (vert)] → [Sorties (ambre)] → 🎯 [Paiement de victoire (bleu-violet)]</strong>. Cliquer sur n’importe quelle puce filtre aussitôt les tuiles liées.
+              </p>
+            `
+          })}
+        </div>
+
+        <div class="exp-guide-col-center">
+          <div class="exp-guide-specimen-label">Exemple réel annoté — Carte Gardien (${escapeHtml(tile.id)} · ${escapeHtml(prof.nom)})</div>
+          <article class="exp-tile-card fam-GARDIEN exp-guide-specimen-card" data-guide-specimen="${escapeHtml(tile.id)}">
+            <div class="exp-card-head">
+              <div class="exp-card-head-left exp-guide-target ${s3.cls}" data-guide-spot="3" ${s3.handlers}>
+                ${renderGuidePin('3', 'Identité orientée & Famille')}
+                <span class="exp-orient-pill">
+                  <span class="exp-orient-half exp-p-${originCode}">${renderPeupleIconHtml(originCode, originP.icon)} ${originCode}</span>
+                  <span class="exp-orient-arrow">➔</span>
+                  <span class="exp-orient-half exp-p-${neighborCode}">${renderPeupleIconHtml(neighborCode, neighborP.icon)} ${neighborCode}</span>
+                  <span class="exp-orient-id">${escapeHtml(tile.id)}</span>
+                </span>
+                <span class="exp-family-pill fam-GARDIEN">🛡️ Gardien</span>
+              </div>
+
+              <div class="exp-card-head-right exp-guide-target ${s4.cls}" data-guide-spot="4" ${s4.handlers}>
+                ${renderGuidePin('4', 'Statut & Focus Synergies (Rayons X)')}
+                <span class="exp-status-badge exp-status-fluide">🌊 Brique fluide</span>
+                <span class="exp-xray-btn" aria-hidden="true">🔬 Focus Synergies</span>
+              </div>
+            </div>
+
+            <div class="exp-card-title-row ${medallionHtml ? 'has-medallion' : ''}">
+              <div class="exp-card-identity">
+                ${medallionHtml}
+                <div class="exp-card-title-block">
+                  <h4 class="exp-card-title">${escapeHtml(prof.nom || tile.nomBase)}</h4>
+                  ${prof.animal_ou_theme ? `<div class="exp-card-theme">${escapeHtml(prof.animal_ou_theme)}</div>` : ''}
+                </div>
+              </div>
+              <span class="exp-inplay-tag">✓ En jeu</span>
+            </div>
+
+            <div class="exp-role-ribbon exp-guide-ribbon-split">
+              <div class="exp-guide-target exp-guide-target-inline ${s5.cls}" data-guide-spot="5" ${s5.handlers}>
+                ${renderGuidePin('5', 'Obligations du modèle')}
+                <span class="exp-role-badge exp-role-eveil">☀️ Catalyseur d’Éveil</span>
+                <span class="exp-role-badge exp-role-enrac">🌱 Synergie Enracinement</span>
+              </div>
+              <div class="exp-guide-target exp-guide-target-inline ${s6.cls}" data-guide-spot="6" ${s6.handlers}>
+                ${renderGuidePin('6', 'Flèche de bivalence V1..V5')}
+                <span class="exp-vector-chip" title="${escapeHtml(vecTip)}">${escapeHtml(vecDisplay)}</span>
+              </div>
+            </div>
+
+            <div class="exp-guide-target exp-guide-target-block ${s7.cls}" data-guide-spot="7" ${s7.handlers}>
+              ${renderGuidePin('7', 'Zone Joueur : 6 icônes v6.2 & Faces')}
+              ${renderGuardianRamp(tile, prof)}
+              <div class="exp-faces-stack" style="margin-top:0.55rem;">
+                ${parsedFaces.faces.map(f => `
+                  <div class="exp-face-box ${f.isFace2 ? 'is-face2' : ''}">
+                    <div class="exp-face-head">
+                      <span class="exp-face-label">
+                        <span>${escapeHtml(f.label)}</span>
+                        ${f.isFace2 ? '<span class="exp-face2-enrac-pill">🌱 2 Souches si enraciné</span>' : ''}
+                      </span>
+                      <span class="exp-word-count">${f.words} mots</span>
+                    </div>
+                    <div class="exp-face-text">${f.html}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="exp-guide-target exp-guide-target-block ${s8.cls}" data-guide-spot="8" ${s8.handlers}>
+              ${renderGuidePin('8', 'Chaîne de flux physique cliquable')}
+              <div class="exp-flow-footer" style="border-top:none;padding-top:0;">
+                <span class="exp-flow-group">
+                  ${inputs.map(t => renderDemoChip(t, 'is-input')).join('')}
+                </span>
+                <span class="exp-flow-sep" aria-hidden="true">➔</span>
+                <span class="exp-flow-group">
+                  ${outputs.map(t => renderDemoChip(t, 'is-output')).join('')}
+                </span>
+                <span class="exp-flow-sep" aria-hidden="true">➔ 🎯</span>
+                <span class="exp-flow-group">
+                  ${payments.map(t => renderDemoChip(t, 'is-pay')).join('')}
+                </span>
+              </div>
+            </div>
+
+            <div class="exp-guide-target exp-guide-target-block ${s9.cls}" data-guide-spot="9" ${s9.handlers}>
+              ${renderGuidePin('9', 'Capot Concepteur & Statut ACTIVE_VERIFIED')}
+              <div class="exp-capot-wrap" style="border-top:none;padding-top:0;">
+                <button type="button" class="exp-capot-toggle" aria-expanded="${explorerState.guideCapotPreviewOpen ? 'true' : 'false'}" onclick="event.stopPropagation(); AmazoniaExplorerV62.toggleGuideCapotPreview();">
+                  <span>${explorerState.guideCapotPreviewOpen ? '▾' : '▸'} Capot Concepteur (cliquer pour aperçu)</span>
+                  <span class="exp-sync-badge is-verified">${escapeHtml(syncStatus)}</span>
+                </button>
+                ${explorerState.guideCapotPreviewOpen ? `
+                  <div class="exp-capot-body">
+                    <div class="exp-diptych">
+                      <div class="exp-diptych-box is-choice">
+                        <div class="exp-capot-label">✦ Choix joueur</div>
+                        <div>${escapeHtml(dec.choix || '—')}</div>
+                      </div>
+                      <div class="exp-diptych-box is-tradeoff">
+                        <div class="exp-capot-label">⚖️ Renoncement</div>
+                        <div>${escapeHtml(dec.renoncement || '—')}</div>
+                      </div>
+                    </div>
+                    <div class="exp-dt-pills">
+                      <span class="exp-dt-pill">Coût : ${prix.cout_construction_DT !== undefined ? escapeHtml(prix.cout_construction_DT) : '2'} DT</span>
+                      ${parFaceEntries.map(([k, v]) => `<span class="exp-dt-pill">${escapeHtml(k)} : ${escapeHtml(v)} DT</span>`).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="exp-guide-col-right">
+          ${renderGuideCallout({
+            spot: '4',
+            side: 'right',
+            title: 'Statut &amp; Focus Synergies (Rayons X)',
+            bodyHtml: `
+              <div class="exp-guide-mini-pills">
+                <span class="exp-status-badge exp-status-fluide">🌊 Fluide</span>
+                <span class="exp-status-badge exp-status-twist">⚡ Twist 2K3</span>
+                <span class="exp-status-badge exp-status-loi">⚖️ Loi passive</span>
+              </div>
+              <p class="exp-guide-text">
+                <strong>Twist 2K3</strong> détourne une règle ou pièce du cœur (survoler pour lire la piste) ; <strong>Loi passive</strong> concerne <code>M2</code> et <code>M3</code>. <strong>🔬 Focus Synergies</strong> active les <em>Rayons X</em> : <span class="exp-guide-inline-up">vert émeraude = amont</span>, <span class="exp-guide-inline-down">ambre = aval</span>.
+              </p>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '6',
+            zone: '3',
+            side: 'right',
+            title: 'Les 5 Vecteurs (V_entrée → V_sortie)',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Décodés au survol sur les 30 cartes, ils résument ce que la tuile lit et ce qu’elle produit :
+              </p>
+              <ul class="exp-guide-vector-list">
+                ${vecKeys.map(vk => {
+                  const vd = VECTOR_DEFS_V62[vk];
+                  return `<li data-guide-vector="${vk}"><span class="exp-vector-chip exp-guide-vec-code">${vk}</span><span>${escapeHtml(vd.full)}</span></li>`;
+                }).join('')}
+              </ul>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '9',
+            zone: '6',
+            side: 'right',
+            title: 'Capot Concepteur &amp; Statut Moteur',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Tiroir dépliable réunissant <em>Choix / Renoncement</em>, heuristique bot, prix en Défenseurs-tours (<code>DT</code>), scénarios témoins et aperçu Phase 5 (<code>B</code>/<code>C</code>). Le badge vert <strong>ACTIVE_VERIFIED</strong> certifie que la tuile est codée et couverte par ses tests témoins Python.
+              </p>
+            `
+          })}
+        </div>
+      </div>
+    `;
+
+    return bannerStageHtml + cardStageHtml;
+  }
+
+  function renderGuideSpecimenAutres() {
+    const cat = getCatalogue();
+    const peuplesMap = getPeuplesMap();
+    const r6 = cat.R6;
+    const r6Prof = r6 ? getTileProfile('R6') : null;
+    const g15 = cat.G15;
+    const g15Prof = g15 ? getTileProfile('G15') : null;
+    const m2 = cat.M2;
+    const m2Prof = m2 ? getTileProfile('M2') : null;
+    if (!r6 || !r6Prof) return '';
+
+    const r6Orig = r6.origine;
+    const r6Neigh = getTileNeighbor(r6);
+    const r6OrigP = peuplesMap[r6Orig] || { icon: '🥁', nom: r6Orig };
+    const r6NeighP = peuplesMap[r6Neigh] || { icon: '🪲', nom: r6Neigh };
+    const r6Faces = parseTileFaces(r6, r6Prof);
+    const r6Win = getNaturalWindowBadges(r6, r6Prof);
+    const r6Medallion = renderTileMedallionHtml('R6');
+    const r6Vec = String(r6Prof.vecteurs || 'V5 -> V4').trim();
+
+    const s1 = guideSpotAttrs('1');
+    const s2 = guideSpotAttrs('2');
+    const s3 = guideSpotAttrs('3');
+    const s4 = guideSpotAttrs('4');
+    const s5 = guideSpotAttrs('5');
+
+    const topRow = `
+      <div class="exp-guide-stage-row exp-guide-stage-card">
+        <div class="exp-guide-col-left">
+          ${renderGuideCallout({
+            spot: '1',
+            side: 'left',
+            title: 'Autonomie A=0 (tables sans Animaux)',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Le badge <strong>🔓 Autonome A=0</strong> identifie les 6 tuiles des 3 lisières sans Animal (<code>H–E</code>, <code>H–I</code>, <code>E–I</code>), 100 % jouables sans Piste des Gardiens (table <code>N3-HEI</code>).
+              </p>
+            `
+          })}
+
+          ${renderGuideCallout({
+            spot: '3',
+            side: 'left',
+            title: 'Cartouche vert forêt 🌱 Enraciné',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Les Rêves et Nids spécialisés (<code>R2</code>, <code>R6</code>, <code>M5</code>) affichent ce cartouche dédié pour leur effet permanent d’enracinement en fin de partie.
+              </p>
+            `
+          })}
+        </div>
+
+        <div class="exp-guide-col-center">
+          <div class="exp-guide-specimen-label">Exemple réel annoté — Carte Rêve avec Enracinement (R6 · ${escapeHtml(r6Prof.nom)})</div>
+          <article class="exp-tile-card fam-REVE exp-guide-specimen-card" data-guide-specimen="R6">
+            <div class="exp-card-head">
+              <div class="exp-card-head-left">
+                <span class="exp-orient-pill">
+                  <span class="exp-orient-half exp-p-${r6Orig}">${renderPeupleIconHtml(r6Orig, r6OrigP.icon)} ${r6Orig}</span>
+                  <span class="exp-orient-arrow">➔</span>
+                  <span class="exp-orient-half exp-p-${r6Neigh}">${renderPeupleIconHtml(r6Neigh, r6NeighP.icon)} ${r6Neigh}</span>
+                  <span class="exp-orient-id">R6</span>
+                </span>
+                <span class="exp-family-pill fam-REVE">🌙 Rêve</span>
+              </div>
+              <div class="exp-card-head-right">
+                <span class="exp-status-badge exp-status-fluide">🌊 Brique fluide</span>
+              </div>
+            </div>
+
+            <div class="exp-card-title-row ${r6Medallion ? 'has-medallion' : ''}">
+              <div class="exp-card-identity">
+                ${r6Medallion}
+                <div class="exp-card-title-block">
+                  <h4 class="exp-card-title">${escapeHtml(r6Prof.nom)}</h4>
+                  ${r6Prof.animal_ou_theme ? `<div class="exp-card-theme">${escapeHtml(r6Prof.animal_ou_theme)}</div>` : ''}
+                </div>
+              </div>
+            </div>
+
+            <div class="exp-role-ribbon">
+              <div class="exp-guide-target exp-guide-target-inline ${s1.cls}" data-guide-spot="1" ${s1.handlers}>
+                ${renderGuidePin('1', 'Autonomie A=0')}
+                <span class="exp-role-badge exp-role-enrac">🌱 Synergie Enracinement</span>
+                <span class="exp-role-badge exp-role-a0">🔓 Autonome A=0</span>
+              </div>
+              <span class="exp-vector-chip" title="${escapeHtml(formatVectorTooltip(r6Vec))}">${escapeHtml(r6Vec.replace('->', '➔'))}</span>
+            </div>
+
+            <div class="exp-guide-target exp-guide-target-inline ${s2.cls}" data-guide-spot="2" ${s2.handlers}>
+              ${renderGuidePin('2', 'Fenêtre naturelle d’activation')}
+              <div class="exp-window-row">
+                ${r6Win.map(b => `<span class="exp-window-badge">${b.icon} ${escapeHtml(b.label)}</span>`).join('')}
+              </div>
+            </div>
+
+            <div class="exp-faces-stack">
+              ${r6Faces.faces.map(f => `
+                <div class="exp-face-box">
+                  <div class="exp-face-head">
+                    <span class="exp-face-label">${escapeHtml(f.label)}</span>
+                    <span class="exp-word-count">${f.words} mots</span>
+                  </div>
+                  <div class="exp-face-text">${f.html}</div>
+                </div>
+              `).join('')}
+              ${r6Faces.enracine ? `
+                <div class="exp-guide-target exp-guide-target-block ${s3.cls}" data-guide-spot="3" ${s3.handlers}>
+                  ${renderGuidePin('3', 'Cartouche vert forêt Enraciné')}
+                  <div class="exp-face-box is-enracine">
+                    <div class="exp-face-head">
+                      <span class="exp-face-label">${r6Faces.enracine.label} :</span>
+                      <span class="exp-word-count">${r6Faces.enracine.words} mots</span>
+                    </div>
+                    <div class="exp-face-text">${r6Faces.enracine.html}</div>
+                  </div>
+                </div>
+              ` : ''}
+            </div>
+          </article>
+        </div>
+
+        <div class="exp-guide-col-right">
+          ${renderGuideCallout({
+            spot: '2',
+            side: 'right',
+            title: 'Fenêtres naturelles (Rêves &amp; Nids)',
+            bodyHtml: `
+              <div class="exp-guide-mini-pills">
+                <span class="exp-window-badge">🌅 À l’ouverture</span>
+                <span class="exp-window-badge">🪹 Après production</span>
+                <span class="exp-window-badge">🛡️ En Parade</span>
+                <span class="exp-window-badge">🪲 En Migration</span>
+              </div>
+              <p class="exp-guide-text">
+                Indique immédiatement à quel temps du tour la tuile se déclenche, sans code numérique d’étape.
+              </p>
+            `
+          })}
+        </div>
+      </div>
+    `;
+
+    const bottomRow = `
+      <div class="exp-guide-stage-row exp-guide-stage-banner">
+        <div class="exp-guide-col-left">
+          ${renderGuideCallout({
+            spot: '4',
+            side: 'left',
+            title: 'Twists 2K3 (6) &amp; Lois passives (M2, M3)',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Un <strong>⚡ Twist 2K3</strong> (ex. <code>G15</code>) tord une règle du cœur sur une lisière mixte — survolez son badge pour lire la piste. Une <strong>⚖️ Loi passive</strong> (uniquement <code>M2</code> et <code>M3</code>) reste active en continu (plafond <code>≤ 2</code> par assise).
+              </p>
+            `
+          })}
+        </div>
+
+        <div class="exp-guide-col-center">
+          <div class="exp-guide-specimen-label">Statuts spéciaux &amp; Lecture du mode Rayons X</div>
+          <div class="exp-guide-specials-stack">
+            <div class="exp-guide-target exp-guide-special-box ${s4.cls}" data-guide-spot="4" ${s4.handlers}>
+              ${renderGuidePin('4', 'Statuts spéciaux Twist 2K3 & Loi passive')}
+              <div class="exp-guide-special-line">
+                <span class="exp-status-badge exp-status-twist" title="${escapeHtml((g15Prof && g15Prof.piste_twist) || '')}">⚡ Twist 2K3</span>
+                <strong>G15 · ${escapeHtml((g15Prof && g15Prof.nom) || 'Le Va-et-vient du Colibri')}</strong>
+                <span class="exp-guide-special-sub">${escapeHtml((g15Prof && g15Prof.piste_twist) || '')}</span>
+              </div>
+              <div class="exp-guide-special-line">
+                <span class="exp-status-badge exp-status-loi">⚖️ Loi passive</span>
+                <strong>M2 · ${escapeHtml((m2Prof && m2Prof.nom) || 'La Termitière à Glu')}</strong>
+                <span class="exp-window-badge">🛡️ En Parade</span>
+              </div>
+            </div>
+
+            <div class="exp-guide-target exp-guide-xray-mock ${s5.cls}" data-guide-spot="5" ${s5.handlers}>
+              ${renderGuidePin('5', 'Lecture du mode Rayons X')}
+              <div class="exp-guide-xray-mini-grid">
+                <div class="exp-xray-col is-up">
+                  <div class="exp-xray-col-title"><span>▲ Amont (Émeraude)</span></div>
+                  <div class="exp-guide-xray-mini-txt">Tuiles &amp; accessoires qui fournissent les entrées ou allument l’icône ★.</div>
+                </div>
+                <div class="exp-xray-col is-center">
+                  <div class="exp-xray-col-title"><span>● Focus (Indigo)</span></div>
+                  <div class="exp-guide-xray-mini-txt">Tuile observée au centre des synergies.</div>
+                </div>
+                <div class="exp-xray-col is-down">
+                  <div class="exp-xray-col-title"><span>▼ Aval (Ambre)</span></div>
+                  <div class="exp-guide-xray-mini-txt">Tuiles qui consomment ses sorties ou son icône.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="exp-guide-col-right">
+          ${renderGuideCallout({
+            spot: '5',
+            side: 'right',
+            title: 'Lire les Rayons X &amp; les 3 Modes',
+            bodyHtml: `
+              <p class="exp-guide-text">
+                Cliquez <strong>🔬 Focus Synergies</strong> sur n’importe quelle carte pour isoler son graphe amont/aval (<code>Échap</code> pour quitter). En <strong>Mode 2 (197 Assises)</strong>, les Rayons X se limitent aux <code>2N</code> tuiles réellement présentes autour de la table.
+              </p>
+            `
+          })}
+        </div>
+      </div>
+    `;
+
+    return topRow + bottomRow;
+  }
+
   function renderReadingGuide() {
     if (!explorerState.readingGuideOpen) return '';
-    const vecKeys = ['V1', 'V2', 'V3', 'V4', 'V5'];
+    const tab = explorerState.guideTab === 'autres' ? 'autres' : 'gardien';
+    const maxSpot = tab === 'autres' ? 5 : 9;
+    const activeSpot = explorerState.guideSpot;
+    const hasSpotCls = activeSpot ? 'has-active-spot' : '';
+
     return `
-      <section id="exp-reading-guide-panel" class="exp-reading-guide" data-reading-guide="open" aria-label="Guide de lecture de l’Explorateur v6.2">
-        <div class="exp-guide-header">
-          <div class="exp-guide-title-wrap">
-            <span class="exp-guide-kicker">? Guide de lecture</span>
-            <h3 class="exp-guide-title">Anatomie d’une lisière &amp; d’une carte-tuile Canon 0 (v6.2)</h3>
+      <div id="exp-reading-guide-backdrop" class="exp-guide-backdrop" onclick="if(event.target===this){AmazoniaExplorerV62.toggleReadingGuide(false);}">
+        <section id="exp-reading-guide-panel" class="exp-reading-guide exp-guide-modal ${hasSpotCls}" data-reading-guide="open" data-guide-tab="${tab}" role="dialog" aria-modal="true" aria-label="Didacticiel visuel de l’Explorateur v6.2">
+          <div class="exp-guide-header">
+            <div class="exp-guide-title-wrap">
+              <span class="exp-guide-kicker">📖 Didacticiel visuel</span>
+              <div>
+                <h3 class="exp-guide-title">Lire une lisière &amp; une carte-tuile Canon 0 (v6.2)</h3>
+                <p class="exp-guide-subtitle">Survolez ou cliquez une pastille numérotée sur la tuile exemple (ou une bulle) pour isoler la zone commentée.</p>
+              </div>
+            </div>
+
+            <div class="exp-guide-header-actions">
+              <div class="exp-guide-tabs" role="tablist" aria-label="Planches du didacticiel">
+                <button type="button" role="tab" aria-selected="${tab === 'gardien'}" class="exp-guide-tab-btn ${tab === 'gardien' ? 'is-active' : ''}" data-guide-tab-btn="gardien" onclick="AmazoniaExplorerV62.setGuideTab('gardien')">
+                  🛡️ 1. Lisière &amp; Gardien (G7)
+                </button>
+                <button type="button" role="tab" aria-selected="${tab === 'autres'}" class="exp-guide-tab-btn ${tab === 'autres' ? 'is-active' : ''}" data-guide-tab-btn="autres" onclick="AmazoniaExplorerV62.setGuideTab('autres')">
+                  🌙 2. Rêve, Nid, Twist &amp; Rayons X
+                </button>
+              </div>
+              <button type="button" id="exp-reading-guide-close" class="exp-btn exp-guide-close-btn" onclick="AmazoniaExplorerV62.toggleReadingGuide(false)" title="Fermer le didacticiel (Échap)">
+                ✕ Fermer
+              </button>
+            </div>
           </div>
-          <button type="button" id="exp-reading-guide-close" class="exp-btn exp-guide-close-btn" onclick="AmazoniaExplorerV62.toggleReadingGuide(false)" title="Fermer le guide de lecture (Échap)">
-            ✕ Fermer
-          </button>
-        </div>
 
-        <div class="exp-guide-grid">
-          <article class="exp-guide-card" data-guide-zone="1">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">1</span>
-              <h4 class="exp-guide-card-title">Bandeau de lisière &amp; Géométrie 2K3</h4>
-            </div>
-            <div class="exp-guide-samples">
-              <span class="exp-orient-half exp-p-M exp-guide-mini-chip">M</span>
-              <span class="exp-guide-sep">↔</span>
-              <span class="exp-orient-half exp-p-R exp-guide-mini-chip">R</span>
-              <span class="exp-geo-badge is-fluid">🌿 100 % fluide</span>
-              <span class="exp-geo-badge is-mixed">🔀 Mixte (2K3)</span>
-              <span class="exp-guide-div-pill">✓ 0 boucle</span>
-            </div>
-            <p class="exp-guide-text">
-              Frontière partagée entre deux Peuples voisins (<code>M ↔ R</code>). Distingue les <strong>3 lisières 100 % fluides</strong> (<code>E–O</code>, <code>H–M</code>, <code>R–I</code>) des <strong>12 lisières Mixtes (2K3)</strong> pouvant porter un Twist. La preuve de <strong>Divergence (<code>✓ 0 boucle</code>)</strong> garantit deux sorties différentes sans boucle d’état fermée à deux.
-            </p>
-          </article>
-
-          <article class="exp-guide-card" data-guide-zone="2">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">2</span>
-              <h4 class="exp-guide-card-title">En-tête d’identité &amp; Gouvernance</h4>
-            </div>
-            <div class="exp-guide-samples">
-              <span class="exp-orient-pill">
-                <span class="exp-orient-half exp-p-M">Origine</span>
-                <span class="exp-orient-arrow">→</span>
-                <span class="exp-orient-half exp-p-R">Voisin</span>
-                <span class="exp-orient-id">ID</span>
+          <div class="exp-guide-stepper">
+            <div class="exp-guide-stepper-left">
+              <button type="button" class="exp-btn exp-guide-step-btn" onclick="AmazoniaExplorerV62.stepGuideSpot(-1)">◀ Précédent</button>
+              <span class="exp-guide-step-indicator">
+                ${activeSpot ? `Point ${escapeHtml(activeSpot)} / ${maxSpot}` : `Vue globale (${maxSpot} repères)`}
               </span>
-              <span class="exp-family-pill fam-GARDIEN">🛡️ Gardien</span>
-              <span class="exp-family-pill fam-REVE">🌙 Rêve</span>
-              <span class="exp-family-pill fam-CROISSANCE">🪹 Nid</span>
-              <span class="exp-status-badge exp-status-fluide">🌊 Brique fluide</span>
-              <span class="exp-status-badge exp-status-twist">⚡ Twist 2K3</span>
-              <span class="exp-status-badge exp-status-loi">⚖️ Loi passive</span>
-              <span class="exp-guide-xray-pill">🔬 Focus Synergies</span>
+              <button type="button" class="exp-btn exp-guide-step-btn" onclick="AmazoniaExplorerV62.stepGuideSpot(1)">Suivant ▶</button>
+              ${activeSpot ? `<button type="button" class="exp-btn exp-btn-ghost" onclick="AmazoniaExplorerV62.setGuideSpot(null)">Tout éclairer</button>` : ''}
             </div>
-            <p class="exp-guide-text">
-              Dans <strong>[Origine → Voisin · ID]</strong>, le Peuple de gauche gouverne la tuile et fixe sa famille (<code>🛡️ Gardien</code> recto-verso, <code>🌙 Rêve</code>, <code>Nid</code>). À droite : <strong>Brique fluide</strong>, <strong>⚡ Twist 2K3</strong> (détourne une règle ou pièce du cœur — survoler pour lire la piste) ou <strong>⚖️ Loi passive</strong> (<code>M2</code> et <code>M3</code> uniquement), et <strong>Focus Synergies</strong> (<em>Rayons X</em> : <span class="exp-guide-inline-up">vert émeraude = fournisseurs amont</span>, <span class="exp-guide-inline-down">ambre = débouchés aval</span>).
-            </p>
-          </article>
+            <span class="exp-guide-stepper-hint">Astuce : touche <code>Échap</code> ou clic hors du cadre pour revenir à l’Explorateur.</span>
+          </div>
 
-          <article class="exp-guide-card" data-guide-zone="3">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">3</span>
-              <h4 class="exp-guide-card-title">Obligations du modèle &amp; Les 5 Vecteurs (V1..V5)</h4>
-            </div>
-            <div class="exp-guide-samples">
-              <span class="exp-role-badge exp-role-eveil">☀️ Catalyseur d’Éveil</span>
-              <span class="exp-role-badge exp-role-reve">🌙 Levier de Rêve</span>
-              <span class="exp-role-badge exp-role-enrac">🌱 Synergie Enracinement</span>
-              <span class="exp-role-badge exp-role-a0">🔓 Autonome A=0</span>
-              <span class="exp-vector-chip" title="${escapeHtml(formatVectorTooltip('V4 -> V2'))}">V_entrée → V_sortie</span>
-            </div>
-            <p class="exp-guide-text">
-              Garanties structurelles du modèle (aucun badge = emplacement libre de toute obligation dure). La flèche de bivalence <strong><code>V_entrée → V_sortie</code></strong> (décodée au survol sur chaque carte) code les 5 familles de leviers :
-            </p>
-            <ul class="exp-guide-vector-list">
-              ${vecKeys.map(vk => {
-                const vd = VECTOR_DEFS_V62[vk];
-                return `<li data-guide-vector="${vk}"><span class="exp-vector-chip exp-guide-vec-code">${vk}</span><span>${escapeHtml(vd.full)}</span></li>`;
-              }).join('')}
-            </ul>
-          </article>
-
-          <article class="exp-guide-card" data-guide-zone="4">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">4</span>
-              <h4 class="exp-guide-card-title">Zone Joueur (Icônes, Fenêtres &amp; Enracinement)</h4>
-            </div>
-            <div class="exp-guide-samples">
-              <span class="exp-guide-ramp-preview">🛡️ Parade · 🪤 Piégeage · 💥 Sabotage · 🌙 Rêve · 🪲 Insecte · ✨ Résonance (★)</span>
-              <span class="exp-face2-enrac-pill">🌱 2 Souches si enraciné</span>
-              <span class="exp-window-badge">🌅 À l’ouverture</span>
-              <span class="exp-window-badge">🪹 Après production</span>
-              <span class="exp-window-badge">🛡️ En Parade</span>
-              <span class="exp-window-badge">🪲 En Migration</span>
-              <span class="exp-guide-enrac-pill">🌱 Enraciné</span>
-            </div>
-            <p class="exp-guide-text">
-              <strong>Gardiens</strong> : rampe des <strong>6 icônes</strong> dans l’ordre <code>v6.2</code> gauche → droite (<code>Parade</code>, <code>Piégeage</code>, <code>Sabotage</code>, <code>Rêve</code>, <code>Insecte</code>, <code>Résonance</code>) avec <strong>★</strong> sur l’icône de câblage recommandée ; <code>Face 2 · Éveillé</code> rappelle le bonus <strong>🌱 2 Souches si enraciné</strong> (contre <code>1 Souche</code> en Face 1 ou face unique). <strong>Rêves &amp; Nids</strong> : badge de fenêtre naturelle et cartouche vert forêt <strong>🌱 Enraciné</strong> pour les bonus dédiés (<code>R2</code>, <code>R6</code>, <code>M5</code>).
-            </p>
-          </article>
-
-          <article class="exp-guide-card" data-guide-zone="5">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">5</span>
-              <h4 class="exp-guide-card-title">Chaîne de flux physique cliquable (Pied de carte)</h4>
-            </div>
-            <div class="exp-guide-samples exp-guide-flow-sample">
-              <span class="exp-state-chip is-input">Entrées requises (vert)</span>
-              <span class="exp-flow-sep" aria-hidden="true">→</span>
-              <span class="exp-state-chip is-output">Sorties produites (ambre)</span>
-              <span class="exp-flow-sep" aria-hidden="true">→ 🎯</span>
-              <span class="exp-state-chip is-pay">Paiement de victoire (bleu-violet)</span>
-            </div>
-            <p class="exp-guide-text">
-              Se lit comme une équation <strong>[Entrées requises (vert)] → [Sorties produites (ambre)] → 🎯 [Paiement de victoire (bleu-violet)]</strong>. Cliquer sur n’importe quelle puce en pied de carte filtre aussitôt les tuiles liées à cet élément.
-            </p>
-          </article>
-
-          <article class="exp-guide-card" data-guide-zone="6">
-            <div class="exp-guide-card-head">
-              <span class="exp-guide-num">6</span>
-              <h4 class="exp-guide-card-title">Capot Concepteur &amp; Statut Moteur</h4>
-            </div>
-            <div class="exp-guide-samples">
-              <span class="exp-dt-pill">✦ Choix / ⚖️ Renoncement</span>
-              <span class="exp-dt-pill">🤖 Bot · 💎 Prix DT · 🧪 Témoins</span>
-              <span class="exp-profile-tab is-future">[B] / [C] Phase 5</span>
-              <span class="exp-sync-badge is-verified">ACTIVE_VERIFIED</span>
-            </div>
-            <p class="exp-guide-text">
-              Tiroir dépliable rassemblant le dilemme <em>Choix / Renoncement</em>, l’heuristique bot, le prix estimé en Défenseurs-tours (<code>DT</code>), les scénarios témoins et l’aperçu des variantes Phase 5 (<code>B</code>/<code>C</code>). Le badge vert <strong>ACTIVE_VERIFIED</strong> certifie que la tuile est codée dans le simulateur Python et couverte par ses tests témoins.
-            </p>
-          </article>
-        </div>
-      </section>
+          <div class="exp-guide-canvas">
+            ${tab === 'autres' ? renderGuideSpecimenAutres() : renderGuideSpecimenGardien()}
+          </div>
+        </section>
+      </div>
     `;
   }
 
@@ -2756,6 +3247,64 @@
     } else {
       explorerState.readingGuideOpen = !explorerState.readingGuideOpen;
     }
+    if (!explorerState.readingGuideOpen) {
+      explorerState.guideSpot = null;
+    }
+    render();
+  }
+
+  function setGuideTab(tab) {
+    if (tab !== 'gardien' && tab !== 'autres') return;
+    explorerState.guideTab = tab;
+    explorerState.guideSpot = null;
+    render();
+  }
+
+  function setGuideSpot(spotId) {
+    if (spotId === null || spotId === undefined || spotId === '') {
+      explorerState.guideSpot = null;
+    } else {
+      const id = String(spotId);
+      explorerState.guideSpot = explorerState.guideSpot === id ? null : id;
+    }
+    render();
+  }
+
+  function stepGuideSpot(delta) {
+    const maxSpot = explorerState.guideTab === 'autres' ? 5 : 9;
+    const cur = explorerState.guideSpot ? Number(explorerState.guideSpot) : 0;
+    let next;
+    if (cur <= 0) {
+      next = delta < 0 ? maxSpot : 1;
+    } else {
+      next = cur + (delta < 0 ? -1 : 1);
+      if (next < 1) next = maxSpot;
+      if (next > maxSpot) next = 1;
+    }
+    explorerState.guideSpot = String(next);
+    render();
+  }
+
+  function hoverGuideSpot(spotId) {
+    if (typeof global.document === 'undefined') return;
+    const panel = global.document.getElementById('exp-reading-guide-panel');
+    if (!panel || typeof panel.querySelectorAll !== 'function') return;
+    const targetId = spotId ? String(spotId) : null;
+    const nodes = panel.querySelectorAll('[data-guide-spot]');
+    for (let i = 0; i < nodes.length; i++) {
+      const el = nodes[i];
+      if (!el || !el.classList) continue;
+      const elSpot = typeof el.getAttribute === 'function' ? el.getAttribute('data-guide-spot') : null;
+      if (targetId && elSpot === targetId) {
+        el.classList.add('is-hovered-spot');
+      } else {
+        el.classList.remove('is-hovered-spot');
+      }
+    }
+  }
+
+  function toggleGuideCapotPreview() {
+    explorerState.guideCapotPreviewOpen = !explorerState.guideCapotPreviewOpen;
     render();
   }
 
@@ -2892,6 +3441,9 @@
       allCapotsOpen: explorerState.allCapotsOpen,
       capotOpenIds: Array.from(explorerState.capotOpenIds),
       readingGuideOpen: explorerState.readingGuideOpen,
+      guideTab: explorerState.guideTab,
+      guideSpot: explorerState.guideSpot,
+      guideCapotPreviewOpen: explorerState.guideCapotPreviewOpen,
       wheelSelection: explorerState.wheelSelection,
       filters: Object.assign({}, explorerState.filters)
     };
@@ -2928,6 +3480,11 @@
     toggleCapot,
     toggleAllCapots,
     toggleReadingGuide,
+    setGuideTab,
+    setGuideSpot,
+    stepGuideSpot,
+    hoverGuideSpot,
+    toggleGuideCapotPreview,
     selectPresetAssise,
     selectAssiseByKey,
     toggleTablePeuple,

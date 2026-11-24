@@ -321,7 +321,7 @@ const soucheChipIds = Array.from(getEl('catalogue-grid').innerHTML.matchAll(/dat
 exp.resetFilters();
 const resetBadge = getEl('catalogue-count-badge').textContent;
 
-// 7. Panneau « ? Guide de lecture » & infobulles décodées des vecteurs V1..V5
+// 7. Didacticiel visuel annoté « ? Guide de lecture » & infobulles décodées des vecteurs V1..V5
 const guideInitialState = exp.getState().readingGuideOpen;
 const guideInitialClosedInDom = !m1Toolbar.includes('id="exp-reading-guide-panel"')
   && m1Toolbar.includes('id="exp-reading-guide-btn"')
@@ -331,10 +331,35 @@ exp.toggleReadingGuide();
 const guideOpenState = exp.getState().readingGuideOpen;
 const guideOpenToolbar = getEl('explorer-v6-2-toolbar').innerHTML;
 const guideOpenHasBad = badTokenRe.test(guideOpenToolbar);
-const guideZones = Array.from(guideOpenToolbar.matchAll(/data-guide-zone="([1-6])"/g)).map(m => m[1]);
+const guideZones = Array.from(guideOpenToolbar.matchAll(/data-guide-zone="([1-6])"/g)).map(m => m[1]).sort();
 const guideVectors = Array.from(guideOpenToolbar.matchAll(/data-guide-vector="(V[1-5])"/g)).map(m => m[1]);
+const guideBubblesGardien = Array.from(guideOpenToolbar.matchAll(/class="exp-guide-bubble[^"]*" data-guide-spot="([1-9])"/g)).map(m => m[1]).sort();
+const guidePinsGardien = Array.from(guideOpenToolbar.matchAll(/class="exp-guide-pin[^"]*" data-guide-spot="([1-9])"/g)).map(m => m[1]).sort();
 const guideHasCloseBtn = guideOpenToolbar.includes('id="exp-reading-guide-close"');
 const guideHasExpandedTrue = guideOpenToolbar.includes('aria-expanded="true"');
+const guideHasDialogModal = guideOpenToolbar.includes('id="exp-reading-guide-backdrop"')
+  && guideOpenToolbar.includes('role="dialog"')
+  && guideOpenToolbar.includes('data-guide-specimen="G7"');
+
+// Navigation pas-à-pas & aperçu Capot sur la Planche 1
+exp.stepGuideSpot(1);
+const guideStep1Spot = exp.getState().guideSpot;
+const guideStep1ActiveDom = getEl('explorer-v6-2-toolbar').innerHTML.includes('has-active-spot')
+  && getEl('explorer-v6-2-toolbar').innerHTML.includes('Point 1 / 9');
+exp.toggleGuideCapotPreview();
+const guideCapotPreviewShown = getEl('explorer-v6-2-toolbar').innerHTML.includes('Choix joueur');
+exp.setGuideSpot(null);
+
+// Planche 2 : Rêve (R6), Nid / Loi (M2), Twist (G15) & Rayons X
+exp.setGuideTab('autres');
+const guideTab2Toolbar = getEl('explorer-v6-2-toolbar').innerHTML;
+const guideTab2HasBad = badTokenRe.test(guideTab2Toolbar);
+const guideTab2Bubbles = Array.from(guideTab2Toolbar.matchAll(/class="exp-guide-bubble[^"]*" data-guide-spot="([1-5])"/g)).map(m => m[1]).sort();
+const guideTab2HasSpecimens = guideTab2Toolbar.includes('data-guide-specimen="R6"')
+  && guideTab2Toolbar.includes('G15')
+  && guideTab2Toolbar.includes('M2')
+  && guideTab2Toolbar.includes('Amont (Émeraude)');
+exp.setGuideTab('gardien');
 
 // Le changement de mode ou de filtre ne referme pas le guide ouvert
 exp.setMode('assises');
@@ -434,8 +459,17 @@ console.log(JSON.stringify({
     initial_closed_in_dom: guideInitialClosedInDom,
     open_state: guideOpenState,
     open_has_bad: guideOpenHasBad,
+    has_dialog_modal: guideHasDialogModal,
     zones: guideZones,
     vectors: guideVectors,
+    bubbles_gardien: guideBubblesGardien,
+    pins_gardien: guidePinsGardien,
+    step1_spot: guideStep1Spot,
+    step1_active_dom: guideStep1ActiveDom,
+    capot_preview_shown: guideCapotPreviewShown,
+    tab2_has_bad: guideTab2HasBad,
+    tab2_bubbles: guideTab2Bubbles,
+    tab2_has_specimens: guideTab2HasSpecimens,
     has_close_btn: guideHasCloseBtn,
     has_expanded_true: guideHasExpandedTrue,
     stays_open_on_mode: guideStaysOpenOnMode,
@@ -612,7 +646,7 @@ def test_explorer_197_assises_benchmarks_icons_modes_and_xray() -> None:
 
 
 def test_explorer_reading_guide_and_vector_tooltips() -> None:
-    """Vérifie le panneau dépliable « ? Guide de lecture » et les infobulles décodées V1..V5."""
+    """Vérifie le didacticiel visuel annoté « ? Guide de lecture » et les infobulles décodées V1..V5."""
     payload = _run_node_explorer_harness()
     assert payload["ok"] is True
 
@@ -621,10 +655,19 @@ def test_explorer_reading_guide_and_vector_tooltips() -> None:
     assert rg["initial_closed_in_dom"] is True
     assert rg["open_state"] is True
     assert rg["open_has_bad"] is False
+    assert rg["has_dialog_modal"] is True
     assert rg["has_close_btn"] is True
     assert rg["has_expanded_true"] is True
     assert rg["zones"] == ["1", "2", "3", "4", "5", "6"]
     assert rg["vectors"] == ["V1", "V2", "V3", "V4", "V5"]
+    assert rg["bubbles_gardien"] == ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    assert rg["pins_gardien"] == ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    assert rg["step1_spot"] == "1"
+    assert rg["step1_active_dom"] is True
+    assert rg["capot_preview_shown"] is True
+    assert rg["tab2_has_bad"] is False
+    assert rg["tab2_bubbles"] == ["1", "2", "3", "4", "5"]
+    assert rg["tab2_has_specimens"] is True
 
     open_html = rg["open_html"]
     for snippet in (
@@ -643,7 +686,7 @@ def test_explorer_reading_guide_and_vector_tooltips() -> None:
         "Capot Concepteur",
         "ACTIVE_VERIFIED",
     ):
-        assert snippet in open_html, f"Contenu attendu absent du Guide de lecture : {snippet}"
+        assert snippet in open_html, f"Contenu attendu absent du Didacticiel visuel : {snippet}"
 
     assert rg["stays_open_on_mode"] is True
     assert rg["stays_open_on_filter"] is True

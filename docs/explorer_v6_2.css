@@ -1818,7 +1818,7 @@
 }
 
 /* ----------------------------------------------------------------------------
- * Bouton & Panneau dépliable « ? Guide de lecture »
+ * Bouton & Didacticiel visuel annoté « ? Guide de lecture »
  * ---------------------------------------------------------------------------- */
 .exp-guide-toggle-btn {
   border-color: #c5dfd0;
@@ -1838,12 +1838,28 @@
   box-shadow: 0 2px 6px rgba(15, 33, 25, 0.16);
 }
 
-.exp-reading-guide {
+.exp-guide-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(4px);
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.exp-reading-guide.exp-guide-modal {
+  width: 100%;
+  max-width: 1360px;
+  margin: 0.4rem auto 2rem;
   background: var(--exp-surface-warm);
   border: 1px solid #c5dfd0;
-  border-radius: 1rem;
-  padding: 1rem 1.15rem 1.15rem;
-  box-shadow: 0 4px 14px rgba(15, 33, 25, 0.06);
+  border-radius: 1.2rem;
+  padding: 1.1rem 1.25rem 1.35rem;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -1852,112 +1868,437 @@
 .exp-guide-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.65rem;
-  padding-bottom: 0.7rem;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid #dbeae0;
 }
 
 .exp-guide-title-wrap {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.55rem;
+  align-items: flex-start;
+  gap: 0.65rem;
 }
 
 .exp-guide-kicker {
   display: inline-flex;
   align-items: center;
-  padding: 0.22rem 0.6rem;
+  padding: 0.26rem 0.68rem;
   border-radius: 9999px;
   background: var(--exp-forest-900);
   color: #ffffff;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  flex-shrink: 0;
 }
 
 .exp-guide-title {
   margin: 0;
-  font-size: 0.92rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--exp-forest-950);
+  line-height: 1.25;
+}
+
+.exp-guide-subtitle {
+  margin: 0.18rem 0 0;
+  font-size: 0.74rem;
+  color: var(--exp-ink-muted);
+}
+
+.exp-guide-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.exp-guide-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  padding: 0.24rem;
+  background: #edf2f7;
+  border: 1px solid var(--exp-border);
+  border-radius: 0.72rem;
+}
+
+.exp-guide-tab-btn {
+  padding: 0.36rem 0.72rem;
+  border-radius: 0.52rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--exp-ink-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.exp-guide-tab-btn:hover {
+  color: var(--exp-ink);
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.exp-guide-tab-btn.is-active {
+  background: var(--exp-forest-900);
+  color: #ffffff;
+  border-color: var(--exp-forest-800);
+  box-shadow: 0 2px 6px rgba(15, 33, 25, 0.18);
 }
 
 .exp-guide-close-btn {
-  padding: 0.3rem 0.65rem;
+  padding: 0.34rem 0.72rem;
+  font-size: 0.74rem;
+}
+
+/* Barre de visite guidée pas à pas */
+.exp-guide-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--exp-forest-50);
+  border: 1px solid #d5e8dc;
+}
+
+.exp-guide-stepper-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.exp-guide-step-btn {
+  padding: 0.26rem 0.62rem;
   font-size: 0.72rem;
 }
 
-.exp-guide-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 0.8rem;
+.exp-guide-step-indicator {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--exp-forest-900);
+  padding: 0.16rem 0.55rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #c5dfd0;
 }
 
-@media (min-width: 768px) {
-  .exp-guide-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.exp-guide-stepper-hint {
+  font-size: 0.71rem;
+  color: var(--exp-ink-subtle);
 }
 
-@media (min-width: 1200px) {
-  .exp-guide-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.exp-guide-card {
-  background: var(--exp-surface);
+.exp-guide-stepper-hint code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.28rem;
+  border-radius: 0.3rem;
+  background: #ffffff;
   border: 1px solid var(--exp-border);
-  border-radius: 0.85rem;
-  padding: 0.85rem 0.95rem;
+  color: var(--exp-ink);
+}
+
+/* Planche annotée 3 colonnes : Bulles gauche | Spécimen central | Bulles droite */
+.exp-guide-canvas {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+  gap: 1.15rem;
 }
 
-.exp-guide-card-head {
+.exp-guide-stage-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.exp-guide-col-center {
+  order: -1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.exp-guide-col-left,
+.exp-guide-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+@media (min-width: 1080px) {
+  .exp-guide-stage-row {
+    grid-template-columns: minmax(245px, 1fr) minmax(460px, 540px) minmax(245px, 1fr);
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  .exp-guide-stage-banner {
+    align-items: center;
+  }
+
+  .exp-guide-col-center {
+    order: 0;
+  }
+
+  .exp-guide-stage-card .exp-guide-col-left,
+  .exp-guide-stage-card .exp-guide-col-right {
+    justify-content: space-between;
+    padding-top: 1.45rem;
+  }
+}
+
+.exp-guide-specimen-label {
+  font-size: 0.69rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--exp-forest-800);
+  text-align: center;
+}
+
+/* Spécimens centraux (Bandeau de lisière + Carte exemple + Statuts/Rayons X) */
+.exp-guide-banner-mock {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.85rem;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exp-guide-specimen-card {
+  box-shadow: 0 10px 28px rgba(15, 33, 25, 0.11);
+  border-width: 1.5px;
+}
+
+.exp-guide-ribbon-split {
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Zones cibles & pastilles numérotées épinglées sur le spécimen */
+.exp-guide-target {
+  position: relative;
+  border-radius: 0.65rem;
+  padding: 0.22rem;
+  border: 1.5px dashed transparent;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+  cursor: pointer;
+}
+
+.exp-guide-target-inline {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.exp-guide-target-block {
+  display: block;
+}
+
+.exp-guide-target:hover,
+.exp-guide-target.is-hovered-spot {
+  border-color: var(--exp-forest-600);
+  background: rgba(225, 239, 230, 0.42);
+}
+
+.exp-guide-target.is-active-spot {
+  border-style: solid;
+  border-color: var(--exp-forest-800);
+  background: rgba(225, 239, 230, 0.65);
+  box-shadow: 0 0 0 3px rgba(52, 110, 82, 0.2);
+}
+
+.exp-guide-pin {
+  position: absolute;
+  top: -0.52rem;
+  left: -0.52rem;
+  z-index: 4;
+  width: 1.38rem;
+  height: 1.38rem;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  background: var(--exp-forest-900);
+  color: #ffffff;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.28);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.exp-card-head-right .exp-guide-pin,
+.exp-guide-target[data-guide-spot="2"] .exp-guide-pin,
+.exp-guide-target[data-guide-spot="6"] .exp-guide-pin,
+.exp-guide-target[data-guide-spot="9"] .exp-guide-pin,
+.exp-guide-modal[data-guide-tab="autres"] .exp-guide-target[data-guide-spot="5"] .exp-guide-pin {
+  left: auto;
+  right: -0.52rem;
+}
+
+.exp-guide-pin:hover,
+.exp-guide-pin.is-hovered-spot,
+.exp-guide-pin.is-active-spot {
+  background: #d97706;
+  transform: scale(1.16);
+}
+
+/* Bulles de commentaires autour de la carte */
+.exp-guide-bubble {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #cfe0d6;
+  border-radius: 0.9rem;
+  padding: 0.72rem 0.85rem;
+  box-shadow: 0 4px 12px rgba(15, 33, 25, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.exp-guide-bubble:hover,
+.exp-guide-bubble.is-hovered-spot {
+  border-color: var(--exp-forest-600);
+  box-shadow: 0 8px 20px rgba(30, 59, 46, 0.13);
+  transform: translateY(-1px);
+}
+
+.exp-guide-bubble.is-active-spot {
+  border-color: #d97706;
+  background: #fffdf7;
+  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.18), 0 0 0 2px rgba(245, 158, 11, 0.22);
+}
+
+.exp-guide-modal.has-active-spot .exp-guide-bubble:not(.is-active-spot) {
+  opacity: 0.48;
+}
+
+.exp-guide-modal.has-active-spot .exp-guide-bubble:not(.is-active-spot):hover {
+  opacity: 0.92;
+}
+
+/* Pointes de bulles orientées vers le spécimen central sur grand écran */
+@media (min-width: 1080px) {
+  .exp-guide-bubble.is-from-left::before,
+  .exp-guide-bubble.is-from-left::after {
+    content: '';
+    position: absolute;
+    top: 1.15rem;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+
+  .exp-guide-bubble.is-from-left::before {
+    right: -10px;
+    border-width: 8px 0 8px 10px;
+    border-color: transparent transparent transparent #cfe0d6;
+  }
+
+  .exp-guide-bubble.is-from-left::after {
+    right: -8px;
+    top: calc(1.15rem + 1px);
+    border-width: 7px 0 7px 9px;
+    border-color: transparent transparent transparent #ffffff;
+  }
+
+  .exp-guide-bubble.is-from-left.is-active-spot::before {
+    border-color: transparent transparent transparent #d97706;
+  }
+
+  .exp-guide-bubble.is-from-left.is-active-spot::after {
+    border-color: transparent transparent transparent #fffdf7;
+  }
+
+  .exp-guide-bubble.is-from-right::before,
+  .exp-guide-bubble.is-from-right::after {
+    content: '';
+    position: absolute;
+    top: 1.15rem;
+    width: 0;
+    height: 0;
+    border-style: solid;
+  }
+
+  .exp-guide-bubble.is-from-right::before {
+    left: -10px;
+    border-width: 8px 10px 8px 0;
+    border-color: transparent #cfe0d6 transparent transparent;
+  }
+
+  .exp-guide-bubble.is-from-right::after {
+    left: -8px;
+    top: calc(1.15rem + 1px);
+    border-width: 7px 9px 7px 0;
+    border-color: transparent #ffffff transparent transparent;
+  }
+
+  .exp-guide-bubble.is-from-right.is-active-spot::before {
+    border-color: transparent #d97706 transparent transparent;
+  }
+
+  .exp-guide-bubble.is-from-right.is-active-spot::after {
+    border-color: transparent #fffdf7 transparent transparent;
+  }
+}
+
+.exp-guide-bubble-head {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .exp-guide-num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.38rem;
+  height: 1.38rem;
   border-radius: 9999px;
-  background: var(--exp-forest-100);
-  color: var(--exp-forest-900);
-  border: 1px solid #c5dfd0;
+  background: var(--exp-forest-900);
+  color: #ffffff;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
   flex-shrink: 0;
 }
 
-.exp-guide-card-title {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--exp-ink);
-  line-height: 1.3;
+.exp-guide-bubble.is-active-spot .exp-guide-num,
+.exp-guide-bubble.is-hovered-spot .exp-guide-num {
+  background: #d97706;
 }
 
-.exp-guide-samples {
+.exp-guide-card-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--exp-ink);
+  line-height: 1.28;
+}
+
+.exp-guide-mini-pills {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.32rem;
-  padding: 0.45rem 0.55rem;
-  border-radius: 0.65rem;
-  background: var(--exp-surface-soft);
-  border: 1px solid #e6edf3;
+  gap: 0.28rem;
 }
 
 .exp-guide-mini-chip {
@@ -1968,73 +2309,17 @@
   font-weight: 700;
 }
 
-.exp-guide-sep {
-  font-weight: 700;
-  color: var(--exp-ink-subtle);
-  font-size: 0.75rem;
-}
-
-.exp-guide-div-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.16rem 0.48rem;
-  border-radius: 9999px;
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.exp-guide-xray-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.18rem 0.5rem;
-  border-radius: 0.5rem;
-  background: #eef2ff;
-  color: #3730a3;
-  border: 1px solid #c7d2fe;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.exp-guide-ramp-preview {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--exp-ink-muted);
-  background: #ffffff;
-  border: 1px solid var(--exp-border);
-  border-radius: 0.45rem;
-  padding: 0.2rem 0.45rem;
-}
-
-.exp-guide-enrac-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.16rem 0.5rem;
-  border-radius: 9999px;
-  background: var(--exp-forest-900);
-  color: #ffffff;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.exp-guide-flow-sample .exp-state-chip {
-  cursor: default;
-}
-
 .exp-guide-text {
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.73rem;
+  line-height: 1.48;
   color: var(--exp-ink-muted);
 }
 
 .exp-guide-text code {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  padding: 0.06rem 0.28rem;
+  font-size: 0.68rem;
+  padding: 0.05rem 0.26rem;
   border-radius: 0.3rem;
   background: #f1f5f9;
   color: var(--exp-ink);
@@ -2042,12 +2327,12 @@
 
 .exp-guide-inline-up {
   color: var(--exp-xray-up-fg);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .exp-guide-inline-down {
   color: var(--exp-xray-down-fg);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .exp-guide-vector-list {
@@ -2056,21 +2341,79 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.24rem;
 }
 
 .exp-guide-vector-list li {
   display: flex;
   align-items: baseline;
-  gap: 0.42rem;
-  font-size: 0.72rem;
-  line-height: 1.38;
+  gap: 0.38rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
   color: var(--exp-ink);
 }
 
 .exp-guide-vec-code {
   flex-shrink: 0;
-  font-size: 0.66rem;
-  padding: 0.08rem 0.38rem;
+  font-size: 0.65rem;
+  padding: 0.06rem 0.34rem;
 }
+
+/* Planche 2 : Statuts spéciaux & Mini-schéma Rayons X */
+.exp-guide-specials-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.exp-guide-special-box {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.exp-guide-special-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.74rem;
+  color: var(--exp-ink);
+}
+
+.exp-guide-special-sub {
+  font-size: 0.69rem;
+  color: var(--exp-ink-subtle);
+}
+
+.exp-guide-xray-mock {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  border: 1.5px solid #4338ca;
+  border-radius: 0.85rem;
+  padding: 0.65rem;
+  color: #ffffff;
+}
+
+.exp-guide-xray-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+@media (min-width: 640px) {
+  .exp-guide-xray-mini-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.exp-guide-xray-mini-txt {
+  font-size: 0.68rem;
+  line-height: 1.38;
+  color: #e2e8f0;
+}
+
 
