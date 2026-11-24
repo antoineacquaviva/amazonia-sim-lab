@@ -1,7 +1,8 @@
 {
   "schema_version": "6.2.0",
   "livret_schema_target": "6.2.0",
-  "livret_transition_note": "Chantier 1 : livret_v6_0.js reste en attente de la refonte modulaire du Chantier 2 (qui activera LIVRET_SCHEMA_VERSION = '6.2.0' et le contrôle bloquant data-inv='INV-01'..'INV-22').",
+  "livret_schema_enforced": true,
+  "livret_transition_note": "Chantier 2 actif : livret_v6_0.js modulaire (LIVRET_SCHEMA_VERSION = '6.2.0'), bandeau interactif 2 modes, 6 sections humaines et ancrage bloquant data-inv='INV-01'..'INV-22'.",
   "description": "Garde-fous sémantiques, lexicaux, anti-vestiges et éditoriaux vérifiés automatiquement sur les contrats SSOT v6.2, les contextes IA et Amazonia Doc Studio lors de chaque verify_lot.py.",
   "banned_global_vestiges": [
     "en Siège",
@@ -80,6 +81,7 @@
     "seuil fixe de Réveil",
     "seuil de Réveil",
     "Étape 6 : Apprentissage",
+    "Apprentissage",
     "6.1. Décompte",
     "Gardien Face 2",
     "aucun dommage réel",
@@ -91,6 +93,24 @@
     "2es Défenseurs",
     "2<sup>e</sup> Défenseur",
     "2<sup>es</sup> Défenseurs",
+    "Défenseur d'ajustement",
+    "Défenseur d’ajustement",
+    "sous sa tuile",
+    "glissés sous la tuile",
+    "glissé sous sa tuile",
+    "glisser 1 Défenseur sous",
+    "sous son Gardien",
+    "paquet Machine",
+    "carte Machine",
+    "cartes Machine",
+    "carte Sabotage",
+    "cartes Sabotage",
+    "+1 Puissance imprimé",
+    "réserves illimitées",
+    "Réserves illimitées",
+    "4. Gardien",
+    "Étape 4.1",
+    "Étapes 4.2",
     "gardien_resonance_cap",
     "reveil_reves_policy",
     "mobilisation croisée",
@@ -158,13 +178,17 @@
     {
       "peuples": ["M", "R", "O", "I"],
       "must_contain": [
-        "1. Présentation &amp; Objectif",
-        "2. Matériel &amp; Mise en place",
-        "3. Vue d’ensemble d’un tour",
-        "4. Déroulé d’un tour étape par étape",
-        "5. Les Peuples et leurs mécaniques propres",
-        "6. Fin de partie &amp; Score final",
-        "7. Mémento de table (Aide de jeu)",
+        "id=\"livret-v62-styles\"",
+        "id=\"livret-table-configurator\"",
+        "setLivretTablePeoples",
+        "toggleLivretPeuple",
+        "resetLivretComplet",
+        "1. Présentation, But du jeu &amp; Matériel intelligent",
+        "2. Vue d’ensemble &amp; Les 4 Lois Physiques permanentes",
+        "3. Déroulé d’un Tour en 6 étapes fluides",
+        "4. Les 3 Modules de Familles &amp; Fin de Partie",
+        "5. Les 6 Peuples : Asymétrie Hybride 3 + 3",
+        "6. Mémento de table &amp; Arbitrages de référence",
         "id=\"brique-mise-en-place\"",
         "id=\"brique-preparation\"",
         "id=\"brique-pose\"",
@@ -184,8 +208,9 @@
         "Condition inactive dans cette partie (aucun Peuple Onirique autour de la table).",
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
-        "1 événement = au plus 1 déclencheur",
+        "1 événement = au plus 1 icône",
         "Bouclier de lisière",
+        "Enracinement volontaire",
         "Ratissage",
         "Assaut permanent",
         "Face A",
@@ -209,8 +234,8 @@
         "id=\"brique-attaques-piegeages\"",
         "id=\"brique-gardiens-eveil\"",
         "Condition inactive dans cette partie (aucun Peuple Animal Sauvage autour de la table).",
-        "Les <strong>4 tuiles Rêve</strong> de la partie",
-        "cases 1 à 4",
+        "<strong>4 tuiles Rêve</strong>",
+        "rangs 1 à 4",
         "annule 1 machine",
         "Rive Piège",
         "Rive Sabotage",
@@ -231,8 +256,8 @@
         "id=\"brique-furtivite\"",
         "id=\"brique-attaques-piegeages\"",
         "id=\"brique-gardiens-eveil\"",
-        "Les <strong>2 tuiles Rêve</strong> de la partie",
-        "cases 1 à 2",
+        "<strong>2 tuiles Rêve</strong>",
+        "rangs 1 à 2",
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
         "annule 1 machine",
@@ -253,11 +278,11 @@
         "id=\"brique-furtivite\"",
         "id=\"brique-attaques-piegeages\"",
         "id=\"brique-gardiens-eveil\"",
-        "Les <strong>4 tuiles Rêve</strong> de la partie",
-        "cases 1 à 4",
+        "<strong>4 tuiles Rêve</strong>",
+        "rangs 1 à 4",
         "maximum 2 Défenseurs par Gardien",
         "tous les paris du tour sont gagnés",
-        "sautées comme un pont",
+        "sautée comme un pont",
         "Piège autonome",
         "défaussé aussitôt",
         "tous les Arbres",
@@ -267,6 +292,56 @@
         "Mode Charge",
         "Mode Assaut"
       ]
+    }
+  ],
+  "required_livret_filter_scenarios": [
+    {
+      "action": "setLivretTablePeoples",
+      "peuples": ["H", "M", "O"],
+      "expected_mode": "TABLE",
+      "expected_modules": {
+        "GARDIENS": true,
+        "REVES": true,
+        "ESSAIM": false
+      },
+      "expected_peuples_visible": ["H", "M", "O"],
+      "expected_peuples_hidden": ["E", "R", "I"]
+    },
+    {
+      "action": "setLivretTablePeoples",
+      "peuples": ["H", "E", "I"],
+      "expected_mode": "TABLE",
+      "expected_modules": {
+        "GARDIENS": false,
+        "REVES": true,
+        "ESSAIM": true
+      },
+      "expected_peuples_visible": ["H", "E", "I"],
+      "expected_peuples_hidden": ["M", "R", "O"]
+    },
+    {
+      "action": "setLivretTablePeoples",
+      "peuples": ["M", "R", "O", "I"],
+      "expected_mode": "TABLE",
+      "expected_modules": {
+        "GARDIENS": true,
+        "REVES": false,
+        "ESSAIM": true
+      },
+      "expected_peuples_visible": ["M", "R", "O", "I"],
+      "expected_peuples_hidden": ["H", "E"]
+    },
+    {
+      "action": "resetLivretComplet",
+      "peuples": ["H", "E", "M", "R", "O", "I"],
+      "expected_mode": "COMPLET",
+      "expected_modules": {
+        "GARDIENS": true,
+        "REVES": true,
+        "ESSAIM": true
+      },
+      "expected_peuples_visible": ["H", "E", "M", "R", "O", "I"],
+      "expected_peuples_hidden": []
     }
   ]
 }

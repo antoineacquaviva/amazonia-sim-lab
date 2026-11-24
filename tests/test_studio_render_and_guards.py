@@ -343,27 +343,155 @@ for (const check of guards.required_livret_assertions || []) {
   }
 }
 
-// 5. Blocking INV-01..INV-22 data-inv guard (auto-activated when LIVRET_SCHEMA_VERSION === '6.2.0')
-let invGuardActivated = false;
-if (schemaReport.livretSchemaVersion === '6.2.0') {
-  invGuardActivated = true;
-  vm.runInContext(`(() => {
-    state.peuplesCercle = ['M', 'R', 'O', 'H', 'E', 'I'];
-    refreshAllUI();
-  })()`, sandbox);
-  const fullLivretHtml = getEl('rulebook-article').innerHTML;
-  const fullLower = fullLivretHtml.toLowerCase();
-  for (const inv of invariantsDoc.invariants || []) {
-    const invRe = new RegExp(`data-inv=["'][^"']*\\b${inv.id}\\b[^"']*["']`);
-    if (!invRe.test(fullLivretHtml)) {
-      throw new Error(`Invariant ${inv.id} manquant dans #rulebook-article (attribut data-inv="${inv.id}" requis en 6.2.0)`);
+// 5. Blocking LIVRET_SCHEMA_VERSION === '6.2.0' & INV-01..INV-22 data-inv guard (Chantier 2)
+if (schemaReport.livretSchemaVersion !== '6.2.0') {
+  throw new Error(
+    `LIVRET_SCHEMA_VERSION === "6.2.0" exigé (obtenu ${JSON.stringify(schemaReport.livretSchemaVersion)})`
+  );
+}
+const invGuardActivated = true;
+vm.runInContext(`(() => {
+  resetLivretComplet();
+})()`, sandbox);
+const fullLivretHtml = getEl('rulebook-article').innerHTML;
+const fullLower = fullLivretHtml.toLowerCase();
+let invariantsVerified = 0;
+for (const inv of invariantsDoc.invariants || []) {
+  const invRe = new RegExp(`data-inv=["'][^"']*\\b${inv.id}\\b[^"']*["']`);
+  if (!invRe.test(fullLivretHtml)) {
+    throw new Error(`Invariant ${inv.id} manquant dans #rulebook-article (attribut data-inv="${inv.id}" requis en 6.2.0)`);
+  }
+  for (const phrase of inv.assertions_livret || []) {
+    if (!fullLower.includes(String(phrase).toLowerCase())) {
+      throw new Error(`Assertion livret manquante pour ${inv.id} : ${JSON.stringify(phrase)}`);
     }
-    for (const phrase of inv.assertions_livret || []) {
-      if (!fullLower.includes(String(phrase).toLowerCase())) {
-        throw new Error(`Assertion livret manquante pour ${inv.id} : ${JSON.stringify(phrase)}`);
+  }
+  invariantsVerified++;
+}
+
+// Verify zero numeric step codes (1.1, 3.2, 4.2, 5.3...) in rendered player prose
+const proseOnly = fullLivretHtml
+  .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ');
+const stepCodeHits = proseOnly.match(/\b[1-6]\.[0-3]\b/g);
+if (stepCodeHits && stepCodeHits.length > 0) {
+  throw new Error(`Codes numériques d'étape interdits dans la prose du livret : ${JSON.stringify(stepCodeHits)}`);
+}
+
+// 5b. Interactive modular table filter tests in Node vm
+function inspectRenderedVisibility(htmlStr) {
+  const modules = { GARDIENS: [], REVES: [], ESSAIM: [] };
+  const peoples = { H: [], E: [], M: [], R: [], O: [], I: [] };
+
+  for (const m of htmlStr.matchAll(/<[^>]+data-module="(GARDIENS|REVES|ESSAIM)"[^>]*>/g)) {
+    const tag = m[0];
+    const modName = m[1];
+    const isHidden = /\bhidden\b/.test(tag) || tag.includes('livret-hidden') || tag.includes('data-module-active="false"');
+    modules[modName].push({ visible: !isHidden, tag });
+  }
+  for (const m of htmlStr.matchAll(/<[^>]+data-peuple="([HEMROI])"[^>]*>/g)) {
+    const tag = m[0];
+    const pCode = m[1];
+    const isHidden = /\bhidden\b/.test(tag) || tag.includes('livret-hidden') || tag.includes('data-peuple-active="false"');
+    peoples[pCode].push({ visible: !isHidden, tag });
+  }
+  return { modules, peoples };
+}
+
+const fnCheck = vm.runInContext(`({
+  setFn: typeof globalThis.setLivretTablePeoples,
+  toggleFn: typeof globalThis.toggleLivretPeuple,
+  resetFn: typeof globalThis.resetLivretComplet,
+})`, sandbox);
+if (fnCheck.setFn !== 'function' || fnCheck.toggleFn !== 'function' || fnCheck.resetFn !== 'function') {
+  throw new Error('Fonctions globales interactives manquantes : ' + JSON.stringify(fnCheck));
+}
+
+const scenarios = guards.required_livret_filter_scenarios || [];
+if (scenarios.length < 4) {
+  throw new Error('Attendu au moins 4 scénarios dans required_livret_filter_scenarios');
+}
+for (const sc of scenarios) {
+  let stateAfter;
+  if (sc.action === 'setLivretTablePeoples') {
+    stateAfter = vm.runInContext(`globalThis.setLivretTablePeoples(${JSON.stringify(sc.peuples)})`, sandbox);
+  } else if (sc.action === 'resetLivretComplet') {
+    stateAfter = vm.runInContext(`globalThis.resetLivretComplet()`, sandbox);
+  } else {
+    throw new Error('Action de scénario inconnue : ' + sc.action);
+  }
+  if (stateAfter.mode !== sc.expected_mode) {
+    throw new Error(`Mode filtre inattendu pour ${sc.action}(${sc.peuples}): attendu ${sc.expected_mode}, obtenu ${stateAfter.mode}`);
+  }
+  const renderedHtml = getEl('rulebook-article').innerHTML;
+  const vis = inspectRenderedVisibility(renderedHtml);
+
+  for (const [modName, expectedVis] of Object.entries(sc.expected_modules)) {
+    const entries = vis.modules[modName] || [];
+    if (entries.length === 0) {
+      throw new Error(`Aucun élément data-module="${modName}" trouvé dans #rulebook-article`);
+    }
+    for (const entry of entries) {
+      if (entry.visible !== expectedVis) {
+        throw new Error(
+          `Visibilité incorrecte sur data-module="${modName}" pour ${sc.action}(${sc.peuples.join('-')}): attendu visible=${expectedVis}, balise=${entry.tag}`
+        );
       }
     }
   }
+  for (const pCode of sc.expected_peuples_visible || []) {
+    const entries = vis.peoples[pCode] || [];
+    if (entries.length === 0 || entries.some(e => !e.visible)) {
+      throw new Error(`Fiche data-peuple="${pCode}" attendue visible pour ${sc.action}(${sc.peuples.join('-')})`);
+    }
+  }
+  for (const pCode of sc.expected_peuples_hidden || []) {
+    const entries = vis.peoples[pCode] || [];
+    if (entries.length === 0 || entries.some(e => e.visible)) {
+      throw new Error(`Fiche data-peuple="${pCode}" attendue masquée pour ${sc.action}(${sc.peuples.join('-')})`);
+    }
+  }
+}
+
+// Verify toggleLivretPeuple dynamically toggles modules and people cards
+vm.runInContext(`globalThis.setLivretTablePeoples(['M', 'R', 'O', 'I'])`, sandbox);
+vm.runInContext(`globalThis.toggleLivretPeuple('H')`, sandbox);
+const afterAddH = inspectRenderedVisibility(getEl('rulebook-article').innerHTML);
+if (afterAddH.modules.REVES.some(e => !e.visible) || afterAddH.peoples.H.some(e => !e.visible)) {
+  throw new Error('toggleLivretPeuple("H") doit réafficher REVES et la fiche H');
+}
+vm.runInContext(`globalThis.toggleLivretPeuple('I')`, sandbox);
+const afterRemoveI = inspectRenderedVisibility(getEl('rulebook-article').innerHTML);
+if (afterRemoveI.modules.ESSAIM.some(e => e.visible) || afterRemoveI.peoples.I.some(e => e.visible)) {
+  throw new Error('toggleLivretPeuple("I") doit masquer ESSAIM et la fiche I');
+}
+vm.runInContext(`globalThis.resetLivretComplet()`, sandbox);
+const afterFinalReset = inspectRenderedVisibility(getEl('rulebook-article').innerHTML);
+for (const modName of ['GARDIENS', 'REVES', 'ESSAIM']) {
+  if (afterFinalReset.modules[modName].some(e => !e.visible)) {
+    throw new Error(`resetLivretComplet() doit réafficher 100 % du module ${modName}`);
+  }
+}
+for (const pCode of ['H', 'E', 'M', 'R', 'O', 'I']) {
+  if (afterFinalReset.peoples[pCode].some(e => !e.visible)) {
+    throw new Error(`resetLivretComplet() doit réafficher la fiche Peuple ${pCode}`);
+  }
+}
+
+// Verify no-document safety guard (pure Node context without `document`)
+const bareCtx = { console, Math, JSON, Object, Array, String, Number, Boolean, Set, Map, RegExp };
+bareCtx.globalThis = bareCtx;
+vm.createContext(bareCtx);
+vm.runInContext(livretJs, bareCtx, { filename: 'livret_no_dom.js' });
+const bareState = vm.runInContext(`(() => {
+  globalThis.setLivretTablePeoples(['H', 'M', 'O']);
+  globalThis.toggleLivretPeuple('I');
+  const st = globalThis.resetLivretComplet();
+  const out = renderDidacticRulebook();
+  return { mode: st.mode, out };
+})()`, bareCtx);
+if (bareState.mode !== 'COMPLET' || bareState.out !== '') {
+  throw new Error('Protection typeof document !== "undefined" invalide : ' + JSON.stringify(bareState));
 }
 
 // 6. Verify quick-access links & dynamic highlight label in docs/index.html
@@ -410,26 +538,34 @@ if (!n3LivretHtml.includes('Table à 3 joueurs')) {
 
 console.log(JSON.stringify({
   ok: true,
+  livret_schema_version: schemaReport.livretSchemaVersion,
   topologies_checked: schemaReport.topoKeys.length,
   tiles_rendered: schemaReport.tileKeys.length,
   tables_checked: (guards.required_livret_assertions || []).length,
   briques_checked: expectedBriques.length,
   inv_guard_activated: invGuardActivated,
   invariants_registered: (invariantsDoc.invariants || []).length,
+  invariants_verified: invariantsVerified,
+  filter_scenarios_checked: scenarios.length,
+  toggle_checked: true,
+  no_document_guard_ok: true,
 }));
 """
 
 
 def test_studio_banned_terms_in_livret_source() -> None:
-    """Interdit tout résidu textuel de règles obsolètes ou jargon interne dans docs/data/livret_v6_0.js."""
+    """Interdit tout résidu textuel de règles obsolètes ou jargon interne et impose UTF-8 sans BOM / LF."""
     guards = json.loads(GUARDS_PATH.read_text(encoding="utf-8"))
-    livret_src = STUDIO_LIVRET.read_text(encoding="utf-8")
+    raw_bytes = STUDIO_LIVRET.read_bytes()
+    assert not raw_bytes.startswith(b"\xef\xbb\xbf"), f"BOM UTF-8 interdit dans {STUDIO_LIVRET.name}"
+    assert b"\r\n" not in raw_bytes, f"Fins de ligne CRLF interdites dans {STUDIO_LIVRET.name} (LF requis)"
+    livret_src = raw_bytes.decode("utf-8")
     violations = [pat for pat in guards["banned_in_livret"] if pat in livret_src]
     assert not violations, f"Résidus obsolètes détectés dans {STUDIO_LIVRET.name} : {violations}"
 
 
 def test_studio_headless_render_and_semantic_guards() -> None:
-    """Exécute refreshAllUI() en headless Node vm : 0 écart, resetChassisToDefault, 30 tuiles Canon 0."""
+    """Exécute refreshAllUI() en headless Node vm : 0 écart, 30 tuiles, 22 INV et filtre interactif."""
     proc = subprocess.run(
         [
             "node",
@@ -451,11 +587,17 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     )
     payload = json.loads(proc.stdout.strip().splitlines()[-1])
     assert payload["ok"] is True
+    assert payload["livret_schema_version"] == "6.2.0"
     assert payload["topologies_checked"] == 1
     assert payload["tiles_rendered"] == 30
     assert payload["tables_checked"] == 4
     assert payload["briques_checked"] == 12
+    assert payload["inv_guard_activated"] is True
     assert payload["invariants_registered"] == 22
+    assert payload["invariants_verified"] == 22
+    assert payload["filter_scenarios_checked"] == 4
+    assert payload["toggle_checked"] is True
+    assert payload["no_document_guard_ok"] is True
 
 
 def test_inv_html_guard_enforces_all_22_invariants_when_livret_is_6_2() -> None:
