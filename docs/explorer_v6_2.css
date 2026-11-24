@@ -1816,3 +1816,261 @@
   color: #64748b;
   font-size: 0.85rem;
 }
+
+/* ----------------------------------------------------------------------------
+ * Bouton & Panneau dépliable « ? Guide de lecture »
+ * ---------------------------------------------------------------------------- */
+.exp-guide-toggle-btn {
+  border-color: #c5dfd0;
+  background: var(--exp-forest-50);
+  color: var(--exp-forest-900);
+}
+
+.exp-guide-toggle-btn:hover {
+  background: var(--exp-forest-100);
+  border-color: var(--exp-forest-600);
+}
+
+.exp-guide-toggle-btn.is-active {
+  background: var(--exp-forest-900);
+  color: #ffffff;
+  border-color: var(--exp-forest-900);
+  box-shadow: 0 2px 6px rgba(15, 33, 25, 0.16);
+}
+
+.exp-reading-guide {
+  background: var(--exp-surface-warm);
+  border: 1px solid #c5dfd0;
+  border-radius: 1rem;
+  padding: 1rem 1.15rem 1.15rem;
+  box-shadow: 0 4px 14px rgba(15, 33, 25, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.exp-guide-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid #dbeae0;
+}
+
+.exp-guide-title-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.exp-guide-kicker {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.6rem;
+  border-radius: 9999px;
+  background: var(--exp-forest-900);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.exp-guide-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--exp-forest-950);
+}
+
+.exp-guide-close-btn {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+}
+
+.exp-guide-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+@media (min-width: 768px) {
+  .exp-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1200px) {
+  .exp-guide-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.exp-guide-card {
+  background: var(--exp-surface);
+  border: 1px solid var(--exp-border);
+  border-radius: 0.85rem;
+  padding: 0.85rem 0.95rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
+}
+
+.exp-guide-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.exp-guide-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 9999px;
+  background: var(--exp-forest-100);
+  color: var(--exp-forest-900);
+  border: 1px solid #c5dfd0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.exp-guide-card-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--exp-ink);
+  line-height: 1.3;
+}
+
+.exp-guide-samples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.65rem;
+  background: var(--exp-surface-soft);
+  border: 1px solid #e6edf3;
+}
+
+.exp-guide-mini-chip {
+  border-radius: 0.4rem;
+  border: 1px solid;
+  padding: 0.12rem 0.42rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.exp-guide-sep {
+  font-weight: 700;
+  color: var(--exp-ink-subtle);
+  font-size: 0.75rem;
+}
+
+.exp-guide-div-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.48rem;
+  border-radius: 9999px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.exp-guide-xray-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 0.5rem;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.exp-guide-ramp-preview {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--exp-ink-muted);
+  background: #ffffff;
+  border: 1px solid var(--exp-border);
+  border-radius: 0.45rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.exp-guide-enrac-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.16rem 0.5rem;
+  border-radius: 9999px;
+  background: var(--exp-forest-900);
+  color: #ffffff;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.exp-guide-flow-sample .exp-state-chip {
+  cursor: default;
+}
+
+.exp-guide-text {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--exp-ink-muted);
+}
+
+.exp-guide-text code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  padding: 0.06rem 0.28rem;
+  border-radius: 0.3rem;
+  background: #f1f5f9;
+  color: var(--exp-ink);
+}
+
+.exp-guide-inline-up {
+  color: var(--exp-xray-up-fg);
+  font-weight: 600;
+}
+
+.exp-guide-inline-down {
+  color: var(--exp-xray-down-fg);
+  font-weight: 600;
+}
+
+.exp-guide-vector-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.exp-guide-vector-list li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.42rem;
+  font-size: 0.72rem;
+  line-height: 1.38;
+  color: var(--exp-ink);
+}
+
+.exp-guide-vec-code {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  padding: 0.08rem 0.38rem;
+}
+

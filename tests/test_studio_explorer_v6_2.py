@@ -321,6 +321,61 @@ const soucheChipIds = Array.from(getEl('catalogue-grid').innerHTML.matchAll(/dat
 exp.resetFilters();
 const resetBadge = getEl('catalogue-count-badge').textContent;
 
+// 7. Panneau « ? Guide de lecture » & infobulles décodées des vecteurs V1..V5
+const guideInitialState = exp.getState().readingGuideOpen;
+const guideInitialClosedInDom = !m1Toolbar.includes('id="exp-reading-guide-panel"')
+  && m1Toolbar.includes('id="exp-reading-guide-btn"')
+  && m1Toolbar.includes('aria-expanded="false"');
+
+exp.toggleReadingGuide();
+const guideOpenState = exp.getState().readingGuideOpen;
+const guideOpenToolbar = getEl('explorer-v6-2-toolbar').innerHTML;
+const guideOpenHasBad = badTokenRe.test(guideOpenToolbar);
+const guideZones = Array.from(guideOpenToolbar.matchAll(/data-guide-zone="([1-6])"/g)).map(m => m[1]);
+const guideVectors = Array.from(guideOpenToolbar.matchAll(/data-guide-vector="(V[1-5])"/g)).map(m => m[1]);
+const guideHasCloseBtn = guideOpenToolbar.includes('id="exp-reading-guide-close"');
+const guideHasExpandedTrue = guideOpenToolbar.includes('aria-expanded="true"');
+
+// Le changement de mode ou de filtre ne referme pas le guide ouvert
+exp.setMode('assises');
+const guideStaysOpenOnMode = exp.getState().readingGuideOpen && getEl('explorer-v6-2-toolbar').innerHTML.includes('id="exp-reading-guide-panel"');
+exp.setFilter('family', 'GARDIEN');
+const guideStaysOpenOnFilter = exp.getState().readingGuideOpen && getEl('explorer-v6-2-toolbar').innerHTML.includes('id="exp-reading-guide-panel"');
+exp.resetFilters();
+exp.setMode('lisieres');
+
+// Échap avec Rayons X actif ferme d'abord Rayons X sans fermer le guide
+exp.toggleXRay('G1');
+if (typeof docListeners.keydown === 'function') {
+  docListeners.keydown({ key: 'Escape' });
+}
+const guideOpenAfterXRayEscape = exp.getState().readingGuideOpen && exp.getState().xrayFocusId === null;
+
+// Échap sans Rayons X actif ferme le guide
+if (typeof docListeners.keydown === 'function') {
+  docListeners.keydown({ key: 'Escape' });
+}
+const guideClosedAfterEscape = !exp.getState().readingGuideOpen && !getEl('explorer-v6-2-toolbar').innerHTML.includes('id="exp-reading-guide-panel"');
+
+// Réouverture puis fermeture explicite via toggleReadingGuide()
+exp.toggleReadingGuide();
+const guideReopened = exp.getState().readingGuideOpen;
+exp.toggleReadingGuide();
+const guideClosedAfterToggle = !exp.getState().readingGuideOpen
+  && !getEl('explorer-v6-2-toolbar').innerHTML.includes('id="exp-reading-guide-panel"')
+  && getEl('explorer-v6-2-toolbar').innerHTML.includes('aria-expanded="false"');
+
+// Infobulles décodées sur les 30 badges de vecteurs
+const vecMatches = Array.from(m1Grid.matchAll(/<span class="exp-vector-chip" data-vector-pair="([^"]+)" title="([^"]+)">/g));
+const vectorTooltipsCount = vecMatches.length;
+const vectorTooltipsAllDecoded = vecMatches.length === 30 && vecMatches.every(m => {
+  const pair = m[1];
+  const tip = m[2];
+  return (pair.includes('->') || pair.includes('-&gt;')) && tip.includes('(') && tip.includes('→') && !badTokenRe.test(tip);
+});
+const g1VecTipMatch = m1Grid.match(/data-tile-id="G1"[\s\S]*?<span class="exp-vector-chip" data-vector-pair="([^"]+)" title="([^"]+)">/);
+const g1VecTip = g1VecTipMatch ? g1VecTipMatch[2] : '';
+
 console.log(JSON.stringify({
   ok: true,
   total_assises: all197.length,
@@ -373,6 +428,28 @@ console.log(JSON.stringify({
     insect_icon_ids: insectIconIds,
     souche_chip_ids: soucheChipIds,
     reset_badge: resetBadge,
+  },
+  reading_guide: {
+    initial_state: guideInitialState,
+    initial_closed_in_dom: guideInitialClosedInDom,
+    open_state: guideOpenState,
+    open_has_bad: guideOpenHasBad,
+    zones: guideZones,
+    vectors: guideVectors,
+    has_close_btn: guideHasCloseBtn,
+    has_expanded_true: guideHasExpandedTrue,
+    stays_open_on_mode: guideStaysOpenOnMode,
+    stays_open_on_filter: guideStaysOpenOnFilter,
+    open_after_xray_escape: guideOpenAfterXRayEscape,
+    closed_after_escape: guideClosedAfterEscape,
+    reopened: guideReopened,
+    closed_after_toggle: guideClosedAfterToggle,
+    open_html: guideOpenToolbar,
+  },
+  vector_tooltips: {
+    count: vectorTooltipsCount,
+    all_decoded: vectorTooltipsAllDecoded,
+    g1_tip: g1VecTip,
   },
 }));
 """
@@ -532,3 +609,51 @@ def test_explorer_197_assises_benchmarks_icons_modes_and_xray() -> None:
     assert "G1" not in flt["insect_icon_ids"]
     assert {"G3", "G7", "M5", "R8"}.issubset(set(flt["souche_chip_ids"]))
     assert flt["reset_badge"] == "30 / 30 tuiles affichées"
+
+
+def test_explorer_reading_guide_and_vector_tooltips() -> None:
+    """Vérifie le panneau dépliable « ? Guide de lecture » et les infobulles décodées V1..V5."""
+    payload = _run_node_explorer_harness()
+    assert payload["ok"] is True
+
+    rg = payload["reading_guide"]
+    assert rg["initial_state"] is False
+    assert rg["initial_closed_in_dom"] is True
+    assert rg["open_state"] is True
+    assert rg["open_has_bad"] is False
+    assert rg["has_close_btn"] is True
+    assert rg["has_expanded_true"] is True
+    assert rg["zones"] == ["1", "2", "3", "4", "5", "6"]
+    assert rg["vectors"] == ["V1", "V2", "V3", "V4", "V5"]
+
+    open_html = rg["open_html"]
+    for snippet in (
+        "Bandeau de lisière",
+        "Géométrie 2K3",
+        "✓ 0 boucle",
+        "En-tête d’identité",
+        "Focus Synergies",
+        "Forêt, Souches, recul &amp; position des machines",
+        "Rangs de la Réglette &amp; jetons Puissance (Rouge / Bleu Surchauffe)",
+        "Pièges, Croc, Sabotages, Écailles &amp; Altération",
+        "Défenseurs, essaim d’Insectes &amp; jeton Duel",
+        "Rêves, Piste des Gardiens &amp; signaux muets (Plume, Perchoir)",
+        "2 Souches si enraciné",
+        "Chaîne de flux physique cliquable",
+        "Capot Concepteur",
+        "ACTIVE_VERIFIED",
+    ):
+        assert snippet in open_html, f"Contenu attendu absent du Guide de lecture : {snippet}"
+
+    assert rg["stays_open_on_mode"] is True
+    assert rg["stays_open_on_filter"] is True
+    assert rg["open_after_xray_escape"] is True
+    assert rg["closed_after_escape"] is True
+    assert rg["reopened"] is True
+    assert rg["closed_after_toggle"] is True
+
+    vt = payload["vector_tooltips"]
+    assert vt["count"] == 30
+    assert vt["all_decoded"] is True
+    assert vt["g1_tip"] == "V4 (Défenseurs, Insectes &amp; Duel) → V2 (Rangs &amp; Puissance Rouge/Bleu)"
+
