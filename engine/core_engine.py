@@ -43,6 +43,8 @@ from engine.primitives import (
     dispatch_hook,
     get_tile_registration,
     has_pending_decision,
+    list_machines_targeting_parcel,
+    list_targeted_parcels,
     prim_creation_entite,
     prim_deplacement,
     prim_partage_info_etat_gardien,
@@ -167,6 +169,7 @@ __all__ = (
     "is_machine_active_this_turn",
     "is_tile_placeable",
     "list_legal_targets",
+    "list_machines_targeting_parcel",
     "list_targeted_parcels",
     "lock_all_def2_in_place",
     "rebind_step_3_2_hand",
@@ -982,55 +985,6 @@ def is_machine_active_this_turn(state: GameState, ray: int, m_type: int) -> bool
     return False
 
 
-def list_targeted_parcels(state: GameState) -> tuple[tuple[int, int], ...]:
-    """Retourne toutes les « parcelles ciblées » actuelles, incluant les Ratissages n'ayant pas encore frappé (INV-12)."""
-    targeted: set[tuple[int, int]] = set()
-    n = state.cfg.n_players
-
-    # 1. Machines normales révélées et non encore résolues (non annulées, non altérées)
-    for s in range(n):
-        if state.was_seat_altered_this_turn(s):
-            continue
-        card, _, _, lec_m, bound_t = state.get_player_hand(s)
-        if not (1 <= card <= 12):
-            continue
-        if is_tactique_code(bound_t):
-            t_code = bound_t
-        elif state.step == STEP_3_2_REVEAL and 1 <= lec_m <= TRACK_LEN:
-            t_code = lec_m
-        else:
-            continue
-        r, mt = (card - 1) // 2, (card - 1) % 2
-        pos, st, _ = state.get_machine_pos_status(r, mt)
-        _, _, attacked = state.get_machine_turn_stats(r, mt)
-        if st != MACHINE_STATUS_NORMAL or pos == 0 or attacked:
-            continue
-        spec = TACTIQUES_SPEC[t_code]
-        for c_type in spec.cibles:
-            if c_type == "SUR_PLACE":
-                if not state.is_route_forestiere(r, pos):
-                    targeted.add((r, pos))
-            elif c_type == "DEVANT":
-                p_dev = state.next_non_razed_towards_heart(r, pos)
-                if p_dev is not None:
-                    targeted.add((r, p_dev))
-
-    # 2. Machines en Ratissage n'ayant pas encore frappé ce tour (INV-12)
-    for r in range(n):
-        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
-            pos, st, _ = state.get_machine_pos_status(r, mt)
-            _, _, attacked = state.get_machine_turn_stats(r, mt)
-            if (
-                st == MACHINE_STATUS_RATISSAGE
-                and pos > 0
-                and not attacked
-                and not state.is_route_forestiere(r, pos)
-            ):
-                targeted.add((r, pos))
-
-    return tuple(sorted(targeted))
-
-
 def _effective_machine_power(state: GameState, ray: int, m_type: int) -> tuple[int, int]:
     rouges = state.get_machine_effective_rouges(ray, m_type)
     _, bleus = state.get_machine_tokens(ray, m_type)
@@ -1664,7 +1618,8 @@ def apply_repousse_finale(state: GameState) -> GameOver:
         arbres_before_repousse = state.total_arbres_plateau()
 
         # 1. Application native des tuiles enracinées volontairement (INV-22 : 1 Souche F1/unique, 2 Souches F2)
-        for _slot_idx, _tid, r_root, p_root, tier_souches in state.list_rooted_tiles():
+        rooted_tiles = state.list_rooted_tiles()
+        for _slot_idx, _tid, r_root, p_root, tier_souches in rooted_tiles:
             if not state.is_route_forestiere(r_root, p_root):
                 prim_creation_entite(
                     state,
@@ -1675,15 +1630,34 @@ def apply_repousse_finale(state: GameState) -> GameOver:
                     light_trigger=False,
                 )
 
-        # 2. Extensions Mode 3/4 (ex. M5 / R6 Enraciné sur HOOK_REPOUSSE_FINALE)
+        # 2. Extensions Mode 3/4 (M5 / R6 Enraciné sur phase ROOTED_TILE, plus phase PARCEL)
         if state.cfg.mode >= 3:
+            for _slot_idx, tid, r_root, p_root, tier_souches in rooted_tiles:
+                if not state.is_route_forestiere(r_root, p_root):
+                    dispatch_hook(
+                        state,
+                        HOOK_REPOUSSE_FINALE,
+                        {
+                            "phase": "ROOTED_TILE",
+                            "slot_id": tid,
+                            "ray": r_root,
+                            "p": p_root,
+                            "tier": tier_souches,
+                            "max_repousse": 0,
+                        },
+                    )
             for r in range(state.cfg.n_players):
                 for p in range(1, state.cfg.p_max + 1):
                     if state.is_route_forestiere(r, p):
                         continue
                     souches = state.get_parcel_souches(r, p)
                     if souches >= 1:
-                        rep_ctx: dict[str, Any] = {"ray": r, "p": p, "max_repousse": 0}
+                        rep_ctx: dict[str, Any] = {
+                            "phase": "PARCEL",
+                            "ray": r,
+                            "p": p,
+                            "max_repousse": 0,
+                        }
                         dispatch_hook(state, HOOK_REPOUSSE_FINALE, rep_ctx)
                         max_rep = int(rep_ctx["max_repousse"])
                         if max_rep > 0:
@@ -1936,20 +1910,29 @@ def _resolve_defended_reve_3_2(
     r_num: int,
     entries: tuple[tuple[int, int, int, int, int], ...],
     cancelled_seats: tuple[int, ...],
+    extra_entries: tuple[tuple[int, int, int, int, int], ...] = (),
 ) -> None:
     """Résout un Rêve défendu en 3.2 (INV-15 / INV-20 / C3-02 / C3-04) :
-    1) Applique les annulations choisies par le propriétaire (et lie les machines non annulées).
-    2) Si le Chamane CHANT des Humains défend ce Rêve, >= 1 machine annulée et 0 machine restante : glisse d'1 rang à gauche.
+    1) Applique les annulations choisies par le propriétaire (et lie les machines non annulées de son rang).
+    2) Si le Chamane CHANT des Humains défend ce Rêve, >= 1 machine annulée et 0 machine active restante sur son rang : glisse d'1 rang à gauche.
     3) Exécute intégralement le pouvoir propre du Rêve (avant le balayage Gardiens, même à 0 machine).
     4) Si >= 1 machine annulée (déviée ou non !), allume TRIG_REVE (4) + balayage Gardiens.
     """
     case_1_6 = r_idx + 1
     cancelled_set = set(cancelled_seats)
     for s, card, d1, d2, lec_m in entries:
-        state.set_player_hand(s, card, d1, d2, lec_m, 0 if s in cancelled_set else case_1_6)
+        if s in cancelled_set:
+            state.set_player_hand(s, card, d1, d2, lec_m, 0)
+            state.mark_seat_cancelled_by_reve_this_turn(s)
+        else:
+            state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
+    for s, card, d1, d2, lec_m in extra_entries:
+        if s in cancelled_set:
+            state.set_player_hand(s, card, d1, d2, lec_m, 0)
+            state.mark_seat_cancelled_by_reve_this_turn(s)
 
     n_cancel = len(cancelled_set)
-    n_bypass = len(entries) - n_cancel
+    n_bypass_own = sum(1 for e in entries if e[0] not in cancelled_set)
     if n_cancel > 0:
         consumed = state.consume_reve_activation_defenders(case_1_6, n_cancel)
         if consumed > 0:
@@ -1957,7 +1940,7 @@ def _resolve_defended_reve_3_2(
 
     # Vérifier le Chamane CHANT avant tout déplacement/pouvoir (inclut actif et consommé sur ce rang)
     chant_slides = (
-        state.is_chant_on_reve_case(case_1_6) and n_cancel >= 1 and n_bypass == 0
+        state.is_chant_on_reve_case(case_1_6) and n_cancel >= 1 and n_bypass_own == 0
     )
 
     state.mark_reve_opened_this_turn(r_num)
@@ -1966,8 +1949,8 @@ def _resolve_defended_reve_3_2(
         trk.on_reve_activated(1)
         if n_cancel > 0:
             trk.on_machines_cancelled_by_reve(n_cancel)
-        if n_bypass > 0:
-            trk.on_machines_bypassed_inactive_reve(n_bypass)
+        if n_bypass_own > 0:
+            trk.on_machines_bypassed_inactive_reve(n_bypass_own)
 
     # Le déclencheur TRIG_REVE (4) + balayage s'exécute STRICTEMENT APRÈS le pouvoir propre du Rêve (C3-02)
     push_continuation_sequence(state, (("STEP_3_2_POST_REVE_TRIGGER", 1 if n_cancel >= 1 else 0),))
@@ -1980,6 +1963,7 @@ def _resolve_defended_reve_3_2(
             state,
             HOOK_3_2_OUVERTURE_REVE,
             {
+                "phase": "OPEN",
                 "slot_id": f"R{r_num}",
                 "r_num": r_num,
                 "case": case_1_6,
@@ -2477,23 +2461,35 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
         trk = _get_active_telemetry()
         while r_idx < TRACK_LEN:
             case_1_6 = r_idx + 1
+            code_m = state.get_tactique_at_rank(r_idx)
+            is_defended_unopened = False
+            r_num = 0
+            n_def = 0
+            if is_reve_code(code_m):
+                r_num = code_m - TILE_R_BASE
+                n_def = state.count_reve_activation_defenders_at_case(case_1_6)
+                is_defended_unopened = n_def >= 1 and not state.has_reve_opened_this_turn(r_num)
+
             entries: list[tuple[int, int, int, int, int]] = []
             for s in range(n):
-                if state.was_seat_altered_this_turn(s):
+                if (
+                    state.was_seat_altered_this_turn(s)
+                    or state.was_seat_cancelled_by_reve_this_turn(s)
+                ):
                     continue
                 card, d1, d2, lec_m, bound_t = state.get_player_hand(s)
-                if 1 <= card <= 12 and lec_m == case_1_6 and bound_t == 0:
+                if 1 <= card <= 12 and lec_m == case_1_6 and (
+                    bound_t == 0 or (is_defended_unopened and bound_t == case_1_6)
+                ):
                     entries.append((s, card, d1, d2, lec_m))
-            code_m = state.get_tactique_at_rank(r_idx)
+
             if not is_reve_code(code_m):
                 for s, card, d1, d2, lec_m in entries:
                     state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
                 r_idx += 1
                 continue
 
-            r_num = code_m - TILE_R_BASE
-            n_def = state.count_reve_activation_defenders_at_case(case_1_6)
-            if n_def < 1 or state.has_reve_opened_this_turn(r_num):
+            if not is_defended_unopened:
                 for s, card, d1, d2, lec_m in entries:
                     state.set_player_hand(s, card, d1, d2, lec_m, case_1_6)
                 if n_def < 1 and entries and trk is not None:
@@ -2502,13 +2498,31 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                 continue
 
             # Rêve défendu en case `case_1_6` : empiler la suite des rangs APRÈS sa résolution complète
-            if r_idx + 1 < TRACK_LEN:
-                push_continuation_sequence(state, (("STEP_3_2_REVES_SCAN", r_idx + 1),))
+            push_continuation_sequence(state, (("STEP_3_2_REVES_SCAN", r_idx + 1),))
 
             entries_tup = tuple(entries)
-            if len(entries_tup) > n_def:
+            extra_list: list[tuple[int, int, int, int, int]] = []
+            if state.cfg.mode >= 3:
+                dispatch_hook(
+                    state,
+                    HOOK_3_2_OUVERTURE_REVE,
+                    {
+                        "phase": "CANDIDATES",
+                        "slot_id": f"R{r_num}",
+                        "r_num": r_num,
+                        "r_idx": r_idx,
+                        "case": case_1_6,
+                        "own_entries": entries_tup,
+                        "extra_entries": extra_list,
+                    },
+                )
+            own_seats = {e[0] for e in entries_tup}
+            extra_tup = tuple(e for e in extra_list if e[0] not in own_seats)
+            all_entries = entries_tup + extra_tup
+
+            if len(all_entries) > n_def:
                 # INV-15 : surcharge -> le propriétaire du Rêve choisit quelle(s) machine(s) annuler
-                seat_list = tuple(e[0] for e in entries_tup)
+                seat_list = tuple(e[0] for e in all_entries)
                 combos = tuple(combinations(seat_list, n_def))
                 gov_r = _governor_for_peuple(state, SYNERGY_META[f"R{r_num}"][1])
                 req_rev = DecisionRequest(
@@ -2520,7 +2534,7 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                         "r_num": r_num,
                         "tile_id": f"R{r_num}",
                         "n_def": n_def,
-                        "entries": tuple((e[0], e[1]) for e in entries_tup),
+                        "entries": tuple((e[0], e[1]) for e in all_entries),
                         "tour": state.tour,
                     },
                 )
@@ -2528,14 +2542,26 @@ def _advance_continuation(state: GameState) -> DecisionRequest | None:
                     state,
                     (
                         ("WAIT_DECISION", req_rev),
-                        ("APPLY_CHOIX_CIBLE_REVE_3_2", r_idx, r_num, entries_tup),
+                        ("APPLY_CHOIX_CIBLE_REVE_3_2", r_idx, r_num, entries_tup, extra_tup),
                     ),
                 )
                 return req_rev
 
-            cancelled_all = tuple(e[0] for e in entries_tup)
-            _resolve_defended_reve_3_2(state, r_idx, r_num, entries_tup, cancelled_all)
+            cancelled_all = tuple(e[0] for e in all_entries)
+            _resolve_defended_reve_3_2(state, r_idx, r_num, entries_tup, cancelled_all, extra_tup)
             return None
+
+        # Vérification finale en cas de glissement à gauche d'un Rêve défendu non encore ouvert (ex: R8)
+        for chk_idx in range(TRACK_LEN):
+            chk_code = state.get_tactique_at_rank(chk_idx)
+            if is_reve_code(chk_code):
+                chk_rnum = chk_code - TILE_R_BASE
+                if (
+                    not state.has_reve_opened_this_turn(chk_rnum)
+                    and state.count_reve_activation_defenders_at_case(chk_idx + 1) >= 1
+                ):
+                    push_continuation_sequence(state, (("STEP_3_2_REVES_SCAN", chk_idx),))
+                    return None
         return None
 
     if tag == "STEP_3_2_POST_REVE_TRIGGER":
@@ -3587,9 +3613,11 @@ def apply_choice(
             return
 
         if tag == "APPLY_CHOIX_CIBLE_REVE_3_2":
-            _, r_idx, r_num, entries_tup = state._continuation.pop(0)
+            _, r_idx, r_num, entries_tup, extra_tup = state._continuation.pop(0)
             chosen_seats = tuple(int(s) for s in choice)
-            _resolve_defended_reve_3_2(state, int(r_idx), int(r_num), entries_tup, chosen_seats)
+            _resolve_defended_reve_3_2(
+                state, int(r_idx), int(r_num), entries_tup, chosen_seats, extra_tup
+            )
             return
 
         if tag == "APPLY_NID_4_2":

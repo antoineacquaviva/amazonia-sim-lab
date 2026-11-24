@@ -238,7 +238,7 @@ const capotHiddenInitially = m1Grid.includes('exp-capot-body is-hidden');
 exp.toggleAllCapots();
 const m1GridCapotOpen = getEl('catalogue-grid').innerHTML;
 const capotExpandedAll = !m1GridCapotOpen.includes('exp-capot-body is-hidden')
-  && m1GridCapotOpen.includes('PENDING_KERNEL_V6_2')
+  && m1GridCapotOpen.includes('ACTIVE_VERIFIED')
   && m1GridCapotOpen.includes('Phase 5')
   && m1GridCapotOpen.includes('vivier Phase 5');
 exp.toggleAllCapots();

@@ -1,0 +1,1485 @@
+{
+  "meta": {
+    "schema_version": "6.2.0",
+    "campaign": "calibration_canon0_v6_2_197",
+    "runtime": "PyPy 3.11.17",
+    "exp_seed": 20260620,
+    "reps_per_assise": 8,
+    "b2_lot0_control_reps_per_assise": 2,
+    "gardien_reve_rollouts": 8,
+    "total_assises": 197,
+    "total_compositions": 42,
+    "games_b1_lot0": 1576,
+    "games_b2_canon0": 1576,
+    "games_b2_lot0_control": 394,
+    "elapsed_seconds": 542.8
+  },
+  "by_n_players": {
+    "3J": {
+      "assises_count": 20,
+      "compositions_count": 20,
+      "b1_lot0": {
+        "games": 160,
+        "mean_ratio_arbres": 0.4067,
+        "mean_score_arbres": 12.2,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.85,
+        "mean_rooted_tiles": 1.49
+      },
+      "b2_canon0": {
+        "games": 160,
+        "mean_ratio_arbres": 0.5444,
+        "mean_score_arbres": 16.33,
+        "mean_tour_fin": 7.89,
+        "endings_pct": {
+          "TOUR_8": 95.0,
+          "SOMMEIL": 5.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 5.97,
+        "mean_rooted_tiles": 1.9
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1377,
+        "se_inter_assise": 0.0135,
+        "ci95_half": 0.0264,
+        "mean_trees": 4.13,
+        "compositions_b2_gt_b1": 19,
+        "compositions_total": 20,
+        "assises_b2_gt_b1": 19,
+        "assises_total": 20
+      },
+      "b2_lot0_control": {
+        "paired_games": 40,
+        "b2_lot0_mean_ratio": 0.5175,
+        "b2_canon0_matched_mean_ratio": 0.5283,
+        "pure_canon0_lift_at_b2": 0.0108
+      }
+    },
+    "4J": {
+      "assises_count": 45,
+      "compositions_count": 15,
+      "b1_lot0": {
+        "games": 360,
+        "mean_ratio_arbres": 0.3672,
+        "mean_score_arbres": 14.69,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 7.84,
+        "mean_rooted_tiles": 1.89
+      },
+      "b2_canon0": {
+        "games": 360,
+        "mean_ratio_arbres": 0.5574,
+        "mean_score_arbres": 22.29,
+        "mean_tour_fin": 7.52,
+        "endings_pct": {
+          "TOUR_8": 84.17,
+          "SOMMEIL": 15.83,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 7.83,
+        "mean_rooted_tiles": 2.11
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1901,
+        "se_inter_assise": 0.0095,
+        "ci95_half": 0.0186,
+        "mean_trees": 7.61,
+        "compositions_b2_gt_b1": 15,
+        "compositions_total": 15,
+        "assises_b2_gt_b1": 45,
+        "assises_total": 45
+      },
+      "b2_lot0_control": {
+        "paired_games": 90,
+        "b2_lot0_mean_ratio": 0.5161,
+        "b2_canon0_matched_mean_ratio": 0.5583,
+        "pure_canon0_lift_at_b2": 0.0422
+      }
+    },
+    "5J": {
+      "assises_count": 72,
+      "compositions_count": 6,
+      "b1_lot0": {
+        "games": 576,
+        "mean_ratio_arbres": 0.3914,
+        "mean_score_arbres": 19.57,
+        "mean_tour_fin": 7.99,
+        "endings_pct": {
+          "TOUR_8": 99.31,
+          "SOMMEIL": 0.52,
+          "EVEIL": 0.17
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 9.86,
+        "mean_rooted_tiles": 2.32
+      },
+      "b2_canon0": {
+        "games": 576,
+        "mean_ratio_arbres": 0.6054,
+        "mean_score_arbres": 30.27,
+        "mean_tour_fin": 7.06,
+        "endings_pct": {
+          "TOUR_8": 70.31,
+          "SOMMEIL": 29.69,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.6,
+        "mean_rooted_tiles": 2.26
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.214,
+        "se_inter_assise": 0.0062,
+        "ci95_half": 0.0122,
+        "mean_trees": 10.7,
+        "compositions_b2_gt_b1": 6,
+        "compositions_total": 6,
+        "assises_b2_gt_b1": 72,
+        "assises_total": 72
+      },
+      "b2_lot0_control": {
+        "paired_games": 144,
+        "b2_lot0_mean_ratio": 0.5397,
+        "b2_canon0_matched_mean_ratio": 0.5965,
+        "pure_canon0_lift_at_b2": 0.0568
+      }
+    },
+    "6J": {
+      "assises_count": 60,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 480,
+        "mean_ratio_arbres": 0.4149,
+        "mean_score_arbres": 24.89,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 99.79,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.21
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 11.88,
+        "mean_rooted_tiles": 2.79
+      },
+      "b2_canon0": {
+        "games": 480,
+        "mean_ratio_arbres": 0.6497,
+        "mean_score_arbres": 38.98,
+        "mean_tour_fin": 6.43,
+        "endings_pct": {
+          "TOUR_8": 56.46,
+          "SOMMEIL": 43.33,
+          "EVEIL": 0.21
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 11.01,
+        "mean_rooted_tiles": 2.3
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.2349,
+        "se_inter_assise": 0.0062,
+        "ci95_half": 0.0122,
+        "mean_trees": 14.09,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 60,
+        "assises_total": 60
+      },
+      "b2_lot0_control": {
+        "paired_games": 120,
+        "b2_lot0_mean_ratio": 0.574,
+        "b2_canon0_matched_mean_ratio": 0.6514,
+        "pure_canon0_lift_at_b2": 0.0774
+      }
+    },
+    "GLOBAL_197": {
+      "assises_count": 197,
+      "compositions_count": 42,
+      "b1_lot0": {
+        "games": 1576,
+        "mean_ratio_arbres": 0.3946,
+        "mean_score_arbres": 19.33,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 99.68,
+          "SOMMEIL": 0.19,
+          "EVEIL": 0.13
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 9.61,
+        "mean_rooted_tiles": 2.28
+      },
+      "b2_canon0": {
+        "games": 1576,
+        "mean_ratio_arbres": 0.6017,
+        "mean_score_arbres": 29.69,
+        "mean_tour_fin": 7.06,
+        "endings_pct": {
+          "TOUR_8": 71.76,
+          "SOMMEIL": 28.17,
+          "EVEIL": 0.06
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.26,
+        "mean_rooted_tiles": 2.2
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.2072,
+        "se_inter_assise": 0.0044,
+        "ci95_half": 0.0086,
+        "mean_trees": 10.36,
+        "compositions_b2_gt_b1": 41,
+        "compositions_total": 42,
+        "assises_b2_gt_b1": 196,
+        "assises_total": 197
+      },
+      "b2_lot0_control": {
+        "paired_games": 394,
+        "b2_lot0_mean_ratio": 0.5425,
+        "b2_canon0_matched_mean_ratio": 0.5976,
+        "pure_canon0_lift_at_b2": 0.0551
+      }
+    }
+  },
+  "benchmarks": {
+    "N3-HEI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.375,
+        "mean_score_arbres": 11.25,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.88,
+        "mean_rooted_tiles": 0.62
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.5042,
+        "mean_score_arbres": 15.12,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 1.0
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1292,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 3.88,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.5167,
+        "b2_canon0_matched_mean_ratio": 0.5,
+        "pure_canon0_lift_at_b2": -0.0167
+      }
+    },
+    "N3-ERI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.3917,
+        "mean_score_arbres": 11.75,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.88,
+        "mean_rooted_tiles": 1.62
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.5417,
+        "mean_score_arbres": 16.25,
+        "mean_tour_fin": 7.88,
+        "endings_pct": {
+          "TOUR_8": 87.5,
+          "SOMMEIL": 12.5,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 1.38
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.15,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 4.5,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.4667,
+        "b2_canon0_matched_mean_ratio": 0.4667,
+        "pure_canon0_lift_at_b2": 0.0
+      }
+    },
+    "N3-HER": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.5208,
+        "mean_score_arbres": 15.62,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 0.38
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.5958,
+        "mean_score_arbres": 17.88,
+        "mean_tour_fin": 6.75,
+        "endings_pct": {
+          "TOUR_8": 50.0,
+          "SOMMEIL": 50.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 0.25
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.075,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 2.25,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.6167,
+        "b2_canon0_matched_mean_ratio": 0.5167,
+        "pure_canon0_lift_at_b2": -0.1
+      }
+    },
+    "N3-MOI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.375,
+        "mean_score_arbres": 11.25,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.75,
+        "mean_rooted_tiles": 2.12
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.475,
+        "mean_score_arbres": 14.25,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.88,
+        "mean_rooted_tiles": 2.62
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 3.0,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.4167,
+        "b2_canon0_matched_mean_ratio": 0.5,
+        "pure_canon0_lift_at_b2": 0.0833
+      }
+    },
+    "N3-MRO": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.325,
+        "mean_score_arbres": 9.75,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.88,
+        "mean_rooted_tiles": 2.62
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.4458,
+        "mean_score_arbres": 13.38,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.75,
+        "mean_rooted_tiles": 3.25
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1208,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 3.62,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.35,
+        "b2_canon0_matched_mean_ratio": 0.4167,
+        "pure_canon0_lift_at_b2": 0.0667
+      }
+    },
+    "N6-HEMROI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b1_lot0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.5083,
+        "mean_score_arbres": 30.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 12.0,
+        "mean_rooted_tiles": 2.62
+      },
+      "b2_canon0": {
+        "games": 8,
+        "mean_ratio_arbres": 0.6729,
+        "mean_score_arbres": 40.38,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 11.62,
+        "mean_rooted_tiles": 2.88
+      },
+      "delta_b2_canon0_minus_b1_lot0": {
+        "mean_ratio": 0.1646,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 9.88,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0_mean_ratio": 0.65,
+        "b2_canon0_matched_mean_ratio": 0.6417,
+        "pure_canon0_lift_at_b2": -0.0083
+      }
+    }
+  },
+  "empirical_tree_bareme": {
+    "b2_canon0": {
+      "arm": "b2_canon0",
+      "tour8_only": false,
+      "observations": 1576,
+      "r2_within_assise": 0.4201,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.33,
+          "se_trees": 0.042,
+          "ci95_low": 0.247,
+          "ci95_high": 0.413,
+          "mean_count_per_game": 5.833
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -0.153,
+          "se_trees": 0.065,
+          "ci95_low": -0.28,
+          "ci95_high": -0.026,
+          "mean_count_per_game": 1.827
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": 0.594,
+          "se_trees": 0.128,
+          "ci95_low": 0.344,
+          "ci95_high": 0.845,
+          "mean_count_per_game": 0.656
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 0.859,
+          "se_trees": 0.039,
+          "ci95_low": 0.783,
+          "ci95_high": 0.935,
+          "mean_count_per_game": 7.506
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.719,
+          "se_trees": 0.045,
+          "ci95_low": 0.631,
+          "ci95_high": 0.807,
+          "mean_count_per_game": 3.231
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.271,
+          "se_trees": 0.091,
+          "ci95_low": -0.449,
+          "ci95_high": -0.093,
+          "mean_count_per_game": 1.967
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.245,
+          "se_trees": 0.061,
+          "ci95_low": 0.125,
+          "ci95_high": 0.364,
+          "mean_count_per_game": 2.721
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": -0.428,
+          "se_trees": 0.153,
+          "ci95_low": -0.728,
+          "ci95_high": -0.128,
+          "mean_count_per_game": 9.256
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 0.745,
+          "se_trees": 0.079,
+          "ci95_low": 0.59,
+          "ci95_high": 0.899,
+          "mean_count_per_game": 2.201
+        },
+        "controle_tour_fin": {
+          "marginal_trees_ols": -2.913,
+          "se_trees": 0.199,
+          "ci95_low": -3.304,
+          "ci95_high": -2.523,
+          "mean_count_per_game": 7.057
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 1.25,
+          "mean_repousse_arbres_per_game": 2.751,
+          "mean_rooted_tiles_per_game": 2.201
+        }
+      }
+    },
+    "b2_canon0_tour8_only": {
+      "arm": "b2_canon0",
+      "tour8_only": true,
+      "observations": 1131,
+      "r2_within_assise": 0.4185,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.342,
+          "se_trees": 0.049,
+          "ci95_low": 0.246,
+          "ci95_high": 0.437,
+          "mean_count_per_game": 6.086
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -0.291,
+          "se_trees": 0.07,
+          "ci95_low": -0.429,
+          "ci95_high": -0.153,
+          "mean_count_per_game": 2.14
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": 0.522,
+          "se_trees": 0.136,
+          "ci95_low": 0.255,
+          "ci95_high": 0.789,
+          "mean_count_per_game": 0.834
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 0.798,
+          "se_trees": 0.045,
+          "ci95_low": 0.71,
+          "ci95_high": 0.885,
+          "mean_count_per_game": 8.835
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.598,
+          "se_trees": 0.048,
+          "ci95_low": 0.504,
+          "ci95_high": 0.693,
+          "mean_count_per_game": 3.816
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.184,
+          "se_trees": 0.099,
+          "ci95_low": -0.378,
+          "ci95_high": 0.01,
+          "mean_count_per_game": 2.398
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.302,
+          "se_trees": 0.068,
+          "ci95_low": 0.168,
+          "ci95_high": 0.435,
+          "mean_count_per_game": 3.239
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": 0.809,
+          "se_trees": 0.352,
+          "ci95_low": 0.119,
+          "ci95_high": 1.499,
+          "mean_count_per_game": 9.314
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 0.618,
+          "se_trees": 0.088,
+          "ci95_low": 0.445,
+          "ci95_high": 0.791,
+          "mean_count_per_game": 3.041
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 1.245,
+          "mean_repousse_arbres_per_game": 3.786,
+          "mean_rooted_tiles_per_game": 3.041
+        }
+      }
+    },
+    "b1_lot0": {
+      "arm": "b1_lot0",
+      "tour8_only": false,
+      "observations": 1576,
+      "r2_within_assise": 0.3853,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.452,
+          "se_trees": 0.035,
+          "ci95_low": 0.383,
+          "ci95_high": 0.521,
+          "mean_count_per_game": 12.442
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -0.967,
+          "se_trees": 0.107,
+          "ci95_low": -1.177,
+          "ci95_high": -0.757,
+          "mean_count_per_game": 1.037
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": -0.098,
+          "se_trees": 0.234,
+          "ci95_low": -0.557,
+          "ci95_high": 0.361,
+          "mean_count_per_game": 0.203
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 1.057,
+          "se_trees": 0.05,
+          "ci95_low": 0.959,
+          "ci95_high": 1.155,
+          "mean_count_per_game": 4.528
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.705,
+          "se_trees": 0.08,
+          "ci95_low": 0.547,
+          "ci95_high": 0.862,
+          "mean_count_per_game": 0.605
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.157,
+          "se_trees": 0.069,
+          "ci95_low": -0.293,
+          "ci95_high": -0.021,
+          "mean_count_per_game": 3.416
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.457,
+          "se_trees": 0.187,
+          "ci95_low": 0.091,
+          "ci95_high": 0.823,
+          "mean_count_per_game": 0.112
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": 0.768,
+          "se_trees": 0.268,
+          "ci95_low": 0.242,
+          "ci95_high": 1.294,
+          "mean_count_per_game": 9.608
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 0.872,
+          "se_trees": 0.13,
+          "ci95_low": 0.617,
+          "ci95_high": 1.127,
+          "mean_count_per_game": 2.282
+        },
+        "controle_tour_fin": {
+          "marginal_trees_ols": -5.838,
+          "se_trees": 1.347,
+          "ci95_low": -8.478,
+          "ci95_high": -3.199,
+          "mean_count_per_game": 7.996
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 0.834,
+          "mean_repousse_arbres_per_game": 1.903,
+          "mean_rooted_tiles_per_game": 2.282
+        }
+      }
+    }
+  },
+  "tile_leaderboard": {
+    "all_30_tiles": [
+      {
+        "tile_id": "R3",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 804,
+        "activations_per_eligible": 1.57,
+        "mean_delta_b2_minus_b1_present": 0.2175,
+        "mean_delta_when_built": 0.2175,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2175,
+        "pure_canon0_lift_at_b2_present": 0.0558,
+        "profitability_index": 24.89
+      },
+      {
+        "tile_id": "R4",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 1101,
+        "activations_per_eligible": 2.15,
+        "mean_delta_b2_minus_b1_present": 0.1924,
+        "mean_delta_when_built": 0.1924,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.1924,
+        "pure_canon0_lift_at_b2_present": 0.0403,
+        "profitability_index": 23.54
+      },
+      {
+        "tile_id": "R5",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 1,
+        "root_rate": 0.002,
+        "activations_total": 1104,
+        "activations_per_eligible": 2.156,
+        "mean_delta_b2_minus_b1_present": 0.2178,
+        "mean_delta_when_built": 0.2178,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2178,
+        "pure_canon0_lift_at_b2_present": 0.0533,
+        "profitability_index": 26.09
+      },
+      {
+        "tile_id": "R6",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 1,
+        "root_rate": 0.002,
+        "activations_total": 1029,
+        "activations_per_eligible": 2.01,
+        "mean_delta_b2_minus_b1_present": 0.2173,
+        "mean_delta_when_built": 0.2173,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2173,
+        "pure_canon0_lift_at_b2_present": 0.0483,
+        "profitability_index": 25.75
+      },
+      {
+        "tile_id": "R7",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 1339,
+        "activations_per_eligible": 2.615,
+        "mean_delta_b2_minus_b1_present": 0.2066,
+        "mean_delta_when_built": 0.2066,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2066,
+        "pure_canon0_lift_at_b2_present": 0.0496,
+        "profitability_index": 25.89
+      },
+      {
+        "tile_id": "R8",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 567,
+        "activations_per_eligible": 1.107,
+        "mean_delta_b2_minus_b1_present": 0.2014,
+        "mean_delta_when_built": 0.2014,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2014,
+        "pure_canon0_lift_at_b2_present": 0.0582,
+        "profitability_index": 22.35
+      },
+      {
+        "tile_id": "R9",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 740,
+        "activations_per_eligible": 1.445,
+        "mean_delta_b2_minus_b1_present": 0.2305,
+        "mean_delta_when_built": 0.2305,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2305,
+        "pure_canon0_lift_at_b2_present": 0.0847,
+        "profitability_index": 25.94
+      },
+      {
+        "tile_id": "R10",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 1007,
+        "activations_per_eligible": 1.967,
+        "mean_delta_b2_minus_b1_present": 0.2201,
+        "mean_delta_when_built": 0.2201,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2201,
+        "pure_canon0_lift_at_b2_present": 0.0656,
+        "profitability_index": 25.94
+      },
+      {
+        "tile_id": "M2",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 160,
+        "root_rate": 0.3125,
+        "activations_total": 3535,
+        "activations_per_eligible": 6.904,
+        "mean_delta_b2_minus_b1_present": 0.2209,
+        "mean_delta_when_built": 0.2209,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2209,
+        "pure_canon0_lift_at_b2_present": 0.0697,
+        "profitability_index": 35.9
+      },
+      {
+        "tile_id": "M5",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 217,
+        "root_rate": 0.4238,
+        "activations_total": 2875,
+        "activations_per_eligible": 5.615,
+        "mean_delta_b2_minus_b1_present": 0.2201,
+        "mean_delta_when_built": 0.2201,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2201,
+        "pure_canon0_lift_at_b2_present": 0.0656,
+        "profitability_index": 33.24
+      },
+      {
+        "tile_id": "R1",
+        "eligible_games": 512,
+        "built_games": 511,
+        "build_rate": 0.998,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 1291,
+        "activations_per_eligible": 2.521,
+        "mean_delta_b2_minus_b1_present": 0.2176,
+        "mean_delta_when_built": 0.2178,
+        "mean_delta_when_not_built": 0.12,
+        "build_lift_ratio": 0.0978,
+        "pure_canon0_lift_at_b2_present": 0.0385,
+        "profitability_index": 26.78
+      },
+      {
+        "tile_id": "M3",
+        "eligible_games": 512,
+        "built_games": 511,
+        "build_rate": 0.998,
+        "rooted_games": 132,
+        "root_rate": 0.2578,
+        "activations_total": 3248,
+        "activations_per_eligible": 6.344,
+        "mean_delta_b2_minus_b1_present": 0.2095,
+        "mean_delta_when_built": 0.2096,
+        "mean_delta_when_not_built": 0.1333,
+        "build_lift_ratio": 0.0763,
+        "pure_canon0_lift_at_b2_present": 0.0568,
+        "profitability_index": 33.61
+      },
+      {
+        "tile_id": "G10",
+        "eligible_games": 512,
+        "built_games": 510,
+        "build_rate": 0.9961,
+        "rooted_games": 72,
+        "root_rate": 0.1406,
+        "activations_total": 513,
+        "activations_per_eligible": 1.002,
+        "mean_delta_b2_minus_b1_present": 0.2014,
+        "mean_delta_when_built": 0.2011,
+        "mean_delta_when_not_built": 0.2667,
+        "build_lift_ratio": -0.0656,
+        "pure_canon0_lift_at_b2_present": 0.0582,
+        "profitability_index": 22.04
+      },
+      {
+        "tile_id": "R2",
+        "eligible_games": 512,
+        "built_games": 510,
+        "build_rate": 0.9961,
+        "rooted_games": 1,
+        "root_rate": 0.002,
+        "activations_total": 1260,
+        "activations_per_eligible": 2.461,
+        "mean_delta_b2_minus_b1_present": 0.2176,
+        "mean_delta_when_built": 0.2178,
+        "mean_delta_when_not_built": 0.17,
+        "build_lift_ratio": 0.0478,
+        "pure_canon0_lift_at_b2_present": 0.0385,
+        "profitability_index": 26.62
+      },
+      {
+        "tile_id": "G2",
+        "eligible_games": 512,
+        "built_games": 507,
+        "build_rate": 0.9902,
+        "rooted_games": 232,
+        "root_rate": 0.4531,
+        "activations_total": 441,
+        "activations_per_eligible": 0.861,
+        "mean_delta_b2_minus_b1_present": 0.2002,
+        "mean_delta_when_built": 0.2006,
+        "mean_delta_when_not_built": 0.1537,
+        "build_lift_ratio": 0.047,
+        "pure_canon0_lift_at_b2_present": 0.0647,
+        "profitability_index": 21.59
+      },
+      {
+        "tile_id": "G9",
+        "eligible_games": 512,
+        "built_games": 506,
+        "build_rate": 0.9883,
+        "rooted_games": 210,
+        "root_rate": 0.4102,
+        "activations_total": 332,
+        "activations_per_eligible": 0.648,
+        "mean_delta_b2_minus_b1_present": 0.1924,
+        "mean_delta_when_built": 0.1923,
+        "mean_delta_when_not_built": 0.1933,
+        "build_lift_ratio": -0.001,
+        "pure_canon0_lift_at_b2_present": 0.0403,
+        "profitability_index": 20.31
+      },
+      {
+        "tile_id": "G1",
+        "eligible_games": 512,
+        "built_games": 494,
+        "build_rate": 0.9648,
+        "rooted_games": 200,
+        "root_rate": 0.3906,
+        "activations_total": 119,
+        "activations_per_eligible": 0.232,
+        "mean_delta_b2_minus_b1_present": 0.2002,
+        "mean_delta_when_built": 0.1988,
+        "mean_delta_when_not_built": 0.2383,
+        "build_lift_ratio": -0.0395,
+        "pure_canon0_lift_at_b2_present": 0.0647,
+        "profitability_index": 19.65
+      },
+      {
+        "tile_id": "M4",
+        "eligible_games": 512,
+        "built_games": 493,
+        "build_rate": 0.9629,
+        "rooted_games": 5,
+        "root_rate": 0.0098,
+        "activations_total": 2384,
+        "activations_per_eligible": 4.656,
+        "mean_delta_b2_minus_b1_present": 0.2173,
+        "mean_delta_when_built": 0.2167,
+        "mean_delta_when_not_built": 0.2324,
+        "build_lift_ratio": -0.0156,
+        "pure_canon0_lift_at_b2_present": 0.0483,
+        "profitability_index": 30.18
+      },
+      {
+        "tile_id": "G7",
+        "eligible_games": 512,
+        "built_games": 479,
+        "build_rate": 0.9355,
+        "rooted_games": 192,
+        "root_rate": 0.375,
+        "activations_total": 60,
+        "activations_per_eligible": 0.117,
+        "mean_delta_b2_minus_b1_present": 0.2175,
+        "mean_delta_when_built": 0.2168,
+        "mean_delta_when_not_built": 0.2269,
+        "build_lift_ratio": -0.0101,
+        "pure_canon0_lift_at_b2_present": 0.0558,
+        "profitability_index": 20.52
+      },
+      {
+        "tile_id": "G5",
+        "eligible_games": 512,
+        "built_games": 478,
+        "build_rate": 0.9336,
+        "rooted_games": 207,
+        "root_rate": 0.4043,
+        "activations_total": 127,
+        "activations_per_eligible": 0.248,
+        "mean_delta_b2_minus_b1_present": 0.2166,
+        "mean_delta_when_built": 0.2127,
+        "mean_delta_when_not_built": 0.2716,
+        "build_lift_ratio": -0.0588,
+        "pure_canon0_lift_at_b2_present": 0.075,
+        "profitability_index": 20.36
+      },
+      {
+        "tile_id": "G12",
+        "eligible_games": 512,
+        "built_games": 477,
+        "build_rate": 0.9316,
+        "rooted_games": 241,
+        "root_rate": 0.4707,
+        "activations_total": 312,
+        "activations_per_eligible": 0.609,
+        "mean_delta_b2_minus_b1_present": 0.2305,
+        "mean_delta_when_built": 0.2321,
+        "mean_delta_when_not_built": 0.2087,
+        "build_lift_ratio": 0.0234,
+        "pure_canon0_lift_at_b2_present": 0.0847,
+        "profitability_index": 22.84
+      },
+      {
+        "tile_id": "M1",
+        "eligible_games": 512,
+        "built_games": 472,
+        "build_rate": 0.9219,
+        "rooted_games": 161,
+        "root_rate": 0.3145,
+        "activations_total": 2105,
+        "activations_per_eligible": 4.111,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2248,
+        "mean_delta_when_not_built": 0.2253,
+        "build_lift_ratio": -0.0005,
+        "pure_canon0_lift_at_b2_present": 0.0651,
+        "profitability_index": 28.95
+      },
+      {
+        "tile_id": "G8",
+        "eligible_games": 512,
+        "built_games": 463,
+        "build_rate": 0.9043,
+        "rooted_games": 198,
+        "root_rate": 0.3867,
+        "activations_total": 151,
+        "activations_per_eligible": 0.295,
+        "mean_delta_b2_minus_b1_present": 0.2066,
+        "mean_delta_when_built": 0.206,
+        "mean_delta_when_not_built": 0.2116,
+        "build_lift_ratio": -0.0056,
+        "pure_canon0_lift_at_b2_present": 0.0496,
+        "profitability_index": 19.22
+      },
+      {
+        "tile_id": "G14",
+        "eligible_games": 512,
+        "built_games": 463,
+        "build_rate": 0.9043,
+        "rooted_games": 214,
+        "root_rate": 0.418,
+        "activations_total": 145,
+        "activations_per_eligible": 0.283,
+        "mean_delta_b2_minus_b1_present": 0.2209,
+        "mean_delta_when_built": 0.2191,
+        "mean_delta_when_not_built": 0.2386,
+        "build_lift_ratio": -0.0195,
+        "pure_canon0_lift_at_b2_present": 0.0697,
+        "profitability_index": 20.38
+      },
+      {
+        "tile_id": "G3",
+        "eligible_games": 512,
+        "built_games": 458,
+        "build_rate": 0.8945,
+        "rooted_games": 147,
+        "root_rate": 0.2871,
+        "activations_total": 111,
+        "activations_per_eligible": 0.217,
+        "mean_delta_b2_minus_b1_present": 0.1955,
+        "mean_delta_when_built": 0.1912,
+        "mean_delta_when_not_built": 0.232,
+        "build_lift_ratio": -0.0409,
+        "pure_canon0_lift_at_b2_present": 0.0582,
+        "profitability_index": 17.53
+      },
+      {
+        "tile_id": "G6",
+        "eligible_games": 512,
+        "built_games": 452,
+        "build_rate": 0.8828,
+        "rooted_games": 219,
+        "root_rate": 0.4277,
+        "activations_total": 186,
+        "activations_per_eligible": 0.363,
+        "mean_delta_b2_minus_b1_present": 0.2166,
+        "mean_delta_when_built": 0.2129,
+        "mean_delta_when_not_built": 0.245,
+        "build_lift_ratio": -0.0321,
+        "pure_canon0_lift_at_b2_present": 0.075,
+        "profitability_index": 19.52
+      },
+      {
+        "tile_id": "G11",
+        "eligible_games": 512,
+        "built_games": 450,
+        "build_rate": 0.8789,
+        "rooted_games": 160,
+        "root_rate": 0.3125,
+        "activations_total": 178,
+        "activations_per_eligible": 0.348,
+        "mean_delta_b2_minus_b1_present": 0.2178,
+        "mean_delta_when_built": 0.218,
+        "mean_delta_when_not_built": 0.2158,
+        "build_lift_ratio": 0.0022,
+        "pure_canon0_lift_at_b2_present": 0.0533,
+        "profitability_index": 19.86
+      },
+      {
+        "tile_id": "G15",
+        "eligible_games": 512,
+        "built_games": 425,
+        "build_rate": 0.8301,
+        "rooted_games": 180,
+        "root_rate": 0.3516,
+        "activations_total": 150,
+        "activations_per_eligible": 0.293,
+        "mean_delta_b2_minus_b1_present": 0.2095,
+        "mean_delta_when_built": 0.2074,
+        "mean_delta_when_not_built": 0.2198,
+        "build_lift_ratio": -0.0125,
+        "pure_canon0_lift_at_b2_present": 0.0568,
+        "profitability_index": 17.8
+      },
+      {
+        "tile_id": "G13",
+        "eligible_games": 512,
+        "built_games": 405,
+        "build_rate": 0.791,
+        "rooted_games": 146,
+        "root_rate": 0.2852,
+        "activations_total": 253,
+        "activations_per_eligible": 0.494,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2245,
+        "mean_delta_when_not_built": 0.2263,
+        "build_lift_ratio": -0.0018,
+        "pure_canon0_lift_at_b2_present": 0.0651,
+        "profitability_index": 18.75
+      },
+      {
+        "tile_id": "G4",
+        "eligible_games": 512,
+        "built_games": 403,
+        "build_rate": 0.7871,
+        "rooted_games": 173,
+        "root_rate": 0.3379,
+        "activations_total": 133,
+        "activations_per_eligible": 0.26,
+        "mean_delta_b2_minus_b1_present": 0.1955,
+        "mean_delta_when_built": 0.1905,
+        "mean_delta_when_not_built": 0.2137,
+        "build_lift_ratio": -0.0232,
+        "pure_canon0_lift_at_b2_present": 0.0582,
+        "profitability_index": 15.52
+      }
+    ],
+    "top_5_most_built_profitable": [
+      {
+        "tile_id": "R9",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 740,
+        "activations_per_eligible": 1.445,
+        "mean_delta_b2_minus_b1_present": 0.2305,
+        "mean_delta_when_built": 0.2305,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2305,
+        "pure_canon0_lift_at_b2_present": 0.0847,
+        "profitability_index": 25.94
+      },
+      {
+        "tile_id": "M2",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 160,
+        "root_rate": 0.3125,
+        "activations_total": 3535,
+        "activations_per_eligible": 6.904,
+        "mean_delta_b2_minus_b1_present": 0.2209,
+        "mean_delta_when_built": 0.2209,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2209,
+        "pure_canon0_lift_at_b2_present": 0.0697,
+        "profitability_index": 35.9
+      },
+      {
+        "tile_id": "M5",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 217,
+        "root_rate": 0.4238,
+        "activations_total": 2875,
+        "activations_per_eligible": 5.615,
+        "mean_delta_b2_minus_b1_present": 0.2201,
+        "mean_delta_when_built": 0.2201,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2201,
+        "pure_canon0_lift_at_b2_present": 0.0656,
+        "profitability_index": 33.24
+      },
+      {
+        "tile_id": "R10",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 1007,
+        "activations_per_eligible": 1.967,
+        "mean_delta_b2_minus_b1_present": 0.2201,
+        "mean_delta_when_built": 0.2201,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2201,
+        "pure_canon0_lift_at_b2_present": 0.0656,
+        "profitability_index": 25.94
+      },
+      {
+        "tile_id": "R5",
+        "eligible_games": 512,
+        "built_games": 512,
+        "build_rate": 1.0,
+        "rooted_games": 1,
+        "root_rate": 0.002,
+        "activations_total": 1104,
+        "activations_per_eligible": 2.156,
+        "mean_delta_b2_minus_b1_present": 0.2178,
+        "mean_delta_when_built": 0.2178,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2178,
+        "pure_canon0_lift_at_b2_present": 0.0533,
+        "profitability_index": 26.09
+      }
+    ],
+    "flop_5_underplayed": [
+      {
+        "tile_id": "G4",
+        "eligible_games": 512,
+        "built_games": 403,
+        "build_rate": 0.7871,
+        "rooted_games": 173,
+        "root_rate": 0.3379,
+        "activations_total": 133,
+        "activations_per_eligible": 0.26,
+        "mean_delta_b2_minus_b1_present": 0.1955,
+        "mean_delta_when_built": 0.1905,
+        "mean_delta_when_not_built": 0.2137,
+        "build_lift_ratio": -0.0232,
+        "pure_canon0_lift_at_b2_present": 0.0582,
+        "profitability_index": 15.52
+      },
+      {
+        "tile_id": "G13",
+        "eligible_games": 512,
+        "built_games": 405,
+        "build_rate": 0.791,
+        "rooted_games": 146,
+        "root_rate": 0.2852,
+        "activations_total": 253,
+        "activations_per_eligible": 0.494,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2245,
+        "mean_delta_when_not_built": 0.2263,
+        "build_lift_ratio": -0.0018,
+        "pure_canon0_lift_at_b2_present": 0.0651,
+        "profitability_index": 18.75
+      },
+      {
+        "tile_id": "G15",
+        "eligible_games": 512,
+        "built_games": 425,
+        "build_rate": 0.8301,
+        "rooted_games": 180,
+        "root_rate": 0.3516,
+        "activations_total": 150,
+        "activations_per_eligible": 0.293,
+        "mean_delta_b2_minus_b1_present": 0.2095,
+        "mean_delta_when_built": 0.2074,
+        "mean_delta_when_not_built": 0.2198,
+        "build_lift_ratio": -0.0125,
+        "pure_canon0_lift_at_b2_present": 0.0568,
+        "profitability_index": 17.8
+      },
+      {
+        "tile_id": "G11",
+        "eligible_games": 512,
+        "built_games": 450,
+        "build_rate": 0.8789,
+        "rooted_games": 160,
+        "root_rate": 0.3125,
+        "activations_total": 178,
+        "activations_per_eligible": 0.348,
+        "mean_delta_b2_minus_b1_present": 0.2178,
+        "mean_delta_when_built": 0.218,
+        "mean_delta_when_not_built": 0.2158,
+        "build_lift_ratio": 0.0022,
+        "pure_canon0_lift_at_b2_present": 0.0533,
+        "profitability_index": 19.86
+      },
+      {
+        "tile_id": "G6",
+        "eligible_games": 512,
+        "built_games": 452,
+        "build_rate": 0.8828,
+        "rooted_games": 219,
+        "root_rate": 0.4277,
+        "activations_total": 186,
+        "activations_per_eligible": 0.363,
+        "mean_delta_b2_minus_b1_present": 0.2166,
+        "mean_delta_when_built": 0.2129,
+        "mean_delta_when_not_built": 0.245,
+        "build_lift_ratio": -0.0321,
+        "pure_canon0_lift_at_b2_present": 0.075,
+        "profitability_index": 19.52
+      }
+    ]
+  }
+}

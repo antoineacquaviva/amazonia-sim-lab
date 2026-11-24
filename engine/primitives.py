@@ -15,12 +15,17 @@ from engine.state import (
     FAMILLE_GARDIEN,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
+    MACHINE_ABATTEUSE,
+    MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    MACHINE_STATUS_RATISSAGE,
     MACHINE_STATUS_RETIRED,
     MAX_ECAILLES,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
+    STEP_3_2_REVEAL,
     SYNERGY_META,
+    TACTIQUES_SPEC,
     TRACK_LEN,
     TRIG_INSECTE,
     TRIG_PIEGEAGE,
@@ -28,6 +33,7 @@ from engine.state import (
     TRIG_SABOTAGE,
     GameState,
     is_reve_code,
+    is_tactique_code,
 )
 
 __all__ = (
@@ -80,7 +86,9 @@ __all__ = (
     "dispatch_hook",
     "get_tile_registration",
     "has_pending_decision",
+    "list_machines_targeting_parcel",
     "list_registered_tiles",
+    "list_targeted_parcels",
     "prim_creation_entite",
     "prim_deplacement",
     "prim_mod_loi_du_coeur",
@@ -516,6 +524,19 @@ def prim_creation_entite(
         _record_phys_ops(state, 1)
         return
 
+    if entity_type == "BUG":
+        if not state.cfg.has_insectes_peuple:
+            return
+        assert 1 <= p <= TRACK_LEN
+        state.set_bugs_at_case(p, min(255, state.get_bugs_at_case(p) + count))
+        _record_phys_ops(state, count)
+        if light_trigger:
+            state.light_trigger(TRIG_INSECTE)
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.on_trigger_lit(TRIG_INSECTE)
+        return
+
     if entity_type == "ARBRE":
         assert not state.is_route_forestiere(ray, p)
         arbres = state.get_parcel_arbres(ray, p)
@@ -586,13 +607,15 @@ def prim_deplacement(
     src_lisiere_slot: int | None = None,
     from_waiting: bool = False,
     src_seat: int | None = None,
+    src_def_idx: int | None = None,
+    dst_furtivite_rive: int | None = None,
     m_type: int = 0,
     dst_machine_type: int | None = None,
     global_track: str | None = None,
     global_case: int = 1,
     count: int = 1,
 ) -> bool:
-    """Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile ou Défenseur."""
+    """Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile, Piège ou Défenseur."""
     if entity_type == "INSECTE":
         if not state.cfg.has_insectes_peuple:
             return False
@@ -628,9 +651,28 @@ def prim_deplacement(
         _record_phys_ops(state, 1)
         return True
 
+    if entity_type == "PIEGE":
+        assert state.get_parcel_piege(src_ray, src_p) == PIEGE_ACTIF, "Aucun Piège ordinaire à déplacer"
+        assert not state.is_route_forestiere(dst_ray, dst_p), "Piège interdit sur Route Forestière"
+        assert state.get_parcel_piege(dst_ray, dst_p) == PIEGE_AUCUN, "Parcelle cible déjà piégée"
+        state.set_parcel_piege(src_ray, src_p, PIEGE_AUCUN)
+        state.set_parcel_piege(dst_ray, dst_p, PIEGE_ACTIF)
+        _record_phys_ops(state, 1)
+        return True
+
     if entity_type == "DEFENSEUR":
-        assert not state.is_route_forestiere(dst_ray, dst_p)
         assert count >= 1
+        if src_seat is not None and src_def_idx is not None:
+            if dst_furtivite_rive is not None:
+                state.place_defender_furtivite(
+                    src_seat, src_def_idx, dst_ray, dst_furtivite_rive, FACE_DEFINITIF
+                )
+            else:
+                assert not state.is_route_forestiere(dst_ray, dst_p)
+                state.place_defender_foret(src_seat, src_def_idx, dst_ray, dst_p, FACE_DEFINITIF)
+            _record_phys_ops(state, 1)
+            return True
+        assert not state.is_route_forestiere(dst_ray, dst_p)
         tracked = _tracked_defenders_at(
             state,
             src_ray=src_ray,
@@ -692,10 +734,12 @@ def prim_permutation_piste(
     rank_a: int = 0,
     rank_b: int = 0,
     seat: int = 0,
+    seat_a: int = 0,
+    seat_b: int = 0,
     delta_m: int = 0,
     rebind_tactique: bool = False,
 ) -> bool:
-    """Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve (ADVANCE_REVE_LEFT), échange de rangs ou décalage dé M."""
+    """Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve, échange de rangs ou décalage dé M."""
     if action == "ADVANCE_REVE_LEFT":
         assert 0 <= rank_a < TRACK_LEN
         code = state.get_tactique_at_rank(rank_a)
@@ -713,6 +757,16 @@ def prim_permutation_piste(
             return False
         state.swap_tactique_ranks(rank_a, rank_b)
         _record_phys_ops(state, 1)
+        return True
+
+    if action == "SWAP_MACHINE_RANKS":
+        if seat_a == seat_b:
+            return False
+        card_a, d1_a, d2_a, lec_a, bound_a = state.get_player_hand(seat_a)
+        card_b, d1_b, d2_b, lec_b, bound_b = state.get_player_hand(seat_b)
+        state.set_player_hand(seat_a, card_a, d1_a, d2_a, lec_b, bound_b)
+        state.set_player_hand(seat_b, card_b, d1_b, d2_b, lec_a, bound_a)
+        _record_phys_ops(state, 2)
         return True
 
     if action == "SHIFT_LECTURE_M":
@@ -745,6 +799,15 @@ def prim_partage_info_etat_gardien(
         if not state.paravents_ouverts:
             state.paravents_ouverts = True
             _record_phys_ops(state, state.cfg.n_players)
+        return True
+
+    if action == "SLIDE_GARDIEN_PARI_ONLY":
+        g_num, _ = state.get_gardien_at_case(case_1_6)
+        if g_num == 0:
+            return False
+        if not state.consume_one_gardien_pari_defender(case_1_6):
+            return False
+        _record_phys_ops(state, 1)
         return True
 
     if action == "MARK_GARDIEN_OPENED":
@@ -826,3 +889,113 @@ def prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool = True)
     """Primitive 8 : MOD_LOI_DU_COEUR — point d'entrée typé des Lois passives/temporaires."""
     _ = (state, law_id, active)
     return active
+
+
+def list_targeted_parcels(state: GameState) -> tuple[tuple[int, int], ...]:
+    """Retourne toutes les « parcelles ciblées » actuelles, incluant les Ratissages n'ayant pas encore frappé (INV-12)."""
+    targeted: set[tuple[int, int]] = set()
+    n = state.cfg.n_players
+
+    # 1. Machines normales révélées et non encore résolues (non annulées, non altérées)
+    for s in range(n):
+        if state.was_seat_altered_this_turn(s) or state.was_seat_cancelled_by_reve_this_turn(s):
+            continue
+        card, _, _, lec_m, bound_t = state.get_player_hand(s)
+        if not (1 <= card <= 12):
+            continue
+        if is_tactique_code(bound_t):
+            t_code = bound_t
+        elif state.step == STEP_3_2_REVEAL and 1 <= lec_m <= TRACK_LEN:
+            t_code = lec_m
+        else:
+            continue
+        r, mt = (card - 1) // 2, (card - 1) % 2
+        pos, st, _ = state.get_machine_pos_status(r, mt)
+        _, _, attacked = state.get_machine_turn_stats(r, mt)
+        if st != MACHINE_STATUS_NORMAL or pos == 0 or attacked:
+            continue
+        spec = TACTIQUES_SPEC[t_code]
+        for c_type in spec.cibles:
+            if c_type == "SUR_PLACE":
+                if not state.is_route_forestiere(r, pos):
+                    targeted.add((r, pos))
+            elif c_type == "DEVANT":
+                p_dev = state.next_non_razed_towards_heart(r, pos)
+                if p_dev is not None:
+                    targeted.add((r, p_dev))
+
+    # 2. Machines en Ratissage n'ayant pas encore frappé ce tour (INV-12)
+    for r in range(n):
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st, _ = state.get_machine_pos_status(r, mt)
+            _, _, attacked = state.get_machine_turn_stats(r, mt)
+            if (
+                st == MACHINE_STATUS_RATISSAGE
+                and pos > 0
+                and not attacked
+                and not state.is_route_forestiere(r, pos)
+            ):
+                targeted.add((r, pos))
+
+    return tuple(sorted(targeted))
+
+
+def list_machines_targeting_parcel(
+    state: GameState,
+    ray: int,
+    p: int,
+    *,
+    mobile_only: bool = False,
+) -> tuple[tuple[int, int], ...]:
+    """Retourne les machines `(ray, m_type)` n'ayant pas encore frappé qui visent actuellement `(ray, p)`."""
+    matched: list[tuple[int, int]] = []
+    n = state.cfg.n_players
+    seen: set[tuple[int, int]] = set()
+
+    for s in range(n):
+        if state.was_seat_altered_this_turn(s) or state.was_seat_cancelled_by_reve_this_turn(s):
+            continue
+        card, _, _, lec_m, bound_t = state.get_player_hand(s)
+        if not (1 <= card <= 12):
+            continue
+        if is_tactique_code(bound_t):
+            t_code = bound_t
+        elif state.step == STEP_3_2_REVEAL and 1 <= lec_m <= TRACK_LEN:
+            t_code = lec_m
+        else:
+            continue
+        r, mt = (card - 1) // 2, (card - 1) % 2
+        if r != ray:
+            continue
+        pos, st, _ = state.get_machine_pos_status(r, mt)
+        _, _, attacked = state.get_machine_turn_stats(r, mt)
+        if st != MACHINE_STATUS_NORMAL or pos == 0 or attacked:
+            continue
+        spec = TACTIQUES_SPEC[t_code]
+        hits = False
+        for c_type in spec.cibles:
+            if c_type == "SUR_PLACE" and pos == p and not state.is_route_forestiere(r, pos):
+                hits = True
+            elif c_type == "DEVANT":
+                p_dev = state.next_non_razed_towards_heart(r, pos)
+                if p_dev == p:
+                    hits = True
+        if hits and (r, mt) not in seen:
+            seen.add((r, mt))
+            matched.append((r, mt))
+
+    if not mobile_only:
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st, _ = state.get_machine_pos_status(ray, mt)
+            _, _, attacked = state.get_machine_turn_stats(ray, mt)
+            if (
+                st == MACHINE_STATUS_RATISSAGE
+                and pos == p
+                and not attacked
+                and not state.is_route_forestiere(ray, pos)
+                and (ray, mt) not in seen
+            ):
+                seen.add((ray, mt))
+                matched.append((ray, mt))
+
+    return tuple(sorted(matched))

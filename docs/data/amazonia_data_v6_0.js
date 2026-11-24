@@ -651,7 +651,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 2.0
         },
         "declencheurs_amorces": [
-          1
+          "ICONE_PARADE"
         ],
         "double_ouverture": "Chaque ouverture recycle un nouveau Défenseur en attente : deux parades possibles dans le même balayage.",
         "cablage_recommande": "ICONE_PARADE",
@@ -693,7 +693,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "M"
@@ -804,7 +804,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "R"
@@ -919,7 +919,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "M"
@@ -1035,7 +1035,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "O"
@@ -1120,7 +1120,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.2
         },
         "declencheurs_amorces": [
-          2
+          "ICONE_PIEGEAGE"
         ],
         "double_ouverture": "Câblé sur 2, le Croc revenu en réserve après une parade est reposé à la 2e ouverture.",
         "cablage_recommande": "ICONE_PIEGEAGE",
@@ -1158,7 +1158,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "R"
@@ -1238,7 +1238,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.7
         },
         "declencheurs_amorces": [
-          1
+          "ICONE_PARADE"
         ],
         "double_ouverture": "Chaque ouverture retourne 1 nouveau jeton rouge en bleu (jusqu’à 2 par ouverture en Face 2).",
         "cablage_recommande": "ICONE_SABOTAGE",
@@ -1276,7 +1276,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Consolidation Canon 0 (Greffe 1) : refonte en spécialiste Surchauffe dès Face 1 via la Plume (l’ancien effet Dé d’Envol rejoint le vivier de variantes)."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "O"
@@ -1361,7 +1361,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.4
         },
         "declencheurs_amorces": [
-          2
+          "ICONE_PIEGEAGE"
         ],
         "double_ouverture": "Chaque ouverture pose un nouveau Piège sur une autre parcelle ciblée à Souche.",
         "cablage_recommande": "ICONE_PIEGEAGE",
@@ -1397,7 +1397,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "M"
@@ -1512,7 +1512,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "M"
@@ -1629,7 +1629,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "R"
@@ -1713,7 +1713,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.8
         },
         "declencheurs_amorces": [
-          3
+          "ICONE_SABOTAGE"
         ],
         "double_ouverture": "Chaque ouverture ajoute une Écaille tant que la réserve en contient.",
         "cablage_recommande": "ICONE_SABOTAGE",
@@ -1749,7 +1749,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "R"
@@ -1832,7 +1832,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.4
         },
         "declencheurs_amorces": [
-          2
+          "ICONE_PIEGEAGE"
         ],
         "double_ouverture": "Deux ouvertures posent deux Pièges sur le rayon guetté.",
         "cablage_recommande": "ICONE_SABOTAGE",
@@ -1866,7 +1866,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "O"
@@ -1953,7 +1953,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.1
         },
         "declencheurs_amorces": [
-          5
+          "ICONE_REVE"
         ],
         "double_ouverture": "Chaque ouverture fait glisser un Rêve de plus.",
         "cablage_recommande": "ICONE_SABOTAGE",
@@ -1992,7 +1992,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "O"
@@ -2078,7 +2078,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 2.0
         },
         "declencheurs_amorces": [
-          6
+          "ICONE_INSECTE"
         ],
         "double_ouverture": "Chaque ouverture amène jusqu’à 2 nouveaux Insectes.",
         "cablage_recommande": "ICONE_INSECTE",
@@ -2117,7 +2117,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "M"
@@ -2200,7 +2200,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.4
         },
         "declencheurs_amorces": [
-          2
+          "ICONE_PIEGEAGE"
         ],
         "double_ouverture": "Chaque ouverture convertit un nouvel Insecte en Piège.",
         "cablage_recommande": "ICONE_PIEGEAGE",
@@ -2248,7 +2248,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "R"
@@ -2362,7 +2362,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "O"
@@ -2432,7 +2432,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.7
         },
         "declencheurs_amorces": [
-          5
+          "ICONE_REVE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -2462,7 +2462,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "H"
@@ -2591,7 +2591,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "E"
@@ -2661,7 +2661,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.2
         },
         "declencheurs_amorces": [
-          1
+          "ICONE_PARADE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -2694,7 +2694,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "H"
@@ -2791,7 +2791,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "H"
@@ -2860,7 +2860,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.3
         },
         "declencheurs_amorces": [
-          1
+          "ICONE_PARADE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -2889,7 +2889,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "H"
@@ -3014,7 +3014,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "H"
@@ -3110,7 +3110,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "E"
@@ -3182,7 +3182,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.3
         },
         "declencheurs_amorces": [
-          5
+          "ICONE_REVE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3214,7 +3214,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Consolidation Canon 0 (Greffe 3) : remplacement du piston bloquant sur N3-ERI par le Twist #11 (Souche sacrifiée), débloquant le Sommeil sur 100 % des tables E sans H ; le piston rejoint le vivier Humains."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "E"
@@ -3286,7 +3286,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.1
         },
         "declencheurs_amorces": [
-          2
+          "ICONE_PIEGEAGE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3320,7 +3320,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Consolidation Canon 0 (Greffe 2) : couplage de l’altération sous Perchoir avec 1 Piège sur ce rayon, ramenant l’isolement de R9 de 48 % à 0 %."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "E"
@@ -3396,7 +3396,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.1
         },
         "declencheurs_amorces": [
-          6
+          "ICONE_INSECTE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3426,7 +3426,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Consolidation Canon 0 (Greffe 2) : choix entre Nid construit et rang de Réglette, ouvrant un 2e moteur majeur disjoint sur la table {H, E, I}."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "E"
@@ -3494,7 +3494,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 2.5
         },
         "declencheurs_amorces": [
-          6
+          "ICONE_INSECTE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3524,7 +3524,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "I"
@@ -3622,7 +3622,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "I"
@@ -3694,7 +3694,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 2.0
         },
         "declencheurs_amorces": [
-          6
+          "ICONE_INSECTE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3726,7 +3726,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "I"
@@ -3800,8 +3800,8 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 1.5
         },
         "declencheurs_amorces": [
-          6,
-          1
+          "ICONE_INSECTE",
+          "ICONE_PARADE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3845,7 +3845,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Consolidation Canon 0 (Greffe 1) : ajout de l’option Surchauffe par dépense d’1 Insecte, couvrant les tables sans Oiseaux (dont {H,E,I} et {H,E,M,I})."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "I"
@@ -3926,7 +3926,7 @@ const CATALOGUE_TUILES = {
           "activations_pour_amortir": 2.0
         },
         "declencheurs_amorces": [
-          6
+          "ICONE_INSECTE"
         ],
         "double_ouverture": null,
         "cablage_recommande": null,
@@ -3972,7 +3972,7 @@ const CATALOGUE_TUILES = {
         "journal": [
           "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
         ],
-        "engine_sync_status": "PENDING_KERNEL_V6_2"
+        "engine_sync_status": "ACTIVE_VERIFIED"
       }
     },
     "peuple_origine": "I"

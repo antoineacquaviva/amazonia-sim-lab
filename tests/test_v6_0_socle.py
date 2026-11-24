@@ -232,24 +232,25 @@ def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
     assert st_blk.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 2
     assert st_blk.get_parcel_arbres(1, 3) == arbres_13_before
 
-    # Mode 4 : pouvoir propre de R6:A (pose 1 Insecte) exécuté automatiquement lors du blocage en 3.2
-    cfg_m4 = GameConfig(n_players=4, mode=4, peuples=("M", "R", "H", "I"), exp_seed=6005)
+    # Mode 4 : pouvoir propre de R10:A (altère la machine annulée + pose 1 Insecte) exécuté en 3.2
+    cfg_m4 = GameConfig(n_players=4, mode=4, peuples=("M", "R", "E", "I"), exp_seed=6005)
     st_m4 = GameState(cfg_m4)
     st_m4.tour = 2
-    st_m4.set_tactique_at_rank(5, TILE_R_BASE + 6)
+    st_m4.set_tactique_at_rank(5, TILE_R_BASE + 10)
     st_m4.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st_m4.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st_m4.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
         st_m4.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    ins_before = sum(st_m4.get_parcel_insectes(r, p) for r in (2, 3) for p in range(1, 5))
+    bugs_before = st_m4.get_bugs_at_case(6)
     st_m4.step = STEP_3_2_REVEAL
     _run_step_3_2(st_m4)
     while st_m4._continuation:
         rem = _advance_continuation(st_m4)
         if isinstance(rem, DecisionRequest):
             apply_choice(st_m4, rem.options[0])
-    ins_after = sum(st_m4.get_parcel_insectes(r, p) for r in (2, 3) for p in range(1, 5))
-    assert ins_after == ins_before + 1
+    assert st_m4.get_bugs_at_case(6) == bugs_before + 1
+    assert st_m4.has_machine_alteration(0, MACHINE_ABATTEUSE) is True
 
     st_full = GameState(cfg)
     st_full.set_tactique_at_rank(0, TILE_R_BASE + 1)

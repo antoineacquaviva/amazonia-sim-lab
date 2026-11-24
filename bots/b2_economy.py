@@ -35,7 +35,10 @@ from engine.state import (
     SYNERGY_META,
     TACTIQUES_SPEC,
     TRACK_LEN,
+    TRIG_INSECTE,
+    TRIG_PARADE,
     TRIG_RESONANCE,
+    TRIG_REVE,
     GameConfig,
     PlayerObservation,
     is_reve_code,
@@ -671,8 +674,8 @@ def evaluate_forest_marginal_breakdown(
     has_piege = obs.parcel_piege(ray, p) == PIEGE_ACTIF
     tour = obs.tour
     c_pen = weights.charge_penalty_for_tour(tour)
-    trig_1_v = trig_vals[0]
-    trig_6_v = trig_vals[5]
+    trig_1_v = trig_vals[TRIG_PARADE - 1]
+    trig_6_v = trig_vals[TRIG_INSECTE - 1]
 
     dist_ab = _machine_discrete_strike_dist(obs, cfg, belief, ray, MACHINE_ABATTEUSE, p)
     dist_bu = _machine_discrete_strike_dist(obs, cfg, belief, ray, MACHINE_BULLDOZER, p)
@@ -1435,7 +1438,7 @@ def score_reve_marginal_trees(
             saved_trees += weights.reve_advance_trees
         if is_chg and would_gain_charge:
             saved_trees += weights.charge_penalty_for_tour(obs.tour)
-        if obs.gardien_present_at_case(5) and allies == 0:
+        if obs.gardien_present_at_case(TRIG_REVE) and allies == 0:
             saved_trees += weights.reve_trig5_trees
 
         flex = (weights.reve_flex_21_trees if ray != own_seat else 0.45 * weights.reve_flex_21_trees) if is_first_defender else 0.0
@@ -1445,9 +1448,9 @@ def score_reve_marginal_trees(
             val += 0.45
         return val
 
-    # Pose proactive en 2.1 pour allumer 5. Rêve pendant l'Éveil
+    # Pose proactive en 2.1 pour allumer 4. Rêve pendant l'Éveil
     if is_first_defender and obs.tour <= 7 and obs.gardien_pari_enabled:
-        g5_present = obs.gardien_present_at_case(5)
+        g5_present = obs.gardien_present_at_case(TRIG_REVE)
         g_cnt = sum(1 for c_g in range(1, TRACK_LEN + 1) if obs.gardien_present_at_case(c_g))
         min_g_eveil = (obs.n_players + 1) // 2
         any_reve_armed = any(

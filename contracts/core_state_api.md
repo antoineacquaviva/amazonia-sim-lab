@@ -270,6 +270,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `duel_state: tuple[int, int, int]` — Retourne `(status, ray, p)` du jeton Duel Mammifère (`(DUEL_NONE, 0, 0)` si en réserve).
 - `oiseau_has_perchoir: bool` — Vrai si un jeton est actuellement posé face cachée sur le Perchoir de Vigie de O.
 - `oiseau_perchoir_card: int | None` — Code carte sur le Perchoir de O (None si masqué pour autrui ou vide si CARD_NONE).
+- `is_oiseau_perchoir_revealed: bool` — Vrai si le jeton du Perchoir de O a été révélé publiquement ce tour (ex: R9).
 - `oiseau_de_envol: int | None` — Valeur (1..6) du Dé d'Envol de O, ou None si masqué/non lancé.
 - `oiseau_plume: tuple[int, int, int, bool]` — Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée).
 - `has_any_rooted_reve: bool` — Vrai si au moins un Rêve a été enraciné (rendant le Sommeil impossible, INV-22).
@@ -325,6 +326,9 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `machine_passenger_insects(self, r: int, m_type: int) -> int` — Nombre d'Insectes passagers (M1) embarqués sur cette machine.
 - `humain_chaman_archetype(self, def_idx: int) -> int` — Archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du Défenseur `def_idx` (0 ou 1) de H.
 - `is_slot_rooted(self, slot_idx: int) -> bool` — Vrai si la tuile de lisière `slot_idx` a été enracinée volontairement.
+- `slot_rooted_info(self, slot_idx: int) -> tuple[int, int, int, bool] | None` — Retourne `(ray, p, tier_souches 1|2, is_reve)` si `slot_idx` est enraciné, sinon None.
+- `list_rooted_tiles(self) -> list[tuple[int, str, int, int, int]]` — Liste toutes les tuiles enracinées : `(slot_idx, tile_id, ray, p, tier_souches)`.
+- `parcel_is_bordered_by_rooted_tile(self, ray: int, p: int) -> bool` — Vrai si au moins une tuile enracinée borde la parcelle `(ray, p)`.
 - `waiting_defenders_count(self, seat: int) -> int` — Nombre de Défenseurs couchés « en attente » devant `seat` (après construction 3.1).
 
 ### Classe `GameState`
@@ -393,6 +397,9 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `decode_def_loc(self, raw_loc: int) -> tuple[str, int, int, int]` — Décode une localisation brute en (kind, a, b, c).
 - `mark_defender_waiting(self, seat: int, def_idx: int) -> None` — Couche le Défenseur (seat, def_idx) « en attente » devant son propriétaire (après construction 3.1, INV-19).
 - `list_waiting_defenders(self) -> list[tuple[int, int]]` — Retourne tous les `(seat, def_idx)` actuellement couchés « en attente ».
+- `list_available_waiting_defenders(self) -> list[tuple[int, int]]` — Retourne tous les `(seat, def_idx)` « en attente » au sens v6.2 (G1 Jaguar) : bâtisseurs libérés en attente après 3.1, Défenseurs restés sur un Rêve déjà résolu après 3.2, et Défenseurs d'une rive de Furtivité après 4.1.
+- `list_defenders_on_reve_case(self, case_1_6: int) -> list[tuple[int, int]]` — Retourne tous les `(seat, def_idx)` (actifs + consommés) présents sur le Rêve en `case_1_6`.
+- `list_defenders_on_parcel(self, ray: int, p: int) -> list[tuple[int, int]]` — Retourne tous les `(seat, def_idx)` suivis actuellement sur la parcelle `(ray, p)`.
 - `remove_player_defender(self, seat: int, def_idx: int) -> None` — Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main.
 - `place_defender_foret(self, seat: int, def_idx: int, r: int, p: int, face: int) -> None`
 - `is_ray_furtivite_open(self, ray: int) -> bool` — Vrai si le rayon `ray` n'est pas intégralement rasé (>= 1 parcelle non-Route et >= 1 machine non retirée).
@@ -449,6 +456,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `set_machine_turn_stats(self, ray: int, m_type: int, damaged_count: int, gained_red: bool, attacked: bool) -> None`
 - `has_reve_opened_this_turn(self, r_num: int) -> bool`
 - `mark_reve_opened_this_turn(self, r_num: int) -> None`
+- `was_seat_cancelled_by_reve_this_turn(self, seat: int) -> bool` — Vrai si la machine du siège `seat` a déjà été annulée par un Rêve en 3.2 ce tour.
+- `mark_seat_cancelled_by_reve_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant eu sa machine annulée par un Rêve en 3.2.
 - `get_step2_pass_state(self) -> tuple[int, bool]` — Retourne (pass_idx 0..15, moved_in_pass).
 - `set_step2_pass_state(self, pass_idx: int, moved_in_pass: bool) -> None`
 - `get_global_mod_seuil_turn(self) -> int` — Modificateur global transitoire de Seuil de Parade pour le tour (-64..+63).
@@ -490,6 +499,10 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `get_humain_chaman_archetype(self, def_idx: int) -> int` — Retourne l'archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du pion `def_idx` (0 ou 1) de H.
 - `set_humain_chaman_archetype(self, def_idx: int, archetype: int) -> None` — Enregistre l'archétype du pion `def_idx` de H et impose automatiquement l'autre au binôme.
 - `is_chant_on_reve_case(self, case_1_6: int) -> bool` — Vrai si le pion Chamane `CHANT` des Humains (H) défend (actif ou consommé) le Rêve en `case_1_6`.
+- `is_tambour_on_reve_case(self, case_1_6: int) -> bool` — Vrai si le pion Chamane `TAMBOUR` des Humains (H) défend (actif ou consommé) le Rêve en `case_1_6`.
+- `get_humain_tambour_parcel(self) -> tuple[int, int] | None` — Retourne `(ray, p)` si le pion Chamane `TAMBOUR` de H est sur une parcelle forêt, sinon None.
+- `is_oiseau_perchoir_revealed(self) -> bool` — Vrai si le jeton du Perchoir de Vigie a été révélé publiquement ce tour (R9).
+- `reveal_oiseau_perchoir(self) -> None` — Révèle publiquement le jeton du Perchoir de Vigie pour le reste du tour (R9).
 - `get_oiseau_de_envol(self) -> tuple[int, bool]` — Retourne `(valeur_1_6_ou_0, retenu_en_double_horizon)` du Dé d'Envol de O.
 - `set_oiseau_de_envol(self, val: int, chose_de_envol: bool=False) -> None`
 - `get_oiseau_plume(self) -> tuple[int, int, int, bool]` — Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée).
@@ -499,6 +512,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `get_slot_rooted_info(self, slot_idx: int) -> tuple[int, int, int, bool] | None` — Retourne `(ray, p, tier_souches 1|2, is_reve)` si `slot_idx` est enraciné, sinon None.
 - `root_tile_at_parcel(self, slot_idx: int, ray: int, p: int, tier_souches: int=1) -> None` — Enracine la tuile construite `slot_idx` au pied de `ray` face à `(ray, p)` (INV-22).
 - `list_rooted_tiles(self) -> list[tuple[int, str, int, int, int]]` — Liste toutes les tuiles enracinées : `(slot_idx, tile_id, ray, p, tier_souches)`.
+- `is_parcel_bordered_by_rooted_tile(self, ray: int, p: int) -> bool` — Vrai si au moins une tuile enracinée borde la parcelle `(ray, p)` (G7 Face 2).
 - `has_any_rooted_reve(self) -> bool` — Vrai si au moins un Rêve a été enraciné (Sommeil du Contremaître impossible, INV-22).
 - `was_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> bool` — Vrai si une création de Route en bordure a déjà poussé cette machine vers le cœur (INV-13).
 - `mark_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> None` — Marque la machine comme déjà poussée d'1 parcelle vers le cœur sur création de Route en bordure.
@@ -592,11 +606,13 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `prim_mod_seuil(state: GameState, delta: int, *, ray: int | None=None, p: int | None=None, m_type: int | None=None) -> None` — Primitive 1 : MOD_SEUIL — modifie le Seuil de Parade (parcelle, rayon, machine ou global).
 - `prim_creation_entite(state: GameState, entity_type: str, *, ray: int=0, p: int=1, lisiere: int | None=None, m_type: int=0, cale_type: int=CALE_SABOTAGE, count: int=1, light_trigger: bool=True) -> None` — Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Croc, Sabotage, Écaille, Altération, Cale ou Arbre.
 - `apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool` — Règle v6.2 (INV-16) : zéro écrasement au contact hors Route Forestière. Nids, Insectes, Pièges, Croc et Duel cohabitent pacifiquement avec toute machine en forêt. Seule la création d'une Route Forestière (0 Arbre, 0 Souche) vide la case.
-- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, from_waiting: bool=False, src_seat: int | None=None, m_type: int=0, dst_machine_type: int | None=None, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile ou Défenseur.
+- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, from_waiting: bool=False, src_seat: int | None=None, src_def_idx: int | None=None, dst_furtivite_rive: int | None=None, m_type: int=0, dst_machine_type: int | None=None, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile, Piège ou Défenseur.
 - `prim_mod_puissance(state: GameState, ray: int, m_type: int, *, delta_rouges: int=0, delta_bleus: int=0, flip_rouge_to_bleu: int=0) -> None` — Primitive 4 : MOD_PUISSANCE — ajuste les jetons Puissance rouges et bleus Surchauffe.
-- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve (ADVANCE_REVE_LEFT), échange de rangs ou décalage dé M.
+- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, seat_a: int=0, seat_b: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve, échange de rangs ou décalage dé M.
 - `prim_partage_info_etat_gardien(state: GameState, action: str, *, case_1_6: int=1, new_face: int=2) -> bool` — Primitive 7 : PARTAGE_INFO_ETAT_GARDIEN — états Gardiens & ouverture paravents.
 - `prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool=True) -> bool` — Primitive 8 : MOD_LOI_DU_COEUR — point d'entrée typé des Lois passives/temporaires.
+- `list_targeted_parcels(state: GameState) -> tuple[tuple[int, int], ...]` — Retourne toutes les « parcelles ciblées » actuelles, incluant les Ratissages n'ayant pas encore frappé (INV-12).
+- `list_machines_targeting_parcel(state: GameState, ray: int, p: int, *, mobile_only: bool=False) -> tuple[tuple[int, int], ...]` — Retourne les machines `(ray, m_type)` n'ayant pas encore frappé qui visent actuellement `(ray, p)`.
 
 ### Classe `DecisionRequest`
 

@@ -102,15 +102,14 @@ def test_terminal_repousse_finale_idempotent_mode3() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 2. Dispatch bot DEC_EFFET_TUILE par effect_kind (positions jumelles G6:A & anti-collision)
+# 2. Dispatch bot DEC_EFFET_TUILE par effect_kind (invariance de siège & anti-collision Canon 0 v6.2)
 # ---------------------------------------------------------------------------
 def test_bot_g6_a_shift_lecture_m_twin_position_seat_invariant() -> None:
-    """Position jumelle G6:A : (seat, +1) / (seat, -1) suit le Rêve, jamais une parcelle (seat, 1)."""
+    """Position jumelle Déviation Synaptique (±1) : suit le Rêve indépendamment du siège."""
     cfg = GameConfig(
         n_players=4,
-        mode=3,
+        mode=4,
         peuples=("M", "R", "O", "H"),
-        tile_profiles=(("G6", "A"),),
         exp_seed=99,
     )
 
@@ -120,6 +119,7 @@ def test_bot_g6_a_shift_lecture_m_twin_position_seat_invariant() -> None:
         st_a.set_tactique_at_rank(0, 1)
         st_a.set_tactique_at_rank(1, 2)
         st_a.set_tactique_at_rank(2, TILE_R_BASE + 1)
+        st_a.place_defender_reve_activation(seat, 3, 1)
         st_a.set_player_hand(seat, machine_card_code(seat, MACHINE_ABATTEUSE), 2, 1, 2, 2)
 
         obs_a = st_a.get_observation(seat)
@@ -127,13 +127,17 @@ def test_bot_g6_a_shift_lecture_m_twin_position_seat_invariant() -> None:
         req_a = DecisionRequest(
             decision_type=DEC_EFFET_TUILE,
             decideur=seat,
-            options=((seat, -1), (seat, 1), "PASSER"),
-            context={"slot_id": "G6", "effect_kind": "SHIFT_LECTURE_M"},
+            options=("M_MOINS_1", "M_PLUS_1", "PASSER"),
+            context={
+                "slot_id": "SLOT_BUG_CERVEAU",
+                "effect_kind": "BUG_DEVIATION_SYNAPTIQUE_3_2",
+                "case": 2,
+                "target_seat": seat,
+            },
         )
-        sc_plus = _score_effect_option(obs_a, cfg, belief_a, req_a, (seat, 1), is_b2=True)
-        sc_minus = _score_effect_option(obs_a, cfg, belief_a, req_a, (seat, -1), is_b2=True)
-        assert sc_plus == 750.0, f"Siège {seat} : (seat, +1) doit annuler la machine sur le Rêve"
-        assert sc_plus > sc_minus
+        sc_plus = _score_effect_option(obs_a, cfg, belief_a, req_a, "M_PLUS_1", is_b2=True)
+        sc_minus = _score_effect_option(obs_a, cfg, belief_a, req_a, "M_MOINS_1", is_b2=True)
+        assert sc_plus > sc_minus, f"Siège {seat} : M_PLUS_1 doit dévier la machine sur le Rêve défendu"
 
     for seat in range(4):
         st_b = GameState(cfg)
@@ -141,6 +145,7 @@ def test_bot_g6_a_shift_lecture_m_twin_position_seat_invariant() -> None:
         st_b.set_tactique_at_rank(0, TILE_R_BASE + 1)
         st_b.set_tactique_at_rank(1, 2)
         st_b.set_tactique_at_rank(2, 3)
+        st_b.place_defender_reve_activation(seat, 1, 1)
         st_b.set_player_hand(seat, machine_card_code(seat, MACHINE_ABATTEUSE), 2, 1, 2, 2)
 
         obs_b = st_b.get_observation(seat)
@@ -148,18 +153,22 @@ def test_bot_g6_a_shift_lecture_m_twin_position_seat_invariant() -> None:
         req_b = DecisionRequest(
             decision_type=DEC_EFFET_TUILE,
             decideur=seat,
-            options=((seat, -1), (seat, 1), "PASSER"),
-            context={"slot_id": "G6", "effect_kind": "SHIFT_LECTURE_M"},
+            options=("M_MOINS_1", "M_PLUS_1", "PASSER"),
+            context={
+                "slot_id": "SLOT_BUG_CERVEAU",
+                "effect_kind": "BUG_DEVIATION_SYNAPTIQUE_3_2",
+                "case": 2,
+                "target_seat": seat,
+            },
         )
-        sc_plus = _score_effect_option(obs_b, cfg, belief_b, req_b, (seat, 1), is_b2=True)
-        sc_minus = _score_effect_option(obs_b, cfg, belief_b, req_b, (seat, -1), is_b2=True)
-        assert sc_minus == 750.0, f"Siège {seat} : (seat, -1) doit annuler la machine sur le Rêve"
-        assert sc_minus > sc_plus
+        sc_plus = _score_effect_option(obs_b, cfg, belief_b, req_b, "M_PLUS_1", is_b2=True)
+        sc_minus = _score_effect_option(obs_b, cfg, belief_b, req_b, "M_MOINS_1", is_b2=True)
+        assert sc_minus > sc_plus, f"Siège {seat} : M_MOINS_1 doit dévier la machine sur le Rêve défendu"
 
 
 def test_bot_effect_option_dispatch_no_tuple_or_int_collisions() -> None:
-    """Vérifie que les effect_kind actifs Mode 4 (machine, rayon, Rêve, parcelle) ne collident pas."""
-    cfg = GameConfig(n_players=4, mode=3, peuples=("M", "R", "O", "H"), exp_seed=77)
+    """Vérifie que les effect_kind actifs Canon 0 (machine, rayon, Rêve, parcelle) ne collident pas."""
+    cfg = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "H"), exp_seed=77)
     st = GameState(cfg)
     st.step = STEP_3_2_REVEAL
     st.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=3, bleus=0)
@@ -180,29 +189,36 @@ def test_bot_effect_option_dispatch_no_tuple_or_int_collisions() -> None:
         decision_type=DEC_EFFET_TUILE,
         decideur=0,
         options=((0, MACHINE_BULLDOZER), (1, MACHINE_ABATTEUSE)),
-        context={"slot_id": "G1", "effect_kind": "PIERRE_SERPENT_SURCHAUFFE"},
+        context={"slot_id": "G6", "effect_kind": "G6_FLIP_RED"},
     )
     sc_bull = _score_effect_option(obs, cfg, belief, req_mach, (0, MACHINE_BULLDOZER), is_b2=True)
     sc_abat = _score_effect_option(obs, cfg, belief, req_mach, (1, MACHINE_ABATTEUSE), is_b2=True)
     assert sc_bull > sc_abat
 
-    # 2. Mod seuil sur un rayon entier (ray=0 très menacé vs ray=1 calme)
-    req_ray = DecisionRequest(
+    # 2. Glissement de pari Gardien (G4_SLIDE_NEIGHBOR : case avec 1 pari restant prioritaire sur 2 paris)
+    st.set_gardien_at_case(2, 2, face=1)
+    st.set_gardien_at_case(4, 3, face=1)
+    st.place_defender_gardien_pari(0, 2, 1)
+    st.place_defender_gardien_pari(1, 4, 1)
+    st.place_defender_gardien_pari(2, 4, 1)
+    obs2 = st.get_observation(0)
+    belief2 = build_belief_summary(obs2, cfg)
+    req_g4 = DecisionRequest(
         decision_type=DEC_EFFET_TUILE,
         decideur=0,
-        options=(0, 1),
-        context={"slot_id": "R9", "effect_kind": "MOD_SEUIL_RAYON_MOINS_2"},
+        options=(2, 4),
+        context={"slot_id": "G4", "effect_kind": "G4_SLIDE_NEIGHBOR"},
     )
-    assert _score_effect_option(obs, cfg, belief, req_ray, 0, is_b2=True) > _score_effect_option(
-        obs, cfg, belief, req_ray, 1, is_b2=True
+    assert _score_effect_option(obs2, cfg, belief2, req_g4, 2, is_b2=True) > _score_effect_option(
+        obs2, cfg, belief2, req_g4, 4, is_b2=True
     )
 
-    # 3. Avancée Rêve active Mode 4 (G12:A) : le rang portant un Rêve obtient un score élevé
+    # 3. Glissement Rêve Canon 0 (G12_SLIDE_REVE) : le rang portant un Rêve obtient un score > PASSER
     req_g12 = DecisionRequest(
         decision_type=DEC_EFFET_TUILE,
         decideur=0,
         options=(3, "PASSER"),
-        context={"slot_id": "G12", "effect_kind": "ADVANCE_REVE_G12A"},
+        context={"slot_id": "G12", "effect_kind": "G12_SLIDE_REVE", "steps": 1},
     )
     assert _score_effect_option(obs, cfg, belief, req_g12, 3, is_b2=True) > _score_effect_option(
         obs, cfg, belief, req_g12, "PASSER", is_b2=True

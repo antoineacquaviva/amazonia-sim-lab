@@ -4,7 +4,7 @@
     "schema_version": "6.2.0",
     "date_consolidation": "2026-11-24",
     "statut": "SSOT_V6_2_ACTIVE",
-    "kernel_sync_status": "SEALED_V6_1_PENDING_CHANTIER_4",
+    "kernel_sync_status": "SEALED_V6_2_ACTIVE_VERIFIED",
     "description": "Contrat formel typé unique (SSOT) de la cible unifiée v6.2 : Socle épuré, Asymétrie Hybride 3+3, Enracinement volontaire et Canon 0 de 30 tuiles."
   },
   "architecture_modulaire": {

@@ -190,29 +190,29 @@ def test_panier2_tile_driven_reve_advance_and_sommeil_contremaitre_5_3() -> None
 
 def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -> None:
     """Ouverture Gardien, Face 1 -> Face 2 en 5.3, cascade plate 1..6, Lois passives & min/max dé."""
-    # 1) Cascade plate 1..6 + Face 1 -> Face 2 sur pari gagné en 5.3 (G9:A sur case 3 + G1:A sur case 6 Résonance)
-    cfg = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "I"), exp_seed=7404)
+    # 1) Cascade plate 1..6 + Face 1 -> Face 2 sur pari gagné en 5.3 (G2:A sur case 3 + G1:A sur case 6 Résonance)
+    cfg = GameConfig(n_players=4, mode=4, peuples=("M", "R", "E", "I"), exp_seed=7404)
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(3, 9, face=1)
+    st.set_gardien_at_case(3, 2, face=1)
     st.set_gardien_at_case(6, 1, face=1)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
     st.place_defender_gardien_pari(1, 6, FACE_DEFINITIF)
     sab_before = st.sabotage_pending_count
 
-    # Déclenchement case 3 -> ouvre G9:A (+1 Sabotage) -> allume case 6 (Résonance) -> ouvre G1:A !
+    # Déclenchement case 3 -> ouvre G2:A (+1 Sabotage) -> allume case 6 (Résonance) -> ouvre G1:A !
     st.light_trigger(3)
     opened = sweep_gardiens(st)
     assert opened == 2
     assert st.sabotage_pending_count == sab_before + 1
     assert st.count_gardien_pari_defenders_at_case(3) == 0
     assert st.count_gardien_pari_defenders_at_case(6) == 0
-    assert st.get_gardien_at_case(3) == (9, 1)  # Reste Face 1 jusqu'en 5.3
+    assert st.get_gardien_at_case(3) == (2, 1)  # Reste Face 1 jusqu'en 5.3
 
     st.step = STEP_5_3_END_CHECK
     res_53 = step_until_decision(st)
     assert not isinstance(res_53, GameOver)
-    assert st.get_gardien_at_case(3) == (9, 2)  # Passé Face 2 en 5.3 sur pari gagné !
+    assert st.get_gardien_at_case(3) == (2, 2)  # Passé Face 2 en 5.3 sur pari gagné !
     assert st.get_gardien_at_case(6) == (1, 2)
 
     # 2) Loi passive d'inversion min/max de lecture du dé secret via HOOK_1_3_LECTURE_DE
@@ -253,36 +253,42 @@ def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -
 
 def test_panier2_reves_nids_pieges_and_sabotage_hooks() -> None:
     """Hooks propres des Rêves (3.2), Nids (4.2), Pièges localisés (5.1) et Furtivité/Sabotage (4.1)."""
-    # 1) Rêve R6:A (HOOK_3_2_OUVERTURE_REVE) & Nid M2:A (4.2 bloc indivisible + HOOK_4_2_NID_APRES_PROD)
-    cfg = GameConfig(n_players=4, mode=4, peuples=("H", "M", "I", "R"), exp_seed=7406)
+    # 1) Rêve R10:A (HOOK_3_2_OUVERTURE_REVE) & Nid M4:A (4.2 bloc indivisible + HOOK_4_2_NID_APRES_PROD)
+    cfg = GameConfig(n_players=4, mode=4, peuples=("E", "I", "H", "R"), exp_seed=7406)
     st = GameState(cfg)
     st.tour = 2
-    st.set_tactique_at_rank(5, TILE_R_BASE + 6)
+    st.set_tactique_at_rank(5, TILE_R_BASE + 10)
     st.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
+    st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
         st.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    ins_before = sum(st.get_parcel_insectes(r, p) for r in range(4) for p in range(1, 5))
+    bugs_before = st.get_bugs_at_case(6)
     st.step = STEP_3_2_REVEAL
     _run_step_3_2(st)
     while st._continuation:
         rem = _advance_continuation(st)
         if isinstance(rem, DecisionRequest):
             apply_choice(st, rem.options[0])
-    ins_after = sum(st.get_parcel_insectes(r, p) for r in range(4) for p in range(1, 5))
-    assert ins_after == ins_before + 1
+    assert st.get_bugs_at_case(6) == bugs_before + 1
+    assert st.has_machine_alteration(0, MACHINE_ABATTEUSE) is True
 
-    # Bloc 4.2 Nid M2:A : production + retournement d'1 jeton rouge physique en bleu
-    st.set_parcel_nid(0, 1, 2, active_ce_tour=False)
-    st.set_parcel_insectes(0, 1, 0)
+    # Bloc 4.2 Nid M4:A : production + défausse de l'Insecte pour retourner 1 rouge physique en bleu
+    st.set_parcel_nid(1, 1, 4, active_ce_tour=False)
+    st.set_parcel_insectes(1, 1, 0)
     st.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
     st.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=1, bleus=0)
     for r in range(4):
         st.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
         if r != 0:
             st.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
-    _resolve_nid_block(st, 2)
-    assert st.get_parcel_insectes(0, 1) == 1
+    _resolve_nid_block(st, 4)
+    while st._continuation:
+        rem_m4 = _advance_continuation(st)
+        if isinstance(rem_m4, DecisionRequest):
+            flip_opt = next((o for o in rem_m4.options if isinstance(o, tuple) and o[0] == "SURCHAUFFE"), rem_m4.options[0])
+            apply_choice(st, flip_opt)
+    assert st.get_parcel_insectes(1, 1) == 0
     assert st.get_machine_tokens(0, MACHINE_BULLDOZER) == (0, 1)
 
     # 2) Hooks HOOK_5_APRES_PARADE_PIEGE (Piège localisé) & HOOK_4_1_FURTIVITE (synergie Sabotage)
@@ -347,7 +353,7 @@ def test_panier2_end_to_end_mode4_all_30_tiles_b0_b1_b2() -> None:
             over = runner(st, telemetry=trk)
             assert 1 <= over.tour_fin <= 8
             assert 0.0 <= over.ratio_arbres <= 1.0
-            assert trk.summary().mem_debt_score >= 0
+            assert trk.summary().mem_debt_score == 0
     # Et contrôle strict mem_debt == 0 en Mode 2 (socle blanc v6.1)
     cfg_m2 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=7420)
     trk_m2 = TelemetryTracker()

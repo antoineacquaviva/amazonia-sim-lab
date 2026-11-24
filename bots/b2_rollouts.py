@@ -149,7 +149,7 @@ def determinize_state_from_obs(
             for s_idx in range(2 * n):
                 _, st_l, cnt_l = obs.lisiere_tile_info(s_idx)
                 own_on_l = (1 if own_l1 == s_idx else 0) + (1 if own_l2 == s_idx else 0)
-                if st_l == 0 and cnt_l == 1 and own_on_l == 0:
+                if st_l == 1 and cnt_l == 1 and own_on_l == 0:
                     ally_lis_sig += 1
 
         ally_furt_sab_sig = 0
@@ -252,6 +252,7 @@ def evaluate_turn_state_trees(state: GameState) -> float:
     # Pertes futures attendues sur les tours restants + pression machines courante
     future_loss = 0.34 * float(n) * float(rem_turns)
     machine_pressure = 0.0
+    assets = 0.0
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
             pos, st, _ = state.get_machine_pos_status(r, mt)
@@ -263,9 +264,16 @@ def evaluate_turn_state_trees(state: GameState) -> float:
             machine_pressure += 0.25 * (pos / float(p_max)) + 0.30 * float(net_red)
             if st == MACHINE_STATUS_RATISSAGE:
                 machine_pressure += 0.55
+            if rem_turns > 0:
+                if state.has_machine_alteration(r, mt):
+                    assets += 0.90
+                cale = state.get_machine_cale(r, mt)
+                if cale == 2:
+                    assets += 0.75
+                elif cale == 1:
+                    assets += 0.50
 
     # Actifs durables en équivalent-arbres
-    assets = 0.0
     sab_tot = min(
         6,
         state.sabotage_deck_count
@@ -275,6 +283,10 @@ def evaluate_turn_state_trees(state: GameState) -> float:
     )
     if sab_tot > 0 and rem_turns > 0:
         assets += 0.28 * float(min(4, rem_turns)) * float(sab_tot)
+    if state.get_croc_parcel() is not None and rem_turns > 0:
+        assets += 0.65
+    if state.get_duel_state()[0] == 2 and rem_turns > 0:
+        assets += 0.45
 
     for r in range(n):
         for p in range(1, p_max + 1):
@@ -297,7 +309,19 @@ def evaluate_turn_state_trees(state: GameState) -> float:
                     r_rt, p_rt, f_rt, _ = rinfo
                     if p_rt > 0 and not state.is_route_forestiere(r_rt, p_rt):
                         souches_rt = state.get_parcel_souches(r_rt, p_rt)
-                        assets += 0.85 * float(min(souches_rt, 2 if f_rt == 2 else 1))
+                        tid_rt = cfg.lisiere_slots[slot_idx]
+                        cap_rt = 2 if f_rt == 2 else 1
+                        if tid_rt == "M5":
+                            cap_rt += state.get_parcel_insectes(r_rt, p_rt)
+                        assets += 0.85 * float(min(souches_rt, cap_rt))
+                        if tid_rt == "R6":
+                            for pn in (
+                                state.next_non_razed_towards_border(r_rt, p_rt),
+                                state.next_non_razed_towards_heart(r_rt, p_rt),
+                            ):
+                                if pn is not None and state.get_parcel_souches(r_rt, pn) >= 1:
+                                    assets += 0.85
+                                    break
         for rk in range(TRACK_LEN):
             if is_reve_code(state.get_tactique_at_rank(rk)):
                 assets += 0.35 * float(TRACK_LEN - rk) / float(TRACK_LEN)

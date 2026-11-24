@@ -1464,6 +1464,11 @@ class PlayerObservation:
         return raw
 
     @property
+    def is_oiseau_perchoir_revealed(self) -> bool:
+        """Vrai si le jeton du Perchoir de O a été révélé publiquement ce tour (ex: R9)."""
+        return bool(self._snap[_Mem.TRANS_ALTERED_SEATS_MASK] & 0x40)
+
+    @property
     def oiseau_de_envol(self) -> int | None:
         """Valeur (1..6) du Dé d'Envol de O, ou None si masqué/non lancé."""
         raw = self._snap[_Mem.TRANS_OISEAU_DE_ENVOL] & 0x07
@@ -1486,6 +1491,40 @@ class PlayerObservation:
     def is_slot_rooted(self, slot_idx: int) -> bool:
         """Vrai si la tuile de lisière `slot_idx` a été enracinée volontairement."""
         return self._snap[_Mem.ROOTED_TILES + slot_idx] != 0
+
+    def slot_rooted_info(self, slot_idx: int) -> tuple[int, int, int, bool] | None:
+        """Retourne `(ray, p, tier_souches 1|2, is_reve)` si `slot_idx` est enraciné, sinon None."""
+        b = self._snap[_Mem.ROOTED_TILES + slot_idx]
+        if b == 0:
+            return None
+        p_idx = (b & 0x1F) - 1
+        return p_idx // MAX_P, (p_idx % MAX_P) + 1, (2 if (b & 0x20) else 1), bool(b & 0x40)
+
+    def list_rooted_tiles(self) -> list[tuple[int, str, int, int, int]]:
+        """Liste toutes les tuiles enracinées : `(slot_idx, tile_id, ray, p, tier_souches)`."""
+        if self._cfg.mode < 2:
+            return []
+        out: list[tuple[int, str, int, int, int]] = []
+        buf = self._snap
+        for idx in range(2 * self._cfg.n_players):
+            b = buf[_Mem.ROOTED_TILES + idx]
+            if b != 0:
+                p_idx = (b & 0x1F) - 1
+                tier = 2 if (b & 0x20) else 1
+                out.append((idx, self._cfg.lisiere_slots[idx], p_idx // MAX_P, (p_idx % MAX_P) + 1, tier))
+        return out
+
+    def parcel_is_bordered_by_rooted_tile(self, ray: int, p: int) -> bool:
+        """Vrai si au moins une tuile enracinée borde la parcelle `(ray, p)`."""
+        if self._cfg.mode < 2:
+            return False
+        target_loc = ray * MAX_P + p
+        buf = self._snap
+        for idx in range(2 * self._cfg.n_players):
+            b = buf[_Mem.ROOTED_TILES + idx]
+            if b != 0 and (b & 0x1F) == target_loc:
+                return True
+        return False
 
     @property
     def has_any_rooted_reve(self) -> bool:
@@ -2046,6 +2085,63 @@ class GameState:
         for s in range(self.cfg.n_players):
             for d in (0, 1):
                 if self.get_player_def_loc_raw(s, d) == _LOC_WAITING:
+                    out.append((s, d))
+        return out
+
+    def list_available_waiting_defenders(self) -> list[tuple[int, int]]:
+        """Retourne tous les `(seat, def_idx)` « en attente » au sens v6.2 (G1 Jaguar) :
+        bâtisseurs libérés en attente après 3.1, Défenseurs restés sur un Rêve déjà résolu
+        après 3.2, et Défenseurs d'une rive de Furtivité après 4.1.
+        """
+        waiting: list[tuple[int, int]] = []
+        furt: list[tuple[int, int]] = []
+        reve_cons: list[tuple[int, int]] = []
+        reve_act: list[tuple[int, int]] = []
+        step_now = self.step
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if raw == _LOC_WAITING:
+                    waiting.append((s, d))
+                    continue
+                if raw == _LOC_HAND or raw == _LOC_IMPASSE:
+                    continue
+                kind, a, _, _ = self.decode_def_loc(raw)
+                if kind == "FURTIVITE" and step_now >= STEP_4_2_NIDS:
+                    furt.append((s, d))
+                elif kind in ("REVE_ACTIVATION", "REVE_ACTIVATION_CONSUMED"):
+                    resolved = step_now >= STEP_4_1_FURTIVITE
+                    if not resolved and 1 <= a <= TRACK_LEN:
+                        code = self.get_tactique_at_rank(a - 1)
+                        if is_reve_code(code) and self.has_reve_opened_this_turn(code - TILE_R_BASE):
+                            resolved = True
+                    if resolved:
+                        if kind == "REVE_ACTIVATION_CONSUMED":
+                            reve_cons.append((s, d))
+                        else:
+                            reve_act.append((s, d))
+        return waiting + furt + reve_cons + reve_act
+
+    def list_defenders_on_reve_case(self, case_1_6: int) -> list[tuple[int, int]]:
+        """Retourne tous les `(seat, def_idx)` (actifs + consommés) présents sur le Rêve en `case_1_6`."""
+        assert 1 <= case_1_6 <= TRACK_LEN
+        act_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        con_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        out: list[tuple[int, int]] = []
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                raw = self.get_player_def_loc_raw(s, d)
+                if raw == act_raw or raw == con_raw:
+                    out.append((s, d))
+        return out
+
+    def list_defenders_on_parcel(self, ray: int, p: int) -> list[tuple[int, int]]:
+        """Retourne tous les `(seat, def_idx)` suivis actuellement sur la parcelle `(ray, p)`."""
+        target_raw = _LOC_FORET_BASE + self._parcel_idx(ray, p)
+        out: list[tuple[int, int]] = []
+        for s in range(self.cfg.n_players):
+            for d in (0, 1):
+                if self.get_player_def_loc_raw(s, d) == target_raw:
                     out.append((s, d))
         return out
 
@@ -2753,6 +2849,24 @@ class GameState:
         self._buf[_Mem.TRANS_REVE_OPENED_MASK] = mask & 0xFF
         self._buf[_Mem.TRANS_REVE_OPENED_MASK + 1] = (mask >> 8) & 0xFF
 
+    def was_seat_cancelled_by_reve_this_turn(self, seat: int) -> bool:
+        """Vrai si la machine du siège `seat` a déjà été annulée par un Rêve en 3.2 ce tour."""
+        assert 0 <= seat < MAX_N
+        mask = self._buf[_Mem.TRANS_REVE_OPENED_MASK] | (
+            self._buf[_Mem.TRANS_REVE_OPENED_MASK + 1] << 8
+        )
+        return bool(mask & (1 << (10 + seat)))
+
+    def mark_seat_cancelled_by_reve_this_turn(self, seat: int) -> None:
+        """Marque le siège `seat` comme ayant eu sa machine annulée par un Rêve en 3.2."""
+        assert 0 <= seat < MAX_N
+        mask = self._buf[_Mem.TRANS_REVE_OPENED_MASK] | (
+            self._buf[_Mem.TRANS_REVE_OPENED_MASK + 1] << 8
+        )
+        mask |= 1 << (10 + seat)
+        self._buf[_Mem.TRANS_REVE_OPENED_MASK] = mask & 0xFF
+        self._buf[_Mem.TRANS_REVE_OPENED_MASK + 1] = (mask >> 8) & 0xFF
+
     def get_step2_pass_state(self) -> tuple[int, bool]:
         """Retourne (pass_idx 0..15, moved_in_pass)."""
         b = self._buf[_Mem.TRANS_STEP2_STATE]
@@ -3067,6 +3181,32 @@ class GameState:
                     return True
         return False
 
+    def is_tambour_on_reve_case(self, case_1_6: int) -> bool:
+        """Vrai si le pion Chamane `TAMBOUR` des Humains (H) défend (actif ou consommé) le Rêve en `case_1_6`."""
+        seat_h = self.cfg.seat_of_peuple("H")
+        if seat_h is None or not self.cfg.accessories_enabled:
+            return False
+        act_raw = _LOC_REVE_ACTIVATION_BASE + (case_1_6 - 1)
+        con_raw = _LOC_REVE_ACTIVATION_CONSUMED_BASE + (case_1_6 - 1)
+        for d in (0, 1):
+            if self.get_humain_chaman_archetype(d) == CHAMAN_TAMBOUR:
+                raw = self.get_player_def_loc_raw(seat_h, d)
+                if raw == act_raw or raw == con_raw:
+                    return True
+        return False
+
+    def get_humain_tambour_parcel(self) -> tuple[int, int] | None:
+        """Retourne `(ray, p)` si le pion Chamane `TAMBOUR` de H est sur une parcelle forêt, sinon None."""
+        seat_h = self.cfg.seat_of_peuple("H")
+        if seat_h is None or not self.cfg.accessories_enabled:
+            return None
+        for d in (0, 1):
+            if self.get_humain_chaman_archetype(d) == CHAMAN_TAMBOUR:
+                kind, a, b, _ = self.decode_def_loc(self.get_player_def_loc_raw(seat_h, d))
+                if kind == "FORET":
+                    return (a, b)
+        return None
+
     @property
     def oiseau_perchoir_card(self) -> int:
         """Code jeton (CARD_NONE ou 1..14) posé face cachée sur le Perchoir de Vigie de O."""
@@ -3076,6 +3216,14 @@ class GameState:
     def oiseau_perchoir_card(self, card_code: int) -> None:
         assert 0 <= card_code <= CARD_ECAILLE
         self._buf[_Mem.OISEAU_PERCHOIR_CARD] = card_code
+
+    def is_oiseau_perchoir_revealed(self) -> bool:
+        """Vrai si le jeton du Perchoir de Vigie a été révélé publiquement ce tour (R9)."""
+        return bool(self._buf[_Mem.TRANS_ALTERED_SEATS_MASK] & 0x40)
+
+    def reveal_oiseau_perchoir(self) -> None:
+        """Révèle publiquement le jeton du Perchoir de Vigie pour le reste du tour (R9)."""
+        self._buf[_Mem.TRANS_ALTERED_SEATS_MASK] |= 0x40
 
     def get_oiseau_de_envol(self) -> tuple[int, bool]:
         """Retourne `(valeur_1_6_ou_0, retenu_en_double_horizon)` du Dé d'Envol de O."""
@@ -3157,6 +3305,17 @@ class GameState:
                 out.append((idx, self.cfg.lisiere_slots[idx], p_idx // MAX_P, (p_idx % MAX_P) + 1, tier))
         return out
 
+    def is_parcel_bordered_by_rooted_tile(self, ray: int, p: int) -> bool:
+        """Vrai si au moins une tuile enracinée borde la parcelle `(ray, p)` (G7 Face 2)."""
+        if self.cfg.mode < 2:
+            return False
+        target_loc = self._assert_active_parcel(ray, p) + 1
+        for idx in range(2 * self.cfg.n_players):
+            b = self._buf[_Mem.ROOTED_TILES + idx]
+            if b != 0 and (b & 0x1F) == target_loc:
+                return True
+        return False
+
     def has_any_rooted_reve(self) -> bool:
         """Vrai si au moins un Rêve a été enraciné (Sommeil du Contremaître impossible, INV-22)."""
         if self.cfg.mode < 2:
@@ -3232,10 +3391,11 @@ class GameState:
         # Purge totale de l'ordre futur du sac opaque
         masked[_Mem.DECK_CARDS : _Mem.DECK_CARDS + (DECK_SLOTS_CAPACITY // 2)] = _ZERO_DECK_BYTES
         seat_o = self.cfg.seat_of_peuple("O")
-        # Le jeton du Perchoir de O reste STRICTEMENT FACE CACHÉE pour autrui même paravents ouverts (INV-05/06)
+        # Le jeton du Perchoir de O reste STRICTEMENT FACE CACHÉE pour autrui sauf révélation explicite (R9)
         if (
             seat_o is not None
             and seat_id != seat_o
+            and not self.is_oiseau_perchoir_revealed()
             and masked[_Mem.OISEAU_PERCHOIR_CARD] != CARD_NONE
         ):
             masked[_Mem.OISEAU_PERCHOIR_CARD] = _MASKED_HAS_CARD_SENTINEL

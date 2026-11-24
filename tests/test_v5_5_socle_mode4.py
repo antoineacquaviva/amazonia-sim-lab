@@ -24,7 +24,6 @@ from engine.effects.registry import list_registered_tiles
 from engine.primitives import (
     DEC_EFFET_TUILE,
     HOOK_4_2_NID_APRES_PROD,
-    HOOK_5_CIBLAGE_MACHINE,
     DecisionRequest,
     GameOver,
     dispatch_hook,
@@ -37,9 +36,9 @@ from engine.state import (
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
     MACHINE_STATUS_RATISSAGE,
-    PFLAG_AUTO_PARADE_ONCE,
     PIEGE_ACTIF,
-    STEP_2_1_DEF1,
+    PLUME_CHAUD,
+    PLUME_KIND_RAY,
     STEP_3_2_REVEAL,
     STEP_5_1_TACTIQUES,
     STEP_5_3_END_CHECK,
@@ -114,47 +113,50 @@ def test_v5_5_all_30_active_tiles_and_native_migrations_registered() -> None:
 
 
 def test_v5_5_double_activation_g9_a_and_face2_only_in_5_3_on_bet_won() -> None:
+    """Double activation sur Gardien Canon 0 (G2:A Anaconda) & passage Face 2 uniquement en 5.3."""
     cfg = GameConfig(
         n_players=4,
         mode=4,
-        peuples=("M", "R", "O", "I"),
+        peuples=("M", "R", "E", "I"),
         exp_seed=5501,
     )
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(3, 9, face=1)  # G9:A sur case 3 (Sabotage)
+    st.set_gardien_at_case(3, 2, face=1)  # G2:A (paire R-E) sur case 3 (Sabotage)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
     st.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
     sab_before = st.sabotage_pending_count
 
-    # 1re ouverture -> +1 Sabotage en attente, reste Face 1, n'allume PAS le déclencheur 3
+    # 1re ouverture F1 -> +1 Sabotage en attente, reste Face 1, n'allume PAS le déclencheur 3
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
     assert st.sabotage_pending_count == sab_before + 1
-    assert st.get_gardien_at_case(3) == (9, 1)
+    assert st.get_gardien_at_case(3) == (2, 1)
     assert st.count_gardien_pari_defenders_at_case(3) == 1
     assert not st.is_trigger_lit(3)
 
-    # 2e ouverture (2e Défenseur glissé) -> +1 Sabotage en attente, reste Face 1 jusqu'en 5.3
+    # 2e ouverture F1 (2e Défenseur glissé) -> +1 Sabotage en attente, reste Face 1 jusqu'en 5.3
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
     assert st.sabotage_pending_count == sab_before + 2
-    assert st.get_gardien_at_case(3) == (9, 1)
+    assert st.get_gardien_at_case(3) == (2, 1)
     assert st.count_gardien_pari_defenders_at_case(3) == 0
 
     # Étape 5.3 : pari gagné -> reste en piste et passe Face 2 !
     st.step = STEP_5_3_END_CHECK
     res_53 = step_until_decision(st)
     assert not isinstance(res_53, GameOver)
-    assert st.get_gardien_at_case(3) == (9, 2)
+    assert st.get_gardien_at_case(3) == (2, 2)
 
-    # Tour suivant en Face 2 : 1 déclenchement ajoute +2 Sabotages en attente
+    # Tour suivant en Face 2 avec Territoire tenu : +3 Sabotage au sac !
+    st.set_duel_defi(0, 1)
+    st.flip_duel_to_territoire_tenu()
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
     sab_f2 = st.sabotage_pending_count
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
-    assert st.sabotage_pending_count == sab_f2 + 2
-    assert st.get_gardien_at_case(3) == (9, 2)
+    assert st.sabotage_pending_count == sab_f2 + 3
+    assert st.get_gardien_at_case(3) == (2, 2)
 
 
 def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None:
@@ -167,7 +169,8 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(1, 1, face=1)  # G1:A (double-face) sur case 1
+    st.set_gardien_at_case(1, 6, face=1)  # G6:A (paire R-O) sur case 1
+    st.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
     # Pari à 2 Défenseurs + 1 Insecte Bouclier sur la case 1
@@ -178,11 +181,12 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
     # Un seul déclenchement (1 Défenseur glissé, 1 Défenseur encore sur la tuile -> pari perdu !)
     st.light_trigger(1)
     assert sweep_gardiens(st) == 1
+    _resolve_pending_decisions(st)
     assert st.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 1)
-    assert st.get_gardien_at_case(1) == (1, 1)
+    assert st.get_gardien_at_case(1) == (6, 1)
     assert st.count_gardien_pari_defenders_at_case(1) == 1
 
-    # En 5.3 : Bouclier de lisière facultatif (INV-18) gouverné par I maintient G1:A en piste SUR SA FACE ACTUELLE (Face 1)
+    # En 5.3 : Bouclier de lisière facultatif (INV-18) gouverné par I maintient G6:A en piste SUR SA FACE ACTUELLE (Face 1)
     st.step = STEP_5_3_END_CHECK
     trk = TelemetryTracker()
     req_b = step_until_decision(st, telemetry=trk)
@@ -190,7 +194,7 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
     apply_choice(st, "UTILISER_BOUCLIER", telemetry=trk)
     res_53 = step_until_decision(st, telemetry=trk)
     assert not isinstance(res_53, GameOver)  # pari perdu -> pas d'Éveil
-    assert st.get_gardien_at_case(1) == (1, 1)
+    assert st.get_gardien_at_case(1) == (6, 1)
     assert st.get_colonie_at_case(1) == 0
     ts = trk.summary()
     assert ts.gardien_bets_lost == 1
@@ -199,125 +203,117 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
 
 
 def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
-    # --- G6:A : double préparation avant 3.2 + rebinding post-bind sur piste fixe ---
+    # --- Primitive SHIFT_LECTURE_M post-bind sur piste fixe T1..T6 ---
     cfg6 = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "H"), exp_seed=5503)
     st6 = GameState(cfg6)
-    st6.step = STEP_2_1_DEF1
-    st6.paravents_ouverts = False
-    st6.set_gardien_at_case(4, 6, face=1)  # G6:A sur case 4 (Rêve ; case 5 = Insecte fermée sans I)
-    st6.place_defender_gardien_pari(0, 4, FACE_DEFINITIF)
-    st6.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
-
-    # Deux activations préparées avant 3.2 -> 2 bits de préparation allumés
-    st6.light_trigger(4)
-    assert sweep_gardiens(st6) == 1
-    st6.light_trigger(4)
-    assert sweep_gardiens(st6) == 1
-    assert st6.has_used_once_per_turn(40) and st6.has_used_once_per_turn(41)
-
-    # Test rebind post-bind de prim_permutation_piste("SHIFT_LECTURE_M") sur piste fixe T1..T6
     st6.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 4, 3, 4, 4)
     assert prim_permutation_piste(st6, "SHIFT_LECTURE_M", seat=0, delta_m=1, rebind_tactique=True)
     _, _, _, new_m, new_bound = st6.get_player_hand(0)
     assert (new_m, new_bound) == (5, 5)
 
-    # --- G8:A : double activation -> 2 slots de décalage appliqués séquentiellement en 5.1 ---
+    # --- G8:A (Boto) : double activation recule l'Abatteuse deux fois (p3 -> p1) ---
     cfg8 = GameConfig(n_players=4, mode=4, peuples=("M", "H", "R", "E"), exp_seed=5504)
     st8 = GameState(cfg8)
     st8.step = STEP_5_1_TACTIQUES
     st8.paravents_ouverts = True
-    st8.set_gardien_at_case(1, 8, face=1)
+    st8.set_gardien_at_case(1, 8, face=2)
+    st8.set_duel_defi(0, 3)
+    st8.flip_duel_to_territoire_tenu()
     st8.set_machine_pos_status(0, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
-    st8.set_machine_pos_status(0, MACHINE_BULLDOZER, 0, 2)  # retiré
+    st8.set_machine_pos_status(0, MACHINE_BULLDOZER, 0, 2)
     for r in range(1, 4):
         st8.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
         st8.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
     st8.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st8.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
 
-    # 1re ouverture : choisit (0, Abatteuse, -1) ; 2e ouverture : choisit aussi (0, Abatteuse, -1)
     st8.light_trigger(1)
     assert sweep_gardiens(st8) == 1
     _resolve_pending_decisions(st8)
     st8.light_trigger(1)
     assert sweep_gardiens(st8) == 1
     _resolve_pending_decisions(st8)
+    assert st8.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 1
 
-    ctx_cib: dict[str, Any] = {
-        "ray": 0,
-        "m_type": MACHINE_ABATTEUSE,
-        "is_ratissage": False,
-        "targets": [("SUR_PLACE", 3)],
-    }
-    res_cib = dispatch_hook(st8, HOOK_5_CIBLAGE_MACHINE, ctx_cib)
-    assert res_cib and ctx_cib["targets"] == [("SUR_PLACE", 1)]
-
-    # --- G11:A Face 2 : double activation marque 2 parcelles distinctes en Auto-Parade ---
+    # --- G11:A Face 2 (Chouette) : double activation pose 2 Pièges distincts sur parcelles ciblées du rayon Plume ---
     cfg11 = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "H"), exp_seed=5505)
     st11 = GameState(cfg11)
+    st11.paravents_ouverts = True
     st11.set_gardien_at_case(1, 11, face=2)
-    st11.set_parcel_defenseurs(0, 1, 2)
-    st11.set_parcel_defenseurs(1, 1, 2)
+    st11.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
+    st11.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+    st11.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 3, 3, 3, 3)  # T3 : SUR_PLACE (p1) + DEVANT (p2)
     st11.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st11.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
 
     st11.light_trigger(1)
     assert sweep_gardiens(st11) == 1
-    _resolve_pending_decisions(st11)
+    _resolve_pending_decisions(st11, prefer_non_pass=True)
+    st11.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st11.light_trigger(1)
     assert sweep_gardiens(st11) == 1
-    _resolve_pending_decisions(st11)
+    _resolve_pending_decisions(st11, prefer_non_pass=True)
 
-    assert st11.has_parcel_flag_turn(0, 1, PFLAG_AUTO_PARADE_ONCE)
-    assert st11.has_parcel_flag_turn(1, 1, PFLAG_AUTO_PARADE_ONCE)
+    traps_r0 = sum(1 for p in range(1, 5) if st11.get_parcel_piege(0, p) == PIEGE_ACTIF)
+    assert traps_r0 == 2
 
 
 # ---------------------------------------------------------------------------
-# 3. Partition stricte des déclencheurs sur effets de tuiles & M2:A physique
+# 3. Partition stricte des déclencheurs sur effets de tuiles & M2/M4 Canon 0
 # ---------------------------------------------------------------------------
 
 
 def test_v5_5_tile_effects_strict_trigger_partition_and_m2_physical_red() -> None:
-    # Table H-M-I-R : H-M (G7), M-I (G13) et I-R (M2) sont tous adjacents !
+    # Table H-M-I-R : H-M (G7) et M-I (G13) sont présents.
     cfg = GameConfig(n_players=4, mode=4, peuples=("H", "M", "I", "R"), exp_seed=5506)
     st = GameState(cfg)
+    st.paravents_ouverts = True
 
-    # G7:A pose un Piège sans allumer le déclencheur 2
+    # G7:A pose un Piège sur une parcelle ciblée à Souche sans allumer le déclencheur 2
     st.set_parcel_arbres_souches(0, 1, 1, 1)
+    st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
+    st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 1, 1, 1, 1)
     st.set_gardien_at_case(1, 7, face=1)
     st.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st.triggers_lit = 0
     st.light_trigger(1)
     assert sweep_gardiens(st) == 1
+    _resolve_pending_decisions(st)
     assert st.get_parcel_piege(0, 1) == PIEGE_ACTIF
     assert not st.is_trigger_lit(2)
 
-    # G13:A pose un Insecte sans allumer le déclencheur 5 (Insecte)
-    st.set_parcel_defenseurs(1, 1, 1)
+    # G13:A F1 déplace 1 Insecte de (0,2) vers la parcelle ciblée (0,1) sans allumer le déclencheur 5 (Insecte)
+    st.set_parcel_insectes(0, 2, 1)
     st.set_gardien_at_case(3, 13, face=1)
     st.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
     st.triggers_lit = 0
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
-    assert st.get_parcel_insectes(1, 1) == 1
+    _resolve_pending_decisions(st)
+    assert st.get_parcel_insectes(0, 1) == 1
     assert not st.is_trigger_lit(5)
 
-    # M2:A (paire R-I active, Nid M2 construit sur (0,1)) ignore une machine en Ratissage avec 0 rouge physique
-    st.set_parcel_nid(0, 1, 2)
-    st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=0, bleus=0)
-    st.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
-    st.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=0, bleus=0)
-    for r in range(1, 4):
-        st.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
-        st.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
-    dispatch_hook(st, HOOK_4_2_NID_APRES_PROD, {"m_num": 2, "ray": 0, "p": 1})
-    assert st.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
+    # M4:A (paire H-I active) ignore une machine en Ratissage avec 0 rouge physique et retourne 1 rouge sur Bulldozer
+    cfg_m4 = GameConfig(n_players=3, mode=4, peuples=("H", "I", "R"), exp_seed=5506)
+    st_m4 = GameState(cfg_m4)
+    st_m4.set_parcel_nid(1, 1, 4)
+    st_m4.set_parcel_insectes(1, 1, 1)
+    st_m4.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    st_m4.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=0, bleus=0)
+    st_m4.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
+    st_m4.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=0, bleus=0)
+    for r in range(1, 3):
+        st_m4.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
+        st_m4.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
+    dispatch_hook(st_m4, HOOK_4_2_NID_APRES_PROD, {"m_num": 4, "ray": 1, "p": 1})
+    _resolve_pending_decisions(st_m4, prefer_non_pass=False)
+    assert st_m4.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
 
-    # Maintenant on met 1 rouge physique sur le Bulldozer voisin -> M2:A le retourne en bleu
-    st.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=1, bleus=0)
-    dispatch_hook(st, HOOK_4_2_NID_APRES_PROD, {"m_num": 2, "ray": 0, "p": 1})
-    assert st.get_machine_tokens(0, MACHINE_BULLDOZER) == (0, 1)
+    # Avec 1 rouge physique sur le Bulldozer -> M4:A propose FLIP_RED et retourne (1, 0) -> (0, 1)
+    st_m4.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=1, bleus=0)
+    dispatch_hook(st_m4, HOOK_4_2_NID_APRES_PROD, {"m_num": 4, "ray": 1, "p": 1})
+    _resolve_pending_decisions(st_m4, prefer_non_pass=True)
+    assert st_m4.get_machine_tokens(0, MACHINE_BULLDOZER) == (0, 1)
 
 
 # ---------------------------------------------------------------------------

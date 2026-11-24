@@ -160,10 +160,14 @@ def _check_board_invariants(state: GameState) -> None:
                     f"Insecte passager sur ({r},{mt}) sans Peuple I"
                 )
 
-    # INV-20 : plafond physique des 4 Écailles & confidentialité absolue du Perchoir Oiseau
+    # INV-20 : plafond physique des 4 Écailles & confidentialité absolue du Perchoir Oiseau (hors révélation R9)
     assert state.count_total_ecailles_in_play() <= MAX_ECAILLES, "Plus de 4 Écailles en jeu"
     seat_o = cfg.seat_of_peuple("O")
-    if seat_o is not None and state.oiseau_perchoir_card > 0:
+    if (
+        seat_o is not None
+        and state.oiseau_perchoir_card > 0
+        and not state.is_oiseau_perchoir_revealed()
+    ):
         for s_chk in range(n):
             if s_chk != seat_o:
                 assert state.get_observation(s_chk).oiseau_perchoir_card is None, (
@@ -235,8 +239,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
             assert not trk.violations
-            if mode <= 3:
-                assert trk.summary().mem_debt_score == 0
+            assert trk.summary().mem_debt_score == 0
             continue
 
         if bot_sel == 4:
@@ -244,8 +247,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
             _check_board_invariants(state)
             assert 1 <= over.tour_fin <= 8 and 0.0 <= over.ratio_arbres <= 1.0
             assert not trk.violations
-            if mode <= 3:
-                assert trk.summary().mem_debt_score == 0
+            assert trk.summary().mem_debt_score == 0
             continue
 
         steps = 0
@@ -273,8 +275,7 @@ def _fuzz_range(bounds: tuple[int, int, int]) -> int:
                 assert 1 <= out.tour_fin <= 8
                 assert 0.0 <= out.ratio_arbres <= 1.0
                 assert not trk.violations
-                if mode <= 3:
-                    assert trk.summary().mem_debt_score == 0
+                assert trk.summary().mem_debt_score == 0
                 break
 
             choice = choose_b0(state, out)

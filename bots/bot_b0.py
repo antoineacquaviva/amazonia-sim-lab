@@ -444,7 +444,7 @@ class BotB0:
 
         if dtype == DEC_MAMMIFERE_DUEL_2:
             if (
-                obs.duel_state != DUEL_TERRITOIRE_TENU
+                obs.duel_state[0] != DUEL_TERRITOIRE_TENU
                 and "POSER_DUEL_DEFI" in opts
             ):
                 return "POSER_DUEL_DEFI"

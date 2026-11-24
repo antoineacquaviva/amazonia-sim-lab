@@ -101,12 +101,32 @@ def evaluate_horizon_state(state: GameState) -> float:
             rat_pen = 0.018 if st == MACHINE_STATUS_RATISSAGE else 0.0
             danger += 0.012 * depth_w + 0.008 * net_pow + rat_pen
 
-    # Actifs défensifs, dilution Sabotage et progression coopérative sur le plateau
+    # Actifs défensifs, dilution Sabotage/Écaille et progression coopérative sur le plateau
     assets = 0.0
     rem_turns = max(0, 8 - state.tour)
-    sab_tot = min(4, state.sabotage_deck_count + state.sabotage_pending_count)
+    sab_tot = min(
+        6,
+        state.sabotage_deck_count
+        + state.sabotage_pending_count
+        + state.ecaille_deck_count
+        + state.ecaille_pending_count,
+    )
     if sab_tot > 0 and rem_turns > 0:
         assets += 0.0055 * rem_turns * sab_tot
+    if state.get_croc_parcel() is not None and rem_turns > 0:
+        assets += 0.008
+    if state.get_duel_state()[0] == 2 and rem_turns > 0:
+        assets += 0.006
+    for r in range(n):
+        for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            pos, st, _ = state.get_machine_pos_status(r, mt)
+            if st == MACHINE_STATUS_RETIRED or pos == 0:
+                continue
+            if rem_turns > 0:
+                if state.has_machine_alteration(r, mt):
+                    assets += 0.012
+                if state.get_machine_cale(r, mt) != 0:
+                    assets += 0.007
 
     for r in range(n):
         for p in range(1, p_max + 1):
@@ -121,6 +141,11 @@ def evaluate_horizon_state(state: GameState) -> float:
             st_l, _ = state.get_lisiere_tile_state(slot_idx)
             if st_l == LISIERE_CONSTRUCTED:
                 assets += 0.012
+            elif state.is_slot_rooted(slot_idx):
+                rinfo = state.get_slot_rooted_info(slot_idx)
+                if rinfo is not None and not state.is_route_forestiere(rinfo[0], rinfo[1]):
+                    sch = state.get_parcel_souches(rinfo[0], rinfo[1])
+                    assets += 0.014 * min(sch, rinfo[2])
         for rk in range(TRACK_LEN):
             code = state.get_tactique_at_rank(rk)
             if is_reve_code(code):

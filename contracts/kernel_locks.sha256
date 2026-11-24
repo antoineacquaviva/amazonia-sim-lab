@@ -1,6 +1,6 @@
-# Socle v6.2 (schema_version = 6.2.0) — Noyau scellé Chantier 4 (Piste Gardiens 6 icônes Résonance pos 6 + compteur 3 bits, Accessoires 3+3, Enracinement volontaire Lot 0, INV-01..INV-22)
+# Socle v6.2 (schema_version = 6.2.0) — Noyau scellé Chantier 5 (Canon 0 30 tuiles ACTIVE_VERIFIED, 35 témoins, INV-01..INV-22, 0 mem_debt Mode 4)
 # Empreintes SHA-256 vérifiées par la porte [1/10] de verify_lot.py.
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-200d9e124d9ae9ca1e91356f9965202b350e8d1eadfd687c812b3695162e41f6  engine/state.py
-7226fa2bb8b5caad6b5d08f14762b0588b34f1f37c352933129e9b40ee892049  engine/primitives.py
-cc52e3a7ec8faadac184c3fd0af9ae75b570c3b8f40a4be87577cecbab7da3c1  engine/core_engine.py
+65079ea4879410a0e95bbdc36cb1ec292e78c6cd2e4bf04cc7fef3b586ca970f  engine/state.py
+c03f33c19f789ed9784424f05f012d96a82fa8364e0d16ed45242d6c4051ff7f  engine/primitives.py
+da70d67389c1174f5e6aa835cae0d59efef4a295154a077292649b2c5dff08b5  engine/core_engine.py

@@ -39,7 +39,12 @@ from engine.state import (
 )
 
 __all__ = (
+    "BENCHMARK_ASSISE_KEYS",
+    "CANON0_ACTIVE_PROFILES",
+    "CANONICAL_PEUPLES_ORDER_197",
+    "LOT0_NEUTRE_PROFILES",
     "MANDATORY_6_CIRCLES",
+    "CanonicalAssise",
     "CausalForksSummary",
     "MicroForkAggregate",
     "MicroForkRecord",
@@ -48,6 +53,11 @@ __all__ = (
     "all_canonical_mirror_pairs",
     "balanced_neighbor_mirror_pairs",
     "balanced_neighbor_mirror_tables",
+    "build_paired_197_calibration_configs",
+    "build_plan_canon0_197",
+    "build_plan_lot0_197",
+    "canonicalize_dihedral_assise",
+    "enumerate_197_canonical_assises",
     "inter_block_ci95",
     "micro_fork",
     "mirror_peuples",
@@ -1090,4 +1100,161 @@ def run_v6_1_causal_forks_on_config(
         has_furt_rive_sabotage_fork=has_furt_rs,
         delta_v_furt_rive_sabotage=dv_furt_rs,
     )
+
+
+# ---------------------------------------------------------------------------
+# Plans exhaustifs v6.2 sur les 197 Assises Canoniques Diédrales (Lot 0 & Canon 0)
+# ---------------------------------------------------------------------------
+
+CANONICAL_PEUPLES_ORDER_197: tuple[str, ...] = ("H", "E", "M", "R", "O", "I")
+_CANON_RANK_197: dict[str, int] = {p: idx for idx, p in enumerate(CANONICAL_PEUPLES_ORDER_197)}
+
+LOT0_NEUTRE_PROFILES: tuple[tuple[str, str], ...] = tuple(
+    [(f"G{i}", "NEUTRE") for i in range(1, 16)]
+    + [(f"R{i}", "NEUTRE") for i in range(1, 11)]
+    + [(f"M{i}", "NEUTRE") for i in range(1, 6)]
+)
+
+CANON0_ACTIVE_PROFILES: tuple[tuple[str, str], ...] = tuple(
+    [(f"G{i}", "A") for i in range(1, 16)]
+    + [(f"R{i}", "A") for i in range(1, 11)]
+    + [(f"M{i}", "A") for i in range(1, 6)]
+)
+
+BENCHMARK_ASSISE_KEYS: tuple[str, ...] = (
+    "N3-HEI",
+    "N3-ERI",
+    "N3-HER",
+    "N3-MOI",
+    "N3-MRO",
+    "N6-HEMROI",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CanonicalAssise:
+    """Assise diédrale canonique v6.2 (isomorphe à `docs/explorer_v6_2.js`)."""
+
+    index: int  # 1..197
+    n_players: int  # 3..6
+    key: str  # ex. "N3-HEI", "N6-HEMROI"
+    composition_key: str  # sous-ensemble non ordonné canonique (42 compositions)
+    peuples: tuple[str, ...]
+
+
+def canonicalize_dihedral_assise(peuples: tuple[str, ...]) -> tuple[str, tuple[str, ...]]:
+    """Retourne `(canon_key, canon_seq)` invariant par rotation et symétrie miroir (ordre H,E,M,R,O,I)."""
+    n = len(peuples)
+    assert 3 <= n <= 6
+    best: tuple[str, ...] | None = None
+    best_rank: tuple[int, ...] | None = None
+    for seq in (peuples, tuple(reversed(peuples))):
+        for shift in range(n):
+            rot = seq[shift:] + seq[:shift]
+            rk = tuple(_CANON_RANK_197[p] for p in rot)
+            if best_rank is None or rk < best_rank:
+                best_rank = rk
+                best = rot
+    assert best is not None
+    return (f"N{n}-{''.join(best)}", best)
+
+
+def enumerate_197_canonical_assises() -> tuple[CanonicalAssise, ...]:
+    """Énumère exactement les 197 assises diédrales canoniques (20 à 3J, 45 à 4J, 72 à 5J, 60 à 6J)."""
+    out: list[CanonicalAssise] = []
+    global_idx = 1
+    for n in (3, 4, 5, 6):
+        seen_n: set[str] = set()
+        for subset in combinations(CANONICAL_PEUPLES_ORDER_197, n):
+            comp_key = f"N{n}-{''.join(subset)}"
+            first = subset[0]
+            for tail in permutations(subset[1:]):
+                key, canon_seq = canonicalize_dihedral_assise((first, *tail))
+                if key in seen_n:
+                    continue
+                seen_n.add(key)
+                out.append(
+                    CanonicalAssise(
+                        index=global_idx,
+                        n_players=n,
+                        key=key,
+                        composition_key=comp_key,
+                        peuples=canon_seq,
+                    )
+                )
+                global_idx += 1
+    assert len(out) == 197
+    return tuple(out)
+
+
+def build_plan_lot0_197(
+    reps_per_assise: int = 8,
+    *,
+    exp_seed: int = 20260620,
+    max_revision_passes: int = 3,
+) -> tuple[tuple[CanonicalAssise, GameConfig], ...]:
+    """Plan exhaustif `Lot 0` (Mode 3, 30 tuiles `NEUTRE`) sur les 197 assises canoniques."""
+    assert reps_per_assise >= 1
+    assises = enumerate_197_canonical_assises()
+    plan: list[tuple[CanonicalAssise, GameConfig]] = []
+    for assise in assises:
+        for rep in range(reps_per_assise):
+            rep_id = assise.index * 1000 + rep
+            cfg = GameConfig(
+                n_players=assise.n_players,
+                mode=3,
+                peuples=assise.peuples,
+                exp_seed=exp_seed,
+                rep_id=rep_id,
+                max_revision_passes=max_revision_passes,
+                tile_profiles=LOT0_NEUTRE_PROFILES,
+            )
+            plan.append((assise, cfg))
+    return tuple(plan)
+
+
+def build_plan_canon0_197(
+    reps_per_assise: int = 8,
+    *,
+    exp_seed: int = 20260620,
+    max_revision_passes: int = 3,
+) -> tuple[tuple[CanonicalAssise, GameConfig], ...]:
+    """Plan exhaustif `Canon 0` (Mode 4, 30 profils `A`) apparié CRN sur les 197 assises canoniques."""
+    assert reps_per_assise >= 1
+    assises = enumerate_197_canonical_assises()
+    plan: list[tuple[CanonicalAssise, GameConfig]] = []
+    for assise in assises:
+        for rep in range(reps_per_assise):
+            rep_id = assise.index * 1000 + rep
+            cfg = GameConfig(
+                n_players=assise.n_players,
+                mode=4,
+                peuples=assise.peuples,
+                exp_seed=exp_seed,
+                rep_id=rep_id,
+                max_revision_passes=max_revision_passes,
+                tile_profiles=CANON0_ACTIVE_PROFILES,
+            )
+            plan.append((assise, cfg))
+    return tuple(plan)
+
+
+def build_paired_197_calibration_configs(
+    reps_per_assise: int = 8,
+    *,
+    exp_seed: int = 20260620,
+    max_revision_passes: int = 3,
+) -> tuple[tuple[CanonicalAssise, GameConfig, GameConfig], ...]:
+    """Retourne les paires CRN exactes `(assise, cfg_lot0, cfg_canon0)` sur les 197 assises."""
+    plan_l0 = build_plan_lot0_197(
+        reps_per_assise=reps_per_assise,
+        exp_seed=exp_seed,
+        max_revision_passes=max_revision_passes,
+    )
+    plan_c0 = build_plan_canon0_197(
+        reps_per_assise=reps_per_assise,
+        exp_seed=exp_seed,
+        max_revision_passes=max_revision_passes,
+    )
+    return tuple((a, cfg_l0, cfg_c0) for (a, cfg_l0), (_, cfg_c0) in zip(plan_l0, plan_c0, strict=True))
 

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import inspect
 import json
 import os
 import re
 import shutil
 import subprocess
 import sys
+import textwrap
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -355,9 +357,10 @@ def lint_tiles_canon_dict(
             label = f"{source_label}.{slot_id}:{prof_key}"
             if require_engine_sync_status:
                 sync_status = prof.get("engine_sync_status")
-                if sync_status not in ("PENDING_KERNEL_V6_2", "ACTIVE_VERIFIED"):
+                if sync_status != "ACTIVE_VERIFIED":
                     errors.append(
-                        f"{label}: engine_sync_status invalide ({sync_status!r})"
+                        f"{label}: engine_sync_status doit valoir 'ACTIVE_VERIFIED' "
+                        f"(obtenu {sync_status!r} — 0 tuile PENDING tolérée)"
                     )
 
             raw_text = str(prof.get("texte", "")).strip()
@@ -417,6 +420,73 @@ def lint_tiles_canon_dict(
     return errors
 
 
+def _is_trivial_noop_stmt(stmt: ast.stmt) -> bool:
+    """Vrai si l'instruction AST ne produit aucun effet (docstring, pass, return None, `_ = ...`)."""
+    if isinstance(stmt, ast.Pass):
+        return True
+    if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
+        return True
+    if isinstance(stmt, ast.Return) and (
+        stmt.value is None
+        or (isinstance(stmt.value, ast.Constant) and stmt.value.value is None)
+    ):
+        return True
+    return (
+        isinstance(stmt, ast.Assign)
+        and all(isinstance(t, ast.Name) and t.id == "_" for t in stmt.targets)
+        and isinstance(stmt.value, (ast.Name, ast.Tuple, ast.Constant))
+    )
+
+
+def check_active_tile_handlers_non_noop(
+    tiles_map: Mapping[str, Mapping[str, Any]],
+) -> tuple[int, list[str]]:
+    """Vérifie par AST que chaque profil `ACTIVE_VERIFIED` possède un handler enregistré non-no-op."""
+    import engine.effects  # noqa: F401
+    from engine.effects.registry import get_tile_registration
+
+    checked = 0
+    errors: list[str] = []
+    for slot_id, slot in sorted(tiles_map.items()):
+        profils = slot.get("profils")
+        if not isinstance(profils, Mapping):
+            continue
+        for prof_key, prof in sorted(profils.items()):
+            if prof.get("engine_sync_status") != "ACTIVE_VERIFIED":
+                continue
+            checked += 1
+            reg = get_tile_registration(str(slot_id), str(prof_key))
+            if reg is None:
+                errors.append(
+                    f"{slot_id}:{prof_key} marqué ACTIVE_VERIFIED mais absent du registre @register_tile"
+                )
+                continue
+            if not reg.hooks:
+                errors.append(
+                    f"{slot_id}:{prof_key} enregistré sans aucun hook ({reg.handler.__name__})"
+                )
+                continue
+            try:
+                src = textwrap.dedent(inspect.getsource(reg.handler))
+                tree = ast.parse(src)
+            except (OSError, TypeError, SyntaxError) as exc:
+                errors.append(
+                    f"{slot_id}:{prof_key}: impossible d'analyser l'AST du handler {reg.handler!r} ({exc})"
+                )
+                continue
+            fn_node = next(
+                (n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))),
+                None,
+            )
+            if fn_node is None or not any(
+                not _is_trivial_noop_stmt(st) for st in fn_node.body
+            ):
+                errors.append(
+                    f"{slot_id}:{prof_key}: handler no-op détecté ({reg.handler.__name__})"
+                )
+    return checked, errors
+
+
 def verify_tiles_canon() -> None:
     """Linter automatique Canon 0 sur contracts/tiles_canon_v6_2.json et CATALOGUE_TUILES."""
     if not TILES_CANON_FILE.is_file():
@@ -451,6 +521,13 @@ def verify_tiles_canon() -> None:
             "et docs/data/amazonia_data_v6_0.js['CATALOGUE_TUILES']"
         )
 
+    verified_handlers, noop_errors = check_active_tile_handlers_non_noop(canon_tiles)
+    errors.extend(noop_errors)
+    if verified_handlers != 30:
+        errors.append(
+            f"Nombre de profils ACTIVE_VERIFIED invalide : attendu 30, obtenu {verified_handlers}"
+        )
+
     if errors:
         raise RuntimeError("VIOLATION Linter Tuiles Canon 0 :\n" + "\n".join(errors))
 
@@ -461,7 +538,7 @@ def verify_tiles_canon() -> None:
     )
     print(
         f"[5/10] Linter Tuiles Canon 0 ({len(canon_tiles)} slots, {faces_total} faces ≤ 25 mots, "
-        "clôture I & autonomie A=0) : OK"
+        f"{verified_handlers}/30 ACTIVE_VERIFIED, 0 PENDING, 0 no-op, clôture I & autonomie A=0) : OK"
     )
 
 

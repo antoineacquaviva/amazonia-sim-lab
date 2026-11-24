@@ -208,9 +208,20 @@ def derive_economie_bot(
     if "SABOTAGE" in tags or "ECAILLE" in tags:
         outputs.append("RES_DILUTION_SABOTAGE")
 
+    _icon_to_trig = {
+        "ICONE_PARADE": "TRIG_1",
+        "ICONE_PIEGEAGE": "TRIG_2",
+        "ICONE_SABOTAGE": "TRIG_3",
+        "ICONE_REVE": trig_reve,
+        "ICONE_INSECTE": f"TRIG_{int(codes.get('INSECTE', 5))}",
+        "ICONE_RESONANCE": trig_resonance,
+    }
     if isinstance(declencheurs_amorces, list):
-        for trig_num in declencheurs_amorces:
-            tok = f"TRIG_{int(trig_num)}"
+        for raw_trig in declencheurs_amorces:
+            if isinstance(raw_trig, str):
+                tok = _icon_to_trig.get(raw_trig.strip().upper(), "")
+            else:
+                tok = f"TRIG_{int(raw_trig)}"
             if tok in TRIG_VOCAB:
                 outputs.append(tok)
 
