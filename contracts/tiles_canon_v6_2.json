@@ -1,0 +1,5100 @@
+{
+  "_meta": {
+    "projet": "Amazonia : Dernier Rempart — Catalogue Canon 0 v6.2",
+    "schema_version": "6.2.0",
+    "lot": "Canon 0 définitif (30 emplacements · 30 profils A · 48 faces · 35 témoins)",
+    "genere_le": "2026-11-24",
+    "socle": "Cœur v6.2 unifié (P4_2233 + départ décalé Bulldozer p1 / Abatteuse p2, sac opaque de jetons, Réglette fixe à bandelette d'Acte, Piste des Gardiens à 6 icônes avec Résonance en 6e position, Asymétrie Hybride 3+3, Enracinement volontaire)",
+    "slots_count": 30,
+    "profiles_count": 30,
+    "faces_count": 48,
+    "temoins_count": 35,
+    "migrations_note": "Déviation de dé ±1 et Bouclier de lisière facultatif sont désormais des règles natives du Module Essaim (plus de tuiles de synergie séparées).",
+    "engine_sync_status_summary": "PENDING_KERNEL_V6_2 (bascule vers ACTIVE_VERIFIED au Chantier 5)"
+  },
+  "carte_des_roles": {
+    "methode": "Énumération exhaustive : 15 couplages exclus × 2 orientations face-cohérentes × 4 paires de faces (2K3) × 216 placements de catalyseurs (i)+(ii) × 48 placements de leviers × placements d’Enracinement (3–4) × placements de 2 lois ; contraintes dures C04, C06–C09, ≤ 2 obligations par emplacement (≤ 1 sur un emplacement mixte, hors Twist) ; score = adéquation thématique (poids d’auteur explicites, casting §4 et Annexe A) − pénalités d’équilibre.",
+    "decisions_auteur": [
+      "Aucun Twist du Canon 0 ne porte de catalyseur d’Éveil (twists libres de toute obligation de cascade).",
+      "2 lois passives seulement (plafond C08 = 5) par hygiène cognitive ; placées sur deux Nids (M2, M3).",
+      "4 synergies d’Enracinement (cible 3–4), toutes sur emplacements 100 % fluides, une par Peuple d’origine et par lisière.",
+      "Leviers de Rêve sur 3 des 4 lisières E–X (E–M, E–R, E–O) ; E–I reste sans levier (autorisé par C07)."
+    ],
+    "cartes_admissibles_evaluees": 39312,
+    "geometrie_retenue": {
+      "lisieres_100pc_fluides": [
+        "E–O",
+        "H–M",
+        "R–I"
+      ],
+      "orientation_face_coherente_des_12_mixtes": [
+        "R10=E>I",
+        "R8=E>R",
+        "R1=H>E",
+        "R5=H>O",
+        "M4=I>H",
+        "M1=I>M",
+        "G8=M>E",
+        "G3=M>O",
+        "G15=O>I",
+        "G6=O>R",
+        "G9=R>H",
+        "G2=R>M"
+      ],
+      "faces_des_twists_2K3": [
+        "EHR",
+        "IMO"
+      ],
+      "twists_canon0": [
+        "R8=E>R",
+        "R1=H>E",
+        "M1=I>M",
+        "G3=M>O",
+        "G15=O>I",
+        "G9=R>H"
+      ],
+      "decompositions_2K3_disponibles_pour_la_phase_6": [
+        [
+          "G15",
+          "G2",
+          "G8",
+          "M4",
+          "R5",
+          "R8"
+        ],
+        [
+          "G15",
+          "G3",
+          "G9",
+          "M1",
+          "R1",
+          "R8"
+        ],
+        [
+          "G2",
+          "G3",
+          "G6",
+          "M4",
+          "R1",
+          "R10"
+        ],
+        [
+          "G6",
+          "G8",
+          "G9",
+          "M1",
+          "R10",
+          "R5"
+        ]
+      ]
+    },
+    "roles": {
+      "catalyseurs_eveil": [
+        "G7=M>H",
+        "G13=M>I",
+        "G1=M>R",
+        "G12=O>E",
+        "G11=O>H",
+        "G4=O>M",
+        "G10=R>E",
+        "G14=R>I",
+        "G5=R>O"
+      ],
+      "leviers_reve": [
+        "R7=E>M",
+        "R8=E>R",
+        "G12=O>E"
+      ],
+      "synergies_enracinement": [
+        "R2=E>H",
+        "R6=H>I",
+        "M5=I>E",
+        "G7=M>H"
+      ],
+      "lois_passives": [
+        "M3=I>O",
+        "M2=I>R"
+      ],
+      "autonomie_A0": [
+        "R2=E>H",
+        "R10=E>I",
+        "R1=H>E",
+        "R6=H>I",
+        "M5=I>E",
+        "M4=I>H"
+      ],
+      "twists": [
+        "R8=E>R",
+        "R1=H>E",
+        "M1=I>M",
+        "G3=M>O",
+        "G15=O>I",
+        "G9=R>H"
+      ]
+    },
+    "obligations_par_emplacement": {
+      "distribution": {
+        "0": 11,
+        "1": 14,
+        "2": 5
+      },
+      "doubles": [
+        "G12",
+        "G7",
+        "M5",
+        "R2",
+        "R6"
+      ],
+      "depassements": [],
+      "detail": {
+        "G1": 1,
+        "G2": 0,
+        "G3": 0,
+        "G4": 1,
+        "G5": 1,
+        "G6": 0,
+        "G7": 2,
+        "G8": 0,
+        "G9": 0,
+        "G10": 1,
+        "G11": 1,
+        "G12": 2,
+        "G13": 1,
+        "G14": 1,
+        "G15": 0,
+        "R1": 1,
+        "R2": 2,
+        "R3": 0,
+        "R4": 0,
+        "R5": 0,
+        "R6": 2,
+        "R7": 1,
+        "R8": 1,
+        "R9": 0,
+        "R10": 1,
+        "M1": 0,
+        "M2": 1,
+        "M3": 1,
+        "M4": 1,
+        "M5": 2
+      }
+    },
+    "top_5_solveur": [
+      {
+        "score": 69.9,
+        "exclues": [
+          "E–O",
+          "H–M",
+          "R–I"
+        ],
+        "faces_twists": [
+          "EHR",
+          "IMO"
+        ],
+        "twists": [
+          "R8",
+          "R1",
+          "M1",
+          "G3",
+          "G15",
+          "G9"
+        ],
+        "catalyseurs": [
+          "G7",
+          "G13",
+          "G1",
+          "G12",
+          "G11",
+          "G4",
+          "G10",
+          "G14",
+          "G5"
+        ],
+        "leviers_reve": [
+          "R7",
+          "R8",
+          "G12"
+        ],
+        "enracinement": [
+          "R2",
+          "R6",
+          "M5",
+          "G7"
+        ],
+        "lois": [
+          "M3",
+          "M2"
+        ],
+        "emplacements_a_2_obligations": 5
+      },
+      {
+        "score": 68.3,
+        "exclues": [
+          "E–O",
+          "H–M",
+          "R–I"
+        ],
+        "faces_twists": [
+          "EHR",
+          "IMO"
+        ],
+        "twists": [
+          "R8",
+          "R1",
+          "M1",
+          "G3",
+          "G15",
+          "G9"
+        ],
+        "catalyseurs": [
+          "G8",
+          "G13",
+          "G1",
+          "G12",
+          "G11",
+          "G4",
+          "G10",
+          "G14",
+          "G5"
+        ],
+        "leviers_reve": [
+          "R7",
+          "R8",
+          "G12"
+        ],
+        "enracinement": [
+          "R2",
+          "R6",
+          "M5",
+          "G7"
+        ],
+        "lois": [
+          "M3",
+          "M2"
+        ],
+        "emplacements_a_2_obligations": 4
+      },
+      {
+        "score": 68.3,
+        "exclues": [
+          "E–M",
+          "H–I",
+          "R–O"
+        ],
+        "faces_twists": [
+          "EHR",
+          "IMO"
+        ],
+        "twists": [
+          "R8",
+          "R1",
+          "M1",
+          "G3",
+          "G15",
+          "G9"
+        ],
+        "catalyseurs": [
+          "G7",
+          "G13",
+          "G1",
+          "G12",
+          "G11",
+          "G4",
+          "G10",
+          "G14",
+          "G5"
+        ],
+        "leviers_reve": [
+          "R7",
+          "R8",
+          "G12"
+        ],
+        "enracinement": [
+          "R2",
+          "R6",
+          "G7",
+          "G2"
+        ],
+        "lois": [
+          "M3",
+          "M2"
+        ],
+        "emplacements_a_2_obligations": 4
+      },
+      {
+        "score": 67.9,
+        "exclues": [
+          "E–O",
+          "H–M",
+          "R–I"
+        ],
+        "faces_twists": [
+          "EHR",
+          "IMO"
+        ],
+        "twists": [
+          "R8",
+          "R1",
+          "M1",
+          "G3",
+          "G15",
+          "G9"
+        ],
+        "catalyseurs": [
+          "G8",
+          "G7",
+          "G1",
+          "G12",
+          "G11",
+          "G4",
+          "G10",
+          "G14",
+          "G5"
+        ],
+        "leviers_reve": [
+          "R7",
+          "R8",
+          "G12"
+        ],
+        "enracinement": [
+          "R2",
+          "R6",
+          "M5",
+          "G7"
+        ],
+        "lois": [
+          "M3",
+          "M2"
+        ],
+        "emplacements_a_2_obligations": 5
+      },
+      {
+        "score": 67.9,
+        "exclues": [
+          "E–O",
+          "H–M",
+          "R–I"
+        ],
+        "faces_twists": [
+          "EHR",
+          "IMO"
+        ],
+        "twists": [
+          "R8",
+          "R1",
+          "M1",
+          "G3",
+          "G15",
+          "G9"
+        ],
+        "catalyseurs": [
+          "G7",
+          "G13",
+          "G1",
+          "G12",
+          "G11",
+          "G4",
+          "G10",
+          "G14",
+          "G5"
+        ],
+        "leviers_reve": [
+          "R8",
+          "G8",
+          "G12"
+        ],
+        "enracinement": [
+          "R2",
+          "R6",
+          "M5",
+          "G7"
+        ],
+        "lois": [
+          "M3",
+          "M2"
+        ],
+        "emplacements_a_2_obligations": 5
+      }
+    ],
+    "poids_thematiques": {
+      "twist": {
+        "M>R": 1,
+        "R>M": 1,
+        "M>O": 3,
+        "O>M": 1,
+        "R>O": 1,
+        "O>R": 2,
+        "M>H": 1,
+        "M>E": 2,
+        "R>H": 3,
+        "R>E": 2,
+        "O>H": 1,
+        "O>E": 1,
+        "M>I": 1,
+        "R>I": 0,
+        "O>I": 3,
+        "H>E": 3,
+        "E>H": 2,
+        "H>M": 2,
+        "H>R": 1,
+        "H>O": 2,
+        "H>I": 1,
+        "E>M": 2,
+        "E>R": 3,
+        "E>O": 2,
+        "E>I": 1,
+        "I>M": 3,
+        "I>R": 2,
+        "I>O": 2,
+        "I>H": 1,
+        "I>E": 1
+      },
+      "catalyseur": {
+        "M>R": 3,
+        "R>M": 1,
+        "M>O": 0,
+        "O>M": 3,
+        "R>O": 3,
+        "O>R": 1,
+        "M>H": 3,
+        "M>E": 1,
+        "M>I": 3,
+        "R>H": 1,
+        "R>E": 3,
+        "R>I": 3,
+        "O>H": 3,
+        "O>E": 3,
+        "O>I": 1
+      },
+      "levier": {
+        "E>M": 3,
+        "M>E": 1,
+        "E>R": 3,
+        "R>E": 0,
+        "E>O": 1,
+        "O>E": 3,
+        "E>I": 1,
+        "I>E": 0
+      },
+      "enracinement": {
+        "M>H": 3,
+        "R>E": 1,
+        "I>E": 3,
+        "H>I": 3,
+        "I>M": 1,
+        "I>R": 1,
+        "I>H": 1,
+        "H>M": 1,
+        "H>R": 1,
+        "R>M": 1,
+        "M>I": 1,
+        "E>R": 1,
+        "E>H": 2,
+        "E>M": 1,
+        "H>E": 1,
+        "M>R": 0,
+        "O>M": 0,
+        "R>H": 0,
+        "H>O": 0,
+        "E>O": 0,
+        "E>I": 0,
+        "I>O": 0,
+        "O>R": 0,
+        "O>I": 0,
+        "M>E": 0,
+        "R>O": 0,
+        "O>H": 0,
+        "O>E": 0,
+        "R>I": 0,
+        "M>O": 0
+      },
+      "loi": {
+        "I>R": 3,
+        "I>O": 3,
+        "E>O": 1,
+        "H>E": 0,
+        "E>H": 0,
+        "H>M": 0,
+        "H>R": 0,
+        "H>O": 0,
+        "H>I": 0,
+        "E>M": 0,
+        "E>R": 0,
+        "E>I": 0,
+        "I>M": 0,
+        "I>H": 0,
+        "I>E": 0
+      }
+    },
+    "fiches_de_role": {
+      "M>R (G1)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal M–R"
+        ],
+        "accessoires_et_etats_cites": [],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "R>M (G2)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "M"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "M>O (G3)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "O>M (G4)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal M–O"
+        ],
+        "accessoires_et_etats_cites": [
+          "A"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "R>O (G5)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal R–O"
+        ],
+        "accessoires_et_etats_cites": [
+          "O",
+          "R"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "O>R (G6)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "O"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "M>H (G7)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien M>H tourné vers {H, E, I}",
+          "Synergie d’Enracinement volontaire"
+        ],
+        "accessoires_et_etats_cites": [],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "M>E (G8)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "M"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "R>H (G9)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "R"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "R>E (G10)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien R>E tourné vers {H, E, I}"
+        ],
+        "accessoires_et_etats_cites": [
+          "E",
+          "R"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "O>H (G11)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien O>H tourné vers {H, E, I}"
+        ],
+        "accessoires_et_etats_cites": [
+          "O"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "O>E (G12)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien O>E tourné vers {H, E, I}",
+          "Levier de mouvement de Rêve — lisière E–O (C07)"
+        ],
+        "accessoires_et_etats_cites": [
+          "D"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "M>I (G13)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien M>I tourné vers {H, E, I}"
+        ],
+        "accessoires_et_etats_cites": [
+          "I",
+          "M"
+        ],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "R>I (G14)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Catalyseur d’Éveil — règle (i) : Gardien R>I tourné vers {H, E, I}"
+        ],
+        "accessoires_et_etats_cites": [
+          "I",
+          "R"
+        ],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "O>I (G15)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "H>E (R1)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+        ],
+        "accessoires_et_etats_cites": [
+          "D"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      },
+      "E>H (R2)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+          "Synergie d’Enracinement volontaire"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "E"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)",
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      },
+      "H>M (R3)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "M"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "H>R (R4)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "D"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "H>O (R5)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "H",
+          "O"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "H>I (R6)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+          "Synergie d’Enracinement volontaire"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "I"
+        ],
+        "interdits": [
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      },
+      "E>M (R7)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Levier de mouvement de Rêve — lisière E–M (C07)"
+        ],
+        "accessoires_et_etats_cites": [
+          "D"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "E>R (R8)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "Levier de mouvement de Rêve — lisière E–R (C07)"
+        ],
+        "accessoires_et_etats_cites": [
+          "D"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "E>O (R9)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "E",
+          "O"
+        ],
+        "interdits": [
+          "Insecte en entrée (exclusivité des lisières de I)"
+        ]
+      },
+      "E>I (R10)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+        ],
+        "accessoires_et_etats_cites": [
+          "D",
+          "E",
+          "I"
+        ],
+        "interdits": [
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      },
+      "I>M (M1)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "Twist du Canon 0 (emplacement mixte)",
+        "obligations_dures": [
+          "aucune"
+        ],
+        "accessoires_et_etats_cites": [
+          "I"
+        ],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "I>R (M2)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Loi passive (1 des 2 emplacements-lois ; plafond C08 = 5, ≤ 2 par assise)"
+        ],
+        "accessoires_et_etats_cites": [
+          "I"
+        ],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "I>O (M3)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Loi passive (1 des 2 emplacements-lois ; plafond C08 = 5, ≤ 2 par assise)"
+        ],
+        "accessoires_et_etats_cites": [
+          "I",
+          "O"
+        ],
+        "interdits": [
+          "position de Rêve en entrée (4 assises sans Rêve)"
+        ]
+      },
+      "I>H (M4)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "mixte (profil A fluide ; profil C = futur Twist candidat)",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+        ],
+        "accessoires_et_etats_cites": [
+          "H",
+          "I"
+        ],
+        "interdits": [
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      },
+      "I>E (M5)": {
+        "presence": "64 assises : 4 / 12 / 24 / 24",
+        "statut": "100 % fluide",
+        "obligations_dures": [
+          "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+          "Synergie d’Enracinement volontaire"
+        ],
+        "accessoires_et_etats_cites": [
+          "I"
+        ],
+        "interdits": [
+          "toute dépendance aux Gardiens (table {H, E, I})"
+        ]
+      }
+    }
+  },
+  "rapport_audit_197": {
+    "verdict_global": "CONFORME FINAL — 197 assises validées, 0 défaut linter v6.2, 0 code d'étape, 0 mention de pioche obsolète, moyenne abaissée à 17.4 mots/face (max 25 mots).",
+    "assises": {
+      "total": 197,
+      "par_N": {
+        "N3": 20,
+        "N4": 45,
+        "N5": 72,
+        "N6": 60
+      },
+      "compositions": 42,
+      "presence_par_emplacement": "64 assises (4 / 12 / 24 / 24) pour chacun des 30 emplacements"
+    },
+    "C01_mem_debt": {
+      "verdict": "OK",
+      "detail": "aucun modificateur flottant (« pour ce tour », « jusqu’à la fin du tour »…) ; tout état est porté par un pion, un jeton, un jeton du sac ou une face de tuile ; 34 témoins rejoués sur pièces physiques."
+    },
+    "C02_textes": {
+      "verdict": "OK",
+      "faces": 48,
+      "faces_conformes": 48,
+      "mots_max": 25,
+      "mots_moyen_avant_epure": 18.2,
+      "mots_moyen_apres_epure": 17.4,
+      "regle": "≤ 25 mots (comptage strict, élisions séparées), 1 phrase, ≤ 1 condition, 0 code d'étape, 0 jargon de pioche obsolète, 0 qualificatif redondant, 0 vestige antérieur"
+    },
+    "C03_cloture": {
+      "verdict": "OK",
+      "tuiles_en_defaut": [],
+      "insectes_hors_lisieres_I": [],
+      "bleu_en_entree": "aucune tuile n'exige de Bleu en entrée ; producteurs de Bleu par retournement d'un Rouge : G6 (Face 1 et Face 2), M4 (option 4.2), G1 (Face 2) — consommé nativement par le Seuil d'Assaut/Ratissage en 5.1"
+    },
+    "C04_A0": {
+      "verdict": "OK",
+      "tuiles": [
+        "R1",
+        "R2",
+        "R6",
+        "R10",
+        "M4",
+        "M5"
+      ],
+      "dependances_gardien": []
+    },
+    "C05_divergence": {
+      "verdict": "OK",
+      "lisieres": [
+        {
+          "lisiere": "M–R",
+          "tuiles": [
+            "G1",
+            "G2"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "SABOTAGE"
+          ],
+          "divergent": true,
+          "chaine_etats": "G1→G2",
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": true
+        },
+        {
+          "lisiere": "M–O",
+          "tuiles": [
+            "G3",
+            "G4"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "PARI_GLISSE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "R–O",
+          "tuiles": [
+            "G5",
+            "G6"
+          ],
+          "sortie_principale": [
+            "CROC",
+            "RANG_MACHINE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "M–H",
+          "tuiles": [
+            "G7",
+            "R3"
+          ],
+          "sortie_principale": [
+            "PIEGE",
+            "DEFENSEUR_REDEPLOYE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "M–E",
+          "tuiles": [
+            "G8",
+            "R7"
+          ],
+          "sortie_principale": [
+            "RECUL",
+            "RANG_REVE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "R–H",
+          "tuiles": [
+            "G9",
+            "R4"
+          ],
+          "sortie_principale": [
+            "CALE",
+            "PIEGE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "R–E",
+          "tuiles": [
+            "G10",
+            "R8"
+          ],
+          "sortie_principale": [
+            "ECAILLE",
+            "RANG_REVE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "O–H",
+          "tuiles": [
+            "G11",
+            "R5"
+          ],
+          "sortie_principale": [
+            "PIEGE",
+            "DEFENSEUR_REDEPLOYE"
+          ],
+          "divergent": true,
+          "chaine_etats": "G11→R5",
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": true
+        },
+        {
+          "lisiere": "O–E",
+          "tuiles": [
+            "G12",
+            "R9"
+          ],
+          "sortie_principale": [
+            "RANG_REVE",
+            "ALTEREE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "M–I",
+          "tuiles": [
+            "G13",
+            "M1"
+          ],
+          "sortie_principale": [
+            "INSECTE",
+            "INSECTE_PASSAGER"
+          ],
+          "divergent": true,
+          "chaine_etats": "M1→G13",
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "R–I",
+          "tuiles": [
+            "G14",
+            "M2"
+          ],
+          "sortie_principale": [
+            "PIEGE",
+            "SABOTAGE"
+          ],
+          "divergent": true,
+          "chaine_etats": "M2→G14",
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "O–I",
+          "tuiles": [
+            "G15",
+            "M3"
+          ],
+          "sortie_principale": [
+            "RANG_MACHINE",
+            "INSECTE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "H–E",
+          "tuiles": [
+            "R1",
+            "R2"
+          ],
+          "sortie_principale": [
+            "ANNULATION",
+            "ALTEREE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "H–I",
+          "tuiles": [
+            "R6",
+            "M4"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "INSECTE"
+          ],
+          "divergent": true,
+          "chaine_etats": "R6→M4",
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        },
+        {
+          "lisiere": "E–I",
+          "tuiles": [
+            "R10",
+            "M5"
+          ],
+          "sortie_principale": [
+            "ALTEREE",
+            "INSECTE"
+          ],
+          "divergent": true,
+          "chaine_etats": null,
+          "boucle_a_deux_etats": false,
+          "cycle_de_cablage_possible": false
+        }
+      ],
+      "note": "Boucles évaluées sur les états physiques : 0. Deux cycles ne passent que par le bus des déclencheurs (G1↔G2, G11↔R5) et dépendent du câblage ; le câblage recommandé (G1 sur 1, G2 sur 3, G11 sur 3) les rompt."
+    },
+    "C06_eveil": {
+      "verdict": "OK",
+      "catalyseurs": [
+        "G7=M>H",
+        "G13=M>I",
+        "G1=M>R",
+        "G12=O>E",
+        "G11=O>H",
+        "G4=O>M",
+        "G10=R>E",
+        "G14=R>I",
+        "G5=R>O"
+      ],
+      "nombre": 9,
+      "regle_i_par_animal": {
+        "M": 2,
+        "R": 2,
+        "O": 2
+      },
+      "regle_ii_lisieres_animal_animal": {
+        "M–R": true,
+        "M–O": true,
+        "R–O": true
+      },
+      "assises_A_sup_1": 196,
+      "assises_sans_catalyseur": [],
+      "gardiens_rentables_double_ouverture": 15
+    },
+    "C07_reves": {
+      "verdict": "OK",
+      "leviers": [
+        "R7=E>M",
+        "R8=E>R",
+        "G12=O>E"
+      ],
+      "lisieres_E_couvertes": [
+        "E–M",
+        "E–O",
+        "E–R"
+      ],
+      "assises_E_sans_H": 30,
+      "compositions_E_sans_H": 11,
+      "assises_sans_levier": []
+    },
+    "C08_lois": {
+      "verdict": "OK",
+      "emplacements_lois": [
+        "M3=I>O",
+        "M2=I>R"
+      ],
+      "nombre": 2,
+      "distribution_lois_par_assise": {
+        "0": 85,
+        "1": 96,
+        "2": 16
+      },
+      "max_par_assise": 2
+    },
+    "C09_twists_2K3": {
+      "verdict": "OK",
+      "lisieres_100pc_fluides_exclues": [
+        "E–O",
+        "H–M",
+        "R–I"
+      ],
+      "orientations_2_sortants": 38,
+      "orientations_face_coherentes": 2,
+      "emplacements_mixtes": [
+        "R10=E>I",
+        "R8=E>R",
+        "R1=H>E",
+        "R5=H>O",
+        "M4=I>H",
+        "M1=I>M",
+        "G8=M>E",
+        "G3=M>O",
+        "G15=O>I",
+        "G6=O>R",
+        "G9=R>H",
+        "G2=R>M"
+      ],
+      "faces_twists": [
+        "EHR",
+        "IMO"
+      ],
+      "twists": [
+        "R8=E>R",
+        "R1=H>E",
+        "M1=I>M",
+        "G3=M>O",
+        "G15=O>I",
+        "G9=R>H"
+      ],
+      "decompositions_2K3_disponibles": [
+        [
+          "G15",
+          "G2",
+          "G8",
+          "M4",
+          "R5",
+          "R8"
+        ],
+        [
+          "G15",
+          "G3",
+          "G9",
+          "M1",
+          "R1",
+          "R8"
+        ],
+        [
+          "G2",
+          "G3",
+          "G6",
+          "M4",
+          "R1",
+          "R10"
+        ],
+        [
+          "G6",
+          "G8",
+          "G9",
+          "M1",
+          "R10",
+          "R5"
+        ]
+      ],
+      "un_twist_par_peuple_origine": true,
+      "distribution_par_N": {
+        "N3": {
+          "1": "90 %",
+          "3": "10 %"
+        },
+        "N4": {
+          "0": "20 %",
+          "2": "80 %"
+        },
+        "N5": {
+          "1": "50 %",
+          "3": "50 %"
+        },
+        "N6": {
+          "0": "10 %",
+          "2": "60 %",
+          "4": "30 %"
+        }
+      }
+    },
+    "C10_moteurs": {
+      "verdict": "OK",
+      "definition": "Moteur complet = chaîne source → tuile(s) → paiement terminal ; appui = 1 tuile + cœur/accessoire ; majeur = ≥ 2 tuiles liées par un état (ou par le bus des déclencheurs vers un pari) ; distincts = sans tuile commune (couplage maximum exact).",
+      "par_N": {
+        "N3": {
+          "assises": 20,
+          "plancher": 2,
+          "moteurs_distincts_min": 6,
+          "majeurs_inter_lisieres_min": 2,
+          "majeurs_inter_lisieres_moy": 2.9
+        },
+        "N4": {
+          "assises": 45,
+          "plancher": 3,
+          "moteurs_distincts_min": 8,
+          "majeurs_inter_lisieres_min": 3,
+          "majeurs_inter_lisieres_moy": 3.98
+        },
+        "N5": {
+          "assises": 72,
+          "plancher": 3,
+          "moteurs_distincts_min": 10,
+          "majeurs_inter_lisieres_min": 5,
+          "majeurs_inter_lisieres_moy": 5.0
+        },
+        "N6": {
+          "assises": 60,
+          "plancher": 4,
+          "moteurs_distincts_min": 12,
+          "majeurs_inter_lisieres_min": 6,
+          "majeurs_inter_lisieres_moy": 6.0
+        }
+      },
+      "assises_sous_plancher": [],
+      "tuiles_isolees": "aucune (toutes ≤ 6 % hors moteur majeur inter-lisières)",
+      "part_assises_hors_moteur_majeur": {
+        "R1": "2 %"
+      },
+      "exemples": {
+        "N3-HER": {
+          "moteurs_appui": [
+            "G10",
+            "G9",
+            "R1",
+            "R2",
+            "R4",
+            "R8"
+          ],
+          "chaines_majeures": [
+            "G10→G9",
+            "G10→R4",
+            "G9→G10",
+            "R1→G10",
+            "R1→G9",
+            "R2→G10",
+            "R2→R4",
+            "R4→G10",
+            "R4→G9",
+            "R8→G10",
+            "R8→G9",
+            "R8→R2"
+          ],
+          "majeurs_disjoints": 3
+        },
+        "N3-HEI": {
+          "majeurs_disjoints": 2,
+          "nb_arcs": 5,
+          "arcs_echantillon": [
+            "M4→M5",
+            "M5→M4",
+            "R10→M4",
+            "R10→R2",
+            "R6→M5"
+          ]
+        },
+        "N3-MRO": {
+          "moteurs_appui": [
+            "G1",
+            "G2",
+            "G3",
+            "G4",
+            "G5",
+            "G6"
+          ],
+          "chaines_majeures": [
+            "G1→G2",
+            "G1→G3",
+            "G1→G4",
+            "G1→G5",
+            "G1→G6",
+            "G2→G1",
+            "G2→G3",
+            "G2→G4",
+            "G2→G5",
+            "G2→G6",
+            "G3→G1",
+            "G3→G2",
+            "G3→G4",
+            "G3→G5",
+            "G3→G6",
+            "G5→G1",
+            "G5→G2",
+            "G5→G3",
+            "G5→G4",
+            "G5→G6"
+          ],
+          "majeurs_disjoints": 3
+        },
+        "N3-MOI": {
+          "moteurs_appui": [
+            "G13",
+            "G15",
+            "G3",
+            "G4",
+            "M1",
+            "M3"
+          ],
+          "chaines_majeures": [
+            "G13→G15",
+            "G13→G3",
+            "G13→G4",
+            "G3→G13",
+            "G3→G15",
+            "G3→G4",
+            "M1→G13",
+            "M1→G15",
+            "M1→G3",
+            "M1→G4",
+            "M3→G13",
+            "M3→G15",
+            "M3→G3",
+            "M3→G4"
+          ],
+          "majeurs_disjoints": 3
+        },
+        "N4-HEMR": {
+          "moteurs_appui": [
+            "G1",
+            "G2",
+            "G8",
+            "G9",
+            "R1",
+            "R2",
+            "R4",
+            "R7"
+          ],
+          "chaines_majeures": [
+            "G1→G2",
+            "G1→G8",
+            "G1→G9",
+            "G2→G1",
+            "G2→G8",
+            "G2→G9",
+            "G9→G1",
+            "G9→G2",
+            "G9→G8",
+            "R1→G1",
+            "R1→G2",
+            "R1→G8",
+            "R1→G9",
+            "R2→R4",
+            "R4→G1",
+            "R4→G2",
+            "R4→G8",
+            "R4→G9",
+            "R7→G1",
+            "R7→G2",
+            "R7→G8",
+            "R7→G9",
+            "R7→R2"
+          ],
+          "majeurs_disjoints": 4
+        },
+        "N6-HEMROI": {
+          "moteurs_appui": [
+            "G1",
+            "G15",
+            "G2",
+            "G5",
+            "G6",
+            "G8",
+            "M3",
+            "M4",
+            "R1",
+            "R2",
+            "R6",
+            "R7"
+          ],
+          "chaines_majeures": [
+            "G1→G15",
+            "G1→G2",
+            "G1→G5",
+            "G1→G6",
+            "G1→G8",
+            "G2→G1",
+            "G2→G15",
+            "G2→G5",
+            "G2→G6",
+            "G2→G8",
+            "G5→G1",
+            "G5→G15",
+            "G5→G2",
+            "G5→G6",
+            "G5→G8",
+            "M3→G1",
+            "M3→G15",
+            "M3→G2",
+            "M3→G5",
+            "M3→G6",
+            "M3→G8",
+            "M4→G1",
+            "M4→G15",
+            "M4→G2",
+            "M4→G5",
+            "M4→G6",
+            "M4→G8",
+            "R1→G1",
+            "R1→G15",
+            "R1→G2",
+            "R1→G5",
+            "R1→G6",
+            "R1→G8",
+            "R6→G1",
+            "R6→G15",
+            "R6→G2",
+            "R6→G5",
+            "R6→G6",
+            "R6→G8",
+            "R6→M3",
+            "R6→M4",
+            "R7→G1",
+            "R7→G15",
+            "R7→G2",
+            "R7→G5",
+            "R7→G6",
+            "R7→G8",
+            "R7→R2"
+          ],
+          "majeurs_disjoints": 6
+        },
+        "N3-ERI": {
+          "majeurs_disjoints": 3,
+          "nb_arcs": 11,
+          "arcs_echantillon": [
+            "G10→G14",
+            "G14→G10",
+            "M2→G10",
+            "M5→G10",
+            "M5→G14",
+            "M5→M2",
+            "R10→G10",
+            "R10→G14",
+            "R10→M2",
+            "R8→G14",
+            "R8→R10"
+          ]
+        }
+      }
+    },
+    "enracinement": {
+      "verdict": "OK",
+      "emplacements": [
+        "R2=E>H",
+        "R6=H>I",
+        "M5=I>E",
+        "G7=M>H"
+      ],
+      "nombre": 4,
+      "tous_100pc_fluides": true,
+      "un_par_peuple_et_par_lisiere": true
+    },
+    "orphelins": {
+      "verdict": "OK",
+      "sorties_sans_consommateur": [],
+      "entrees_sans_source": []
+    },
+    "temoins_executables": {
+      "verdict": "OK",
+      "passes": 34,
+      "total": 34
+    },
+    "C11_C14_cibles": "Non évaluables en statique : prix a priori (barème H0) fournis par tuile ; à mesurer par le Lot 0 puis la campagne B2 sur les 197 assises, et par le playtest papier à 3 joueurs (tables N3-EHR, N3-IMO, N3-HEI)."
+  },
+  "tuiles_ciblees": {
+    "G1": {
+      "id": "G1",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "R"
+      ],
+      "origine": "M",
+      "nomBase": "Le Bond du Jaguar",
+      "profils": {
+        "A": {
+          "nom": "Le Bond du Jaguar",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "DEPLACEMENT (DEFENSEUR EN ATTENTE) + MOD_PUISSANCE",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "PARADE_CLASSIQUE",
+            "SURCHAUFFE",
+            "RECYCLAGE_DEFENSEUR"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Déplacez 1 Défenseur en attente vers une parcelle ciblée des Mammifères ou des Reptiles.<br><strong>Face 2 :</strong> Déplacez 1 Défenseur en attente vers une parcelle ciblée, puis retournez 1 jeton rouge en bleu sur une machine qui la vise.",
+          "temoin": "Sur l’icône Parade : une parade au rang 1 active le Jaguar, qui fait bondir un bâtisseur en attente sur la parcelle du Duel visée au rang 2 ; nouvelle parade, 2e activation, pari gagné.",
+          "alias_oriente": "M>R",
+          "id_profil": "M>R·A",
+          "alias_profil": "G1-A",
+          "animal_ou_theme": "Jaguar",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal M–R"
+          ],
+          "decision_joueur": {
+            "choix": "Quel Défenseur en attente (bâtisseur, Défenseur d’un Rêve ou d’une rive de Furtivité) faire bondir, et sur quelle parcelle ciblée : celle du jeton Duel (bascule en Territoire tenu) ou la plus boisée.",
+            "renoncement": "La parcelle non choisie reste découverte ; câblé sur 1 il opère en 5.1, câblé sur 3 il anticipe dès 3.2 mais sans les Défenseurs de Furtivité."
+          },
+          "entrees": [
+            "DEFENSEUR_ATTENTE"
+          ],
+          "sorties": [
+            "DEFENSEUR_REDEPLOYE",
+            "BLEU"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V4 -> V2",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.0,
+              "Face 2": 1.5
+            },
+            "composantes": {
+              "Face 1": [
+                "DEFENSEUR_REDEPLOYE"
+              ],
+              "Face 2": [
+                "DEFENSEUR_REDEPLOYE",
+                "BLEU"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [
+            1
+          ],
+          "double_ouverture": "Chaque ouverture recycle un nouveau Défenseur en attente : deux parades possibles dans le même balayage.",
+          "cablage_recommande": "ICONE_PARADE",
+          "heuristique_bot": "Câbler sur 1 ; viser en priorité la parcelle du jeton Duel si elle est ciblée, sinon la parcelle ciblée au plus grand nombre d’Arbres ; en Face 2, retourner le rouge de la machine en Assaut.",
+          "temoins": [
+            {
+              "id": "G1_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  1,
+                  1
+                ],
+                "p3-M": [
+                  3,
+                  "territoire"
+                ],
+                "paris_restants": 0
+              },
+              "journal": [
+                "B_M -> p1-M : parade par 2 Défenseur(s), Seuil 2 (1)",
+                "A_M -> p3-M : parade par 3 Défenseur(s), Seuil 3 (1)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 14,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 22,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G2": {
+      "id": "G2",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "M"
+      ],
+      "origine": "R",
+      "nomBase": "L’Étreinte de l’Anaconda",
+      "profils": {
+        "A": {
+          "nom": "L’Étreinte de l’Anaconda",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (SABOTAGE, BONUS DE TERRITOIRE)",
+          "tags": [
+            "SABOTAGE",
+            "ENTROPIE",
+            "TERRITOIRE",
+            "DEBLOCAGE_PAR_ANCRAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Ajoutez 1 jeton Sabotage au sac, ou 2 si le jeton Duel est sur <em>Territoire tenu</em>.<br><strong>Face 2 :</strong> Ajoutez 2 jetons Sabotage au sac, ou 3 si le jeton Duel est sur <em>Territoire tenu</em>.",
+          "temoin": "Jeton Duel sur Territoire tenu : l’Anaconda en Face 1 glisse immédiatement 2 jetons Sabotage de la réserve dans le sac.",
+          "alias_oriente": "R>M",
+          "id_profil": "R>M·A",
+          "alias_profil": "G2-A",
+          "animal_ou_theme": "Anaconda vert",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Les Reptiles misent sur le Territoire tenu des Mammifères pour doubler l’injection ; les Mammifères choisissent de risquer le Défi sur une parcelle vraiment frappée.",
+            "renoncement": "Un Défi posé loin des frappes ne bascule jamais : l’Anaconda reste au plancher ; une rupture du Duel coupe le bonus pour les tours suivants."
+          },
+          "entrees": [
+            "SABOTAGE"
+          ],
+          "sorties": [
+            "SABOTAGE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V3",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.4,
+              "Face 2": 2.1
+            },
+            "composantes": {
+              "Face 1": [
+                "SABOTAGE",
+                "TERRITOIRE_BONUS"
+              ],
+              "Face 2": [
+                "SABOTAGE",
+                "SABOTAGE",
+                "TERRITOIRE_BONUS"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Chaque ouverture ajoute un ou deux jetons : la dilution est cumulative.",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Câbler sur 3 (les Sabotages révélés nourrissent la cascade) ; parier dès que le Duel est sur Territoire tenu.",
+          "temoins": [
+            {
+              "id": "G2_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "cartes_sabotage_mises_de_cote": 2
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 1
+            },
+            "Face 2": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 1
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G3": {
+      "id": "G3",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "O"
+      ],
+      "origine": "M",
+      "nomBase": "La Voltige de l’Atèle",
+      "profils": {
+        "A": {
+          "nom": "La Voltige de l’Atèle",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "DEPLACEMENT (DEFENSEUR, ARCHIPEL DE SOUCHES)",
+          "tags": [
+            "TWIST",
+            "ARCHIPEL_DE_SOUCHES",
+            "MOBILITE",
+            "DESTRUCTION_VALORISEE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Déplacez 1 Défenseur d’une parcelle à Souche vers la parcelle de même profondeur d’un rayon voisin portant aussi une Souche.<br><strong>Face 2 :</strong> Déplacez jusqu’à 2 Défenseurs entre des parcelles à Souche de même profondeur, d’un rayon à l’autre sur toute la roue.",
+          "temoin": "Parcelles p2 des Mammifères et des Oiseaux toutes deux à Souche : le Défenseur de p2-M voltige sur p2-O ciblée au rang 1 et complète la parade.",
+          "alias_oriente": "M>O",
+          "id_profil": "M>O·A",
+          "alias_profil": "G3-A",
+          "animal_ou_theme": "Atèle (Singe-araignée)",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A #7 — L’archipel de Souches",
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Laisser des Souches debout comme ponts de canopée pour faire voltiger un Défenseur vers le rayon voisin menacé.",
+            "renoncement": "La parcelle quittée perd sa défense ; un Bulldozer qui efface les Souches efface aussi le pont."
+          },
+          "entrees": [
+            "SOUCHE"
+          ],
+          "sorties": [
+            "DEFENSEUR_REDEPLOYE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V1 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.0,
+              "Face 2": 2.0
+            },
+            "composantes": {
+              "Face 1": [
+                "DEFENSEUR_REDEPLOYE"
+              ],
+              "Face 2": [
+                "DEFENSEUR_REDEPLOYE",
+                "DEFENSEUR_REDEPLOYE"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Chaque ouverture fait voltiger un nouveau Défenseur.",
+          "cablage_recommande": "ICONE_PARADE",
+          "heuristique_bot": "Garder au moins une parcelle à Souche par profondeur ; déplacer un Défenseur dont la parcelle n’est plus ciblée.",
+          "temoins": [
+            {
+              "id": "G3_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "voltige_legale": true,
+                "vers_p2R_sans_souche_interdite": true,
+                "resultat": [
+                  "pare"
+                ]
+              },
+              "journal": [
+                "A_O -> p2-O : parade par 2 Défenseur(s), Seuil 2 (1)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 22,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 23,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G4": {
+      "id": "G4",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "M"
+      ],
+      "origine": "O",
+      "nomBase": "Le Cri d’Alarme de l’Ara",
+      "profils": {
+        "A": {
+          "nom": "Le Cri d’Alarme de l’Ara",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "PARTAGE_INFO_ETAT_GARDIEN (SECURISER_PARI_VOISIN)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "SECURISATION_DE_PARI",
+            "COUPLE_INSEPARABLE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Un Gardien voisin de l’Ara glisse 1 de ses Défenseurs de pari dans une encoche.<br><strong>Face 2 :</strong> Chacun des deux Gardiens voisins de l’Ara glisse 1 de ses Défenseurs de pari dans une encoche.",
+          "temoin": "Ara placé entre deux Gardiens pariés : un Piège déclenché active l’Ara (son pion glisse dans son encoche) et son cri fait aussi glisser dans son encoche le pion d’un Gardien voisin, sans activer son effet.",
+          "alias_oriente": "O>M",
+          "id_profil": "O>M·A",
+          "alias_profil": "G4-A",
+          "animal_ou_theme": "Ara rouge",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal M–O"
+          ],
+          "decision_joueur": {
+            "choix": "Où construire l’Ara sur la Piste (entre quels Gardiens pariés) et sur quel déclencheur le câbler pour que son cri sécurise aussi les paris voisins.",
+            "renoncement": "Une case voisine vide ou sans pari ne rapporte rien ; coller l’Ara à deux Gardiens pariés concentre le risque du tour sur ce trio."
+          },
+          "entrees": [
+            "GARDIEN"
+          ],
+          "sorties": [
+            "PARI_GLISSE"
+          ],
+          "paiement": [
+            "P_PARI"
+          ],
+          "vecteurs": "V5 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.0,
+              "Face 2": 2.0
+            },
+            "composantes": {
+              "Face 1": [
+                "GARDIEN_OUVERT"
+              ],
+              "Face 2": [
+                "GARDIEN_OUVERT",
+                "GARDIEN_OUVERT"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Chaque ouverture de l’Ara glisse un nouveau Défenseur de pari chez un voisin : deux ouvertures sécurisent deux paris voisins.",
+          "cablage_recommande": "ICONE_PIEGEAGE",
+          "heuristique_bot": "Construire entre deux Gardiens déjà pariés ; câbler sur le déclencheur le plus fréquent de la table (1 ou 2) ; parier 2 Défenseurs sur l’Ara.",
+          "temoins": [
+            {
+              "id": "G4_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "paris": {
+                  "2": 0,
+                  "1": 0
+                },
+                "declencheurs": [
+                  2
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G5": {
+      "id": "G5",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "O"
+      ],
+      "origine": "R",
+      "nomBase": "Le Coup de Queue de l’Iguane",
+      "profils": {
+        "A": {
+          "nom": "Le Coup de Queue de l’Iguane",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (PIEGE SPECIAL) + DEPLACEMENT (PIEGE)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "PIEGE_SPECIAL",
+            "VIGIE",
+            "MENACE_AFFICHEE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Posez le <em>Croc</em> sur une parcelle ciblée du rayon Reptile ou du rayon marqué par la Plume de Vigie.<br><strong>Face 2 :</strong> Posez le <em>Croc</em> sur une parcelle ciblée, puis déplacez 1 Piège vers une autre parcelle ciblée.",
+          "temoin": "Sur l’icône Piégeage : le Croc pare le Bulldozer au rang 1 et revient en réserve ; l’icône Piégeage réactive l’Iguane, qui repose le Croc devant l’Abatteuse (y compris en Ratissage) ; 2e parade, pari gagné.",
+          "alias_oriente": "R>O",
+          "id_profil": "R>O·A",
+          "alias_profil": "G5-A",
+          "animal_ou_theme": "Iguane vert",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (ii) : lisière Animal–Animal R–O"
+          ],
+          "decision_joueur": {
+            "choix": "Quelle parcelle ciblée reçoit l’unique Croc : le rayon Reptile ou celui que l’Oiseau a signalé avec la Plume.",
+            "renoncement": "Un seul Croc : le poser ici le retire d’ailleurs ; la Plume engagée pour l’Iguane ne guide plus un autre pari."
+          },
+          "entrees": [
+            "CROC",
+            "PLUME"
+          ],
+          "sorties": [
+            "CROC",
+            "PIEGE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V3 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.6,
+              "Face 2": 2.3
+            },
+            "composantes": {
+              "Face 1": [
+                "CROC"
+              ],
+              "Face 2": [
+                "CROC",
+                "PIEGE_DEPLACE"
+              ]
+            },
+            "activations_pour_amortir": 1.2
+          },
+          "declencheurs_amorces": [
+            2
+          ],
+          "double_ouverture": "Câblé sur 2, le Croc revenu en réserve après une parade est reposé à la 2e ouverture.",
+          "cablage_recommande": "ICONE_PIEGEAGE",
+          "heuristique_bot": "Câbler sur 2 ; poser le Croc devant l’Abatteuse la plus chargée ; Oiseaux : poser la Plume sur le rayon le plus menacé.",
+          "temoins": [
+            {
+              "id": "G5_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  2,
+                  2
+                ],
+                "paris_restants": 0
+              },
+              "journal": [
+                "B_R -> p1-R : Croc pare et revient en réserve (2)",
+                "A_R -> p3-R : Croc pare et revient en réserve (2)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 19,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G6": {
+      "id": "G6",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "R"
+      ],
+      "origine": "O",
+      "nomBase": "Le Bec du Toucan",
+      "profils": {
+        "A": {
+          "nom": "Le Bec du Toucan",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "MOD_PUISSANCE (SURCHAUFFE GUIDEE PAR LA PLUME)",
+          "tags": [
+            "SURCHAUFFE",
+            "VIGIE",
+            "RADIATEUR_THERMIQUE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Sur le rayon marqué par la Plume de Vigie, retournez 1 jeton rouge d’une machine en bleu.<br><strong>Face 2 :</strong> Retournez sur leur face bleue jusqu’à 2 jetons rouges répartis sur une ou deux machines.",
+          "temoin": "Plume au pied des Reptiles : le Toucan retourne 1 jeton rouge en bleu sur l’Abatteuse, réduisant son Seuil dès ce tour (−1 en Charge, −2 net en Assaut ou Ratissage).",
+          "alias_oriente": "O>R",
+          "id_profil": "O>R·A",
+          "alias_profil": "G6-A",
+          "animal_ou_theme": "Toucan toco",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Poser la Plume sur le rayon d’une machine chargée en rouges pour retourner sa puissance contre elle avant l’Assaut ou le Ratissage.",
+            "renoncement": "Sans jeton rouge sur le rayon marqué en Face 1, le Toucan n’a rien à refroidir ; la Plume posée ici ne guide plus un autre allié."
+          },
+          "entrees": [
+            "PLUME",
+            "ROUGE"
+          ],
+          "sorties": [
+            "BLEU"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V2",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.2,
+              "Face 2": 2.2
+            },
+            "composantes": {
+              "Face 1": [
+                "BLEU"
+              ],
+              "Face 2": [
+                "BLEU",
+                "BLEU"
+              ]
+            },
+            "activations_pour_amortir": 1.7
+          },
+          "declencheurs_amorces": [
+            1
+          ],
+          "double_ouverture": "Chaque ouverture retourne 1 nouveau jeton rouge en bleu (jusqu’à 2 par ouverture en Face 2).",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Câbler sur 3 ou 1 ; viser en priorité une machine en Assaut ou en Ratissage portant au moins 1 jeton rouge.",
+          "temoins": [
+            {
+              "id": "G6_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "seuil_avant": 4,
+                "seuil_apres": 2,
+                "bleus": 1,
+                "resultat": [
+                  "pare"
+                ]
+              },
+              "journal": [
+                "Toucan F1 : 1 rouge -> 1 bleu sur A_R ; parade à 2 Défenseurs (1)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Consolidation Canon 0 (Greffe 1) : refonte en spécialiste Surchauffe dès Face 1 via la Plume (l’ancien effet Dé d’Envol rejoint le vivier de variantes)."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G7": {
+      "id": "G7",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "H"
+      ],
+      "origine": "M",
+      "nomBase": "Le Sentier du Tapir",
+      "profils": {
+        "A": {
+          "nom": "Le Sentier du Tapir",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (PIEGE SUR SOUCHES / PARCELLES ENRACINEES)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "SOUCHES",
+            "ENRACINEMENT",
+            "JARDINIER"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Posez 1 Piège sur une parcelle ciblée portant au moins 1 Souche.<br><strong>Face 2 :</strong> Posez 1 Piège sur une parcelle ciblée à Souche, et 1 sur chaque parcelle ciblée bordée par une tuile enracinée.",
+          "temoin": "p3 des Humains porte 1 Arbre et 2 Souches face au Bulldozer : le Piège du Tapir pare la frappe et sauve les 2 Souches pour la repousse finale.",
+          "alias_oriente": "M>H",
+          "id_profil": "M>H·A",
+          "alias_profil": "G7-A",
+          "animal_ou_theme": "Tapir",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien M>H tourné vers {H, E, I}",
+            "Synergie d’Enracinement volontaire"
+          ],
+          "decision_joueur": {
+            "choix": "Protéger une parcelle à Souches ciblée (repousse future) plutôt qu’une parcelle encore boisée ; en Face 2, enraciner d’autres tuiles pour multiplier ses Pièges.",
+            "renoncement": "Chaque tuile enracinée pour le Tapir perd son pouvoir ; un Piège ne couvre qu’une frappe."
+          },
+          "entrees": [
+            "SOUCHE"
+          ],
+          "sorties": [
+            "PIEGE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_SOUCHE",
+            "P_PARI"
+          ],
+          "vecteurs": "V1 -> V3",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.4,
+              "Face 2": 2.8
+            },
+            "composantes": {
+              "Face 1": [
+                "PIEGE"
+              ],
+              "Face 2": [
+                "PIEGE",
+                "PIEGE"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [
+            2
+          ],
+          "double_ouverture": "Chaque ouverture pose un nouveau Piège sur une autre parcelle ciblée à Souche.",
+          "cablage_recommande": "ICONE_PIEGEAGE",
+          "heuristique_bot": "Câbler sur 2 ; protéger d’abord la parcelle ciblée par un Bulldozer qui porte des Souches ; enraciner à Face 2 en fin de partie.",
+          "temoins": [
+            {
+              "id": "G7_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "avec_piege": [
+                  1,
+                  2,
+                  false
+                ],
+                "sans_piege_route": true
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 12,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G8": {
+      "id": "G8",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "E"
+      ],
+      "origine": "M",
+      "nomBase": "Le Mirage du Boto",
+      "profils": {
+        "A": {
+          "nom": "Le Mirage du Boto",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "DEPLACEMENT (MACHINE, RECUL)",
+          "tags": [
+            "RECUL",
+            "TERRITOIRE",
+            "DEBLOCAGE_PAR_ANCRAGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Faites reculer d’1 parcelle une machine mobile qui vise la parcelle du jeton Duel.<br><strong>Face 2 :</strong> Faites reculer d’1 parcelle une machine mobile, ou deux si le jeton Duel est sur <em>Territoire tenu</em>.",
+          "temoin": "Abatteuse en p3 visant Devant la parcelle p4 du Défi : le Boto la fait reculer en p2, où elle frappe à blanc une clairière de Souches.",
+          "alias_oriente": "M>E",
+          "id_profil": "M>E·A",
+          "alias_profil": "G8-A",
+          "animal_ou_theme": "Boto (Dauphin rose)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Reculer la machine qui menace le Défi (le front tient) ou, en Face 2, la machine la plus proche du Ratissage.",
+            "renoncement": "Le recul peut ramener une machine sur une parcelle encore boisée et l’éloigner du Territoire tenu qui la bloquait."
+          },
+          "entrees": [
+            "DUEL"
+          ],
+          "sorties": [
+            "RECUL"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 0.8,
+              "Face 2": 1.6
+            },
+            "composantes": {
+              "Face 1": [
+                "RECUL"
+              ],
+              "Face 2": [
+                "RECUL",
+                "RECUL"
+              ]
+            },
+            "activations_pour_amortir": 2.5
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Chaque ouverture fait reculer une autre machine (ou la même d’un cran de plus).",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Reculer en priorité une Abatteuse à 1 avancée du Ratissage ou une machine dont le recul l’envoie sur une clairière.",
+          "temoins": [
+            {
+              "id": "G8_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "cible_avant": "p4",
+                "p4-M": 3,
+                "p3-M": [
+                  0,
+                  3
+                ]
+              },
+              "journal": [
+                "A_M -> p3-M : non parée, Seuil 3 -> 0 Arbre(s), 3 Souche(s)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 15,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 1
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G9": {
+      "id": "G9",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "H"
+      ],
+      "origine": "R",
+      "nomBase": "Le Guet du Caïman noir",
+      "profils": {
+        "A": {
+          "nom": "Le Guet du Caïman noir",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (SABOTAGE EN CALE)",
+          "tags": [
+            "TWIST",
+            "SABOTAGE_CALE",
+            "VERROU_D_AVANCEE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Glissez sous une machine mobile 1 jeton Sabotage de la réserve, qui annule sa prochaine avancée puis rejoint le sac.<br><strong>Face 2 :</strong> Glissez sous une machine mobile 1 jeton <em>Écaille</em> de la réserve, qui annule sa prochaine avancée puis rejoint le sac.",
+          "temoin": "Abatteuse en p3 calée, révélée au rang 3 (En avançant) : elle frappe mais n’avance pas, et le jeton Sabotage glissé dessous rejoint immédiatement le sac.",
+          "alias_oriente": "R>H",
+          "id_profil": "R>H·A",
+          "alias_profil": "G9-A",
+          "animal_ou_theme": "Caïman noir",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A #10 — Le Sabotage sert de cale",
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Caler une machine (verrou local de sa prochaine avancée) ou laisser le jeton diluer le sac tout de suite.",
+            "renoncement": "Tant qu’il cale, le jeton échappe au retour au sac et ne le dilue pas."
+          },
+          "entrees": [
+            "SABOTAGE"
+          ],
+          "sorties": [
+            "CALE",
+            "SABOTAGE",
+            "ECAILLE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V3 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.6,
+              "Face 2": 2.0
+            },
+            "composantes": {
+              "Face 1": [
+                "CALE",
+                "SABOTAGE"
+              ],
+              "Face 2": [
+                "CALE",
+                "ECAILLE"
+              ]
+            },
+            "activations_pour_amortir": 1.2
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Deux ouvertures calent deux machines (ou deux avancées de la même).",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Caler l’Abatteuse à 1 avancée du Ratissage ; en Face 2 préférer l’Écaille (elle reposera le Croc).",
+          "temoins": [
+            {
+              "id": "G9_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "position": "p3",
+                "cale_restante": 0,
+                "sabotages_pour_6.3": 1
+              },
+              "journal": [
+                "A_R -> p3-R : non parée, Seuil 2 -> 0 Arbre(s), 3 Souche(s)",
+                "A_R -> p4-R : non parée, Seuil 2 -> 0 Arbre(s), 3 Souche(s)",
+                "A_R : avancée absorbée par la cale (sabotage)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G10": {
+      "id": "G10",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "E"
+      ],
+      "origine": "R",
+      "nomBase": "L’Affût de la Matamata",
+      "profils": {
+        "A": {
+          "nom": "L’Affût de la Matamata",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (ECAILLE) + ALTERATION_MACHINE",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "ECAILLE",
+            "ENTROPIE",
+            "ALTERATION"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Ajoutez 1 jeton <em>Écaille</em> de la réserve Reptile au sac.<br><strong>Face 2 :</strong> Ajoutez 1 jeton <em>Écaille</em> au sac, puis altérez une machine mobile révélée.",
+          "temoin": "Au tour suivant, l’Écaille tirée du sac allume l’icône Sabotage à l’ouverture et pose le Croc sur une parcelle ciblée.",
+          "alias_oriente": "R>E",
+          "id_profil": "R>E·A",
+          "alias_profil": "G10-A",
+          "animal_ou_theme": "Matamata",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien R>E tourné vers {H, E, I}"
+          ],
+          "decision_joueur": {
+            "choix": "Encrasser le sac d’Écailles camouflées (chaque révélation future allume 3. Sabotage et pose le Croc) tant que la réserve en contient.",
+            "renoncement": "Réserve de 4 Écailles : une injection précoce épuise la réserve ; l’altération de Face 2 détourne une machine choisie par les Reptiles, pas par les Entités."
+          },
+          "entrees": [
+            "ECAILLE"
+          ],
+          "sorties": [
+            "ECAILLE",
+            "ALTEREE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V3 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.1,
+              "Face 2": 2.4
+            },
+            "composantes": {
+              "Face 1": [
+                "ECAILLE"
+              ],
+              "Face 2": [
+                "ECAILLE",
+                "ALTEREE"
+              ]
+            },
+            "activations_pour_amortir": 1.8
+          },
+          "declencheurs_amorces": [
+            3
+          ],
+          "double_ouverture": "Chaque ouverture ajoute une Écaille tant que la réserve en contient.",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Câbler sur 3 ; injecter tôt (Acte 1) ; en Face 2, altérer une Abatteuse proche du Ratissage.",
+          "temoins": [
+            {
+              "id": "G10_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  3,
+                  2
+                ],
+                "p2-E": 2,
+                "croc_revenu": true
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 10,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 12,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G11": {
+      "id": "G11",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "H"
+      ],
+      "origine": "O",
+      "nomBase": "Le Piqué de la Harpie",
+      "profils": {
+        "A": {
+          "nom": "Le Piqué de la Harpie",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (PIEGE GUIDE PAR LA PLUME)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "VIGIE",
+            "PIEGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Posez 1 Piège sur une parcelle ciblée du rayon marqué par la Plume de Vigie.<br><strong>Face 2 :</strong> Posez 1 Piège sur une parcelle ciblée de n’importe quel rayon, puis déplacez la Plume de Vigie.",
+          "temoin": "Plume au pied des Humains : la Harpie pose 1 Piège sur p2-H ciblée, qui pare seul la frappe et allume l’icône Piégeage.",
+          "alias_oriente": "O>H",
+          "id_profil": "O>H·A",
+          "alias_profil": "G11-A",
+          "animal_ou_theme": "Harpie féroce",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien O>H tourné vers {H, E, I}"
+          ],
+          "decision_joueur": {
+            "choix": "Où poser la Plume en 2.1/2.2, sous paravents fermés, en sachant que la Harpie y piquera après la révélation.",
+            "renoncement": "La Plume engagée pour la Harpie ne signale plus le pari Chaud ou Calme d’un autre rayon."
+          },
+          "entrees": [
+            "PLUME"
+          ],
+          "sorties": [
+            "PIEGE",
+            "PLUME"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V3 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.4,
+              "Face 2": 1.7
+            },
+            "composantes": {
+              "Face 1": [
+                "PIEGE"
+              ],
+              "Face 2": [
+                "PIEGE",
+                "PLUME_DEPLACEE"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [
+            2
+          ],
+          "double_ouverture": "Deux ouvertures posent deux Pièges sur le rayon guetté.",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Câbler sur 3 (ouverture en 3.2, avant les frappes) ; Plume sur le rayon le plus boisé.",
+          "temoins": [
+            {
+              "id": "G11_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  2
+                ],
+                "p2-H": 2
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 15,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G12": {
+      "id": "G12",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "E"
+      ],
+      "origine": "O",
+      "nomBase": "Le Chant de l’Ibijau",
+      "profils": {
+        "A": {
+          "nom": "Le Chant de l’Ibijau",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "PERMUTATION_PISTE (REVE)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "LEVIER_REVE",
+            "SOMMEIL",
+            "HYPNOSE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Faites glisser un Rêve d’1 rang vers la gauche.<br><strong>Face 2 :</strong> Faites glisser un Rêve de 2 rangs vers la gauche.",
+          "temoin": "Sur l’icône Sabotage : un Sabotage révélé active l’Ibijau avant les Rêves ; le Rêve défendu du rang 4 glisse avec son Défenseur au rang 3, annule la machine et allume l’icône Rêve.",
+          "alias_oriente": "O>E",
+          "id_profil": "O>E·A",
+          "alias_profil": "G12-A",
+          "animal_ou_theme": "Ibijau (Oiseau fantôme)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien O>E tourné vers {H, E, I}",
+            "Levier de mouvement de Rêve — lisière E–O (C07)"
+          ],
+          "decision_joueur": {
+            "choix": "Quel Rêve hypnotiser : celui qui passera sous une machine révélée (annulation, 5. Rêve) ou celui qui comble le bloc du Sommeil.",
+            "renoncement": "Le glissement pousse les Rêves contigus et peut retirer un Rêve de la case où il bloquait."
+          },
+          "entrees": [
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "RANG_REVE",
+            "ANNULATION"
+          ],
+          "paiement": [
+            "P_RANG",
+            "P_PARI"
+          ],
+          "vecteurs": "V5 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.8,
+              "Face 2": 2.4
+            },
+            "composantes": {
+              "Face 1": [
+                "RANG_REVE",
+                "ANNULATION"
+              ],
+              "Face 2": [
+                "RANG_REVE",
+                "RANG_REVE",
+                "ANNULATION"
+              ]
+            },
+            "activations_pour_amortir": 1.1
+          },
+          "declencheurs_amorces": [
+            5
+          ],
+          "double_ouverture": "Chaque ouverture fait glisser un Rêve de plus.",
+          "cablage_recommande": "ICONE_SABOTAGE",
+          "heuristique_bot": "Câbler sur 3 ; glisser le Rêve défendu sous la machine révélée la plus dangereuse, sinon vers le bloc 1..2D.",
+          "temoins": [
+            {
+              "id": "G12_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "reglette": {
+                  "6": "R2",
+                  "3": "R7"
+                },
+                "annulee": true,
+                "declencheurs": [
+                  3,
+                  5
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 10,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 10,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "G13": {
+      "id": "G13",
+      "famille": "GARDIEN",
+      "couple": [
+        "M",
+        "I"
+      ],
+      "origine": "M",
+      "nomBase": "La Langue du Tamanoir",
+      "profils": {
+        "A": {
+          "nom": "La Langue du Tamanoir",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "DEPLACEMENT (INSECTES -> PARCELLE CIBLEE)",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "INSECTES",
+            "PARADE_INSECTE",
+            "TERRITOIRE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Déplacez jusqu’à 2 Insectes d’un même rayon vers une parcelle ciblée de ce rayon.<br><strong>Face 2 :</strong> Déplacez jusqu’à 2 Insectes vers une parcelle ciblée, puis posez-y le jeton Duel face <em>Défi</em>.",
+          "temoin": "2 Insectes en p1-I rejoignent 1 Défenseur en p3-I (Seuil 3) : parade réussie avec dépense des 2 Insectes, allumant l’icône Insecte.",
+          "alias_oriente": "M>I",
+          "id_profil": "M>I·A",
+          "alias_profil": "G13-A",
+          "animal_ou_theme": "Tamanoir",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien M>I tourné vers {H, E, I}"
+          ],
+          "decision_joueur": {
+            "choix": "Prélever des Insectes sur un Nid (au risque de casser sa masse critique) ou sur une parcelle calme pour les jeter sur la parcelle ciblée.",
+            "renoncement": "Un Insecte défaussé en Parade ne migrera plus vers la Réglette ni la Piste des Gardiens."
+          },
+          "entrees": [
+            "INSECTE"
+          ],
+          "sorties": [
+            "INSECTE",
+            "DUEL"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V4 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.0,
+              "Face 2": 1.7
+            },
+            "composantes": {
+              "Face 1": [
+                "INSECTE",
+                "INSECTE"
+              ],
+              "Face 2": [
+                "INSECTE",
+                "INSECTE",
+                "TERRITOIRE_BONUS"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [
+            6
+          ],
+          "double_ouverture": "Chaque ouverture amène jusqu’à 2 nouveaux Insectes.",
+          "cablage_recommande": "ICONE_INSECTE",
+          "heuristique_bot": "Câbler sur 6 ou 1 ; prendre les Insectes hors Nid sauf si le Nid en porte au moins 4.",
+          "temoins": [
+            {
+              "id": "G13_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  6
+                ],
+                "p3-I": [
+                  3,
+                  0
+                ]
+              },
+              "journal": [
+                "A_I -> p3-I : parade 1 Déf. + 2 Insecte(s), Seuil 3 (6)"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 17,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "M"
+    },
+    "G14": {
+      "id": "G14",
+      "famille": "GARDIEN",
+      "couple": [
+        "R",
+        "I"
+      ],
+      "origine": "R",
+      "nomBase": "Le Terrier du Téju",
+      "profils": {
+        "A": {
+          "nom": "Le Terrier du Téju",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "CREATION_ENTITE (PIEGE) avec coût Insecte",
+          "tags": [
+            "CATALYSEUR_EVEIL",
+            "CONVERSION",
+            "INSECTES",
+            "PIEGE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Défaussez 1 Insecte d’une parcelle pour poser 1 Piège sur cette parcelle ou une parcelle voisine de son rayon.<br><strong>Face 2 :</strong> Défaussez 1 Insecte pour poser 1 Piège, ou le <em>Croc</em>, sur n’importe quelle parcelle ciblée.",
+          "temoin": "À l’ouverture, le Téju prélève 1 des 2 Insectes d’un Nid pour piéger la parcelle voisine menacée : le Piège pare seul (icône Piégeage), mais le Nid ne produit plus que +1.",
+          "alias_oriente": "R>I",
+          "id_profil": "R>I·A",
+          "alias_profil": "G14-A",
+          "animal_ou_theme": "Téju",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Catalyseur d’Éveil — règle (i) : Gardien R>I tourné vers {H, E, I}"
+          ],
+          "decision_joueur": {
+            "choix": "Dépenser un Insecte maintenant pour couvrir une parcelle menacée avant l’attaque, même s’il faut le prélever sur un Nid avant sa production.",
+            "renoncement": "Prélevé sur un Nid à 2 Insectes, l’Insecte fait passer sa production de +2 à +1 ; attendre préserve le rendement mais laisse passer la frappe."
+          },
+          "entrees": [
+            "INSECTE"
+          ],
+          "sorties": [
+            "PIEGE",
+            "CROC"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_PARI"
+          ],
+          "vecteurs": "V4 -> V3",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 1.4,
+              "Face 2": 1.6
+            },
+            "composantes": {
+              "Face 1": [
+                "PIEGE"
+              ],
+              "Face 2": [
+                "CROC"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [
+            2
+          ],
+          "double_ouverture": "Chaque ouverture convertit un nouvel Insecte en Piège.",
+          "cablage_recommande": "ICONE_PIEGEAGE",
+          "heuristique_bot": "Câbler sur 2 ; prélever hors Nid si possible, sinon sur un Nid à 3 Insectes ou plus ; viser la parcelle ciblée la plus boisée.",
+          "temoins": [
+            {
+              "id": "G14_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "production_4.2": 1,
+                "declencheurs": [
+                  2
+                ],
+                "p3-R": 3,
+                "insectes_nid": 2
+              },
+              "journal": []
+            },
+            {
+              "id": "G14_T2",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "production_4.2_si_attente": 2,
+                "p3-R_sans_piege": [
+                  0,
+                  3
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 16,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "R"
+    },
+    "G15": {
+      "id": "G15",
+      "famille": "GARDIEN",
+      "couple": [
+        "O",
+        "I"
+      ],
+      "origine": "O",
+      "nomBase": "Le Va-et-vient du Colibri",
+      "profils": {
+        "A": {
+          "nom": "Le Va-et-vient du Colibri",
+          "cycle": "DOUBLE_FACE_UPGRADE",
+          "cablage": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "fenetre": "ACTIVATION",
+          "primitive": "PERMUTATION_PISTE (ECHANGE DE RANGS — TORSION DE FILE)",
+          "tags": [
+            "TWIST",
+            "TORSION_DE_FILE",
+            "FRONTIERE_DES_ACTES"
+          ],
+          "requires_options": {},
+          "texte": "<strong>Face 1 :</strong> Échangez les rangs de deux machines révélées qui n’ont pas encore frappé.<br><strong>Face 2 :</strong> Échangez deux fois les rangs de deux machines révélées qui n’ont pas encore frappé.",
+          "temoin": "Acte 2 : l’Abatteuse au rang 3 (Assaut, En avançant) et le Bulldozer au rang 5 (Charge, Devant) échangent leurs rangs avant de frapper.",
+          "alias_oriente": "O>I",
+          "id_profil": "O>I·A",
+          "alias_profil": "G15-A",
+          "animal_ou_theme": "Colibri",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A / §5.3 #3 — Torsion d’une file engagée",
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Quelles deux machines intervertir : un Assaut contre une Charge, une avancée contre un Sur place, ou jeter une machine sur un Rêve défendu.",
+            "renoncement": "L’échange déplace aussi l’autre machine : chaque permutation est un pari à double tranchant."
+          },
+          "entrees": [],
+          "sorties": [
+            "RANG_MACHINE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V2 -> V2",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face 1": 0.9,
+              "Face 2": 1.8
+            },
+            "composantes": {
+              "Face 1": [
+                "RANG_MACHINE"
+              ],
+              "Face 2": [
+                "RANG_MACHINE",
+                "RANG_MACHINE"
+              ]
+            },
+            "activations_pour_amortir": 2.2
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": "Chaque ouverture permet un nouvel échange avant les frappes restantes.",
+          "cablage_recommande": "ICONE_PARADE",
+          "heuristique_bot": "Câbler sur 1 (ouverture en 5.1) ; échanger la machine en Assaut la plus chargée contre une machine en Charge peu dangereuse.",
+          "temoins": [
+            {
+              "id": "G15_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "Abatteuse_avant": [
+                  "Assaut",
+                  "En avançant"
+                ],
+                "Abatteuse_apres": [
+                  "Charge",
+                  "Devant"
+                ],
+                "a_avance": false
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face 1": {
+              "mots": 13,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Face 2": {
+              "mots": 15,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "O"
+    },
+    "R1": {
+      "id": "R1",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "E"
+      ],
+      "origine": "H",
+      "nomBase": "Le Seuil des Deux Mondes",
+      "profils": {
+        "A": {
+          "nom": "Le Seuil des Deux Mondes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "MOD_REVE (ANNULATION SUR CASE VIDE VOISINE)",
+          "tags": [
+            "TWIST",
+            "PLACE_LIBRE",
+            "REVE",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, chaque Défenseur de ce Rêve peut annuler une machine visant un rang voisin sans Rêve plutôt qu’une machine de son rang.",
+          "temoin": "R1 défendu au rang 4, rang 3 sans Rêve visé par une Abatteuse : le Défenseur l’annule à distance et allume l’icône Rêve.",
+          "alias_oriente": "H>E",
+          "id_profil": "H>E·A",
+          "alias_profil": "R1-A",
+          "animal_ou_theme": "Rêve des Humains",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A #12 — La place libre a un pouvoir",
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+          ],
+          "decision_joueur": {
+            "choix": "Laisser une case vide à côté de ce Rêve pour étendre sa protection aux machines qui y tombent.",
+            "renoncement": "Une case vide est un trou dans le bloc : tant qu’elle reste ouverte, le Sommeil est impossible."
+          },
+          "entrees": [
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "ANNULATION"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.2
+            },
+            "composantes": {
+              "Face unique": [
+                "ANNULATION"
+              ]
+            },
+            "activations_pour_amortir": 1.7
+          },
+          "declencheurs_amorces": [
+            5
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre quand une case vide voisine est probable (1–3) ; refermer le trou au plus tard 2 tours avant un Sommeil visé.",
+          "temoins": [
+            {
+              "id": "R1_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "case_3_vide": true,
+                "annulee": true,
+                "declencheurs": [
+                  5
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 25,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R2": {
+      "id": "R2",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "H"
+      ],
+      "origine": "E",
+      "nomBase": "Le Voile de l’Oubli",
+      "profils": {
+        "A": {
+          "nom": "Le Voile de l’Oubli",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE / ENRACINEMENT",
+          "primitive": "ALTERATION_MACHINE (SUR ANNULATION)",
+          "tags": [
+            "ALTERATION",
+            "ENRACINEMENT",
+            "COUP_D_ECLAT",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "Quand ce Rêve annule une machine, altérez-la.<br><strong>Enraciné :</strong> Lors de son enracinement, altérez jusqu’à 2 machines mobiles.",
+          "temoin": "R2 annule le Bulldozer des Humains et pose 1 jeton d’Altération dessus : à sa prochaine révélation, ce Bulldozer reculera d’1 parcelle sans frapper.",
+          "alias_oriente": "E>H",
+          "id_profil": "E>H·A",
+          "alias_profil": "R2-A",
+          "animal_ou_theme": "Rêve des Entités",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+            "Synergie d’Enracinement volontaire"
+          ],
+          "decision_joueur": {
+            "choix": "Défendre ce Rêve pour muter la machine qu’il annule ; ou l’enraciner (coup d’éclat : 2 altérations) en renonçant au Sommeil.",
+            "renoncement": "Enraciner un Rêve rend le Sommeil impossible ; défendu sur une case peu visée, il n’annule rien."
+          },
+          "entrees": [
+            "ANNULATION",
+            "ALTEREE"
+          ],
+          "sorties": [
+            "ALTEREE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_SOUCHE"
+          ],
+          "vecteurs": "V3 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.3,
+              "Enraciné": 3.8
+            },
+            "composantes": {
+              "Face unique": [
+                "ALTEREE"
+              ],
+              "Enraciné": [
+                "ALTEREE",
+                "ALTEREE",
+                "SOUCHE_REGEN"
+              ]
+            },
+            "activations_pour_amortir": 1.5
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre quand il recouvre une case 1–3 ; l’enraciner au Tour 6 ou 7 si le Sommeil est hors d’atteinte.",
+          "temoins": [
+            {
+              "id": "R2_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "alteree_dans_paquet": [
+                  "B_H"
+                ],
+                "revelation": [
+                  "alteree"
+                ],
+                "recul_vers": "p1"
+              },
+              "journal": []
+            },
+            {
+              "id": "R2_T2",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "alterations": [
+                  "A_H",
+                  "B_E"
+                ],
+                "p3-E_final": [
+                  2,
+                  1
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 8,
+              "phrases": 1,
+              "conditions": 1
+            },
+            "Enraciné": {
+              "mots": 10,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R3": {
+      "id": "R3",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "M"
+      ],
+      "origine": "H",
+      "nomBase": "La Danse des Esprits-Fauves",
+      "profils": {
+        "A": {
+          "nom": "La Danse des Esprits-Fauves",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (DEFENSEUR DU REVE -> JETON DUEL)",
+          "tags": [
+            "MULTIFONCTION",
+            "TERRITOIRE",
+            "SOUTIEN_ALLIE"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, après ses annulations, 1 Défenseur de ce Rêve rejoint la parcelle du jeton Duel.",
+          "temoin": "Le Chant annule la machine du rang 5 (R3 glisse au rang 4), puis rejoint la parcelle du Défi pour réussir la parade et passer en Territoire tenu.",
+          "alias_oriente": "H>M",
+          "id_profil": "H>M·A",
+          "alias_profil": "R3-A",
+          "animal_ou_theme": "Rêve des Humains",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Poser un Défenseur sur ce Rêve plutôt qu’en forêt : il bloque d’abord une machine de son rang, puis renforce le Défi des Mammifères.",
+            "renoncement": "Il ne peut rejoindre que la parcelle du jeton Duel, même si une autre parcelle est plus menacée."
+          },
+          "entrees": [
+            "DUEL",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "DEFENSEUR_REDEPLOYE",
+            "TERRITOIRE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.7
+            },
+            "composantes": {
+              "Face unique": [
+                "DEFENSEUR_REDEPLOYE",
+                "TERRITOIRE_BONUS"
+              ]
+            },
+            "activations_pour_amortir": 1.2
+          },
+          "declencheurs_amorces": [
+            1
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre avec le Chant si une machine vise son rang ; sinon avec le Défenseur fixe d’un allié qui vise le Duel.",
+          "temoins": [
+            {
+              "id": "R3_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "reglette": {
+                  "4": "R3"
+                },
+                "duel": "territoire",
+                "declencheurs": [
+                  5,
+                  1
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 17,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R4": {
+      "id": "R4",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "R"
+      ],
+      "origine": "H",
+      "nomBase": "Le Sommeil de la Pierre-Serpent",
+      "profils": {
+        "A": {
+          "nom": "Le Sommeil de la Pierre-Serpent",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (DEFENSEUR DU REVE -> RIVE PIEGE)",
+          "tags": [
+            "MULTIFONCTION",
+            "FURTIVITE_CHAUD",
+            "PIEGE"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, 1 Défenseur de ce Rêve peut compléter la Rive Piège d’un rayon comptant 2 machines mobilisées.",
+          "temoin": "2 machines mobilisées chez les Reptiles (lues sur les jetons visibles devant le rayon) et 1 allié déjà en Rive Piège : le pion de R4 complète le binôme avant l’évaluation de Furtivité.",
+          "alias_oriente": "H>R",
+          "id_profil": "H>R·A",
+          "alias_profil": "R4-A",
+          "animal_ou_theme": "Rêve des Humains",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Défendre ce Rêve en gardant l’option de compléter, une fois m(r) connu, une Rive Piège qu’un allié a amorcée à l’aveugle.",
+            "renoncement": "Sans premier Défenseur déjà posé sur cette rive, l’option est perdue et le Défenseur reste sur le Rêve."
+          },
+          "entrees": [
+            "MOBILISATION",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "PIEGE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V3",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.4
+            },
+            "composantes": {
+              "Face unique": [
+                "PIEGE"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre si une rive Piège est amorcée ; compléter la rive du rayon à m(r)=2 le plus boisé.",
+          "temoins": [
+            {
+              "id": "R4_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "m(r)": 2,
+                "binome": [
+                  "allié",
+                  "Défenseur du Rêve"
+                ],
+                "piege_pose": true
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R5": {
+      "id": "R5",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "O"
+      ],
+      "origine": "H",
+      "nomBase": "La Vision des Plumes Claires",
+      "profils": {
+        "A": {
+          "nom": "La Vision des Plumes Claires",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "DEPLACEMENT (DEFENSEUR DU REVE -> RAYON DE LA PLUME)",
+          "tags": [
+            "MULTIFONCTION",
+            "VIGIE",
+            "SIGNAL_MUET"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, 1 Défenseur de ce Rêve, ou 2 avec le Tambour, rejoint une parcelle ciblée du rayon de la Plume de Vigie.",
+          "temoin": "Plume au pied des Oiseaux : après l’ouverture, le Défenseur de R5 descend défendre p3-O ciblée.",
+          "alias_oriente": "H>O",
+          "id_profil": "H>O·A",
+          "alias_profil": "R5-A",
+          "animal_ou_theme": "Rêve des Humains",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Défendre ce Rêve en se fiant au signal muet de l’Oiseau : après la révélation, le Défenseur suit la Plume ; avec le Tambour, deux Défenseurs suivent.",
+            "renoncement": "Seul le rayon de la Plume est accessible ; un signal mal placé rend ce Défenseur inutile en forêt."
+          },
+          "entrees": [
+            "PLUME",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "DEFENSEUR_REDEPLOYE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.5
+            },
+            "composantes": {
+              "Face unique": [
+                "DEFENSEUR_REDEPLOYE",
+                "TAMBOUR_BONUS"
+              ]
+            },
+            "activations_pour_amortir": 1.3
+          },
+          "declencheurs_amorces": [
+            1
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Oiseaux : poser la Plume sur le rayon le plus menacé ; Humains : défendre ce Rêve avec le Défenseur fixe.",
+          "temoins": [
+            {
+              "id": "R5_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "resultat": [
+                  "pare"
+                ],
+                "p3-O": 3
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 24,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R6": {
+      "id": "R6",
+      "famille": "REVE",
+      "couple": [
+        "H",
+        "I"
+      ],
+      "origine": "H",
+      "nomBase": "Le Miel des Ancêtres",
+      "profils": {
+        "A": {
+          "nom": "Le Miel des Ancêtres",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE / DÉCOMPTE FINAL",
+          "primitive": "DEPLACEMENT (DEFENSEUR DU REVE -> NID) + REPOUSSE ETENDUE",
+          "tags": [
+            "MULTIFONCTION",
+            "NID",
+            "ENRACINEMENT",
+            "REPOUSSE_FINALE",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, 1 Défenseur de ce Rêve rejoint la parcelle d’un Nid pour activer sa production.<br><strong>Enraciné :</strong> Au décompte final, retournez aussi 1 Souche d’une parcelle voisine en Arbre debout.",
+          "temoin": "Enraciné face à p3-H (2 Souches) voisine de p2-H (1 Souche) : au décompte final, il retourne 1 Souche sur p3-H et 1 Souche sur p2-H.",
+          "alias_oriente": "H>I",
+          "id_profil": "H>I·A",
+          "alias_profil": "R6-A",
+          "animal_ou_theme": "Rêve des Humains",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+            "Synergie d’Enracinement volontaire"
+          ],
+          "decision_joueur": {
+            "choix": "Défendre ce Rêve pour activer un Nid à distance après la révélation ; ou l’enraciner pour une repousse sur deux parcelles.",
+            "renoncement": "Enraciné, il n’active plus les Nids et le Sommeil devient impossible."
+          },
+          "entrees": [
+            "NID",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "DEFENSEUR_REDEPLOYE",
+            "NID_ACTIVE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_SOUCHE"
+          ],
+          "vecteurs": "V5 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.5,
+              "Enraciné": 2.4
+            },
+            "composantes": {
+              "Face unique": [
+                "DEFENSEUR_REDEPLOYE",
+                "INSECTE"
+              ],
+              "Enraciné": [
+                "SOUCHE_REGEN",
+                "SOUCHE_REGEN"
+              ]
+            },
+            "activations_pour_amortir": 1.3
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre si un Nid sans Défenseur est sur une parcelle non ciblée ; enraciner face à la parcelle la plus riche en Souches au Tour 7.",
+          "temoins": [
+            {
+              "id": "R6_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "p3-H": [
+                  2,
+                  1
+                ],
+                "p2-H": [
+                  2,
+                  0
+                ]
+              },
+              "journal": []
+            },
+            {
+              "id": "R6_T2",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "production_4.2": 1
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Enraciné": {
+              "mots": 14,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "H"
+    },
+    "R7": {
+      "id": "R7",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "M"
+      ],
+      "origine": "E",
+      "nomBase": "L’Ombre du Maître des Bois",
+      "profils": {
+        "A": {
+          "nom": "L’Ombre du Maître des Bois",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "PERMUTATION_PISTE (REVE, AVANCEE AU CALME)",
+          "tags": [
+            "LEVIER_REVE",
+            "SOMMEIL",
+            "SCULPTURE_REGLETTE"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, si ce Rêve défendu n’annule aucune machine, faites-le glisser d’1 rang vers la gauche.",
+          "temoin": "R7 défendu au rang 6 sans machine sur 6 : il glisse au rang 5 avec son Défenseur en poussant un Rêve contigu du rang 5 au rang 4.",
+          "alias_oriente": "E>M",
+          "id_profil": "E>M·A",
+          "alias_profil": "R7-A",
+          "animal_ou_theme": "Rêve des Entités",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Levier de mouvement de Rêve — lisière E–M (C07)"
+          ],
+          "decision_joueur": {
+            "choix": "Défendre ce Rêve sur une case peu visée pour qu’il avance, ou le laisser bloquer une machine de son rang.",
+            "renoncement": "S’il annule une machine, il n’avance pas ce tour ; un Défenseur posé là ne protège pas la forêt."
+          },
+          "entrees": [
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "RANG_REVE"
+          ],
+          "paiement": [
+            "P_RANG"
+          ],
+          "vecteurs": "V5 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 0.6
+            },
+            "composantes": {
+              "Face unique": [
+                "RANG_REVE"
+              ]
+            },
+            "activations_pour_amortir": 3.3
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Défendre au tour où son rang est peu probable (5–6) ; arrêter dès que le bloc 1..2D est atteint.",
+          "temoins": [
+            {
+              "id": "R7_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "reglette": {
+                  "4": "R1",
+                  "5": "R7"
+                }
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 1
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R8": {
+      "id": "R8",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "R"
+      ],
+      "origine": "E",
+      "nomBase": "Le Mirage du Fleuve-Miroir",
+      "profils": {
+        "A": {
+          "nom": "Le Mirage du Fleuve-Miroir",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "PERMUTATION_PISTE (REVE CONTRE SOUCHE)",
+          "tags": [
+            "TWIST",
+            "MONNAIE_SOUCHE",
+            "LEVIER_REVE",
+            "SOMMEIL"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, ce Rêve défendu peut retirer 1 Souche sans vider sa parcelle pour glisser un Rêve d’1 ou 2 rangs à gauche.",
+          "temoin": "Sur {E, R, I}, R8 défendu au rang 5 retire définitivement 1 des 2 Souches de p2-R et glisse lui-même au rang 3 vers le Sommeil.",
+          "alias_oriente": "E>R",
+          "id_profil": "E>R·A",
+          "alias_profil": "R8-A",
+          "animal_ou_theme": "Rêve des Entités",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A #11 — La dernière Souche comme monnaie",
+          "role_porte": [
+            "Levier de mouvement de Rêve — lisière E–R (C07)"
+          ],
+          "decision_joueur": {
+            "choix": "Sacrifier 1 Souche en forêt pour propulser n’importe quel Rêve (y compris celui-ci) de 1 ou 2 cases vers le bloc du Sommeil.",
+            "renoncement": "La Souche retirée ne pourra plus être régénérée à l’Enracinement et éteint les synergies de Souches si c’était la seule d’une parcelle boisée."
+          },
+          "entrees": [
+            "SOUCHE",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "RANG_REVE"
+          ],
+          "paiement": [
+            "P_RANG"
+          ],
+          "vecteurs": "V1 -> V5",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.5
+            },
+            "composantes": {
+              "Face unique": [
+                "RANG_REVE",
+                "RANG_REVE"
+              ]
+            },
+            "activations_pour_amortir": 1.3
+          },
+          "declencheurs_amorces": [
+            5
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Prélever 1 Souche sur une parcelle qui en compte au moins 2 (hors parcelle enracinée) pour regrouper tous les Rêves sur 1..2D.",
+          "temoins": [
+            {
+              "id": "R8_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "souches_p2R_avant": 2,
+                "souches_p2R_apres": 1,
+                "reglette": {
+                  "3": "R8"
+                }
+              },
+              "journal": [
+                "R8 3.2 : -1 Souche sur p2-R (reste 1) -> R8 glisse de 5 en 3"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 25,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Consolidation Canon 0 (Greffe 3) : remplacement du piston bloquant sur N3-ERI par le Twist #11 (Souche sacrifiée), débloquant le Sommeil sur 100 % des tables E sans H ; le piston rejoint le vivier Humains."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R9": {
+      "id": "R9",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "O"
+      ],
+      "origine": "E",
+      "nomBase": "L’Écho des Voix Célestes",
+      "profils": {
+        "A": {
+          "nom": "L’Écho des Voix Célestes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "ALTERATION_MACHINE (JETON DU PERCHOIR) + CREATION_ENTITE (PIEGE)",
+          "tags": [
+            "ALTERATION",
+            "PERCHOIR",
+            "PIEGE",
+            "SIGNAL_SECRET"
+          ],
+          "requires_options": {},
+          "texte": "À l’ouverture, si le Perchoir de Vigie cache un jeton Machine, altérez sa machine et posez 1 Piège sur son rayon.",
+          "temoin": "L’Oiseau a posé le jeton de l’Abatteuse Reptile face cachée sur son Perchoir : R9 pose 1 jeton d’Altération sur cette Abatteuse et 1 Piège sur le rayon Reptile.",
+          "alias_oriente": "E>O",
+          "id_profil": "E>O·A",
+          "alias_profil": "R9-A",
+          "animal_ou_theme": "Rêve des Entités",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "L’Oiseau choisit en 1.1 quel jeton Machine poser sur son Perchoir pour désigner son rayon ; les Entités défendent R9 pour altérer ce jeton Machine et piéger ce rayon.",
+            "renoncement": "Révèle à la table l’identité du jeton posé sur le Perchoir ; sans effet si l’Oiseau y a posé un jeton Sabotage."
+          },
+          "entrees": [
+            "PERCHOIR",
+            "ALTEREE",
+            "POSITION_REVE"
+          ],
+          "sorties": [
+            "ALTEREE",
+            "PIEGE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V5 -> V3",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.9
+            },
+            "composantes": {
+              "Face unique": [
+                "ALTEREE",
+                "PIEGE"
+              ]
+            },
+            "activations_pour_amortir": 1.1
+          },
+          "declencheurs_amorces": [
+            2
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Oiseaux : poser sur le Perchoir un jeton Machine d’un rayon menacé ; Entités : défendre R9 pour altérer la machine et poser le Piège.",
+          "temoins": [
+            {
+              "id": "R9_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "alterees_pour_6.3": [
+                  "A_O"
+                ],
+                "piege_pose": "p2-O",
+                "declencheurs_potentiels": [
+                  2
+                ]
+              },
+              "journal": [
+                "R9 3.2 : A_O sous Perchoir -> altérée + 1 Piège posé sur rayon O"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 22,
+              "phrases": 1,
+              "conditions": 1
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Consolidation Canon 0 (Greffe 2) : couplage de l’altération sous Perchoir avec 1 Piège sur ce rayon, ramenant l’isolement de R9 de 48 % à 0 %."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "R10": {
+      "id": "R10",
+      "famille": "REVE",
+      "couple": [
+        "E",
+        "I"
+      ],
+      "origine": "E",
+      "nomBase": "La Nuée des Songes",
+      "profils": {
+        "A": {
+          "nom": "La Nuée des Songes",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "OUVERTURE",
+          "primitive": "ALTERATION_MACHINE + CREATION_ENTITE (INSECTE SUR NID OU REGLETTE)",
+          "tags": [
+            "ALTERATION",
+            "INSECTES",
+            "DEVIATION",
+            "MASSE_CRITIQUE",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "Quand ce Rêve annule une machine, altérez-la et posez 1 Insecte sur un Nid ou sur ce rang.",
+          "temoin": "R10 annule une machine (même déviée vers lui par un Insecte), pose 1 jeton d’Altération dessus, pose 1 Insecte sur un Nid avant sa production, puis allume l’icône Rêve.",
+          "alias_oriente": "E>I",
+          "id_profil": "E>I·A",
+          "alias_profil": "R10-A",
+          "animal_ou_theme": "Rêve des Entités",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+          ],
+          "decision_joueur": {
+            "choix": "Nourrir un Nid avant l’étape 4.2 pour franchir le palier de +2 Insectes, ou poser l’Insecte sur ce rang de Réglette afin de préparer une déviation ±1.",
+            "renoncement": "Exige d’annuler effectivement une machine sur ce rang ; l’Insecte posé en Réglette n’ira jamais défendre en forêt."
+          },
+          "entrees": [
+            "ANNULATION",
+            "ALTEREE"
+          ],
+          "sorties": [
+            "ALTEREE",
+            "INSECTE",
+            "INSECTE_RANG",
+            "NID_ACTIVE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V3 -> V4",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.9
+            },
+            "composantes": {
+              "Face unique": [
+                "ALTEREE",
+                "INSECTE"
+              ]
+            },
+            "activations_pour_amortir": 1.1
+          },
+          "declencheurs_amorces": [
+            6
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Poser l’Insecte sur un Nid à 1 Insecte si ce Nid va produire en 4.2 ; sinon le poser sur ce rang de Réglette pour préparer une déviation ±1 vers un Rêve.",
+          "temoins": [
+            {
+              "id": "R10_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "annulee": true,
+                "nid_insectes_avant_4.2": 2,
+                "production_4.2": 2
+              },
+              "journal": [
+                "R10 3.2 : annule machine -> altérée + 1 Insecte sur Nid (1->2) -> +2 en 4.2"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 19,
+              "phrases": 1,
+              "conditions": 1
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Consolidation Canon 0 (Greffe 2) : choix entre Nid construit et rang de Réglette, ouvrant un 2e moteur majeur disjoint sur la table {H, E, I}."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "E"
+    },
+    "M1": {
+      "id": "M1",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "M"
+      ],
+      "origine": "I",
+      "nomBase": "La Fourmilière Coupe-Feuilles",
+      "profils": {
+        "A": {
+          "nom": "La Fourmilière Coupe-Feuilles",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "PRODUCTION",
+          "primitive": "DEPLACEMENT (INSECTE PASSAGER — PHORESIE)",
+          "tags": [
+            "TWIST",
+            "PHORESIE",
+            "INSECTES",
+            "PARADE_MOBILE"
+          ],
+          "requires_options": {},
+          "texte": "Après production, 1 Insecte de ce Nid monte sur une machine de son rayon et défend chaque parcelle qu’elle frappe.",
+          "temoin": "L’Insecte passager accompagne l’Abatteuse et complète une parade (allumant l’icône Insecte) ; non dépensé, il descend sur la parcelle de la machine au ménage.",
+          "alias_oriente": "I>M",
+          "id_profil": "I>M·A",
+          "alias_profil": "M1-A",
+          "animal_ou_theme": "Nid des Insectes (fourmis coupe-feuilles)",
+          "est_twist_canon0": true,
+          "piste_twist": "Annexe A #5 — L’Insecte passager (phorésie)",
+          "role_porte": [],
+          "decision_joueur": {
+            "choix": "Embarquer un Insecte sur une machine (défense mobile qui la suit partout) ou le garder au Nid pour la masse critique.",
+            "renoncement": "L’Insecte quitte le Nid : la production suivante peut tomber de +2 à +1."
+          },
+          "entrees": [
+            "INSECTE"
+          ],
+          "sorties": [
+            "INSECTE_PASSAGER"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 0.8
+            },
+            "composantes": {
+              "Face unique": [
+                "INSECTE_PASSAGER"
+              ]
+            },
+            "activations_pour_amortir": 2.5
+          },
+          "declencheurs_amorces": [
+            6
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Embarquer sur l’Abatteuse en Assaut la plus dangereuse si le Nid garde au moins 2 Insectes.",
+          "temoins": [
+            {
+              "id": "M1_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  6
+                ],
+                "p3-M": 3,
+                "passager_restant": 0
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 21,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M2": {
+      "id": "M2",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "R"
+      ],
+      "origine": "I",
+      "nomBase": "La Termitière à Glu",
+      "profils": {
+        "A": {
+          "nom": "La Termitière à Glu",
+          "cycle": "PASSIF_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI PARADE",
+          "primitive": "MOD_LOI_DU_COEUR (PARADE INSECTE -> SABOTAGE)",
+          "tags": [
+            "LOI_PASSIVE",
+            "INSECTES",
+            "SABOTAGE",
+            "FLUX_EN_AVAL"
+          ],
+          "requires_options": {},
+          "texte": "<strong>En Parade :</strong> Pour chaque Insecte défaussé en Parade sur la parcelle de ce Nid, ajoutez 1 jeton Sabotage au sac.",
+          "temoin": "Le Nid cohabite sans dommage avec les machines ; une parade sur sa parcelle dépensant 2 Insectes ajoute aussitôt 2 jetons Sabotage dans le sac.",
+          "alias_oriente": "I>R",
+          "id_profil": "I>R·A",
+          "alias_profil": "M2-A",
+          "animal_ou_theme": "Nid des Insectes (termites)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Loi passive (1 des 2 emplacements-lois ; plafond C08 = 5, ≤ 2 par assise)"
+          ],
+          "decision_joueur": {
+            "choix": "Défendre la parcelle du Nid avec ses Insectes : chaque Insecte sacrifié encrasse le sac des Reptiles.",
+            "renoncement": "Chaque Insecte dépensé quitte le Nid et réduit la masse critique du tour suivant."
+          },
+          "entrees": [
+            "INSECTE"
+          ],
+          "sorties": [
+            "SABOTAGE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V3",
+          "acte": "les_deux",
+          "nature": "loi_passive",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Loi 5.1": 1.4
+            },
+            "composantes": {
+              "Loi 5.1": [
+                "SABOTAGE",
+                "SABOTAGE"
+              ]
+            },
+            "activations_pour_amortir": 1.4
+          },
+          "declencheurs_amorces": [],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Garder le Nid sur une parcelle ciblée par une machine du rang 1 (fréquente) et y engager les Insectes.",
+          "temoins": [
+            {
+              "id": "M2_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "sabotages_pour_6.3": 2,
+                "declencheurs": [
+                  6
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "En Parade": {
+              "mots": 18,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M3": {
+      "id": "M3",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "O"
+      ],
+      "origine": "I",
+      "nomBase": "La Branche des Guêpes Cazadores",
+      "profils": {
+        "A": {
+          "nom": "La Branche des Guêpes Cazadores",
+          "cycle": "PASSIF_CONTINU",
+          "cablage": null,
+          "fenetre": "LOI MIGRATION",
+          "primitive": "MOD_LOI_DU_COEUR (MIGRATION LATERALE VERS LA PLUME)",
+          "tags": [
+            "LOI_PASSIVE",
+            "INSECTES",
+            "PONT_LATERAL",
+            "VIGIE"
+          ],
+          "requires_options": {},
+          "texte": "<strong>En Migration :</strong> Les Insectes de ce Nid peuvent migrer vers la parcelle de même profondeur du rayon de la Plume de Vigie.",
+          "temoin": "Nid en p3-I avec 3 Insectes et Plume au pied des Humains : en Migration, l’essaim vole latéralement en p3-H avant les attaques.",
+          "alias_oriente": "I>O",
+          "id_profil": "I>O·A",
+          "alias_profil": "M3-A",
+          "animal_ou_theme": "Nid des Insectes (guêpes)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Loi passive (1 des 2 emplacements-lois ; plafond C08 = 5, ≤ 2 par assise)"
+          ],
+          "decision_joueur": {
+            "choix": "Les Oiseaux posent la Plume sur le rayon à renforcer ; l’essaim de la Branche y vole en 4.3, juste avant les frappes.",
+            "renoncement": "Les Insectes qui quittent le Nid réduisent sa masse critique ; la Plume posée pour l’essaim ne signale plus un autre pari."
+          },
+          "entrees": [
+            "INSECTE",
+            "PLUME"
+          ],
+          "sorties": [
+            "INSECTE"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V3",
+          "acte": "les_deux",
+          "nature": "loi_passive",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Loi 4.3": 1.0
+            },
+            "composantes": {
+              "Loi 4.3": [
+                "INSECTE",
+                "INSECTE"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [
+            6
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Oiseaux : Plume sur le rayon le plus menacé de même profondeur que le Nid ; Insectes : garder 2 Insectes au Nid pour la masse critique.",
+          "temoins": [
+            {
+              "id": "M3_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "declencheurs": [
+                  6
+                ],
+                "p3-H": [
+                  3,
+                  1
+                ]
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "En Migration": {
+              "mots": 20,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M4": {
+      "id": "M4",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "H"
+      ],
+      "origine": "I",
+      "nomBase": "La Ruche des Mélipones",
+      "profils": {
+        "A": {
+          "nom": "La Ruche des Mélipones",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "PRODUCTION",
+          "primitive": "DEPLACEMENT (INSECTE -> TAMBOUR) OU MOD_PUISSANCE (SURCHAUFFE)",
+          "tags": [
+            "INSECTES",
+            "TAMBOUR",
+            "SURCHAUFFE",
+            "PONT_LATERAL",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "Après production, envoyez 1 Insecte de ce Nid rejoindre le Tambour ou défaussez-le pour retourner 1 jeton rouge en bleu.",
+          "temoin": "Après production, la Ruche défausse 1 Insecte pour retourner 1 rouge en bleu (actif dès la Charge à −1 et en Assaut/Ratissage à −2 net) ou renforce la parcelle du Tambour.",
+          "alias_oriente": "I>H",
+          "id_profil": "I>H·A",
+          "alias_profil": "M4-A",
+          "animal_ou_theme": "Nid des Insectes (abeilles mélipones)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste"
+          ],
+          "decision_joueur": {
+            "choix": "Projeter 1 Insecte vers la parcelle alliée du Tambour pour parer, ou sacrifier cet Insecte afin de retourner 1 jeton rouge en Surchauffe bleue.",
+            "renoncement": "L’Insecte projeté ou défaussé quitte la Ruche (au risque de repasser sous le palier de 2 Insectes au tour suivant)."
+          },
+          "entrees": [
+            "INSECTE",
+            "TAMBOUR",
+            "ROUGE"
+          ],
+          "sorties": [
+            "INSECTE",
+            "BLEU"
+          ],
+          "paiement": [
+            "P_ARBRE"
+          ],
+          "vecteurs": "V4 -> V2",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.3
+            },
+            "composantes": {
+              "Face unique": [
+                "INSECTE_OU_BLEU"
+              ]
+            },
+            "activations_pour_amortir": 1.5
+          },
+          "declencheurs_amorces": [
+            6,
+            1
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Si une machine en Assaut/Ratissage porte un rouge décisif, défausser 1 Insecte pour le retourner en bleu ; sinon envoyer 1 Insecte rejoindre le Tambour en forêt.",
+          "temoins": [
+            {
+              "id": "M4_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "p4-E": 3,
+                "declencheurs": [
+                  6
+                ]
+              },
+              "journal": [
+                "A_E -> p3-E : non parée, Seuil 2 -> 0 Arbre(s), 3 Souche(s)",
+                "A_E -> p4-E : parade 1 Déf. + 1 Insecte(s), Seuil 2 (6)"
+              ]
+            },
+            {
+              "id": "M4_T2",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "rouges": 0,
+                "bleus": 1,
+                "insectes_nid_apres": 0
+              },
+              "journal": [
+                "M4 4.2 : production +1 -> défausse 1 Insecte -> 1 rouge retourné en bleu"
+              ]
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 21,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Consolidation Canon 0 (Greffe 1) : ajout de l’option Surchauffe par dépense d’1 Insecte, couvrant les tables sans Oiseaux (dont {H,E,I} et {H,E,M,I})."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "I"
+    },
+    "M5": {
+      "id": "M5",
+      "famille": "CROISSANCE",
+      "couple": [
+        "I",
+        "E"
+      ],
+      "origine": "I",
+      "nomBase": "Le Jardin du Diable",
+      "profils": {
+        "A": {
+          "nom": "Le Jardin du Diable",
+          "cycle": "SIMPLE_CONTINU",
+          "cablage": null,
+          "fenetre": "PRODUCTION / DÉCOMPTE FINAL",
+          "primitive": "DEPLACEMENT (INSECTE -> SOUCHES) + REPOUSSE PAR L’ESSAIM",
+          "tags": [
+            "INSECTES",
+            "SOUCHES",
+            "ENRACINEMENT",
+            "REPOUSSE_FINALE",
+            "A0"
+          ],
+          "requires_options": {},
+          "texte": "Après production, déplacez 1 Insecte de ce Nid vers une parcelle à Souche de son rayon ou du rayon des Entités.<br><strong>Enraciné :</strong> Au décompte final, chaque Insecte de sa parcelle y retourne 1 Souche de plus en Arbre debout.",
+          "temoin": "Enraciné face à p3-I (3 Souches, 2 Insectes) : au décompte final, les 3 Souches survivantes sont retournées sur leur face Arbre debout (1 de base + 2 par les Insectes).",
+          "alias_oriente": "I>E",
+          "id_profil": "I>E·A",
+          "alias_profil": "M5-A",
+          "animal_ou_theme": "Nid des Insectes (fourmis du jardin du diable)",
+          "est_twist_canon0": false,
+          "piste_twist": null,
+          "role_porte": [
+            "Autonomie A = 0 (table {H, E, I}) — aucune dépendance aux Gardiens ni à la Piste",
+            "Synergie d’Enracinement volontaire"
+          ],
+          "decision_joueur": {
+            "choix": "Accumuler l’essaim sur une parcelle à Souches, puis enraciner le Nid face à elle pour convertir les Insectes en repousse.",
+            "renoncement": "Enraciné, le Nid ne produit plus ; chaque Insecte gardé pour la repousse ne pare aucune frappe."
+          },
+          "entrees": [
+            "INSECTE",
+            "SOUCHE"
+          ],
+          "sorties": [
+            "INSECTE"
+          ],
+          "paiement": [
+            "P_ARBRE",
+            "P_SOUCHE"
+          ],
+          "vecteurs": "V4 -> V1",
+          "acte": "les_deux",
+          "nature": "action",
+          "prix_estime": {
+            "unite": "Défenseur-tour (DT)",
+            "bareme": "H0 a priori — à remplacer par le barème mesuré du Lot 0",
+            "cout_construction_DT": 2,
+            "par_face": {
+              "Face unique": 1.0,
+              "Enraciné": 3.6
+            },
+            "composantes": {
+              "Face unique": [
+                "INSECTE",
+                "INSECTE"
+              ],
+              "Enraciné": [
+                "SOUCHE_REGEN",
+                "SOUCHE_REGEN",
+                "SOUCHE_REGEN"
+              ]
+            },
+            "activations_pour_amortir": 2.0
+          },
+          "declencheurs_amorces": [
+            6
+          ],
+          "double_ouverture": null,
+          "cablage_recommande": null,
+          "heuristique_bot": "Envoyer les Insectes sur la parcelle à Souches la moins menacée ; enraciner au Tour 6–7 face à elle.",
+          "temoins": [
+            {
+              "id": "M5_T1",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "p3-I_final": [
+                  3,
+                  0
+                ]
+              },
+              "journal": []
+            },
+            {
+              "id": "M5_T2",
+              "statut": "OK",
+              "etat_attendu_verifie": {
+                "avec_insecte": [
+                  2,
+                  false
+                ],
+                "sans_insecte_route": true
+              },
+              "journal": []
+            }
+          ],
+          "mots_par_face": {
+            "Face unique": {
+              "mots": 21,
+              "phrases": 1,
+              "conditions": 0
+            },
+            "Enraciné": {
+              "mots": 17,
+              "phrases": 1,
+              "conditions": 0
+            }
+          },
+          "statut": "canon0_audite_statique",
+          "journal": [
+            "2026-11-24 — Canon 0 : profil de référence rédigé ; audit 197 assises conforme ; témoins exécutés."
+          ],
+          "engine_sync_status": "PENDING_KERNEL_V6_2"
+        }
+      },
+      "peuple_origine": "I"
+    }
+  },
+  "vivier_candidats_B_C_phase_5": {
+    "description": "Idées fortes issues de P0, P1 et P2 préservées et pré-alignées sur le Socle d'Interface pour rédiger les 60 variantes (profils B et C) en Phase 5.",
+    "pistes_retenues": [
+      {
+        "emplacement_cible": "R5 (H>O) ou R1 (H>E) · Profil C (Twist)",
+        "origine": "P2 R8 / P1 R1",
+        "concept": "Le piston du Rêve qui cède du terrain : reculer ce Rêve d'1 case à droite pour faire glisser un autre Rêve de 2 cases à gauche (100 % sûr chez H grâce au Chamane Chant)."
+      },
+      {
+        "emplacement_cible": "G6 (O>R) · Profil C (Twist)",
+        "origine": "P2 G6",
+        "concept": "Réaffecter le rang d'une machine révélée n'ayant pas encore frappé à la valeur exacte du Dé d'Envol (franchissement Assaut -> Charge en Acte 2)."
+      },
+      {
+        "emplacement_cible": "M2 (I>R) ou M4 (I>H) · Profil C (Twist)",
+        "origine": "P1 M2",
+        "concept": "La Termitière itinérante (tuile nomade) : après production en 4.2, déplacer ce Nid avec 1 de ses Insectes vers une autre parcelle libre, en laissant le Défenseur garder le départ."
+      },
+      {
+        "emplacement_cible": "G8 (M>E) ou G13 (M>I) · Profil B/C",
+        "origine": "P1 G13",
+        "concept": "Échange atomique de position entre le jeton Duel (en conservant sa face Territoire tenu) et un groupe de pions/Insectes sur une autre parcelle."
+      },
+      {
+        "emplacement_cible": "G11 (O>H) · Profil B",
+        "origine": "P1 G11",
+        "concept": "Déplacer 1 Piège vers le rayon de la Plume ou défausser ce Piège pour glisser un Défenseur encore en pari dans une encoche de son Gardien."
+      },
+      {
+        "emplacement_cible": "G3 (M>O) · Profil B",
+        "origine": "P0 G3",
+        "concept": "La clairière sans machine : projeter un Défenseur depuis une lisière ou rive de Furtivité en franchissant toute suite continue de parcelles sans machine."
+      },
+      {
+        "emplacement_cible": "R9 (E>O) · Profil B",
+        "origine": "P1 R9",
+        "concept": "La mesure du ciel : rapprocher un Rêve d'1 ou 2 cases vers la valeur indiquée par le Dé d'Envol."
+      },
+      {
+        "emplacement_cible": "R3 (H>M) · Profil B",
+        "origine": "P1 R3",
+        "concept": "La peau du Tambour : sur la parcelle du jeton Duel, le Chamane Tambour pare à lui seul une frappe d'Abatteuse (faisant basculer le Défi en Territoire tenu)."
+      }
+    ]
+  }
+}

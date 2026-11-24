@@ -24,9 +24,9 @@ from scripts_cloud.publish_digest import (
 )
 
 
-def test_canonical_v6_1_active_core_rules() -> None:
+def test_canonical_v6_2_active_core_rules() -> None:
     core = build_active_core_rules()
-    assert core["version"] == "6.1.0-alpha"
+    assert core["version"] == "6.2.0"
     assert "catalog_v6_0.json" in core["studio_sha256"]
     assert "spec_formelle_v6_0.json" in core["studio_sha256"]
     assert "livret_v6_0.js" in core["studio_sha256"]
@@ -53,14 +53,16 @@ def test_canonical_v6_1_active_core_rules() -> None:
 
 
 def test_build_tested_tiles_rules() -> None:
-    tiles = build_tested_tiles_rules([("G1", "A"), "R5:A", ("G9", "C"), "G1:A"])
-    assert len(tiles) == 3  # dédupliqué tout en préservant l'ordre
+    tiles = build_tested_tiles_rules([("G1", "A"), "R5:A", ("G9", "A"), "G1:A", "G7:NEUTRE"])
+    assert len(tiles) == 4  # dédupliqué tout en préservant l'ordre
     assert tiles[0]["slot"] == "G1"
     assert tiles[0]["profil"] == "A"
     assert tiles[0]["famille"] == "GARDIEN"
-    assert "Surchauffe" in tiles[0]["texte"]
+    assert "jeton rouge en bleu" in tiles[0]["texte"]
     assert tiles[1]["slot"] == "R5"
     assert tiles[1]["famille"] == "REVE"
+    assert tiles[3]["slot"] == "G7"
+    assert tiles[3]["profil"] == "NEUTRE"
 
 
 def test_palier1_and_palier2_digests_are_self_contained_and_under_35kb() -> None:
@@ -99,7 +101,7 @@ def test_write_and_publish_digest_in_tmp_dir(tmp_path: Path, monkeypatch) -> Non
         "generated_at_utc": "2026-11-18T12:00:00Z",
         "totals": {
             "total_games": 400,
-            "tested_tiles": ["G3:A", "M1:B"],
+            "tested_tiles": ["G3:A", "M1:A"],
         },
         "metrics": {"mean_ratio_arbres": 0.642, "cvar20_ratio": 0.512},
     }
@@ -169,7 +171,7 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
                 "G5:A",
                 "G6:A",
                 "G7:A",
-                "G7:B",
+                "G7:NEUTRE",
                 "R1:A",
                 "R2:A",
                 "M1:A",
@@ -178,7 +180,7 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
         },
         "tile_metrics": {
             "G7:A": {"slot": "G7", "profile": "A", "n_games": 2500, "mean_ratio_arbres": 0.65},
-            "G7:B": {"slot": "G7", "profile": "B", "n_games": 2500, "mean_ratio_arbres": 0.68},
+            "G7:NEUTRE": {"slot": "G7", "profile": "NEUTRE", "n_games": 2500, "mean_ratio_arbres": 0.68},
         },
     }
     # On fixe max_bytes juste en dessous de la version 12 tuiles mais suffisant pour 2 tuiles variées
@@ -192,25 +194,25 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
     d_path, _p_path, final_digest = write_digest_and_prompt_files(
         "macro_budget_test",
         payload_many_tiles,
-        varying_tiles=("G7:A", "G7:B"),
+        varying_tiles=("G7:A", "G7:NEUTRE"),
         digests_dir=tmp_path,
         legacy_data_copy=False,
         max_bytes=full_compact_size - 10,
     )
     assert d_path.exists()
     kept_pairs = [(t["slot"], t["profil"]) for t in final_digest["tested_tiles_rules"]]
-    assert kept_pairs == [("G7", "A"), ("G7", "B")]
+    assert kept_pairs == [("G7", "A"), ("G7", "NEUTRE")]
 
     # 2. Dépassement massif -> aucun crash/assert, avertissement clair émis et fichier écrit
     with pytest.warns(UserWarning, match="dépasse le budget cible"):
         d_big, _p_big, big_digest = write_digest_and_prompt_files(
             "macro_huge_test",
             payload_many_tiles,
-            varying_tiles=("G7:A", "G7:B"),
+            varying_tiles=("G7:A", "G7:NEUTRE"),
             digests_dir=tmp_path,
             legacy_data_copy=False,
             max_bytes=1_000,
         )
     assert d_big.exists()
-    assert big_digest["active_core_rules"]["version"] == "6.1.0-alpha"
+    assert big_digest["active_core_rules"]["version"] == "6.2.0"
     assert len(d_big.read_bytes()) >= 1_000

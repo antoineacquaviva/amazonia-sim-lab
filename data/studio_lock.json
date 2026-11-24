@@ -1,25 +1,43 @@
 {
-  "studio_version": "v6.1",
+  "studio_version": "v6.2",
+  "schema_version": "6.2.0",
   "files": {
     "catalog_v6_0.json": {
-      "sha256": "12f71c3ffa32fa7c28700ec41982154b7e74b2c450c1097e852aad809bade9ee",
-      "bytes": 55292,
+      "sha256": "87d0fe077616576cb916f8fd16fb999522b82a429c31ee2bd8488a0a9751e0a5",
+      "bytes": 25764,
       "source": "docs/data/catalog_v6_0.json"
     },
     "spec_formelle_v6_0.json": {
-      "sha256": "88917e7b611e7833f4feea46810e9380b4b361a1dc7e2254622deaad1070e45f",
-      "bytes": 25449,
+      "sha256": "a3968f6f4b1279b3973c4462eb00eb18d2ed4ad02569de3855647e7a70204184",
+      "bytes": 23219,
       "source": "docs/data/spec_formelle_v6_0.json"
     },
     "amazonia_data_v6_0.js": {
-      "sha256": "4869b36836a71304b19a48b260a19a26cc301ff5b221dadbd0286e3bbe0d02b1",
-      "bytes": 149861,
+      "sha256": "073c65714659ddaa67942021382aa92c2eb349cb5abfee39dbfe37d5c6bf0d88",
+      "bytes": 195696,
       "source": "docs/data/amazonia_data_v6_0.js"
     },
     "livret_v6_0.js": {
       "sha256": "1d35bea29629a503cf5dd318544be3c6dd9108c48dd09f4cd96a8f356cce917a",
       "bytes": 88979,
       "source": "docs/data/livret_v6_0.js"
+    }
+  },
+  "contracts": {
+    "rules_canon_v6_2.json": {
+      "sha256": "73407590fc9bea93e39dd1d6f03ece4df928e5db3039bfbb416d8d7f1c543482",
+      "bytes": 45615,
+      "source": "contracts/rules_canon_v6_2.json"
+    },
+    "physical_and_edge_invariants.json": {
+      "sha256": "7dd780ecfcf1f06f258e8aad4fbba1aa4346975e3ec0d5ea1d50053b5afaa52f",
+      "bytes": 16770,
+      "source": "contracts/physical_and_edge_invariants.json"
+    },
+    "tiles_canon_v6_2.json": {
+      "sha256": "0b864ea3b3f245339aefe72ba0881070379615595e103cc55496f8575fd7e711",
+      "bytes": 160465,
+      "source": "contracts/tiles_canon_v6_2.json"
     }
   }
 }

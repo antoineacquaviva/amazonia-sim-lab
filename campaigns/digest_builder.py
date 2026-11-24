@@ -93,13 +93,13 @@ AUTHOR_REPORTING_INSTRUCTIONS: dict[str, Any] = {
     ),
 }
 
-_STEP_ARBITRAGES_MAP: dict[int, tuple[str, ...]] = {
-    1: ("A01", "A22"),
-    2: ("A03",),
-    3: ("A04", "A11", "A21", "A02"),
-    4: ("A24", "A18", "A17"),
-    5: ("A25", "A19", "A08", "A09", "A16"),
-    6: ("A12", "A13"),
+_DEFAULT_STEP_ARBITRAGES_MAP: dict[int, tuple[str, ...]] = {
+    1: ("A01", "A10", "A24"),
+    2: ("A02", "A03", "A22"),
+    3: ("A04", "A11", "A21"),
+    4: ("A03", "A17", "A18"),
+    5: ("A05", "A06", "A08", "A09", "A14", "A15", "A16", "A19", "A23", "A25"),
+    6: ("A10", "A12", "A13", "A20"),
 }
 
 
@@ -109,22 +109,35 @@ def load_spec_bundle(bundle_path: Path | None = None) -> dict[str, Any]:
     return dict(json.loads(target.read_text(encoding="utf-8")))
 
 
+def _resolve_step_arbitrages_map(
+    spec_bundle: Mapping[str, Any],
+    spec_formelle: Mapping[str, Any],
+) -> dict[int, tuple[str, ...]]:
+    raw_map = spec_bundle.get("step_arbitrages_map") or spec_formelle.get("step_arbitrages_map")
+    if isinstance(raw_map, Mapping):
+        resolved: dict[int, tuple[str, ...]] = {}
+        for k, v in raw_map.items():
+            if isinstance(v, (list, tuple)):
+                resolved[int(k)] = tuple(str(code) for code in v)
+        if resolved:
+            return resolved
+    return dict(_DEFAULT_STEP_ARBITRAGES_MAP)
+
+
 def build_active_core_rules(
     *,
     bundle: dict[str, Any] | None = None,
     bundle_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Extrait dynamiquement `active_core_rules` du socle v6.1 depuis le `spec_bundle` actif.
+    """Extrait dynamiquement `active_core_rules` depuis le `spec_bundle` compilé par le SSOT.
 
     Contient :
-    - `version`, `source_studio_version` et `spec_bundle_sha256`,
+    - `version`, `source_studio_version`, `kernel_runtime_status` et `spec_bundle_sha256`,
     - `studio_sha256` (empreintes SHA-256 des sources Studio JSON & JS),
-    - `chassis_canonique` (châssis unique scellé v6.1 : `P4_2233`, départ décalé `B:p1 / A:p2`,
-      seuil Charge/Assaut, Rêves `2.1` + `1_DEF_1_MACHINE` + `CLEAR_RANK_ONLY`, Furtivité
-      « Chaud vs Calme », Pièges autonomes `SINGLE_STRIKE`, Gardiens pari `0/1/2`),
-    - `tactiques` (`T1..T6` Réglette réversible Face A / Face B + Ratissage ASSAUT permanent),
+    - `chassis_canonique` (dérivé de `contracts/rules_canon_v6_2.json`),
+    - `tactiques` (`T1..T6` Réglette fixe à bandelette d'Acte réversible),
     - `machine_damage_rules` et `machine_deck_rules`,
-    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour`).
+    - `spec_formelle` (Étapes 1 à 6 issues dynamiquement de `etapes_tour` et `step_arbitrages_map`).
     """
     target_path = bundle_path if bundle_path is not None else DEFAULT_BUNDLE_PATH
     if bundle is not None:
@@ -148,6 +161,7 @@ def build_active_core_rules(
 
     sf = spec_bundle.get("spec_formelle_v6_0") or {}
     av: dict[str, str] = dict(sf.get("arbitrages_valides", {}))
+    step_arb_map = _resolve_step_arbitrages_map(spec_bundle, sf)
     etapes_raw: list[dict[str, Any]] = sorted(
         sf.get("etapes_tour", []),
         key=lambda e: int(e.get("numero", 0)),
@@ -158,16 +172,16 @@ def build_active_core_rules(
         num = int(et.get("numero", 0))
         code = str(et.get("code", f"ETAPE_{num}"))
         nom = str(et.get("nom", f"Étape {num}"))
-        arb_codes = _STEP_ARBITRAGES_MAP.get(num, ())
+        arb_codes = step_arb_map.get(num, ())
         arb_txt = " ".join(av.get(ac, "") for ac in arb_codes if av.get(ac)).strip()
         etapes_1_a_6[f"etape_{num}_{code}"] = f"{nom} : {arb_txt}".strip(" :")
 
     spec_formelle_summary: dict[str, Any] = {
-        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "6.1.0-alpha"))),
+        "schema_version": str(sf.get("schema_version", meta.get("schema_version", "6.2.0"))),
         "etapes_1_a_6": etapes_1_a_6,
         "furtivite": av.get("A03", ""),
         "chaine_parades_et_pieges": (
-            f"{av.get('A20', '')} | {av.get('A06', '')} | "
+            f"{av.get('A23', '')} | {av.get('A06', '')} | "
             f"{av.get('A05', '')} | {av.get('A07', '')}"
         ),
         "sabotage_par_dilution": av.get("A24", ""),
@@ -175,29 +189,29 @@ def build_active_core_rules(
         "fins_5_3": f"{av.get('A14', '')} | {av.get('A15', '')}",
     }
 
-    chassis_canonique: dict[str, Any] = {
-        "profil_piste": CANONICAL_PROFIL_PISTE,
-        "p_max": CANONICAL_P_MAX,
-        "dotation_arbres": list(CANONICAL_DOTATION),
-        "arbres_par_rayon": CANONICAL_ARBRES_PAR_RAYON,
-        "placement_initial_machines": "BULLDOZER_P1_ABATTEUSE_P2",
-        "bulldozer_init_parcel": BULLDOZER_INIT_PARCEL,
-        "abatteuse_init_parcel": ABATTEUSE_INIT_PARCEL,
-        "seuil_parade": "P4_2233_CHARGE_IGNORE_PUISSANCE",
-        "charge_gain": "FRAPPE_NON_PAREE",
-        "gardien_bet_cap": GARDIEN_BET_CAP,
-        "reve_activation": "1_DEF_1_MACHINE",
-        "reve_advance_mode_2": "CLEAR_RANK_ONLY",
-        "reve_5_trigger": "ACTIF",
-        "furtivite": "CHAUD_VS_CALME_2_RIVES",
-        "piege": "AUTONOME_SINGLE_STRIKE",
-        "abatteuse_ratissage": "STANDARD_COUPE_ARBRE",
-        "ratissage_transition": "FIN_DE_TOUR_6_3",
-    }
+    bundle_chassis = spec_bundle.get("chassis_canonique")
+    if isinstance(bundle_chassis, Mapping):
+        chassis_canonique: dict[str, Any] = dict(bundle_chassis)
+        chassis_canonique.setdefault("piege", f"AUTONOME_{chassis_canonique.get('piege_autonome_portee', 'SINGLE_STRIKE')}")
+        chassis_canonique.setdefault("charge_gain", str(chassis_canonique.get("charge_gain_mode", "FRAPPE_NON_PAREE")))
+    else:
+        chassis_canonique = {
+            "profil_piste": CANONICAL_PROFIL_PISTE,
+            "p_max": CANONICAL_P_MAX,
+            "dotation_arbres": list(CANONICAL_DOTATION),
+            "arbres_par_rayon": CANONICAL_ARBRES_PAR_RAYON,
+            "placement_initial_machines": "BULLDOZER_P1_ABATTEUSE_P2",
+            "bulldozer_init_parcel": BULLDOZER_INIT_PARCEL,
+            "abatteuse_init_parcel": ABATTEUSE_INIT_PARCEL,
+            "charge_gain": "FRAPPE_NON_PAREE",
+            "gardien_bet_cap": GARDIEN_BET_CAP,
+            "piege": "AUTONOME_SINGLE_STRIKE",
+        }
 
     return {
-        "version": str(meta.get("schema_version", "6.1.0-alpha")),
-        "source_studio_version": str(meta.get("source_studio_version", "v6.1")),
+        "version": str(meta.get("schema_version", "6.2.0")),
+        "source_studio_version": str(meta.get("source_studio_version", "v6.2")),
+        "kernel_runtime_status": str(meta.get("kernel_runtime_status", "SEALED_V6_1_PENDING_CHANTIER_4")),
         "spec_bundle_sha256": bundle_sha256,
         "studio_sha256": studio_sha256,
         "chassis_canonique": chassis_canonique,
@@ -231,6 +245,24 @@ def build_tested_tiles_rules(
     spec_bundle = bundle if bundle is not None else load_spec_bundle(bundle_path)
     catalogue: dict[str, Any] = dict(spec_bundle.get("catalogue_tuiles", {}))
 
+    sf = spec_bundle.get("spec_formelle_v6_0") or {}
+    essaim_natives = (
+        sf.get("architecture_modulaire", {})
+        .get("modules", {})
+        .get("module_essaim", {})
+        .get("regles_natives", {})
+    )
+    native_migration_map = {
+        "SLOT_BUG_CERVEAU": essaim_natives.get("deviation_reglette") or {
+            "nom": "Déviation de dé (±1)",
+            "texte": "Règle native du Module Essaim : déviation de ±1 rang sur la Réglette.",
+        },
+        "SLOT_COLONISATION_GARDIENS": essaim_natives.get("bouclier_de_lisiere") or {
+            "nom": "Bouclier de lisière (facultatif)",
+            "texte": "Règle native du Module Essaim : choix facultatif du joueur Insectes.",
+        },
+    }
+
     seen: set[tuple[str, str]] = set()
     out: list[dict[str, str]] = []
     for raw_item in tile_profiles:
@@ -239,6 +271,18 @@ def build_tested_tiles_rules(
             continue
         seen.add((slot_id, prof_key))
         if slot_id not in catalogue:
+            if slot_id in native_migration_map:
+                nat = native_migration_map[slot_id]
+                out.append(
+                    {
+                        "slot": slot_id,
+                        "profil": prof_key,
+                        "nom": str(nat.get("nom", slot_id)),
+                        "famille": "MODULE_ESSAIM_NATIF",
+                        "texte": str(nat.get("texte", "")),
+                    }
+                )
+                continue
             raise KeyError(f"Emplacement de tuile inconnu dans spec_bundle : {slot_id!r}")
         slot_obj = catalogue[slot_id]
         profils_map = slot_obj.get("profils", {})

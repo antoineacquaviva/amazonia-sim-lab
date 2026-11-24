@@ -343,7 +343,7 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
 
     # 1. Règles cœur actives complètes
     core = digest["active_core_rules"]
-    assert core["version"] == "6.1.0-alpha"
+    assert core["version"] == "6.2.0"
     assert "defense_attribution" in digest
     assert {
         "parade_classique",

@@ -362,7 +362,7 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
         job_wall_sec=0.5,
     )
 
-    assert digest["active_core_rules"]["version"] == "6.1.0-alpha"
+    assert digest["active_core_rules"]["version"] == "6.2.0"
     assert digest["active_core_rules"]["chassis_canonique"]["profil_piste"] == "P4_2233"
     totals = digest["totals"]
     assert totals["count_charge_gains"] > 0

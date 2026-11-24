@@ -665,17 +665,34 @@ def _score_effect_option(
     if isinstance(opt, tuple) and len(opt) == 2 and isinstance(opt[1], tuple) and len(opt[1]) == 2:
         src_spec, (dst_r, dst_p) = opt
         dr, dp = int(dst_r), int(dst_p)
+        if obs.is_route(dr, dp):
+            return -1e9
         dst_idx = dr * MAX_P + (dp - 1)
         dst_gain = score_target_b2(obs, cfg, belief, ("FORET", dr, dp), False)
         src_loss = 80.0
         if isinstance(src_spec, tuple):
             if len(src_spec) >= 3 and src_spec[0] == "FORET":
                 sr, sp = int(src_spec[1]), int(src_spec[2])
+                if obs.is_route(sr, sp) or obs.parcel_defenseurs(sr, sp) <= 0:
+                    return -1e9
                 src_idx = sr * MAX_P + (sp - 1)
                 src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
+            elif len(src_spec) >= 3 and src_spec[0] == "FURTIVITE":
+                sr, sp = int(src_spec[1]), int(src_spec[2])
+                if obs.furtivite_defs_and_ins(sr, sp)[0] <= 0:
+                    return -1e9
+            elif len(src_spec) >= 2 and src_spec[0] == "LISIERE":
+                slot_idx = int(src_spec[1])
+                _, _, cnt_l = obs.lisiere_tile_info(slot_idx)
+                if cnt_l <= 0:
+                    return -1e9
             elif len(src_spec) == 2 and isinstance(src_spec[0], int) and isinstance(src_spec[1], int):
                 sr, sp = int(src_spec[0]), int(src_spec[1])
                 if 0 <= sr < obs.n_players and 1 <= sp <= cfg.p_max:
+                    if obs.is_route(sr, sp) or (
+                        obs.parcel_defenseurs(sr, sp) <= 0 and obs.parcel_insectes(sr, sp) <= 0
+                    ):
+                        return -1e9
                     src_idx = sr * MAX_P + (sp - 1)
                     src_loss = 120.0 + belief.parcel_strike_prob[src_idx] * 320.0
         return dst_gain - src_loss + belief.parcel_strike_prob[dst_idx] * 90.0

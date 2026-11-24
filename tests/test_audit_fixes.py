@@ -373,15 +373,15 @@ def test_inter_effect_composition_witness_g1_a_then_g2_a_updates_parade() -> Non
         load_all_effects()
 
 
-def test_digest_active_core_rules_chronology_matches_v6_1() -> None:
-    """Vérifie que build_active_core_rules expose la chronologie scellée (3.1 -> 3.2 -> 4.1)."""
+def test_digest_active_core_rules_chronology_matches_v6_2() -> None:
+    """Vérifie que build_active_core_rules expose la chronologie canonique (Construction -> Ouverture -> Furtivité)."""
     rules = build_active_core_rules()
     etapes = rules["spec_formelle"]["etapes_1_a_6"]
     keys = list(etapes.keys())
     assert keys[2] == "etape_3_CONSTRUCTION_ET_REVELATION"
     assert keys[3] == "etape_4_FURTIVITE_NIDS_ET_MIGRATION"
-    assert "3.1" in etapes[keys[2]] and "3.2" in etapes[keys[2]]
-    assert "4.1" in etapes[keys[3]]
+    assert "Construction" in etapes[keys[2]] and "Ouverture" in etapes[keys[2]]
+    assert "Furtivité" in etapes[keys[3]]
     assert not any("REVELATION_ET_FURTIVITE" in k for k in keys)
 
 
@@ -389,7 +389,7 @@ def test_digest_active_core_rules_chronology_matches_v6_1() -> None:
 # 5. Traçabilité complète (amazonia_data_v6_0.js + livret_v6_0.js + spec_bundle_sha256) & economie_bot
 # ---------------------------------------------------------------------------
 def test_traceability_hashes_and_economie_bot_fixes() -> None:
-    """Vérifie le verrouillage SHA-256 complet et les correctifs du graphe economie_bot."""
+    """Vérifie le verrouillage SHA-256 complet et les flux du graphe economie_bot Canon 0."""
     lock = json.loads((ROOT / "data" / "studio_lock.json").read_text(encoding="utf-8"))
     js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v6_0.js").read_bytes()).hexdigest()
     livret_sha = hashlib.sha256((ROOT / "docs" / "data" / "livret_v6_0.js").read_bytes()).hexdigest()
@@ -412,16 +412,17 @@ def test_traceability_hashes_and_economie_bot_fixes() -> None:
         for slot_id, slot_data in bundle["catalogue_tuiles"].items()
         for prof_letter, prof_data in slot_data["profils"].items()
     }
-    assert "TRIG_3" not in profiles_by_key[("R4", "B")]["outputs_produits"]
-    assert "TRIG_2" not in profiles_by_key[("M4", "B")]["outputs_produits"]
-    assert "RES_JETON_ROUGE" in profiles_by_key[("G1", "A")]["inputs_requis"]
+    assert len(profiles_by_key) == 30
     assert "RES_JETON_BLEU" in profiles_by_key[("G1", "A")]["outputs_produits"]
-    assert "RES_JETON_ROUGE" not in profiles_by_key[("G1", "A")]["outputs_produits"]
-    assert "RES_INSECTE" not in profiles_by_key[("G10", "C")]["outputs_produits"]
-    assert "TRIG_6" not in profiles_by_key[("G10", "C")]["outputs_produits"]
-    assert "RES_INSECTE" not in profiles_by_key[("M4", "A")]["outputs_produits"]
-    assert "RES_INSECTE" in profiles_by_key[("R6", "B")]["outputs_produits"]
-    assert "TRIG_6" in profiles_by_key[("R6", "B")]["outputs_produits"]
+    assert "RES_DEFENSEUR" in profiles_by_key[("G1", "A")]["outputs_produits"]
+    assert "RES_JETON_ROUGE" in profiles_by_key[("G6", "A")]["inputs_requis"]
+    assert "RES_JETON_BLEU" in profiles_by_key[("G6", "A")]["outputs_produits"]
+    assert "RES_INSECTE" in profiles_by_key[("G14", "A")]["inputs_requis"]
+    assert "RES_PIEGE" in profiles_by_key[("G14", "A")]["outputs_produits"]
+    assert "RES_DILUTION_SABOTAGE" in profiles_by_key[("G10", "A")]["outputs_produits"]
+    assert "RES_INSECTE" in profiles_by_key[("M4", "A")]["inputs_requis"]
+    assert "RES_JETON_BLEU" in profiles_by_key[("M4", "A")]["outputs_produits"]
+    assert "RES_ARBRE" in profiles_by_key[("R6", "A")]["outputs_produits"]
 
 
 # ---------------------------------------------------------------------------

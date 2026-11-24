@@ -1,0 +1,284 @@
+{
+  "meta": {
+    "projet": "Amazonia : Dernier Rempart",
+    "schema_version": "6.2.0",
+    "date_consolidation": "2026-11-24",
+    "description": "Registre permanent des 22 invariants matériels, cas limites et règles de gouvernance (INV-01 à INV-22) exigés dans le livret modulaire (data-inv=\"INV-XX\") et dans le futur noyau v6.2."
+  },
+  "invariants": [
+    {
+      "id": "INV-01",
+      "categorie": "MATERIEL",
+      "titre": "Dotation finie 10×N pions uniques Arbre / Souche recto-verso",
+      "enonce_canonique": "Dotation finie exacte de 10 × N pions uniques recto-verso (Arbre debout / Souche, zéro réserve illimitée). Couper (Abatteuse) = retourner tous les Arbres debout sur place en Souche sans toucher aux Souches ; terrasser (Bulldozer) = retourner 1 Arbre en Souche puis retirer toutes les Souches de la parcelle ; repousse finale = retourner des Souches survivantes en Arbres debout (plafond de dotation initiale 100 % physique).",
+      "assertions_livret": [
+        "10 × N",
+        "recto-verso",
+        "Arbre debout",
+        "Souche"
+      ],
+      "target_test_id": "test_inv01_finite_reversible_trees_stumps"
+    },
+    {
+      "id": "INV-02",
+      "categorie": "MATERIEL",
+      "titre": "Jetons Puissance recto-verso Rouge (+1) / Bleu Surchauffe (−1)",
+      "enonce_canonique": "Les jetons Puissance sont des pièces recto-verso portant Rouge (+1) au recto et Bleu Surchauffe (−1) au verso.",
+      "assertions_livret": [
+        "recto-verso",
+        "Rouge",
+        "Bleu",
+        "Surchauffe"
+      ],
+      "target_test_id": "test_inv02_reversible_power_tokens"
+    },
+    {
+      "id": "INV-03",
+      "categorie": "MATERIEL",
+      "titre": "Modèle unique de 2 Défenseurs recto-verso & Chamanes Humains auto-vérifiants",
+      "enonce_canonique": "Chaque joueur dispose de 2 pions Défenseurs recto-verso (Réflexion / Définitif) : le 1er pion est posé directement face Définitif (jamais sur les Gardiens) ; le 2e pion est posé face Réflexion puis retourné irréversiblement sur Définitif, figeant simultanément le jeton Duel ou la Plume de Vigie mobilisés ce tour. Chez les Humains (H), seuls 2 pions Chamanes existent au total (1 Tambour et 1 Chant recto-verso), rendant le binôme imposé auto-vérifiant.",
+      "assertions_livret": [
+        "Réflexion",
+        "Définitif",
+        "Tambour",
+        "Chant"
+      ],
+      "target_test_id": "test_inv03_two_reversible_defenders_and_human_chamans"
+    },
+    {
+      "id": "INV-04",
+      "categorie": "GOUVERNANCE",
+      "titre": "Clôture du temps de réflexion à N−1 joueurs validés",
+      "enonce_canonique": "Dès que N−1 joueurs ont retourné leur 2e pion sur sa face Définitif, le dernier joueur effectue au plus 1 ultime ajustement avant de valider irréversiblement son pion.",
+      "assertions_livret": [
+        "ultime ajustement"
+      ],
+      "target_test_id": "test_inv04_reflection_closure_n_minus_1"
+    },
+    {
+      "id": "INV-05",
+      "categorie": "MATERIEL",
+      "titre": "Sac opaque de jetons épais (Machines, Sabotages, Écailles)",
+      "enonce_canonique": "La pioche s'effectue dans un sac en tissu opaque contenant les 2N jetons Machine épais, les jetons Sabotage ordinaires et jusqu'à 4 jetons Sabotage Écaille (via tuiles R). Les jetons non piochés restent cachés sans être consultés ; les jetons révélés et celui du Perchoir retournent dans le sac au ménage.",
+      "assertions_livret": [
+        "sac",
+        "opaque",
+        "jetons",
+        "cachés"
+      ],
+      "target_test_id": "test_inv05_opaque_bag_tokens_and_remise"
+    },
+    {
+      "id": "INV-06",
+      "categorie": "GOUVERNANCE",
+      "titre": "Ordre de distribution en pénurie (Coordonnateur horaire, Oiseau en dernier)",
+      "enonce_canonique": "En cas de pénurie dans le sac, la distribution s'effectue dans le sens horaire à partir du Coordonnateur, en servant toujours l'Oiseau en dernier (il regarde jusqu'à 2 jetons du sac, en garde 1 si possible et pose l'autre face cachée sur son Perchoir de Vigie).",
+      "assertions_livret": [
+        "Coordonnateur",
+        "Oiseau",
+        "en dernier"
+      ],
+      "target_test_id": "test_inv06_shortage_clockwise_bird_last"
+    },
+    {
+      "id": "INV-07",
+      "categorie": "MATERIEL",
+      "titre": "Lancer de dés universel sous paravent fermé (zéro fuite sonore)",
+      "enonce_canonique": "Sous paravent fermé, tous les joueurs lancent leurs dés (2 dés standards chacun + Dé d'Envol 1–6 chez l'Oiseau sur mini-paravent gradué 1–6), même s'ils ont tiré un Sabotage ou une Écaille (auquel cas leur jet est ignoré), éliminant toute fuite sonore.",
+      "assertions_livret": [
+        "tous les joueurs lancent",
+        "mini-paravent",
+        "fuite sonore"
+      ],
+      "target_test_id": "test_inv07_universal_dice_roll_no_audio_leak"
+    },
+    {
+      "id": "INV-08",
+      "categorie": "MATERIEL",
+      "titre": "Réglette des Tactiques fixe 1–6 et bandelette d'Acte réversible",
+      "enonce_canonique": "La Réglette des Tactiques est fixe sur 6 rangs (cases Rêves au-dessus des actions imprimées 1/4 Sur place, 2/5 Devant, 3/6 En avançant −1) et accompagnée dessous d'une bandelette d'Acte réversible retournée seule au début du Tour 5 sans déplacer ni Rêves ni Insectes.",
+      "assertions_livret": [
+        "Réglette",
+        "bandelette",
+        "Tour 5"
+      ],
+      "target_test_id": "test_inv08_fixed_track_and_reversible_act_strip"
+    },
+    {
+      "id": "INV-09",
+      "categorie": "MATERIEL",
+      "titre": "Piste des Gardiens à 6 icônes dédiées (Résonance en 6e position)",
+      "enonce_canonique": "La Piste des Gardiens comporte 6 icônes dédiées sans numéros dans l'ordre gauche → droite : [Parade, Piégeage, Sabotage, Rêve, Insecte, Résonance]. La Résonance occupe la 6e et dernière position avec compteur individuel des 1res activations d'autres Gardiens du tour sans écrasement de bit, et reprise du balayage gauche → droite si un effet rallume une icône située plus à gauche.",
+      "assertions_livret": [
+        "Parade",
+        "Piégeage",
+        "Sabotage",
+        "Rêve",
+        "Insecte",
+        "Résonance"
+      ],
+      "target_test_id": "test_inv09_six_guardian_icons_resonance_sixth_counter"
+    },
+    {
+      "id": "INV-10",
+      "categorie": "MATERIEL",
+      "titre": "Deux encoches latérales visibles par Gardien et verdict de pari",
+      "enonce_canonique": "Chaque tuile Gardien comporte 2 encoches latérales visibles dans lesquelles glisse 1 Défenseur à chaque activation. En fin d'attaques : ≥ 1 pion encore sur la tuile = pari perdu ; 0 pion dessus et ≥ 1 encoche occupée = pari gagné (passage Face 2) ; 0 pion dessus et 0 encoche occupée = aucune mise engagée (le Gardien reste en place sur sa face actuelle sans évoluer).",
+      "assertions_livret": [
+        "encoches",
+        "pari perdu",
+        "pari gagné",
+        "Face 2"
+      ],
+      "target_test_id": "test_inv10_guardian_visible_notches_and_zero_bet_no_upgrade"
+    },
+    {
+      "id": "INV-11",
+      "categorie": "CAS_LIMITE",
+      "titre": "Formule unifiée du Seuil de Parade (Bleus actifs en tous modes)",
+      "enonce_canonique": "Seuil de Parade = chiffre gravé + jetons rouges (en Mode Assaut et Ratissage uniquement ; ignorés en Mode Charge) − jetons bleus Surchauffe (actifs dans TOUS les modes : Charge, Assaut et Ratissage) − 1 aux rangs 3 et 6 (minimum 1). En Mode Charge, gain plafonné à +1 jeton rouge par activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée.",
+      "assertions_livret": [
+        "Seuil de Parade",
+        "bleus",
+        "Charge",
+        "minimum 1"
+      ],
+      "target_test_id": "test_inv11_parade_threshold_blue_in_all_modes"
+    },
+    {
+      "id": "INV-12",
+      "categorie": "CAS_LIMITE",
+      "titre": "Ratissage physique (+1 rouge convertible, immobile, parcelle ciblée)",
+      "enonce_canonique": "Au ménage, toute machine terminant sur la dernière parcelle de son rayon glisse son jeton Machine sous elle (hors du sac), conserve tous ses jetons Puissance antérieurs et gagne +1 jeton rouge physique (convertible en bleu ; suppression définitive du +1 imprimé). Une machine en Ratissage ne se déplace jamais (ni avancée, ni recul, ni cale, ni Altération, ni changement de rang), mais sa parcelle compte pleinement comme « parcelle ciblée » tant qu'elle n'a pas frappé ce tour.",
+      "assertions_livret": [
+        "Ratissage",
+        "jeton rouge",
+        "parcelle ciblée"
+      ],
+      "target_test_id": "test_inv12_ratissage_physical_red_immobile_targeted"
+    },
+    {
+      "id": "INV-13",
+      "categorie": "CAS_LIMITE",
+      "titre": "Parcelles ciblées figées au début de l'activation & Repli de bordure sans double bond",
+      "enonce_canonique": "Les parcelles visées par une machine sont figées au début de son activation (toute cible devenue Route Forestière entre-temps est annulée sans report). Si la création d'une Route en bordure pousse déjà une machine d'1 parcelle vers le cœur pendant ses frappes, cette poussée couvre et remplace l'avancée finale d'une action En avançant (jamais de double bond +2 vers le cœur en une activation).",
+      "assertions_livret": [
+        "figées",
+        "Route",
+        "En avançant"
+      ],
+      "target_test_id": "test_inv13_frozen_targets_and_border_retreat_no_double_jump"
+    },
+    {
+      "id": "INV-14",
+      "categorie": "CAS_LIMITE",
+      "titre": "Visibilité des jetons Machine jusqu'à la Furtivité & indépendance de m(r)",
+      "enonce_canonique": "Les jetons Machine révélés restent visibles devant leur rayon jusqu'au verdict de Furtivité (inclinés à 90° s'ils sont annulés par un Rêve). La mobilisation m(r) compte uniquement les jetons Machine révélés du rayon r plus ses machines en Ratissage (indépendant d'une déviation ±1, d'une annulation par Rêve ou d'une Altération ; un Sabotage ou une Écaille ne compte pour aucun rayon).",
+      "assertions_livret": [
+        "90°",
+        "Furtivité",
+        "Rive Piège",
+        "Rive Sabotage"
+      ],
+      "target_test_id": "test_inv14_machine_tokens_visible_until_furtivite"
+    },
+    {
+      "id": "INV-15",
+      "categorie": "CAS_LIMITE",
+      "titre": "Séquence stricte d'ouverture, choix du propriétaire du Rêve et Défenseurs solidaires",
+      "enonce_canonique": "Ordre strict d'ouverture : chaque Sabotage/Écaille un par un (+ balayage Gardiens) → chaque déviation d'Insecte ±1 une par une (+ balayage) → chaque Rêve défendu de gauche à droite : le propriétaire du Rêve choisit quelle(s) machine(s) présente(s) sur le rang sont annulées (y compris une machine déviée), résout intégralement le pouvoir propre du Rêve (actif dès que le Rêve est défendu même à 0 machine, sauf mention « Quand ce Rêve annule… »), puis si ≥ 1 machine a été annulée (déviée ou non), allume l'icône Rêve + balayage. Les Défenseurs posés sur un Rêve se déplacent toujours avec lui.",
+      "assertions_livret": [
+        "gauche à droite",
+        "propriétaire",
+        "déplacent toujours avec lui"
+      ],
+      "target_test_id": "test_inv15_opening_order_reve_owner_choice_and_moving_defenders"
+    },
+    {
+      "id": "INV-16",
+      "categorie": "CAS_LIMITE",
+      "titre": "Zéro écrasement au contact hors Route & Vidage sur Route Forestière",
+      "enonce_canonique": "Le déplacement d'une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d'une Route Forestière (0 Arbre et 0 Souche après un Bulldozer) vide la case : Nid renvoyé en lisière reconstructible, Défenseurs rendus en main, Piège/Croc/Insectes/Duel remis en réserve. Les Routes Forestières sont sautées radialement et infranchissables latéralement.",
+      "assertions_livret": [
+        "intacts",
+        "Route Forestière",
+        "reconstructible"
+      ],
+      "target_test_id": "test_inv16_zero_crush_on_contact_route_clears_cell"
+    },
+    {
+      "id": "INV-17",
+      "categorie": "CAS_LIMITE",
+      "titre": "Plafond de 1 Piège ordinaire par parcelle, autonomie et priorité du Croc",
+      "enonce_canonique": "Une parcelle porte au maximum 1 Piège ordinaire ; tout Piège ordinaire est autonome (pare 1 frappe même avec 0 Défenseur et 0 Insecte, allume l'icône Piégeage et est défaussé aussitôt). Le jeton Croc Reptile peut cohabiter avec un Piège ordinaire sur la même parcelle, pare alors en premier puis revient dans la réserve Reptile.",
+      "assertions_livret": [
+        "Piège",
+        "Croc",
+        "en premier"
+      ],
+      "target_test_id": "test_inv17_max_one_trap_and_croc_cohabitation_priority"
+    },
+    {
+      "id": "INV-18",
+      "categorie": "GOUVERNANCE",
+      "titre": "Bouclier de lisière facultatif gouverné par les Insectes (I)",
+      "enonce_canonique": "En fin d'attaques, lorsqu'un Gardien perd son pari et porte au moins 1 Insecte sur son icône, le joueur Insectes (I) choisit librement de défausser ou non 1 Insecte de cette icône pour maintenir le Gardien en piste sur sa face actuelle (le pari demeurant perdu).",
+      "assertions_livret": [
+        "Bouclier de lisière",
+        "Insectes",
+        "choisit"
+      ],
+      "target_test_id": "test_inv18_optional_bouclier_lisiere_governed_by_insects"
+    },
+    {
+      "id": "INV-19",
+      "categorie": "GOUVERNANCE",
+      "titre": "Interdiction de tuile inplaçable, repli de 1re pose, bâtisseurs en attente & bonus 3J",
+      "enonce_canonique": "Il est interdit de compléter en lisière une tuile impossible à placer sur le plateau. Si aucun emplacement légal n'existe au 1er temps de pose, le joueur peut placer son 1er Défenseur sur une parcelle d'un allié. Sitôt une tuile construite, ses 2 bâtisseurs sont couchés « en attente » devant leur propriétaire — sauf à 3 joueurs lors de la construction d'un Gardien ou d'un Rêve, où 1 des 2 bâtisseurs rejoint immédiatement une parcelle adjacente.",
+      "assertions_livret": [
+        "impossible à placer",
+        "en attente",
+        "3 joueurs"
+      ],
+      "target_test_id": "test_inv19_unplaceable_tile_ban_builders_waiting_and_3p_bonus"
+    },
+    {
+      "id": "INV-20",
+      "categorie": "CAS_LIMITE",
+      "titre": "Accessoires 3 + 3 : actifs Tour 1 (H, M, O) et progressifs (E Altération, R Écailles/Croc/Cale)",
+      "enonce_canonique": "Trois accessoires actifs dès le Tour 1 (H : Tambour/Chant ; M : Duel Défi↔Territoire tenu ; O : Dé d'Envol/Perchoir/Plume) et trois progressifs via tuiles : E pose un jeton d'Altération directement sur une machine mobile (max 1 ; retiré à sa prochaine révélation, elle compte dans m(r) mais recule d'1 parcelle sans frapper) ; R utilise 4 jetons Écaille (allument Sabotage et posent le Croc réutilisable) et max 1 cale sous machine mobile via G9 ; I gère le Module Essaim.",
+      "assertions_livret": [
+        "Duel",
+        "Plume",
+        "Altération",
+        "Écaille"
+      ],
+      "target_test_id": "test_inv20_accessories_3_plus_3_alteration_and_ecaille"
+    },
+    {
+      "id": "INV-21",
+      "categorie": "MATERIEL",
+      "titre": "Clôture stricte du Module Essaim (I) & descente sur place de l'Insecte passager",
+      "enonce_canonique": "Les jetons Insectes sont exclusifs aux 10 tuiles des 5 lisières de I et restent dans la boîte dès que I ne joue pas (Production/Migration ignorées, icône Insecte inactive). Quand I joue, tout Insecte passager (M1) non dépensé descend sur place au ménage.",
+      "assertions_livret": [
+        "Insectes",
+        "boîte",
+        "passager"
+      ],
+      "target_test_id": "test_inv21_swarm_module_closure_and_passenger_dismount"
+    },
+    {
+      "id": "INV-22",
+      "categorie": "CAS_LIMITE",
+      "titre": "Enracinement volontaire au ménage (1/2 Souches finales & Sommeil bloqué)",
+      "enonce_canonique": "Au ménage, avant de remettre les jetons dans le sac, chaque joueur peut enraciner au plus 1 tuile construite de son Peuple au pied de son rayon face à une parcelle : elle perd son pouvoir (hors mention Enraciné), quitte sa piste ou parcelle en y laissant ses Insectes, et un Rêve enraciné rend le Sommeil impossible. Au décompte final (Tour 8, Sommeil ou Éveil), si cette parcelle n'est pas devenue Route Forestière, la tuile y retourne 1 Souche en Arbre debout (F1/unique) ou 2 (F2).",
+      "assertions_livret": [
+        "enraciner",
+        "Sommeil impossible",
+        "1 Souche",
+        "Face 2"
+      ],
+      "target_test_id": "test_inv22_voluntary_rooting_regrowth_and_sleep_lock"
+    }
+  ]
+}

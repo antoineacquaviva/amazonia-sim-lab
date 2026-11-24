@@ -100,8 +100,8 @@ def test_v5_5_all_30_active_tiles_and_native_migrations_registered() -> None:
     assert expected_migrations <= registered
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["schema_version"] == "6.1.0-alpha"
-    assert len(bundle["catalogue_tuiles"]) == 32
+    assert bundle["meta"]["schema_version"] == "6.2.0"
+    assert len(bundle["catalogue_tuiles"]) == 30
     for slot_id, prof in expected_30:
         assert slot_id in bundle["catalogue_tuiles"]
         assert prof in bundle["catalogue_tuiles"][slot_id]["profils"]
@@ -489,7 +489,7 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
         job_wall_sec=1.0,
     )
     assert digest_path.exists() and prompt_path.exists() and parquet_path.exists()
-    assert digest["active_core_rules"]["version"] == "6.1.0-alpha"
+    assert digest["active_core_rules"]["version"] == "6.2.0"
     assert digest["totals"]["total_games"] == 3 * 2 * 20  # 120 parties
 
     # 1. Section defense_attribution complète + ventilation par bot (B0, B1, B2)

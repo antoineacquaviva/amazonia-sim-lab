@@ -1,33 +1,52 @@
-# CORE_FREEZE_CRITERIA.md — Critères de sortie de la Phase « Cœur Symétrique »
+# CORE_FREEZE_CRITERIA.md — Gouvernance SSOT `v6.2`, Micro-ADR & Critères de Gel
 
-> **Phase active du dépôt** : `CORE_STABILIZATION` (Mode 2 à blanc — tuiles Gardiens, Rêves et Croissance jouables sans effets personnalisés).
-> **Stock historique des 100 profils** : gelé sur le tag Git `archive/v5.4.3-legacy-100-tiles` et rangé dans `archive/legacy_tiles_v5_3/` + `archive/banque_idees_tuiles_v5_3.md`.
-
-Tant que ces critères ne sont pas atteints sur les simulations Mode 2 (`B0..B2` sur `N=3..6`), **aucune nouvelle tuile asymétrique n'est implémentée** et le noyau (`engine/{state,rng,primitives,core_engine}.py`) reste dégelé pour itérer vite.
-
----
-
-## 1. Grille cible de *Core Freeze* (Mode 2 à blanc, Bot `B2`, `N=3..6`)
-
-| Axe | Métrique | État de référence (`calibration_pari_gardiens_v5_4`, `v5.4.3`) | Cible *Core Freeze* (à ajuster par l'auteur) |
-| :--- | :--- | :--- | :--- |
-| **Invariance `N=3..6`** | Écart max `mean_ratio_arbres` entre `N=3` et `N=6` | **+9,0 pts** (`70,5 %` à 3j → `79,5 %` à 6j) | **≤ 4,0 pts** |
-| **Invariance pire table** | Écart max `table_cvar20_ratio` entre `N=3` et `N=6` | **+16,6 pts** (`59,6 %` → `76,2 %`) | **≤ 6,0 pts** |
-| **Marge de difficulté** | `mean_ratio_arbres` global (cœur nu, avant pouvoirs) | **74,7 %** (`cvar20 = 63,9 %`, survie `100 %`) | **55 % – 68 %** (laisser de la marge aux futures tuiles) |
-| **Équilibre des 3 fins** | `% Tour 8` / `% Sommeil Rêves` / `% Éveil Gardiens` | `87,8 %` / `5,3 %` / `6,9 %` | `65–85 %` T8, `≥ 5 %` Sommeil, `≥ 5 %` Éveil (cohérent `N=3..6`) |
-| **Risque Pari Gardiens** | Taux de réussite d'Éveil (`success_rate_pct`) | **80,2 %** (`UNLIMITED` `9,9 %` vs `MAX_1_DEF` `3,9 %`) | **40 % – 65 %** (vrai arbitrage risque/récompense) |
-| **Santé des systèmes** | Aucune mécanique morte en Mode 2 | `insects_spent_step5 = 0.0`, `sabotage_in_deck = 0.01` sur tours d'Éveil | Furtivité, Sabotage, Insectes/Parade, Pièges, Rêves et Pari Gardiens tous actifs |
-| **Profondeur tactique** | Hiérarchie bots & négociation muette | À re-vérifier sur châssis final | **`B0 < B1 < B2`** strict + `Delta_V_negociation > 0` |
-| **Budget cognitif** | `mean_fiddliness_ops`, `mean_mem_debt`, `mid_combat_interrupts` | `2,65` ops / `0,0` / `0,026` | Conserver `fiddliness ≤ 3,5` et `mem_debt == 0` |
+> **Cible unifiée active** : **`v6.2`** (*Socle épuré + Asymétrie Hybride `3 + 3` + Enracinement volontaire + Canon 0 de 30 tuiles*).
+> **Sources uniques de vérité (SSOT)** : `contracts/rules_canon_v6_2.json`, `contracts/physical_and_edge_invariants.json` (`INV-01..INV-22`), `contracts/tiles_canon_v6_2.json`.
+> **Plan de convergence en 5 Chantiers** :
+> 1. **Chantier 1** : Fondation SSOT `v6.2`, registre `INV-01..INV-22`, compilateur dérivé unique, purge contextes IA & garde-fous `verify_lot.py` (`engine/*.py` scellé intact).
+> 2. **Chantier 2** : Refonte du Livret Joueur modulaire (`LIVRET_SCHEMA_VERSION = "6.2.0"`) avec traçabilité bloquante `data-inv="INV-01"` .. `data-inv="INV-22"`.
+> 3. **Chantier 3** : Refonte UX/UI de l'Explorateur des 30 tuiles Canon 0.
+> 4. **Chantier 4** : Ouverture approuvée et mise à niveau du noyau Python (`engine/*.py`) vers `rules_canon_v6_2.json`, suivie de son re-scellement `kernel_locks.sha256`.
+> 5. **Chantier 5** : Implémentation stateless des 30 tuiles Canon 0 (`engine_sync_status -> ACTIVE_VERIFIED`), 35 témoins exécutables et calibration multi-tables `N=3..6`.
 
 ---
 
-## 2. Protocole de passage au *Core Freeze* (reprise des tuiles)
+## 1. Protocole Obligatoire « Micro-ADR en 4 Questions »
 
-Une fois la grille ci-dessus validée sur une campagne Cloud Mode 2 de référence :
+Avant toute modification d'une règle du cœur dans `contracts/rules_canon_v6_2.json`, d'un invariant dans `contracts/physical_and_edge_invariants.json` ou d'une mécanique transverse, l'auteur et l'agent doivent renseigner explicitement ce **Micro-ADR en 4 questions** :
 
-1. **Re-sceller le noyau** : regénérer `contracts/kernel_locks.sha256` (`engine/{state,rng,primitives,core_engine}.py`) et `contracts/core_state_api.md`.
-2. **Concevoir les tuiles par micro-vagues** (jamais 100 d'un coup) :
-   - Puiser dans [`archive/banque_idees_tuiles_v5_3.md`](../archive/banque_idees_tuiles_v5_3.md) les concepts classés `✅ Transposable` ou `🟡 À adapter`.
-   - Implémenter d'abord **1 seul profil canonique par emplacement** (ou une famille à la fois : Rêves → Gardiens → Croissance), en validant chaque vague par campagne comparative Mode 3 vs Mode 2.
-   - N'ajouter des variantes `B/C` que là où la télémétrie révèle un vrai levier d'équilibrage ou de contraste ludique.
+1. **Invariant & Motivation** : quel invariant (`INV-01..INV-22`) ou clause de `rules_canon_v6_2.json` change, et quel signal factuel (playtest physique ou télémétrie avec IC 95 %) justifie la retouche ?
+2. **Impact Matériel & Cas Limites** : quelles pièces physiques (dotation finie `10 × N`, sac opaque, 2 Défenseurs recto-verso, bandelette d'Acte, 6 icônes Gardiens, 2 encoches visibles, accessoires `3 + 3`) sont affectées ? Vérification stricte de `mem_debt == 0`.
+3. **Propagation Modules & Canon 0** : quels modules (*Gardiens & Éveil*, *Rêves & Sommeil*, *Essaim*) et quelles tuiles parmi les 30 emplacements de `contracts/tiles_canon_v6_2.json` sont impactés (clôture `I`, autonomie `A=0`, budget `≤ 25` mots/face) ?
+4. **Preuves & Synchronisation Dérivée** : quels tests (`target_test_id`, témoins, linter `verify_tiles_canon`, scanner anti-vestiges) prouvent la non-régression après régénération par `uv run python scripts/build_studio_artifacts.py` ?
+
+---
+
+## 2. Règle Anti-Perte sur le Livret Joueur (Conservation des `INV-01..INV-22`)
+
+- **Interdiction absolue de condenser, réorganiser ou réécrire le livret joueur (`docs/data/livret_v6_0.js`) sans établir préalablement un tableau de conservation intégral couvrant 100 % des 22 invariants `INV-01` à `INV-22`** de `contracts/physical_and_edge_invariants.json`.
+- Chaque ligne du tableau doit indiquer : `INV-XX` | section / module cible | attribut HTML `data-inv="INV-XX"` présent dans le DOM `#rulebook-article` | vérification de chaque chaîne de `assertions_livret`.
+- Tout retrait ou fusion d'un invariant exige au préalable un **Micro-ADR en 4 questions** validé par l'auteur et une mise à jour versionnée de `contracts/physical_and_edge_invariants.json`.
+
+---
+
+## 3. Grille Cible de Validation & Gel du Noyau `v6.2` (Chantiers 4–5)
+
+| Axe | Métrique | Cible *Core Freeze* `v6.2` (`B2`, `N=3..6`, cercles équilibrés) |
+| :--- | :--- | :--- |
+| **Invariance `N=3..6`** | Écart max `mean_ratio_arbres` entre `N=3` et `N=6` | **≤ 4,0 pts** (avec IC 95 % inter-tables) |
+| **Robustesse pire quintile** | `table_cvar20_ratio` (bootstrap par grappes) | **≥ 35 %** et écart inter-`N` **≤ 6,0 pts** |
+| **Équité Peuples & Modules** | Écart `3 + 3`, tables sans `I` / sans `H,E` / `{H,E,I}` | **≤ 5,0 pts** sur les 197 assises |
+| **Difficulté cible** | `mean_ratio_arbres` global (Canon 0 actif) | Bande éditoriale **45 % – 60 %** (tension sans blocage) |
+| **Équilibre des 3 fins** | `% Tour 8` / `% Sommeil` / `% Éveil` | 3 fins réellement atteignables et équilibrées selon `N` |
+| **Profondeur & Silence** | Hiérarchie `B0 < B1 < B2 <= B3` & `B2_OPEN` | Monotonie stricte sur toutes strates + `Delta_V_neg > 0` |
+| **Budget cognitif** | `mem_debt_score`, `law_stack_max`, `fiddliness_ratio` | `mem_debt == 0`, `law_stack <= 2`, `fiddliness <= 3,5` |
+| **Intégrité SSOT** | `verify_lot.py` (SHA-256, AST, Zéro-LLM, Linter 30 tuiles, Anti-vestiges, Node `vm`, `ruff`, `pyright`, `pytest`, PyPy fuzzer) | **100 % VERT** |
+
+---
+
+## 4. Protocole de Scellement du Noyau (`contracts/kernel_locks.sha256`)
+
+1. Toute ouverture du noyau requiert l'accord explicite de l'auteur et un Micro-ADR complété.
+2. Après modification approuvée de `engine/{rng,state,primitives,core_engine}.py`, régénérer `contracts/core_state_api.md` via `uv run python scripts_cloud/export_api_doc.py` et re-sceller immédiatement les empreintes SHA-256 dans `contracts/kernel_locks.sha256`.
+3. Passer `uv run python verify_lot.py` à **100 % vert** avant tout commit ou campagne Cloud.

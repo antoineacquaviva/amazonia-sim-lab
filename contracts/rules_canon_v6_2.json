@@ -1,0 +1,683 @@
+{
+  "meta": {
+    "projet": "Amazonia : Dernier Rempart",
+    "schema_version": "6.2.0",
+    "date_consolidation": "2026-11-24",
+    "statut": "SSOT_V6_2_ACTIVE",
+    "kernel_sync_status": "SEALED_V6_1_PENDING_CHANTIER_4",
+    "description": "Contrat formel typé unique (SSOT) de la cible unifiée v6.2 : Socle épuré, Asymétrie Hybride 3+3, Enracinement volontaire et Canon 0 de 30 tuiles."
+  },
+  "architecture_modulaire": {
+    "principe": "1 Tronc commun court suivi de 3 modules activés uniquement si au moins un Peuple de la famille participe à la partie.",
+    "tronc_commun": {
+      "id": "tronc_commun",
+      "titre": "Tronc commun (toujours actif)",
+      "perimetre": "Forêt finie 10×N, sac opaque de jetons, Réglette fixe à bandelette d'Acte, Défenseurs recto-verso, Furtivité Chaud/Calme, Pièges autonomes, attaques, Ratissage, Enracinement volontaire et score final."
+    },
+    "modules": {
+      "module_gardiens_et_eveil": {
+        "titre": "Module Gardiens & Éveil",
+        "peuples_requis": ["M", "R", "O"],
+        "assises_actives": 196,
+        "assises_total": 197,
+        "assises_inactives": [["H", "E", "I"]],
+        "resume": "Lu uniquement si au moins un Peuple Animal Sauvage (M, R ou O) joue : Piste des Gardiens à 6 icônes avec Résonance en 6e position, 2 encoches visibles par Gardien, paris 0/1/2 Défenseurs, passage Face 2 et fin anticipée par Éveil de la Forêt."
+      },
+      "module_reves_et_sommeil": {
+        "titre": "Module Rêves & Sommeil",
+        "peuples_requis": ["H", "E"],
+        "famille_inactive": ["M", "R", "O", "I"],
+        "resume": "Lu uniquement si au moins un Peuple Onirique (H ou E) joue : pose de Rêves sur la Réglette depuis la droite, défense en 1re et 2e pose, annulation choisie par le propriétaire du Rêve, glissements avec Défenseurs solidaires et fin anticipée par Sommeil du Contremaître (impossible si un Rêve est enraciné)."
+      },
+      "module_essaim": {
+        "titre": "Module Essaim",
+        "peuples_requis": ["I"],
+        "assises_actives": 160,
+        "assises_total": 197,
+        "assises_inactives_count": 37,
+        "regles_natives": {
+          "deviation_reglette": {
+            "nom": "Déviation de dé (±1)",
+            "fenetre": "OUVERTURE",
+            "texte": "À l'ouverture des paravents, défaussez 1 Insecte posé sur un rang de la Réglette pour décaler le dé d'une machine de −1 ou +1 rang (entre 1 et 6), en allumant l'icône Insecte puis balayage."
+          },
+          "bouclier_de_lisiere": {
+            "nom": "Bouclier de lisière (facultatif)",
+            "fenetre": "FIN_ATTAQUES",
+            "gouverneur": "I",
+            "facultatif": true,
+            "texte": "En fin d'attaques, si un Gardien perd son pari et porte au moins 1 Insecte sur son icône, le joueur Insectes choisit de défausser ou non 1 Insecte pour maintenir le Gardien en piste sur sa face actuelle (le pari reste perdu)."
+          }
+        },
+        "resume": "Lu uniquement si les Insectes (I) jouent : jetons Insectes exclusifs aux 10 tuiles des 5 lisières de I (laissés dans la boîte sans I, Production/Migration ignorées et icône Insecte inactive), Production des Nids (+1/+2), Migration radiale et vers les pistes centrales, déviation ±1, Parade Insecte, Bouclier de lisière facultatif gouverné par I et descente sur place au ménage de tout Insecte passager non dépensé."
+      }
+    }
+  },
+  "peuples": {
+    "M": {
+      "code": "M",
+      "nom": "Mammifères",
+      "famille": "Animal Sauvage (Gardien)",
+      "categorie": "ANIMAL_SAUVAGE",
+      "accessoire_mode": "ACTIF_TOUR_1",
+      "badge": "bg-amber-100 text-amber-900 border-amber-300",
+      "icon": "🐆"
+    },
+    "R": {
+      "code": "R",
+      "nom": "Reptiles",
+      "famille": "Animal Sauvage (Gardien)",
+      "categorie": "ANIMAL_SAUVAGE",
+      "accessoire_mode": "PROGRESSIF_TUILES",
+      "badge": "bg-emerald-100 text-emerald-900 border-emerald-300",
+      "icon": "🐍"
+    },
+    "O": {
+      "code": "O",
+      "nom": "Oiseaux",
+      "famille": "Animal Sauvage (Gardien)",
+      "categorie": "ANIMAL_SAUVAGE",
+      "accessoire_mode": "ACTIF_TOUR_1",
+      "badge": "bg-sky-100 text-sky-900 border-sky-300",
+      "icon": "🦜"
+    },
+    "H": {
+      "code": "H",
+      "nom": "Humains",
+      "famille": "Onirique (Rêve)",
+      "categorie": "ONIRIQUE",
+      "accessoire_mode": "ACTIF_TOUR_1",
+      "badge": "bg-rose-100 text-rose-900 border-rose-300",
+      "icon": "🏹"
+    },
+    "E": {
+      "code": "E",
+      "nom": "Entités Magiques",
+      "famille": "Onirique (Rêve)",
+      "categorie": "ONIRIQUE",
+      "accessoire_mode": "PROGRESSIF_TUILES",
+      "badge": "bg-purple-100 text-purple-900 border-purple-300",
+      "icon": "✨"
+    },
+    "I": {
+      "code": "I",
+      "nom": "Insectes",
+      "famille": "Symbiotique (Essaim)",
+      "categorie": "ESSAIM",
+      "accessoire_mode": "PROGRESSIF_TUILES",
+      "badge": "bg-lime-100 text-lime-900 border-lime-300",
+      "icon": "🐜"
+    }
+  },
+  "matrice_paires": {
+    "M_R": ["G1", "G2"],
+    "R_M": ["G2", "G1"],
+    "M_O": ["G3", "G4"],
+    "O_M": ["G4", "G3"],
+    "R_O": ["G5", "G6"],
+    "O_R": ["G6", "G5"],
+    "M_H": ["G7", "R3"],
+    "H_M": ["R3", "G7"],
+    "M_E": ["G8", "R7"],
+    "E_M": ["R7", "G8"],
+    "R_H": ["G9", "R4"],
+    "H_R": ["R4", "G9"],
+    "R_E": ["G10", "R8"],
+    "E_R": ["R8", "G10"],
+    "O_H": ["G11", "R5"],
+    "H_O": ["R5", "G11"],
+    "O_E": ["G12", "R9"],
+    "E_O": ["R9", "G12"],
+    "M_I": ["G13", "M1"],
+    "I_M": ["M1", "G13"],
+    "R_I": ["G14", "M2"],
+    "I_R": ["M2", "G14"],
+    "O_I": ["G15", "M3"],
+    "I_O": ["M3", "G15"],
+    "H_E": ["R1", "R2"],
+    "E_H": ["R2", "R1"],
+    "H_I": ["R6", "M4"],
+    "I_H": ["M4", "R6"],
+    "E_I": ["R10", "M5"],
+    "I_E": ["M5", "R10"]
+  },
+  "chassis_canonique": {
+    "profil_piste": "P4_2233",
+    "p_max": 4,
+    "dotation_arbres": [2, 2, 3, 3],
+    "arbres_par_rayon": 10,
+    "placement_initial_machines": "BULLDOZER_P1_ABATTEUSE_P2",
+    "bulldozer_init_parcel": 1,
+    "abatteuse_init_parcel": 2,
+    "offset_seuil_parade": 0,
+    "synergie_binome_machines": "INDIVIDUELLE",
+    "reve_ouverture_multiple": "UNIQUE_PAR_TOUR",
+    "role_abatteuse": "TOUS_ARBRES_SANS_SOUCHES",
+    "role_bulldozer": "UN_ARBRE_PUIS_TOUTES_SOUCHES",
+    "piege_autonome_portee": "SINGLE_STRIKE",
+    "charge_gain_mode": "FRAPPE_NON_PAREE",
+    "gardien_bet_cap": 2,
+    "reve_activation_mode": "1_DEF_1_MACHINE",
+    "reve_trigger_mode": "ACTIF",
+    "furtivite_mode": "CHAUD_VS_CALME_2_RIVES",
+    "bonus_constructeur_n3": 1,
+    "repousse_finale_base": 0,
+    "tours_max": 8,
+    "joueurs_min": 3,
+    "joueurs_max": 6
+  },
+  "topologies_studio": {
+    "P4_2233": {
+      "code": "P4_2233",
+      "p_max": 4,
+      "dotation": [2, 2, 3, 3],
+      "somme": 10,
+      "arbres_par_rayon": 10,
+      "label": "P4_2233 : 4 parcelles [2,2,3,3] (10×N Arbres · Standard unique v6.2)"
+    }
+  },
+  "chassis_axes_studio": [
+    {
+      "key": "Profil_Piste",
+      "num": 1,
+      "label": "1. Profil de Piste & Dotation Seuil Imprimé",
+      "defaultVal": "P4_2233",
+      "locked": true,
+      "options": [
+        {
+          "val": "P4_2233",
+          "text": "P4_2233 : 4 parcelles [2,2,3,3] (10×N Arbres · Standard unique v6.2)"
+        }
+      ]
+    },
+    {
+      "key": "Regle_Ouverture_Reve_Multiple",
+      "num": 2,
+      "label": "2. Résolution d'un Rêve défendu à l'ouverture",
+      "defaultVal": "UNIQUE_PAR_TOUR",
+      "locked": true,
+      "options": [
+        {
+          "val": "UNIQUE_PAR_TOUR",
+          "text": "1 résolution par Rêve défendu (Verrouillé · Standard unique v6.2)"
+        }
+      ]
+    },
+    {
+      "key": "Offset_Seuil_Parade",
+      "num": 3,
+      "label": "3. Décalage du Seuil de Parade",
+      "defaultVal": 0,
+      "locked": true,
+      "options": [
+        {
+          "val": 0,
+          "text": "Offset 0 — Bleus actifs en tous modes (Verrouillé · Standard unique v6.2)"
+        }
+      ]
+    },
+    {
+      "key": "Placement_Initial_Machines",
+      "num": 5,
+      "label": "5. Placement initial des Machines",
+      "defaultVal": "BULLDOZER_P1_ABATTEUSE_P2",
+      "locked": true,
+      "options": [
+        {
+          "val": "BULLDOZER_P1_ABATTEUSE_P2",
+          "text": "Départ décalé : Bulldozer en p=1, Abatteuse en p=2 (Standard unique v6.2)"
+        }
+      ]
+    },
+    {
+      "key": "Role_Abatteuse_Fin_De_Piste",
+      "num": 6,
+      "label": "6. Rôle de l'Abatteuse (coupe sans Souches)",
+      "defaultVal": "STANDARD_COUPE_ARBRE",
+      "locked": true,
+      "options": [
+        {
+          "val": "STANDARD_COUPE_ARBRE",
+          "text": "Coupe tous les Arbres debout en Souches, 0 Souche retirée (Verrouillé · v6.2)"
+        }
+      ]
+    },
+    {
+      "key": "Synergie_Binome_Machines",
+      "num": 7,
+      "label": "7. Puissance du binôme de machines",
+      "defaultVal": "INDIVIDUELLE",
+      "locked": true,
+      "options": [
+        {
+          "val": "INDIVIDUELLE",
+          "text": "Individuelle propre à chaque machine (Verrouillé · Standard unique v6.2)"
+        }
+      ]
+    }
+  ],
+  "materiel_fini_reversible": {
+    "arbres_et_souches": {
+      "dotation_formule": "10 * N",
+      "reserve_illimitee": false,
+      "recto": "Arbre debout",
+      "verso": "Souche",
+      "abatteuse": "Retourne tous les Arbres debout de la parcelle sur leur face Souche ; ne touche jamais aux Souches.",
+      "bulldozer": "Retourne 1 Arbre debout en Souche puis retire toutes les Souches de la parcelle.",
+      "repousse_finale": "Retourne des Souches survivantes sur leur face Arbre debout (plafond de dotation initiale 100 % physique et automatique)."
+    },
+    "jetons_puissance": {
+      "recto": "Rouge (+1)",
+      "verso": "Bleu Surchauffe (−1)",
+      "reversible": true
+    },
+    "defenseurs": {
+      "par_joueur": 2,
+      "modele_unique_recto_verso": true,
+      "recto": "Réflexion",
+      "verso": "Définitif",
+      "premier_pion": "Posé directement face Définitif (jamais sur les Gardiens).",
+      "deuxieme_pion": "Posé face Réflexion puis retourné irréversiblement sur Définitif, figeant simultanément le jeton Duel ou la Plume de Vigie mobilisés ce tour.",
+      "cloture_n_moins_1": "Dès que N−1 joueurs ont validé sur face Définitif, le dernier joueur effectue au plus 1 ultime ajustement avant de valider.",
+      "humains_chamanes": {
+        "total_pions": 2,
+        "pions": ["Tambour (recto-verso Réflexion/Définitif)", "Chant (recto-verso Réflexion/Définitif)"],
+        "auto_verifiant": true
+      }
+    },
+    "sac_opaque_et_jetons": {
+      "support": "SAC_OPAQUE_JETONS_EPAIS",
+      "jetons_machine_par_rayon": 2,
+      "types_par_rayon": ["ABATTEUSE", "BULLDOZER"],
+      "total_initial_formula": "2 * N",
+      "sabotage_ordinaires_dilution_permanente": true,
+      "sabotage_effet_propre": null,
+      "sabotage_ecailles_max": 4,
+      "non_pioches_caches_non_consultes": true,
+      "penurie_ordre": "sens_horaire_depuis_coordonnateur_oiseau_en_dernier",
+      "remise_au_menage": "Tous les jetons révélés et celui du Perchoir retournent dans le sac au ménage ; tout jeton Sabotage ou Écaille gagné en cours de tour rejoint directement le sac ; le jeton d'une machine en Ratissage reste glissé sous elle hors du sac."
+    },
+    "lancer_de_des_universel": {
+      "tous_les_joueurs_lancent": true,
+      "des_standards": 2,
+      "lecture_standard": "MIN",
+      "de_envol_oiseau": "1..6",
+      "mini_paravent_gradue": "1..6",
+      "sabotage_ou_ecaille_jet_ignore": true,
+      "motif": "Élimine toute fuite sonore sous paravent fermé."
+    }
+  },
+  "supports_fixes": {
+    "reglette_tactiques": {
+      "rangs": [1, 2, 3, 4, 5, 6],
+      "fixe": true,
+      "cases_reves_au_dessus": true,
+      "bandelette_acte_reversible_dessous": true,
+      "retournement_bandelette_debut_tour": 5,
+      "lecture_des_tours_1_8": "MIN",
+      "acte_1_tours": [1, 2, 3, 4],
+      "acte_1_face": "FACE_A",
+      "acte_1_charge_cases": [1, 2, 3],
+      "acte_1_assaut_cases": [4, 5, 6],
+      "acte_2_tours": [5, 6, 7, 8],
+      "acte_2_face": "FACE_B",
+      "acte_2_assaut_cases": [1, 2, 3],
+      "acte_2_charge_cases": [4, 5, 6],
+      "charge_gain_mode": "FRAPPE_NON_PAREE",
+      "mode_charge": "Seuls les jetons rouges sont ignorés au seuil ; les jetons bleus Surchauffe (−1) s'appliquent ; +1 jeton rouge max/activation dès qu'au moins 1 frappe sur parcelle réelle non-Route n'est ni parée ni piégée (hors attaque Devant dans le vide depuis la dernière parcelle).",
+      "mode_assaut": "Tous les jetons Puissance (rouges +1 et bleus −1) comptent au seuil ; 0 jeton Puissance gagné.",
+      "tactiques": [
+        {
+          "id": "T1",
+          "nom": "Sur place (Rang 1)",
+          "cibles": ["SUR_PLACE"],
+          "avancee": 0,
+          "gain_rouge": 0,
+          "mod_seuil": 0,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "CHARGE",
+          "mode_acte_2": "ASSAUT"
+        },
+        {
+          "id": "T2",
+          "nom": "Devant (Rang 2)",
+          "cibles": ["DEVANT"],
+          "avancee": 0,
+          "gain_rouge": 0,
+          "mod_seuil": 0,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "CHARGE",
+          "mode_acte_2": "ASSAUT"
+        },
+        {
+          "id": "T3",
+          "nom": "En avançant (Rang 3)",
+          "cibles": ["SUR_PLACE", "DEVANT"],
+          "avancee": 1,
+          "gain_rouge": 0,
+          "mod_seuil": -1,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "CHARGE",
+          "mode_acte_2": "ASSAUT"
+        },
+        {
+          "id": "T4",
+          "nom": "Sur place (Rang 4)",
+          "cibles": ["SUR_PLACE"],
+          "avancee": 0,
+          "gain_rouge": 0,
+          "mod_seuil": 0,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "ASSAUT",
+          "mode_acte_2": "CHARGE"
+        },
+        {
+          "id": "T5",
+          "nom": "Devant (Rang 5)",
+          "cibles": ["DEVANT"],
+          "avancee": 0,
+          "gain_rouge": 0,
+          "mod_seuil": 0,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "ASSAUT",
+          "mode_acte_2": "CHARGE"
+        },
+        {
+          "id": "T6",
+          "nom": "En avançant (Rang 6)",
+          "cibles": ["SUR_PLACE", "DEVANT"],
+          "avancee": 1,
+          "gain_rouge": 0,
+          "mod_seuil": -1,
+          "est_ratissage_profil": false,
+          "mode_acte_1": "ASSAUT",
+          "mode_acte_2": "CHARGE"
+        }
+      ]
+    },
+    "piste_gardiens": {
+      "sans_numeros_visibles": true,
+      "ordre_gauche_droite": ["PARADE", "PIEGEAGE", "SABOTAGE", "REVE", "INSECTE", "RESONANCE"],
+      "codes_internes": {
+        "PARADE": 1,
+        "PIEGEAGE": 2,
+        "SABOTAGE": 3,
+        "REVE": 4,
+        "INSECTE": 5,
+        "RESONANCE": 6
+      },
+      "resonance_position": 6,
+      "resonance_compteur_individuel_sans_ecrasement": true,
+      "reprise_balayage_gauche_droite": true,
+      "encoches_laterales_visibles": 2,
+      "pari_max_defenseurs": 2,
+      "verdict_fin_attaques": {
+        "pari_perdu": "au moins 1 pion encore sur la tuile (retour en lisière Face 1, sauf Bouclier de lisière facultatif gouverné par I)",
+        "pari_gagne": "0 pion sur la tuile et au moins 1 encoche occupée (reste en piste et passe Face 2)",
+        "aucune_mise": "0 pion sur la tuile et 0 encoche occupée (reste en place sur sa face actuelle sans évoluer)"
+      }
+    }
+  },
+  "seuil_ratissage_cibles_et_contacts": {
+    "seuil_parade": {
+      "formule": "max(1, seuil_imprime + rouges_si_assaut_ou_ratissage - bleus_tous_modes + mod_rang_3_6)",
+      "mode_charge_ignore_rouges_uniquement": true,
+      "bleus_actifs_tous_modes": ["CHARGE", "ASSAUT", "RATISSAGE"],
+      "mod_rangs_3_et_6": -1,
+      "minimum": 1
+    },
+    "ratissage": {
+      "transition": "MENAGE",
+      "condition": "toute machine terminant sur la dernière parcelle de son rayon",
+      "jeton_machine_glisse_sous_machine": true,
+      "conserve_jetons_puissance_anterieurs": true,
+      "gain_jeton_rouge_physique": 1,
+      "bonus_puissance_imprime": 0,
+      "mode_permanent": "ASSAUT",
+      "tactique_imprimee": "RATISSAGE_SUR_PLACE",
+      "mod_seuil": 0,
+      "immobile_absolu": true,
+      "parcelle_compte_comme_ciblee_avant_frappe": true,
+      "detache_de_case_1": true,
+      "piste_tactiques_fixe": true,
+      "entree_definitive_derniere_parcelle": true
+    },
+    "cibles_et_repli": {
+      "parcelles_ciblees_figees_debut_activation": true,
+      "cible_devenue_route_annulee_sans_report": true,
+      "repli_bordure_couvre_avancee_en_avancant": true,
+      "double_bond_interdit": true,
+      "routes_sautees_radialement_infranchissables_lateralement": true
+    },
+    "contacts_et_route": {
+      "zero_ecrasement_au_contact_hors_route": true,
+      "route_forestiere_vide_la_case": {
+        "nid": "renvoyé en lisière reconstructible",
+        "defenseurs": "rendus en main",
+        "piege_croc_insectes_duel": "remis en réserve"
+      },
+      "pieges": {
+        "max_piege_ordinaire_par_parcelle": 1,
+        "croc_cohabite_et_pare_en_premier": true,
+        "autonome_single_strike": true
+      }
+    },
+    "ouverture_et_reves": {
+      "jetons_machine_visibles_jusqua_furtivite": true,
+      "inclines_90_si_annules": true,
+      "ordre_resolution": [
+        "SABOTAGE_ET_ECAILLE_UN_PAR_UN_PLUS_BALAYAGE",
+        "DEVIATION_INSECTE_±1_UNE_PAR_UNE_PLUS_BALAYAGE",
+        "REVES_DEFENDUS_GAUCHE_A_DROITE"
+      ],
+      "resolution_reve_defendu": "Le propriétaire du Rêve choisit quelle(s) machine(s) présente(s) sur le rang sont annulées (y compris une machine déviée), résout intégralement le pouvoir propre du Rêve (actif dès que le Rêve est défendu même à 0 machine, sauf mention « Quand ce Rêve annule… »), puis si ≥ 1 machine a été annulée (déviée ou non), allume l'icône REVE + balayage.",
+      "defenseurs_suivent_deplacement_reve": true
+    },
+    "gouvernance_poses_et_batisseurs": {
+      "interdiction_completer_tuile_inplacable": true,
+      "repli_pose_1_parcelle_alliee": true,
+      "batisseurs_couches_en_attente": true,
+      "bonus_3_joueurs_gardien_ou_reve": true,
+      "bouclier_lisiere_facultatif_gouverne_par_I": true,
+      "gouvernance_unitaire_peuple_origine": true
+    }
+  },
+  "enracinement_volontaire": {
+    "fenetre": "MENAGE_AVANT_RETOUR_SAC",
+    "max_tuiles_par_joueur_par_tour": 1,
+    "emplacement": "au pied de son rayon face à une parcelle",
+    "perte_pouvoir_hors_mention_enracine": true,
+    "laisse_insectes_sur_place": true,
+    "reve_enracine_rend_sommeil_impossible": true,
+    "fins_eligibles": ["TOUR_8", "SOMMEIL", "EVEIL"],
+    "calibrage": {
+      "face_unique_ou_face_1": 1,
+      "face_2": 2
+    },
+    "texte": "Au ménage, avant de remettre les jetons dans le sac, chaque joueur peut enraciner au plus une tuile construite de son Peuple en la glissant au pied de son rayon face à une parcelle : elle perd son pouvoir (hors mention « Enraciné »), quitte la Piste des Gardiens, la Réglette ou sa parcelle (en y laissant ses Insectes), et un Rêve enraciné rend le Sommeil impossible. Au décompte final (Tour 8, Sommeil ou Éveil), si cette parcelle n'est pas devenue Route Forestière, la tuile y retourne 1 Souche en Arbre debout, ou 2 si elle était sur sa Face 2."
+  },
+  "accessoires_3_plus_3": {
+    "actifs_des_le_tour_1": {
+      "H": {
+        "materiel": "2 pions Chamanes recto-verso uniquement (1 Tambour et 1 Chant) + 2 Fiches d'archétype.",
+        "binome": "Le choix du pion posé au 1er temps laisse automatiquement l'autre archétype en main pour le 2e temps (auto-vérifiant).",
+        "fiche_tambour": "Au 1er temps de pose, le Tambour peut aussi être placé sur une parcelle de n'importe quel autre Peuple.",
+        "fiche_chant": "À l'ouverture, si un Rêve portant le Chant annule au moins une machine et qu'aucune machine n'y reste active, ce Rêve glisse immédiatement d'1 rang vers la gauche."
+      },
+      "M": {
+        "materiel": "1 jeton Duel recto-verso (Défi ↔ Territoire tenu).",
+        "regle": "Posé ou déplacé face Défi avec un Défenseur Mammifère en forêt (ajustable tant que le 2e pion est en Réflexion). Dès qu'une frappe sur sa parcelle est parée par au moins 1 Défenseur, retournez-le sur Territoire tenu (bloque l'avancée des machines présentes sur cette parcelle aux rangs 3 et 6). Une frappe non parée et non piégée sur sa parcelle le renvoie en réserve."
+      },
+      "O": {
+        "materiel": "1 Dé d'Envol (1..6), 1 zone Perchoir de Vigie à plat devant le paravent, 1 jeton Plume de Vigie (Chaud ↔ Calme).",
+        "eclaireur_du_ciel": "Toujours servi en dernier à la pioche, l'Oiseau regarde jusqu'à 2 jetons du sac, en garde 1 si possible et pose l'autre face cachée sur son Perchoir de Vigie jusqu'au ménage.",
+        "double_horizon": "Sous paravent, s'il détient un jeton Machine, il choisit secrètement de retenir soit min(D1, D2), soit la valeur exacte de son Dé d'Envol.",
+        "signal_de_vigie": "Sous paravents fermés, il pose ou ajuste la Plume (Chaud ou Calme) au pied d'un rayon ou près d'un rang 1 à 6 (figée avec son 2e pion)."
+      }
+    },
+    "progressifs_via_tuiles": {
+      "E": {
+        "materiel": "Jetons d'Altération en réserve des Entités.",
+        "regle": "Altérer une machine : posez 1 jeton d'Altération sur une machine mobile qui n'en porte pas encore (max 1 par machine). À la prochaine ouverture où le jeton de cette machine est révélé, retirez son jeton d'Altération : elle compte dans la mobilisation m(r) de son rayon, mais recule d'1 parcelle sans frapper ce tour-ci. Si la machine passe en Ratissage ou si son rayon est 100 % rasé, le jeton d'Altération retourne en réserve."
+      },
+      "R": {
+        "materiel": "4 jetons Sabotage « Écaille » (même gabarit que les jetons du sac) et 1 jeton Piège spécial « Croc ».",
+        "regle": "Révélée à l'ouverture, une Écaille allume l'icône Sabotage puis le joueur Reptile pose le Croc sur une parcelle ciblée (l'Écaille rejoint le sac au ménage). En attaque, le Croc pare 1 frappe (allume l'icône Piégeage) puis revient dans la réserve Reptile au lieu d'être défaussé (max 1 cale Sabotage/Écaille sous une machine mobile via G9)."
+      },
+      "I": {
+        "materiel": "Jetons Insectes double-face et Nids M1..M5 (exclusifs aux parties avec les Insectes).",
+        "regle": "Production des Nids défendus (+1 avec 0–1 Insecte présent, +2 avec ≥2), Migration radiale résolue rayon par rayon dans les deux sens (et vers un rang 1–6 ou une icône Gardien depuis la dernière parcelle), déviation ±1 à l'ouverture, Parade Insecte, Bouclier de lisière facultatif gouverné par I, et descente sur place au ménage d'un Insecte passager non dépensé."
+      }
+    }
+  },
+  "bijection_lexicale": {
+    "ouvrir": "paravents uniquement",
+    "s_activer": "Gardiens uniquement",
+    "rayon": "forêt d'un joueur",
+    "rang": "emplacement 1 à 6 sur la Réglette",
+    "icone": "emplacement dédié sur la Piste des Gardiens (sans numéros)",
+    "sac": "pioche opaque des jetons Machine, Sabotage et Écaille",
+    "parcelle": "case de forêt contenant au moins 1 Arbre ou 1 Souche (une Route Forestière n'est plus une parcelle)",
+    "eveil_de_la_foret": "fin anticipée animale 100 % Piste des Gardiens"
+  },
+  "spec_formelle_v6_2": {
+    "principes_transverses": {
+      "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve, Nid) est gouvernée exclusivement par le joueur de son Peuple d'origine ; la pose d'un Piège gagné en Furtivité est choisie par le propriétaire du rayon ; le Bouclier de lisière est facultatif et gouverné par le joueur Insectes (I). Zéro vote de groupe.",
+      "communication_muette": "Silence tactique complet tant que les paravents sont fermés. Tous les joueurs lancent leurs dés (même sur Sabotage ou Écaille, jet ignoré) afin d'éliminer toute fuite sonore.",
+      "pont_routier_routes_forestieres": "Une parcelle désigne toujours une case de forêt non devenue Route Forestière. Le long d'un rayon, les Routes Forestières sont sautées radialement et infranchissables latéralement. Dès qu'un rayon est 100 % Routes Forestières, sa zone de Furtivité est fermée.",
+      "zero_ecrasement_et_zero_dette": "Zéro écrasement au contact hors Route : déplacer une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d'une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel en réserve). Zéro dette mémorielle : tout état est porté par une pièce physique ; tout Piège ordinaire est autonome (SINGLE_STRIKE, max 1 par parcelle ; le Croc peut cohabiter et pare en premier).",
+      "cascades_gardiens_6_icones": "On résout intégralement l'action ou la tuile en cours avant de balayer la Piste des Gardiens de gauche à droite sur les 6 icônes dédiées : [PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE, RESONANCE]. Partition stricte « 1 événement = au plus 1 icône » ; Résonance en 6e position compte individuellement chaque 1re activation d'un autre Gardien du tour sans écrasement de bit, et le balayage gauche → droite reprend si un effet rallume une icône située plus à gauche."
+    },
+    "etapes_tour": [
+      {
+        "numero": 1,
+        "code": "PREPARATION_ET_DES_SECRETS",
+        "nom": "Bandelette d'Acte, Pioche au sac opaque et Dés secrets universels",
+        "regles": [
+          "Réglette fixe 1–6 à bandelette d'Acte réversible : Acte 1 (Tours 1–4, Face A) place les rangs 1–3 en Mode Charge et 4–6 en Mode Assaut. Au début du Tour 5, retournez uniquement la bandelette d'Acte sur Face B (Acte 2, Tours 5–8) : 1–3 en Mode Assaut et 4–6 en Mode Charge, sans déplacer ni Rêves ni Insectes. Actions fixes : 1/4 Sur place (0), 2/5 Devant (0), 3/6 En avançant (Sur place + Devant, avancée +1, Seuil −1).",
+          "Départ décalé canonique (P4_2233, dotation finie 10×N pions Arbre/Souche recto-verso) : Bulldozer en parcelle 1, Abatteuse en parcelle 2 sur chaque rayon.",
+          "Pioche au sac opaque : chaque joueur pioche secrètement 1 jeton (2N jetons Machine épais + Sabotages ordinaires + jusqu'à 4 Écailles). Les jetons non piochés restent cachés sans être consultés. En cas de pénurie, distribution horaire depuis le Coordonnateur, Oiseau toujours servi en dernier (regarde jusqu'à 2 jetons, garde 1 et pose l'autre face cachée sur son Perchoir à plat).",
+          "Lancer de dés universel sous paravent fermé : tous les joueurs lancent leurs dés (2 dés standards + Dé d'Envol 1–6 chez O sur mini-paravent gradué 1–6), même sur Sabotage ou Écaille (jet ignoré), éliminant toute fuite sonore."
+        ]
+      },
+      {
+        "numero": 2,
+        "code": "POSE_DES_DEFENSEURS",
+        "nom": "Pose des 2 Défenseurs recto-verso, Rêves, Furtivité et Paris Gardiens",
+        "regles": [
+          "1er temps de pose simultané (directement face Définitif, jamais sur les Gardiens) : parcelle de sa propre Forêt (ou parcelle alliée en repli si aucun emplacement légal ; Tambour H autorisé sur tout rayon), tuile non construite de ses 2 lisières (interdit si impossible à placer), Rêve présent sur la Réglette, ou rive ouverte de Furtivité d'un rayon non 100 % Route.",
+          "Furtivité « Chaud vs Calme » par rayon : 2 rives indépendantes de 2 places (Rive Piège et Rive Sabotage) au pied de chaque rayon actif, ouvertes à toute la table en 1er comme en 2e temps.",
+          "2e temps de pose global (face Réflexion -> validation irréversible face Définitif) : partout sur le plateau, y compris en pari sur un Gardien construit (0, 1 ou 2 Défenseurs max par Gardien si au moins 1 Animal Sauvage joue). Retourner son 2e pion sur Définitif fige simultanément son jeton Duel ou sa Plume de Vigie ; dès que N−1 joueurs ont validé, le dernier joueur effectue au plus 1 ultime ajustement. Chez H : 2 pions Chamanes (1 Tambour, 1 Chant) rendant le binôme auto-vérifiant."
+        ]
+      },
+      {
+        "numero": 3,
+        "code": "CONSTRUCTION_ET_REVELATION",
+        "nom": "Construction obligatoire, Ouverture des paravents et Rêves",
+        "regles": [
+          "Construction obligatoire avant l'ouverture des paravents de toute tuile réunissant ses 2 bâtisseurs (interdit si l'emplacement cible est indisponible). Sitôt construite, les 2 bâtisseurs sont couchés « en attente » devant leur propriétaire — sauf à 3 joueurs sur un Gardien ou un Rêve, où 1 bâtisseur rejoint immédiatement une parcelle adjacente.",
+          "Nid : posé sur une parcelle libre sans machine ni autre Nid de l'un de ses 2 rayons. Rêve : posé par-dessus le rang libre le plus à droite (6, 5…) de la Réglette fixe sans déplacer les Insectes.",
+          "Ouverture des paravents : les jetons Machine révélés restent visibles devant leur rayon jusqu'au verdict de Furtivité (inclinés à 90° s'ils sont annulés). Tout jeton d'Altération sur une machine révélée est retiré : elle compte dans m(r) mais recule d'1 parcelle sans frapper.",
+          "Ordre strict d'ouverture : (1) chaque jeton Sabotage/Écaille un par un (allume SABOTAGE + pose Croc sur Écaille + balayage Gardiens) ; (2) chaque déviation d'Insecte ±1 une par une (allume INSECTE + balayage) ; (3) chaque Rêve défendu de gauche à droite : son propriétaire choisit quelle(s) machine(s) du rang sont annulées (y compris déviée), résout intégralement le pouvoir propre du Rêve (actif dès que défendu même à 0 machine, sauf mention « Quand ce Rêve annule… »), puis si ≥ 1 machine a été annulée (déviée ou non), allume REVE + balayage. Les Défenseurs posés sur un Rêve se déplacent toujours avec lui."
+        ]
+      },
+      {
+        "numero": 4,
+        "code": "FURTIVITE_NIDS_ET_MIGRATION",
+        "nom": "Furtivité par rayon, Production des Nids et Migration de l'Essaim",
+        "regles": [
+          "Furtivité « Chaud vs Calme » : seule une rive portant 2 Défenseurs est évaluée selon m(r) = jetons Machine révélés de r + machines de r en Ratissage (indépendant de déviation ±1, annulation Rêve ou Altération ; Sabotage/Écaille = 0 rayon). Rive Piège gagnée si m(r) == 2 (le propriétaire du rayon r pose 1 Piège sur une parcelle sans Piège ordinaire de r) ; Rive Sabotage gagnée si m(r) == 0 (+1 jeton Sabotage glissé dans le sac sans allumer SABOTAGE).",
+          "Module Essaim (uniquement si I joue) — Production des Nids : chaque Nid défendu crée +1 Insecte (0–1 présent) ou +2 Insectes (≥ 2 présents) sans allumer INSECTE, puis applique son pouvoir après production, puis balayage Gardiens.",
+          "Module Essaim (uniquement si I joue) — Migration : résolue rayon par rayon, chaque Insecte se déplace de 0 ou 1 cran dans les deux sens le long de son rayon (en sautant les Routes) ou depuis la dernière parcelle vers un rang 1–6 de la Réglette ou une icône de la Piste des Gardiens (suivi par retournement puis redressement)."
+        ]
+      },
+      {
+        "numero": 5,
+        "code": "ATTAQUES_ET_TEST_FIN",
+        "nom": "Attaques des Machines, Encoches Gardiens et Verdict de fin",
+        "regles": [
+          "Ordre de passage : rangs 1 à 6 de la Réglette puis machines en Ratissage (Assaut permanent, immobiles, mais leur parcelle compte comme parcelle ciblée tant qu'elles n'ont pas frappé). Abatteuse avant Bulldozer sur un même rayon.",
+          "Parcelles ciblées figées au début de l'activation (toute cible devenue Route entre-temps est annulée sans report). Seuil de Parade = chiffre gravé + rouges (en Assaut et Ratissage uniquement ; ignorés en Charge) − bleus Surchauffe (actifs dans TOUS les modes : Charge, Assaut et Ratissage) − 1 aux rangs 3 et 6, minimum 1.",
+          "Chaîne des parades : Croc Reptile (s'il cohabite, pare en premier, allume PIEGEAGE et retourne en réserve R) -> Piège ordinaire autonome SINGLE_STRIKE (pare 1 frappe même à 0 Défenseur/Insecte, allume PIEGEAGE et est défaussé) -> Parade classique (Défenseurs seuls -> PARADE ; avec défausse immédiate d'Insectes -> INSECTE).",
+          "Frappe non parée : Abatteuse retourne tous les Arbres debout en Souches sans toucher aux Souches ; Bulldozer retourne 1 Arbre en Souche puis retire toutes les Souches. En Mode Charge : +1 jeton rouge max/activation dès qu'au moins 1 frappe réelle non-Route n'est ni parée ni piégée. En création de Route (0 Arbre, 0 Souche) : la case est vidée (Nid en lisière, Défenseurs en main, Piège/Croc/Insectes/Duel en réserve) ; si la poussée de bordure déplace déjà la machine d'1 parcelle vers le cœur, elle couvre et remplace l'avancée finale de En avançant (jamais de double bond +2).",
+          "Verdict des Gardiens (2 encoches visibles) : ≥ 1 pion encore sur la tuile = pari perdu (retour lisière Face 1, sauf choix facultatif de I de défausser 1 Insecte en Bouclier de lisière pour la maintenir sur sa face actuelle) ; 0 pion dessus et ≥ 1 encoche occupée = pari gagné (passage Face 2) ; 0 pion dessus et 0 encoche occupée = aucune mise (reste en place sans évoluer).",
+          "Vérification de fin : priorité absolue au Tour 8 ; aux Tours 1–7, Sommeil du Contremaître (tous les Rêves en bloc contigu 1..k, impossible si un Rêve est enraciné) ou Éveil de la Forêt (tous les N 2es pions engagés sur les Gardiens et tous les paris gagnés). Au décompte final : application des tuiles enracinées (1 Souche en F1/unique, 2 en F2 retournées en Arbres debout) puis décompte des Arbres debout."
+        ]
+      },
+      {
+        "numero": 6,
+        "code": "MENAGE_FIN_DE_TOUR",
+        "nom": "Enracinement volontaire, Ratissage physique et Ménage",
+        "regles": [
+          "Retour en main des Défenseurs (y compris depuis les encoches et en attente), descente sur place de tout Insecte passager non dépensé, et remise à zéro des états transitoires.",
+          "Enracinement volontaire (avant remise au sac) : chaque joueur peut enraciner au plus 1 tuile construite de son Peuple au pied de son rayon face à une parcelle (1 Souche en F1/unique ou 2 en F2 au décompte final ; un Rêve enraciné rend le Sommeil impossible).",
+          "Passage en Ratissage : toute machine terminant sur la dernière parcelle de son rayon glisse son jeton Machine sous elle (hors sac), conserve tous ses jetons Puissance antérieurs et gagne +1 jeton rouge physique (convertible en bleu ; 0 bonus imprimé).",
+          "Remise au sac opaque de tous les jetons révélés et du jeton du Perchoir, passage du pion Coordonnateur au siège suivant et avancée du marqueur de Tour."
+        ]
+      }
+    ],
+    "step_arbitrages_map": {
+      "1": ["A01", "A10", "A24"],
+      "2": ["A02", "A03", "A22"],
+      "3": ["A04", "A11", "A21"],
+      "4": ["A03", "A17", "A18"],
+      "5": ["A05", "A06", "A08", "A09", "A14", "A15", "A16", "A19", "A23", "A25"],
+      "6": ["A10", "A12", "A13", "A20"]
+    },
+    "arbitrages_valides": {
+      "A01": "Lancer de dés universel sous paravent fermé : tous les joueurs lancent leurs dés (2 dés standards + Dé d'Envol 1–6 chez O sur mini-paravent gradué 1–6), même sur Sabotage ou Écaille (jet ignoré), éliminant toute fuite sonore.",
+      "A02": "Défenseurs recto-verso (Réflexion/Définitif) et clôture à N−1 : 1er pion posé directement face Définitif (jamais sur les Gardiens ; ouvert aux Rêves et à la Furtivité) ; 2e pion posé face Réflexion puis validé irréversiblement sur Définitif (figeant Duel/Plume ; à N−1 validés, au plus 1 ultime ajustement pour le dernier joueur) ; chez H, 2 Chamanes uniques (Tambour, Chant).",
+      "A03": "Furtivité « Chaud vs Calme » par rayon : 2 rives indépendantes de 2 places (Rive Piège et Rive Sabotage) par rayon actif. Les jetons Machine révélés restent visibles devant leur rayon jusqu'au verdict (inclinés à 90° si annulés). m(r) = jetons Machine révélés de r + Ratissages de r (inclut Altération ; indépendant de déviation ±1 et annulation Rêve ; Sabotage/Écaille = 0).",
+      "A04": "Gouvernance unitaire : chaque Tuile de Synergie est décidée par son Peuple d'origine ; la pose de Piège en Furtivité par le propriétaire du rayon ; le Bouclier de lisière facultatif par le joueur Insectes (I).",
+      "A05": "Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; zéro Insecte réservé d'avance.",
+      "A06": "Pièges autonomes SINGLE_STRIKE & Croc : max 1 Piège ordinaire par parcelle (pare 1 frappe même à 0 Défenseur/Insecte, allume PIEGEAGE, défaussé aussitôt) ; le Croc Reptile peut cohabiter, pare en premier puis retourne dans la réserve Reptile.",
+      "A07": "Zéro verrouillage d'avance : tant qu'un Insecte ou un Piège est sur le plateau, il reste librement utilisable.",
+      "A08": "Pont routier : une parcelle est une case non-Route ; les Routes Forestières sont sautées radialement et infranchissables latéralement.",
+      "A09": "Repli sur création de Route et plafond En avançant : recul vers la bordure par défaut, ou d'1 parcelle vers le cœur si la bordure est rasée ; cette poussée vers le cœur couvre et remplace l'avancée finale d'une action En avançant (jamais de double bond +2).",
+      "A10": "Dotation finie 10×N recto-verso, départ décalé & Ratissage physique : 10×N pions Arbre/Souche sans réserve illimitée ; Bulldozer p=1 / Abatteuse p=2 ; Abatteuse retourne tous les Arbres sans toucher aux Souches ; au ménage, toute machine sur la dernière parcelle glisse son jeton Machine sous elle (hors sac), conserve ses jetons Puissance et gagne +1 jeton rouge physique (convertible en bleu ; 0 bonus imprimé ; immobile mais parcelle ciblée).",
+      "A11": "Réglette fixe 1–6 et bandelette d'Acte réversible : bandelette retournée seule au début du Tour 5 sans déplacer ni Rêves ni Insectes ; un Rêve construit se pose au-dessus du rang libre le plus à droite (6, 5…).",
+      "A12": "Piste des Gardiens à 6 icônes (Résonance en 6e position) : [PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE, RESONANCE], sans numéros visibles ; compteur individuel sans écrasement sur Résonance et reprise du balayage gauche → droite si une icône plus à gauche se rallume.",
+      "A13": "Deux encoches visibles par Gardien et Faces 2 autonomes : ≥ 1 pion encore sur la tuile = pari perdu ; 0 pion dessus et ≥ 1 encoche occupée = pari gagné (passage Face 2) ; 0 pion dessus et 0 encoche = aucune mise (reste en place sans évoluer).",
+      "A14": "Éveil de la Forêt 100 % Piste des Gardiens (Module Gardiens) : actif si ≥ 1 Animal Sauvage (M/R/O) joue, aux Tours 1–7 (priorité Tour 8), si tous les N 2es pions ont été engagés sur les Gardiens et tous les paris sont gagnés (un Gardien maintenu par Bouclier de lisière reste pari PERDU).",
+      "A15": "Fins de partie & Enracinement volontaire : priorité absolue Tour 8 ; Tours 1–7 Sommeil (tous les Rêves en bloc contigu 1..k, impossible si un Rêve est enraciné) ou Éveil ; au décompte final, chaque tuile enracinée face à une parcelle non-Route y retourne 1 Souche (F1/unique) ou 2 Souches (F2) en Arbres debout.",
+      "A16": "Zéro écrasement au contact hors Route : le déplacement d'une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d'une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel en réserve).",
+      "A17": "Module Essaim clos sur I : jetons Insectes exclusifs aux 10 tuiles des 5 lisières de I (laissés dans la boîte sans I). Quand I joue : Migration radiale dans les deux sens et vers les pistes centrales, déviation ±1, Bouclier de lisière facultatif gouverné par I et descente sur place au ménage d'un Insecte passager non dépensé.",
+      "A18": "Production des Nids (Module Essaim) : bloc indivisible (+1/+2 Insectes sans allumer INSECTE, puis pouvoir après production, puis balayage Gardiens).",
+      "A19": "Parcelles ciblées figées au début de l'activation d'une machine : toute cible devenue Route entre-temps est annulée sans report ; une machine en Ratissage rend sa parcelle ciblée tant qu'elle n'a pas frappé ce tour.",
+      "A20": "Accessoires 3 + 3 : actifs Tour 1 (H Tambour/Chant, M Duel Défi↔Territoire tenu, O Dé d'Envol/Perchoir/Plume) et progressifs via tuiles (E jeton d'Altération sur machine mobile max 1, R 4 Écailles + Croc réutilisable + max 1 cale G9, I Module Essaim).",
+      "A21": "Ouverture stricte & Rêves défendus : Sabotages/Écailles un par un (+ balayage) → déviations ±1 une par une (+ balayage) → Rêves défendus de gauche à droite : le propriétaire choisit quelle(s) machine(s) du rang sont annulées (y compris déviée), résout le pouvoir propre du Rêve (actif dès que défendu même à 0 machine, sauf mention « Quand ce Rêve annule… »), puis allume REVE + balayage si ≥ 1 machine annulée (déviée ou non). Les Défenseurs suivent tout déplacement du Rêve.",
+      "A22": "Légalité des poses & Bâtisseurs : interdit de compléter une tuile impossible à placer ; repli 1re pose sur parcelle alliée si aucun emplacement légal ; sitôt construite, les 2 bâtisseurs sont couchés en attente devant leur propriétaire (maintien du bonus 3 joueurs libérant 1 bâtisseur vers une parcelle adjacente sur Gardien/Rêve).",
+      "A23": "Seuil de Parade unifié & Gain Charge : en Mode Charge, seuls les jetons rouges sont ignorés ; les jetons bleus Surchauffe (−1) s'appliquent dans TOUS les modes (Charge, Assaut, Ratissage), −1 aux rangs 3 et 6, minimum 1. Gain Charge = +1 rouge max/activation dès qu'au moins 1 frappe réelle non-Route n'est ni parée ni piégée (FRAPPE_NON_PAREE).",
+      "A24": "Sac opaque & pénurie : 2N jetons Machine + Sabotages + max 4 Écailles dans un sac en tissu opaque ; non piochés cachés ; pénurie distribuée en sens horaire depuis le Coordonnateur avec Oiseau toujours servi en dernier.",
+      "A25": "Séquence des attaques : rangs 1..6 de la Réglette puis machines en Ratissage (Assaut permanent) ; Abatteuse avant Bulldozer sur un même rayon ; chaque machine résolue d'un seul tenant."
+    }
+  },
+  "changelog_v6_2": {
+    "version": "v6.2",
+    "date": "2026-11-24",
+    "titre": "Fondation SSOT v6.2 : Socle épuré, Asymétrie Hybride 3 + 3, Enracinement volontaire & Canon 0 (30 tuiles)",
+    "resume": "Passage à la source unique de vérité (contracts/rules_canon_v6_2.json, physical_and_edge_invariants.json, tiles_canon_v6_2.json) : matériel fini recto-verso (10×N Arbres/Souches, jetons Puissance Rouge/Bleu, 2 Défenseurs Réflexion/Définitif), sac opaque, lancer de dés universel, bandelette d'Acte réversible, Piste des Gardiens à 6 icônes (Résonance en 6e, 2 encoches visibles), Bleus actifs en tous modes, Ratissage à +1 rouge physique, zéro écrasement hors Route, accessoires 3+3, Enracinement volontaire et 30 tuiles Canon 0 auditées sur 197 assises.",
+    "deltas": [
+      {
+        "domaine": "Matériel fini & Sac opaque (INV-01 à INV-07)",
+        "avant": "Réserves illimitées, pioche par paquet de cartes, seuls les porteurs de Machine lançaient les dés.",
+        "apres": "10×N pions uniques recto-verso Arbre/Souche, jetons Puissance Rouge/Bleu, sac opaque de jetons épais (2N Machines + Sabotages + max 4 Écailles), pénurie horaire depuis le Coordonnateur (Oiseau dernier), lancer de dés universel sous paravent fermé."
+      },
+      {
+        "domaine": "Supports fixes, 6 icônes Gardiens & Encoches (INV-08 à INV-10)",
+        "avant": "Retournement de toute la Réglette au Tour 5 ; Piste des Gardiens numérotée 1..6 avec Résonance en 4e position et sans encoches latérales visibles.",
+        "apres": "Réglette fixe 1–6 à bandelette d'Acte réversible dessous ; Piste des Gardiens à 6 icônes sans numéros [Parade, Piégeage, Sabotage, Rêve, Insecte, Résonance] (compteur individuel sans écrasement) ; 2 encoches latérales visibles par Gardien (≥ 1 encoche requise pour passer Face 2)."
+      },
+      {
+        "domaine": "Seuil, Ratissage, Repli & Contacts (INV-11 à INV-17)",
+        "avant": "Bleus ignorés en Mode Charge ; +1 imprimé en Ratissage ; écrasement du Nid au contact machine ; double bond possible en Repli de bordure.",
+        "apres": "Bleus Surchauffe (−1) actifs dans tous les modes (Charge, Assaut, Ratissage) ; Ratissage donne +1 jeton rouge physique (0 imprimé) et rend sa parcelle ciblée ; zéro écrasement au contact hors Route (seule la Route vide la case) ; poussée de bordure couvre l'avancée En avançant."
+      },
+      {
+        "domaine": "Asymétrie 3 + 3, Enracinement & Canon 0 (30 tuiles)",
+        "avant": "Ancien catalogue de 32 emplacements (incluant 2 slots de migration) et châssis à axes multiples v6.0.",
+        "apres": "Châssis unique verrouillé (P4_2233, départ décalé Bulldozer p=1 / Abatteuse p=2, 0 écart), 3 modules (Gardiens/Éveil, Rêves/Sommeil, Essaim absorbant Déviation ±1 et Bouclier facultatif), accessoires 3+3, Enracinement volontaire (1/2 Souches au décompte final) et Canon 0 de 30 tuiles (48 faces ≤ 25 mots, 34 témoins)."
+      }
+    ]
+  }
+}

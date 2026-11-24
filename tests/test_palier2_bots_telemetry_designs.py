@@ -37,6 +37,7 @@ from engine.core_engine import (
 from engine.primitives import DecisionRequest, prim_mod_seuil
 from engine.state import (
     CARD_SABOTAGE,
+    LISIERE_CONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
@@ -125,27 +126,32 @@ def test_ticks_sabotage_altruist_tick1_zero_seat0_bias_and_early_stop() -> None:
 # ---------------------------------------------------------------------------
 def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     econ = get_economie_catalog()
-    assert len(econ) == 101
-    seen_res = {tok for node in econ.values() for tok in node.outputs_produits if tok.startswith("RES_")}
+    assert len(econ) == 30
+    seen_res = {
+        tok
+        for node in econ.values()
+        for tok in (*node.inputs_requis, *node.outputs_produits)
+        if tok.startswith("RES_")
+    }
     assert seen_res == set(ALL_ACTIVE_RESOURCES)
     assert "RES_APPRENTISSAGE" not in seen_res
 
-    # Comptage de lois toujours opérationnel pour la télémétrie, et bruit B1 désormais porté par softmax tau_b1 dès 0 loi
+    # Comptage de lois passives Canon 0 (M2:A sur R-I et M3:A sur I-O), et bruit B1 softmax tau_b1
     cfg_laws = GameConfig(
         n_players=4,
         mode=3,
-        peuples=("M", "R", "O", "H"),
-        tile_profiles=(("G2", "B"), ("G5", "B"), ("G9", "C"), ("G11", "B")),
+        peuples=("R", "I", "O", "M"),
+        tile_profiles=(("M2", "A"), ("M3", "A")),
         exp_seed=9191,
         rep_id=1,
     )
     st_laws = GameState(cfg_laws)
-    st_laws.set_gardien_at_case(1, 2, 1)
-    st_laws.set_gardien_at_case(2, 5, 1)
-    st_laws.set_gardien_at_case(3, 9, 1)
-    st_laws.set_gardien_at_case(4, 11, 1)
+    for tid in ("M2", "M3"):
+        slot_idx = st_laws.find_lisiere_slot_by_tile_id(tid)
+        assert slot_idx is not None
+        st_laws.set_lisiere_tile_state(slot_idx, LISIERE_CONSTRUCTED, 0)
     obs_laws = st_laws.get_observation(0)
-    assert count_active_laws_from_obs(obs_laws, cfg_laws) == 4
+    assert count_active_laws_from_obs(obs_laws, cfg_laws) == 2
     assert score_target_b1.softmax_tau > 0.0
 
     # À 0 loi active (Mode 2), B1 avec tau_b1 > 0 conserve son bruit softmax calibré vs tau_b1 = 0.0

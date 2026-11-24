@@ -1,86 +1,85 @@
-# AMAZONIA DOC STUDIO — Référentiel Fonctionnel & Technique (v5.5)
+# AMAZONIA DOC STUDIO — Référentiel Fonctionnel & Technique (`v6.2` SSOT)
 
-> **Usage IA (Pièce Jointe de Prompt)** : Ce document décrit l'architecture, le périmètre fonctionnel, les modèles de données et les règles strictes de maintenance de l'application **Amazonia Doc Studio**. Toute modification proposée par une IA doit respecter le découplage des 4 couches et les invariants techniques détaillés en Section 5.
+> **Usage IA (Pièce Jointe de Prompt)** : Ce document décrit l'architecture SSOT `v6.2`, les arbitrages d'auteur définitifs, le modèle de données et les garde-fous automatiques d'**Amazonia Doc Studio**. Toute modification proposée par une IA doit éditer les contrats de `contracts/`, exécuter `uv run python scripts/build_studio_artifacts.py` et passer `uv run python verify_lot.py` à 100 % au vert.
 
 ---
 
 ## 1. Identité & Rôle dans l'Écosystème
 
-- **Projet** : *Amazonia : Dernier Rempart* — Jeu de société coopératif asymétrique à communication muette (3 à 6 joueurs, 8 tours max).
-- **Application** : **Amazonia Doc Studio** (`v5.5`, `schema_version: "5.5.0"` — Socle figé).
+- **Projet** : *Amazonia : Dernier Rempart* — Jeu de société coopératif asymétrique à communication muette (`3` à `6` joueurs, `8` tours max en `2` Actes).
+- **Cible unifiée** : **`v6.2` (`schema_version: "6.2.0"`)** — *Socle épuré + Asymétrie Hybride `3 + 3` + Enracinement volontaire + Canon 0 de 30 tuiles*.
 - **Dépôt & Hébergement** :
   - GitHub : `https://github.com/antoineacquaviva/amazonia-sim-lab` (`docs/`)
   - Production (GitHub Pages) : `https://antoineacquaviva.github.io/amazonia-sim-lab/`
-- **Vocation (« Source Unique de Vérité »)** : Maintenir dans un référentiel unique et sans dérive documentaire :
-  1. Le **Livret de Règles Officiel** destiné aux joueurs humains (refondu de zéro en v5.5 en 7 chapitres didactiques, zéro jargon technique, imprimable en PDF propre).
-  2. La **Bibliothèque complète d'asymétrie** (32 emplacements / **101 profils** `A`, `B`, `C`, `D` incluant les 30 tuiles actives `STANDARD_A` + `SLOT_BUG_CERVEAU:B` + `SLOT_COLONISATION_GARDIENS:B`).
-  3. Le **Journal de traçabilité des versions et arbitrages** (`v4.3` → `v5.5`).
-  4. Le **Contrat formel JSON** consommé par le simulateur Monte-Carlo Python (`amazonia-sim-lab`) et le futur portage **Board Game Arena (BGA)**.
+- **Architecture Source Unique de Vérité (SSOT)** :
+  1. `contracts/rules_canon_v6_2.json` : contrat formel typé unique (châssis unique verrouillé `P4_2233` départ décalé `Bulldozer p=1 / Abatteuse p=2`, matériel fini recto-verso, sac opaque, supports fixes, formule de Seuil, 6 icônes Gardiens, séquence du tour, 3 modules, accessoires `3 + 3`, Enracinement volontaire).
+  2. `contracts/physical_and_edge_invariants.json` : registre permanent des **22 invariants** (`INV-01` à `INV-22`, catégories `MATERIEL`, `CAS_LIMITE`, `GOUVERNANCE`) avec assertions vérifiables dans le livret joueur (`data-inv="INV-XX"`).
+  3. `contracts/tiles_canon_v6_2.json` : catalogue canonique des **30 emplacements** (`G1..G15`, `R1..R10`, `M1..M5` — 30 profils `A`, `48` faces `≤ 25` mots, `35` témoins, `carte_des_roles`, `rapport_audit_197` sur 197 assises et `vivier_candidats_B_C_phase_5`). Les règles de déviation `±1` et de Bouclier de lisière facultatif sont désormais des règles natives du **Module Essaim**.
+  4. **Compilateur dérivé unique** (`scripts/build_studio_artifacts.py`) : génère sans aucune constante métier codée en dur les fichiers dérivés de `docs/data/` (`amazonia_data_v6_0.js`, `catalog_v6_0.json`, `spec_formelle_v6_0.json`) ainsi que `data/spec_bundle_v6_0.json` et `data/studio_lock.json`.
 
 ---
 
-## 2. Périmètre Fonctionnel (Interface Utilisateur)
+## 2. Arbitrages d'Auteur Définitifs (`v6.2` — `INV-01` à `INV-22`)
 
-L'application est une **SPA statique sans bundler** (compatible `file://` et HTTPS) articulée autour d'un bandeau configurateur persistant et de 4 vues synchronisées en temps réel via l'état réactif `state`.
+### 2.1. Matériel fini, réversible et auto-vérifiant
+- **Arbres / Souches (`INV-01`)** : dotation finie exacte de `10 × N` pions uniques recto-verso (`Arbre debout` / `Souche`, zéro réserve illimitée). L'Abatteuse retourne tous les Arbres debout en Souche sans toucher aux Souches ; le Bulldozer retourne 1 Arbre en Souche puis retire toutes les Souches ; toute repousse finale retourne des Souches survivantes en Arbres debout (plafond physique automatique).
+- **Jetons Puissance (`INV-02`)** : pièces recto-verso `Rouge (+1)` / `Bleu Surchauffe (−1)`.
+- **Défenseurs (`INV-03`, `INV-04`)** : modèle unique de 2 pions recto-verso (`Réflexion` / `Définitif`) par joueur. 1er pion posé directement face `Définitif` (jamais sur les Gardiens) ; 2e pion posé face `Réflexion` puis retourné irréversiblement sur `Définitif` (figeant simultanément le jeton Duel ou la Plume de Vigie). Dès que `N−1` joueurs ont validé, le dernier effectue au plus 1 ultime ajustement. Chez les Humains (`H`) : uniquement 2 pions Chamanes (`1 Tambour` et `1 Chant` recto-verso), binôme imposé auto-vérifiant.
 
-### 2.1. Bandeau Supérieur & Configurateur d'Instance
-- **Presets (`bundleId`)** : `STANDARD_A` (socle actif v5.5 avec `SLOT_BUG_CERVEAU=B` et `SLOT_COLONISATION_GARDIENS=B`), presets d'exploration et `CUSTOM`.
-- **Cercle des Peuples (`peuplesCercle`)** : 3 à 6 Peuples actifs ordonnés autour de la table parmi `M` (Mammifères), `R` (Reptiles), `O` (Oiseaux), `H` (Humains), `E` (Entités Magiques), `I` (Insectes). Détermine via `MATRICE_PAIRES` les `2N` Tuiles de Synergie sur les `N` lisières.
-- **Slots de Migration (`slotsInsectes`)** : `SLOT_BUG_CERVEAU` (`B` par défaut : Déviation de dé `±1` sur Piste des Tactiques) et `SLOT_COLONISATION_GARDIENS` (`B` par défaut : Bouclier de lisière en `5.3`).
-- **Les 6 Axes du Châssis (`CHASSIS_AXES_SPEC` — $6 \times 2^5 = 192$ configurations)** :
-  1. `Profil_Piste` : 6 profils homogènes (`P4_2233`, `P4_2223`, `P4_1223`, `P5_22233`, `P5_22223`, `P5_12223`).
-  2. `Regle_Ouverture_Reve_Multiple` : `UNIQUE_PAR_TOUR` (défaut) | `PAR_DE_M_DESIGNE`.
-  3. `Offset_Seuil_Parade` : `0` (défaut) | `1`.
-  4. `Placement_Initial_Machines` : `MEME_PARCELLE_P1` (défaut) | `BULLDOZER_P1_ABATTEUSE_P2`.
-  5. `Role_Abatteuse_Fin_De_Piste` : `STANDARD_COUPE_ARBRE` (défaut) | `ARRACHE_1_SOUCHE_SI_SANS_ARBRE`.
-  6. `Synergie_Binome_Machines` : `INDIVIDUELLE` (défaut) | `MUTUALISATION_PUISSANCE_MEME_PARCELLE`.
-- **Export IA contextuel (`✨ Copier contexte Gemini`)** : Copie un JSON structuré (`_meta`, `regles_coeur`, `instance`, `tuiles_ciblees`) limité aux tuiles en jeu ou filtrées (`Shift + Clic` = export complet + tête du changelog).
-- **Bilan de Campagne & Copie 1-Tap (`📊 Bilan simulation` + `📋 Copier Bilan Gemini`)** : Charge `digests/index.json` (ou import local `.json` en `file://`) et copie en 1 seul tap l'amorce d'analyse + le `digest_*.json` 100 % auto-portant (`active_core_rules`, `tested_tiles_rules`, `defense_attribution`, quantiles, `CVaR_20%`, intervalles inter-blocs, `telemetry`, `tile_metrics`).
+### 2.2. Sac opaque de jetons & Lancer de dés universel
+- **Sac opaque (`INV-05`, `INV-06`)** : contient `2N` jetons Machine épais, jetons Sabotage ordinaires et jusqu'à `4` jetons Sabotage `Écaille` (tuiles `R`). Les jetons non piochés restent cachés sans être consultés. En cas de pénurie, distribution horaire depuis le Coordonnateur, **Oiseau toujours servi en dernier**.
+- **Dés universels (`INV-07`)** : sous paravent fermé, **tous** les joueurs lancent leurs dés (2 dés standards + Dé d'Envol `1–6` chez `O` sur mini-paravent gradué `1–6`), même sur Sabotage ou Écaille (jet ignoré), éliminant toute fuite sonore.
 
-### 2.2. Les 4 Vues Synchronisées
-1. **📖 1. Livret Didactique (`#view-livret`)** : Livret joueur refondu de zéro en 7 sections (Présentation & Objectif, Matériel & Mise en place, Vue d'ensemble d'un tour, Déroulé étape par étape, Les Peuples et leurs mécaniques propres, Fin de partie & Repousse Finale, Mémento de table) avec tableau des `2N` tuiles et surlignage ambre commutable.
-2. **🧩 2. Explorateur des Profils (`#view-catalogue`)** : Recherche plein texte, filtres par famille/peuple/lettre/tags, comparaison `A/B/C/D`, bandeau socle figé `v5.5` et indicateurs `tile_metrics` du bilan actif.
-3. **🔍 3. Évolutions & Arbitrages (`#view-changelog`)** : Différentiel historique structuré `Avant / Après` de `v4.3` à `v5.5`.
-4. **💻 4. Spec & JSON Simulateur (`#view-json`)** : Export, téléchargement `.json` et réimportation d'un manifeste d'instance (`schema_version: "5.5.0"`).
+### 2.3. Supports fixes & Piste des Gardiens à 6 icônes
+- **Réglette fixe `1–6` + bandelette d'Acte réversible (`INV-08`)** : cases Rêves au-dessus des actions imprimées (`1/4 Sur place`, `2/5 Devant`, `3/6 En avançant −1`) ; seule la bandelette d'Acte dessous est retournée au début du Tour 5 sans déplacer ni Rêves ni Insectes.
+- **Piste des Gardiens à 6 icônes sans numéros (`INV-09`)** : ordre gauche → droite `[PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE, RESONANCE]` (`1..6` en interne uniquement). La **Résonance** est en 6e et dernière position avec compteur individuel d'activations sans écrasement de bit et reprise gauche → droite si une icône plus à gauche se rallume.
+- **Deux encoches latérales visibles par Gardien (`INV-10`)** : en fin d'attaques, `≥ 1` pion encore sur la tuile = pari perdu ; `0` pion dessus et `≥ 1` encoche occupée = pari gagné (passage Face 2) ; `0` pion dessus et `0` encoche occupée = aucune mise engagée (reste en place sur sa face actuelle sans évoluer).
+
+### 2.4. Seuil, Ratissage, Parcelles ciblées, Contacts & Gouvernance
+- **Seuil de Parade unifié (`INV-11`)** : en Mode Charge, seuls les jetons rouges sont ignorés ; les **jetons bleus Surchauffe (`−1`) s'appliquent dans TOUS les modes** (Charge, Assaut et Ratissage), `−1` aux rangs `3` et `6`, `minimum 1`. Gain Charge = `+1` rouge max/activation (`FRAPPE_NON_PAREE`).
+- **Ratissage physique (`INV-12`)** : au ménage, toute machine terminant sur la dernière parcelle de son rayon glisse son jeton Machine sous elle (hors sac), conserve ses jetons Puissance antérieurs et gagne **`+1` jeton rouge physique** (convertible en bleu ; suppression définitive du `+1` imprimé). Une machine en Ratissage ne se déplace jamais (ni avancée, ni recul, ni cale, ni Altération, ni rang), mais sa parcelle compte pleinement comme « parcelle ciblée » tant qu'elle n'a pas frappé.
+- **Parcelles ciblées & Repli de bordure (`INV-13`)** : les parcelles visées par une machine sont figées au début de son activation (toute cible devenue Route entre-temps est annulée sans report). Une poussée de Route en bordure vers le cœur couvre et remplace l'avancée finale de `En avançant` (jamais de double bond `+2`).
+- **Ouverture, Rêves & Furtivité (`INV-14`, `INV-15`)** : les jetons Machine révélés restent visibles devant leur rayon jusqu'au verdict de Furtivité (inclinés à 90° s'ils sont annulés). Ordre : Sabotage/Écaille un par un (+ balayage) → déviation `±1` une par une (+ balayage) → Rêves défendus de gauche à droite (le propriétaire choisit quelle(s) machine(s) sont annulées y compris déviées, résout intégralement le pouvoir propre dès que défendu même à 0 machine hors *« Quand ce Rêve annule… »*, puis allume `REVE` + balayage si `≥ 1` annulation). Les Défenseurs posés sur un Rêve se déplacent toujours avec lui.
+- **Zéro écrasement hors Route & Pièges (`INV-16`, `INV-17`)** : déplacer une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d'une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel en réserve). Max 1 Piège ordinaire autonome (`SINGLE_STRIKE`) par parcelle ; le `Croc` Reptile peut cohabiter et pare en premier.
+- **Gouvernance & Poses (`INV-18`, `INV-19`)** : Bouclier de lisière facultatif gouverné par `I` ; interdiction de compléter une tuile impossible à placer ; repli de 1re pose sur une parcelle alliée si aucun emplacement légal ; bâtisseurs couchés « en attente » devant leur propriétaire dès construction, avec maintien du bonus à 3 joueurs libérant 1 bâtisseur vers une parcelle adjacente sur Gardien ou Rêve.
+
+### 2.5. Architecture Modulaire, Accessoires `3 + 3` & Enracinement
+- **3 Modules activés selon la table** : *Gardiens & Éveil* (`M/R/O`), *Rêves & Sommeil* (`H/E`), *Essaim* (`I` — jetons Insectes exclusifs aux 10 tuiles des 5 lisières de `I`, absents de la boîte sans `I` ; descente sur place de l'Insecte passager au ménage, `INV-21`).
+- **Accessoires `3 + 3` (`INV-20`)** : actifs dès le Tour 1 (`H` Tambour/Chant, `M` Duel `Défi ↔ Territoire tenu`, `O` Dé d'Envol/Perchoir/Plume) et progressifs via tuiles (`E` jeton d'Altération sur machine mobile max 1 : compte dans `m(r)` mais recule d'1 parcelle sans frapper ; `R` 4 jetons Écaille + Croc réutilisable + max 1 cale sous machine mobile via `G9` ; `I` Module Essaim).
+- **Enracinement volontaire (`INV-22`)** : au ménage avant remise au sac, max 1 tuile construite de son Peuple/joueur/tour au pied de son rayon face à une parcelle : retourne `1` Souche (F1/unique) ou `2` (F2) en Arbre debout au décompte final (Tour 8, Sommeil ou Éveil) si la parcelle n'est pas devenue Route ; un Rêve enraciné rend le Sommeil impossible.
 
 ---
 
-## 3. Architecture Technique & Découplage des 4 Couches
+## 3. Architecture Technique & Périmètre UI (`docs/`)
 
 ```text
+contracts/
+├── rules_canon_v6_2.json              # SSOT règles, châssis unique, modules, 3+3, Enracinement
+├── physical_and_edge_invariants.json  # Registre permanent INV-01..INV-22
+├── tiles_canon_v6_2.json              # Catalogue Canon 0 (30 slots, 48 faces, 35 témoins)
+├── studio_rules_guards.json           # Garde-fous lexicaux & éditoriaux
+└── kernel_locks.sha256                # Empreintes SHA-256 du noyau Python (scellé jusqu'au Chantier 4)
+
+scripts/
+└── build_studio_artifacts.py          # Compilateur dérivé unique (contracts/ -> docs/data/ + data/)
+
 docs/
-├── index.html                      # Coquille UI (Tailwind CDN), état réactif state, filtres, export JSON/Gemini
-├── AMAZONIA_STUDIO_CONTEXT.md      # Présent référentiel fonctionnel & technique pour prompts IA
-├── data/
-│   ├── amazonia_data_v5_5.js       # Source JS : PEUPLES, MATRICE_PAIRES, TOPOLOGIES_PISTE_SPEC, CHASSIS_AXES_SPEC,
-│   │                               # CATALOGUE_TUILES (32 slots / 101 profils), VERSION_CHANGELOG, SPEC_FORMELLE_V5_5
-│   ├── livret_v5_5.js              # Règles humaines découplées : REGLES_COEUR_SYNTHESE + renderDidacticRulebook()
-│   ├── catalog_v5_5.json           # Miroir JSON pur du catalogue et du châssis (pour Python / BGA)
-│   └── spec_formelle_v5_5.json     # Contrat formel normé du socle figé v5.5
-└── scripts/                        # Scripts incrémentaux d'audit et de synchronisation (Node.js)
+├── index.html                         # SPA statique sans bundler (file:// & HTTPS), châssis verrouillé (0 écart)
+├── AMAZONIA_STUDIO_CONTEXT.md         # Présent référentiel
+└── data/
+    ├── amazonia_data_v6_0.js          # Dérivé JS (CATALOGUE_TUILES Canon 0, CHASSIS_AXES_SPEC verrouillé, INV)
+    ├── livret_v6_0.js                 # Livret joueur (refonte modulaire prévue au Chantier 2)
+    ├── catalog_v6_0.json              # Miroir JSON dérivé v6.2
+    └── spec_formelle_v6_0.json        # Contrat formel dérivé v6.2
 ```
 
-**Ordre de chargement dans `index.html`** : `data/amazonia_data_v5_5.js` → `data/livret_v5_5.js` → script inline d'UI (`refreshAllUI()`).
+- **Bandeau configurateur** : châssis verrouillé sur le standard unique `P4_2233` départ décalé (`Placement_Initial_Machines.defaultVal = "BULLDOZER_P1_ABATTEUSE_P2"`, `0 écart` à l'ouverture comme après `resetChassisToDefault()`, axes morts neutralisés), sélecteur de cercle `3..6` Peuples, sélecteur de bilan `digests/index.json` + copie 1-tap `📋 Copier Bilan Gemini` + export contextuel `✨ Copier contexte Gemini`.
+- **4 Vues synchronisées** : `1. Livret Didactique`, `2. Explorateur (30 Profils Canon 0)`, `3. Évolutions & Arbitrages`, `4. Spec & JSON`.
 
 ---
 
-## 4. Invariants Mécaniques Cœur Figés (`v5.5`)
-
-- **Piste des Tactiques fixe (`T1..T6`) & Rêves en coût d'activation** : Les 6 Tactiques sont imprimées en dur (zéro éjection, zéro Apprentissage `6.1`). Un Rêve construit se pose sur la case libre la plus à droite (`6 → 1`). À l'Étape `2.2`, chaque **Défenseur** posé sur un Rêve annule en `3.2` 1 machine pointant sur son rang (la plus menaçante en priorité). Le Rêve n'avance d'1 cran vers la gauche (saut/poussée vers la 1re case libre) que si **toutes** les machines pointant sur ce rang sont annulées ce tour-ci.
-- **Piste des Gardiens & Pari uniforme (`0`, `1` ou `2` Défenseurs)** : En `2.2`, jusqu'à **2 Défenseurs** par Gardien construit (même plafond uniforme sur les 6 cases). Chaque déclenchement du Gardien glisse 1 Défenseur sous sa tuile et exécute son effet sur sa face actuelle. En `5.3` : pari gagné (tous les Défenseurs glissés) → reste en piste et passe Face 2 si double-face ; pari perdu (au moins 1 Défenseur encore dessus) → retourne en lisière Face 1, sauf Bouclier de lisière.
-- **Partition stricte des 6 déclencheurs (« 1 événement = au plus 1 déclencheur »)** :
-  - À l'ouverture des paravents (`3.2`) : `3. Sabotage` > `6. Insecte` (déviation par Insecte sur la Piste des Tactiques) > `5. Rêve` (dé `M` pointant sur un rang Rêve).
-  - Pendant les attaques (`5.1`/`5.2`) : `2. Piégeage` > `6. Insecte` (Parade utilisant au moins 1 Insecte) > `1. Parade` (Parade par Défenseurs seuls).
-  - Case `4. Gardien` : 1re ouverture du tour de chaque autre Gardien distinct (avec anti-boucle : un Gardien sur la case 4 ne se réactive jamais lui-même).
-  - Ni la Furtivité (`4.1`) ni la production des Nids (`4.2`) n'allument de déclencheur.
-- **Peuple Insectes (`v5.5`)** : Déviation de dé `±1` sur la Piste des Tactiques (`SLOT_BUG_CERVEAU=B`) et **Bouclier de lisière** sur la Piste des Gardiens (`SLOT_COLONISATION_GARDIENS=B` : en `5.3`, défausser 1 Insecte sur la case d'un Gardien ayant perdu son pari le maintient en piste sur sa face actuelle, le pari restant perdu).
-- **3 Fins de partie & Repousse Finale (`5.3`)** : Priorité absolue au **Tour 8** ; aux Tours `1..7`, **Sommeil du Contremaître** (tous les Rêves en jeu en bloc contigu en tête de piste) et **Réveil de la Forêt** (100 % Piste des Gardiens : `>= 1` Animal Sauvage, tous les `N` Défenseurs engagés sur des Gardiens et aucun pari perdu). En toute fin de partie : Repousse Finale (`+1` Arbre debout sur chaque parcelle non rasée conservant au moins 1 Souche, dans la limite de sa dotation initiale).
-
----
-
-## 5. Règles d'Or de Maintenance pour une IA Collaboratrice
-
-1. **Synchronisation obligatoire des 4 couches** : Toute évolution de règle doit mettre à jour simultanément `docs/data/livret_v5_5.js` (`renderDidacticRulebook` **ET** `REGLES_COEUR_SYNTHESE`), `docs/data/amazonia_data_v5_5.js` (`CATALOGUE_TUILES`, `VERSION_CHANGELOG`, `SPEC_FORMELLE_V5_5`), `docs/data/catalog_v5_5.json` et `docs/data/spec_formelle_v5_5.json`, puis régénérer `data/studio_lock.json` et `data/spec_bundle_v5_5.json`.
-2. **Patchs différentiels via Node `vm` + `JSON.stringify`** : Charger l'objet dans un contexte Node `vm`, muter les clés ciblées, resérialiser via `JSON.stringify` et vérifier par `new vm.Script()`.
-3. **Qualité éditoriale du livret joueur (`livret_v5_5.js`)** : Zéro jargon technique ni code interne, zéro formulation rétrospective négative, toujours le terme simple « Défenseur », contrôlé automatiquement par `contracts/studio_rules_guards.json` et `tests/test_studio_render_and_guards.py`.
-4. **Encodage & compatibilité statique** : Écrire tous les fichiers en **UTF-8 sans BOM** avec fins de ligne `\n` (LF), compatibles `file://` et HTTPS.
+## 4. Règles d'Or de Maintenance
+1. **SSOT d'abord** : modifier `contracts/*.json` puis exécuter `uv run python scripts/build_studio_artifacts.py`.
+2. **Micro-ADR en 4 questions** : obligatoire pour toute évolution de règle (voir `contracts/CORE_FREEZE_CRITERIA.md`).
+3. **Tableau de conservation `INV-01..INV-22`** : obligatoire avant toute condensation/refonte du livret (`data-inv="INV-XX"`).
+4. **Porte de validation** : `uv run python verify_lot.py` doit passer à **100 % vert** (linter des 30 tuiles, scanner global anti-vestiges, rendu headless Node `vm`, `ruff`, `pyright`, `pytest`, fuzzer PyPy, noyau scellé intact).

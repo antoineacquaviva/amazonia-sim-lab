@@ -1,57 +1,48 @@
 ---
 name: code-lot
 description: >-
-  Code et valide un lot de tuiles du jeu (Lot 01 à Lot 11) avec ses tests témoins :
-  utiliser dès que l'auteur demande de coder le prochain lot de tuiles, d'avancer sur
-  l'implémentation des tuiles (Gardiens, Rêves, Croissance, Migrations), ou nomme un Lot XX.
+  Code et valide un lot de tuiles du Canon 0 (30 emplacements v6.2) avec ses tests témoins :
+  utiliser dès que l'auteur demande de coder le prochain lot de tuiles ou d'avancer sur
+  l'implémentation des tuiles (Gardiens, Rêves, Nids).
 ---
 
-# Skill `code-lot` — Usinage Stateless d'un Lot (`Lot 01` .. `Lot 11`)
+# Skill `code-lot` — Usinage Stateless des Tuiles Canon 0 (`v6.2`)
 
 ## Règle d'Économie de Contexte (Anti-Dérive)
 Pour préserver une fenêtre de contexte chirurgicale, **ne lire que** :
-1. `STATUS.md` et la section du `Lot XX` demandé dans `contracts/LOTS_PLAN.md`,
-2. `.agents/rules/rule-effects.md` et `contracts/core_state_api.md`,
-3. Les fiches JSON exactes des seuls profils du `Lot XX` extraites de `data/spec_bundle_v5_3_1.json` via une commande Python ciblée (ne **jamais** charger les 100 profils en texte brut dans le prompt).
+1. `STATUS.md`, `.agents/rules/rule-effects.md` et `contracts/core_state_api.md`,
+2. Les fiches JSON exactes des seuls emplacements du lot ciblé extraites de `contracts/tiles_canon_v6_2.json` via une commande Python ciblée.
 
-Commande type d'extraction ciblée d'un lot :
+Commande type d'extraction ciblée :
 ```bash
-uv run python -c "import json; ct=json.load(open('data/spec_bundle_v5_3_1.json', encoding='utf-8'))['catalogue_tuiles']; pairs=[('G1','B'),('G2','B')]; print(json.dumps({f'{s}:{p}': {'peuple_origine': ct[s]['peuple_origine'], **ct[s]['profils'][p]} for s,p in pairs}, ensure_ascii=False, indent=2))"
+uv run python -c "import json; ct=json.load(open('contracts/tiles_canon_v6_2.json', encoding='utf-8'))['tuiles_ciblees']; slots=['G1','G2']; print(json.dumps({s: ct[s] for s in slots}, ensure_ascii=False, indent=2))"
 ```
 
 ---
 
 ## Protocole d'Exécution en 5 Étapes
 
-### 1. Audit des Hooks & Escalade Noyau Scellé
-- Vérifier pour chaque fiche du `Lot XX` (`fenetre`, `primitive`, `requires_options`, `texte`, `temoin`) que les hooks `HOOK_*` et primitives `prim_*` listés dans `contracts/core_state_api.md` suffisent.
-- **INTERDICTION ABSOLUE** de modifier un fichier listé dans `contracts/kernel_locks.sha256`.
-- Si un point d'accroche moteur manque réellement pour un profil, implémenter le handler en levant explicitement :
+### 1. Audit des Hooks & Respect du Noyau Scellé
+- Vérifier pour chaque fiche (`fenetre`, `primitive`, `texte`, `temoins`) que les hooks `HOOK_*` et primitives `prim_*` documentés dans `contracts/core_state_api.md` suffisent.
+- **INTERDICTION ABSOLUE** de modifier un fichier listé dans `contracts/kernel_locks.sha256` sans accord explicite et Micro-ADR validé.
+- Si un point d'accroche moteur manque réellement, lever explicitement :
   ```python
   raise NotImplementedError("NEEDS_KERNEL_HOOK: <slot_id>:<profile> requiert <détail exact>")
   ```
-  Documenter ce besoin précis à l'auteur pour un mini-commit d'ouverture noyau dédié et approuvé séparément.
 
-### 2. Implémentation Stateless (`engine/effects/lot_XX.py`)
-Créer `engine/effects/lot_XX.py` (UTF-8 sans BOM, LF, 100 % stdlib PyPy 3.11) en respectant toutes les contraintes vérifiées par AST dans `verify_lot.py` :
-- Décorer chaque profil avec `@register_tile(slot_id, profile, hooks=(...))`.
-- **Zéro accès à `._buf`**, **zéro `import random`** (utiliser `engine/rng.py` si nécessaire), **zéro variable globale mutable** (uniquement des constantes immuables `UPPER_CASE` composées de littéraux/tuples/`frozenset`).
-- **Gouvernance unitaire** : déterminer le siège décideur via `state.cfg.seat_of_peuple(peuple_origine)` (repli `state.coordonnateur` si absent) et inclure systématiquement `"PASSER"` dès que l'effet comporte *« vous pouvez »*.
-- **Autonomie des Faces 2** : coder la branche `face == 2` des Gardiens de manière 100 % autonome vis-à-vis de la Face 1.
-- **Atomicité & Verrous 1/tour** : exécuter intégralement l'effet atomique avant d'allumer les déclencheurs `1..6` (`light_trigger`) ; utiliser `state.has_slot_used_once_per_turn(slot_id)` / `state.mark_slot_used_once_per_turn(slot_id)` pour tout quota *« 1 fois par tour »*.
-- Enregistrer l'import de `lot_XX` dans `engine/effects/__init__.py`.
+### 2. Implémentation Stateless (`engine/effects/`)
+- Décorer chaque profil avec `@register_tile(slot_id, profile, hooks=(...))` (100 % stdlib PyPy 3.11, UTF-8 sans BOM, LF).
+- **Zéro accès à `._buf`**, **zéro `import random`**, **zéro variable globale mutable** (vérifié par AST dans `verify_lot.py`).
+- **Gouvernance unitaire** par `peuple_origine` (`state.cfg.seat_of_peuple(peuple_origine)`), avec option `"PASSER"` dès que l'effet est facultatif.
+- **Autonomie des Faces 2** : coder `face == 2` sans aucune dépendance à la Face 1.
+- **Zéro dette mémorielle (`mem_debt == 0`)** et **atomicité** : terminer l'effet avant de déclencher le balayage des 6 icônes Gardiens.
 
-### 3. Tests Unitaires Témoins (`tests/temoins/test_lot_XX.py`)
-Créer `tests/temoins/test_lot_XX.py` (avec `tests/temoins/__init__.py` si absent) contenant **au moins 1 test déterministe dédié par profil** du lot (`test_<slot>_<profile>_temoin`) :
-- Reproduire exactement la mise en situation décrite dans le champ `"temoin"` du JSON Studio.
-- Vérifier l'état exact avant/après résolution (Arbres, Souches, Insectes, Puissance, Pistes, Déclencheurs `1..6`, option `"PASSER"` le cas échéant, et RAZ `6.2` pour les effets transitoires).
+### 3. Tests Unitaires Témoins (`tests/`)
+- Reproduire fidèlement chaque entrée de `temoins` de `contracts/tiles_canon_v6_2.json` (35 témoins au total sur les 30 tuiles) en vérifiant l'état avant/après et le statut `"engine_sync_status": "ACTIVE_VERIFIED"` une fois validé (Chantier 5).
 
-### 4. Extension du Fuzzer PyPy (`scripts_cloud/fuzz_invariants.py`)
-- Importer les lots livrés dans `scripts_cloud/fuzz_invariants.py` afin qu'une fraction des `1 000` parties du fuzzer PyPy tourne en **Mode 3/4** en activant aléatoirement (via `rng.py`) les profils déjà enregistrés dans `list_registered_tiles()`, toujours sous garde-fou strict `max_steps = 2000`.
-- Pour le **Lot 11**, ajouter `tests/temoins/test_lot_11_audit.py` vérifiant la couverture `100/100` exacte contre `data/spec_bundle_v5_3_1.json` et la validité complète de `engine/effects/mode3_reference.json`.
+### 4. Fuzzer PyPy & Linter Canon 0
+- Vérifier l'exécution sans erreur dans `scripts_cloud/fuzz_invariants.py` (garde-fou `max_steps = 2000`) et le passage de `verify_tiles_canon` dans `verify_lot.py`.
 
 ### 5. Porte de Validation, `STATUS.md` & Commit
-1. Exécuter `uv run python verify_lot.py` et obtenir **6/6 PORTES 100% VERT** (`kernel_locks.sha256`, AST `engine/effects/`, `ruff`, `pyright`, `pytest`, `PyPy Invariant Fuzzer`).
-2. Cocher `[x] Lot XX` dans `STATUS.md` avec une note concise d'une ligne.
-3. Ré-exécuter `uv run python verify_lot.py` puis créer un commit atomique :
-   `feat(effects): implement Lot XX (<résumé profils>) with witness tests`.
+1. Exécuter `uv run python verify_lot.py` et obtenir **100 % VERT**.
+2. Consigner l'avancement dans `STATUS.md` puis créer un commit atomique.

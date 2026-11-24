@@ -10,14 +10,21 @@ import re
 import shutil
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent
-LOCKS_FILE = ROOT / "contracts" / "kernel_locks.sha256"
+CONTRACTS_DIR = ROOT / "contracts"
+LOCKS_FILE = CONTRACTS_DIR / "kernel_locks.sha256"
+RULES_CANON_FILE = CONTRACTS_DIR / "rules_canon_v6_2.json"
+INVARIANTS_FILE = CONTRACTS_DIR / "physical_and_edge_invariants.json"
+TILES_CANON_FILE = CONTRACTS_DIR / "tiles_canon_v6_2.json"
+GUARDS_FILE = CONTRACTS_DIR / "studio_rules_guards.json"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
+STUDIO_CONTEXT_FILE = ROOT / "docs" / "AMAZONIA_STUDIO_CONTEXT.md"
 STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v6_0.json"
 STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
 STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
@@ -39,6 +46,46 @@ _FORBIDDEN_PACKAGES: tuple[str, ...] = (
     "google-genai",
     "google-generativeai",
     "google-cloud-aiplatform",
+)
+
+# Linter Canon 0 (tuiles)
+_FACE_LABEL_RE = re.compile(
+    r"^\s*(?:Face\s+[12]|Enraciné|En\s+Parade|En\s+Migration)\s*:\s*",
+    re.IGNORECASE,
+)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_BR_SPLIT_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
+_WORD_ELISION_RE = re.compile(r"[0-9A-Za-zÀ-ÖØ-öø-ÿ]+")
+_SENTENCE_SPLIT_RE = re.compile(r"[.!?]+")
+_CONDITION_RE = re.compile(r"(?i)\b(?:si|quand|lorsque|lorsqu)\b")
+_STEP_CODE_RE = re.compile(r"\b[1-6]\.[0-3]\b")
+_INSECT_LEXICON_RE = re.compile(r"(?i)\b(?:insectes?|nids?|essaims?|migrations?)\b")
+_GARDIEN_LEXICON_RE = re.compile(r"(?i)\b(?:gardiens?|éveil|encoches?|résonance)\b")
+
+_I_LISIERE_SLOTS: frozenset[str] = frozenset(
+    {"G13", "G14", "G15", "R6", "R10", "M1", "M2", "M3", "M4", "M5"}
+)
+_A0_AUTONOMOUS_SLOTS: frozenset[str] = frozenset({"R1", "R2", "R6", "R10", "M4", "M5"})
+_BANNED_TILE_TERMS: tuple[str, ...] = (
+    "carte",
+    "cartes",
+    "paquet",
+    "non rasée",
+    "hors Ratissage",
+    "sans Piège",
+    "sous sa tuile",
+    "Embuscade",
+    "armer",
+    "Apprentissage",
+    "Cerveau",
+    "Bug",
+    "Colonie",
+    "case Furtivité",
+    "Défenseur d'ajustement",
+    "Défenseur d’ajustement",
+    "pour ce tour",
+    "jusqu'à la fin du tour",
+    "jusqu’à la fin du tour",
 )
 
 
@@ -186,7 +233,7 @@ def verify_kernel_locks() -> None:
         if line.strip() and not line.strip().startswith("#")
     ]
     if not lines:
-        print("[1/8] kernel_locks.sha256 vide (Palier 0) : OK")
+        print("[1/10] kernel_locks.sha256 vide : OK")
         return
 
     for line in lines:
@@ -203,7 +250,7 @@ def verify_kernel_locks() -> None:
                 f"VIOLATION kernel_locks.sha256 sur {rel_path}: "
                 f"attendu {expected_hash}, obtenu {actual_hash}"
             )
-    print(f"[1/8] kernel_locks.sha256 ({len(lines)} fichiers) : OK")
+    print(f"[1/10] kernel_locks.sha256 ({len(lines)} fichiers scellés intacts) : OK")
 
 
 def verify_effects_ast() -> None:
@@ -216,7 +263,7 @@ def verify_effects_ast() -> None:
         all_errors.extend(check_effect_source(source, rel))
     if all_errors:
         raise RuntimeError("Erreurs AST dans engine/effects/ :\n" + "\n".join(all_errors))
-    print(f"[2/8] AST engine/effects/ ({len(py_files)} fichiers) : OK")
+    print(f"[2/10] AST engine/effects/ ({len(py_files)} fichiers) : OK")
 
 
 def verify_zero_llm_api_billing() -> None:
@@ -244,11 +291,11 @@ def verify_zero_llm_api_billing() -> None:
         raise RuntimeError(
             "VIOLATION Zéro-Facturation API LLM :\n" + "\n".join(all_errors)
         )
-    print(f"[3/8] Garde Zéro-API-LLM ({scanned_py} fichiers Python) : OK")
+    print(f"[3/10] Garde Zéro-API-LLM ({scanned_py} fichiers Python) : OK")
 
 
 def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
-    """Charge CATALOGUE_TUILES et CHASSIS_AXES_SPEC depuis docs/data/amazonia_data_v5_3.js via Node vm."""
+    """Charge CATALOGUE_TUILES et CHASSIS_AXES_SPEC depuis docs/data/amazonia_data_v6_0.js via Node vm."""
     js_script = (
         "const fs = require('fs');\n"
         "const vm = require('vm');\n"
@@ -270,18 +317,204 @@ def _load_studio_js_catalog_and_axes(studio_js_path: Path) -> dict[str, Any]:
     return dict(json.loads(proc.stdout))
 
 
+def lint_tiles_canon_dict(
+    tiles_map: Mapping[str, Mapping[str, Any]],
+    *,
+    source_label: str = "catalogue",
+    require_engine_sync_status: bool = False,
+) -> list[str]:
+    """Linter éditorial et mécanique strict sur un dictionnaire de tuiles Canon 0."""
+    errors: list[str] = []
+    expected_slots = (
+        {f"G{i}" for i in range(1, 16)}
+        | {f"R{i}" for i in range(1, 11)}
+        | {f"M{i}" for i in range(1, 6)}
+    )
+    actual_slots = set(tiles_map.keys())
+    if actual_slots != expected_slots:
+        missing = sorted(expected_slots - actual_slots)
+        extra = sorted(actual_slots - expected_slots)
+        errors.append(
+            f"{source_label}: ensemble d'emplacements invalide (manquants={missing}, en trop={extra})"
+        )
+
+    for slot_id, slot in sorted(tiles_map.items()):
+        couple = {str(p) for p in (slot.get("couple") or [])}
+        has_i = "I" in couple
+        if has_i and slot_id not in _I_LISIERE_SLOTS:
+            errors.append(f"{source_label}.{slot_id}: couple contient 'I' hors des 10 tuiles I")
+        if not has_i and slot_id in _I_LISIERE_SLOTS:
+            errors.append(f"{source_label}.{slot_id}: lisière I attendue mais couple={sorted(couple)}")
+
+        profils = slot.get("profils")
+        if not isinstance(profils, Mapping) or not profils:
+            errors.append(f"{source_label}.{slot_id}: aucun profil défini")
+            continue
+
+        for prof_key, prof in profils.items():
+            label = f"{source_label}.{slot_id}:{prof_key}"
+            if require_engine_sync_status:
+                sync_status = prof.get("engine_sync_status")
+                if sync_status not in ("PENDING_KERNEL_V6_2", "ACTIVE_VERIFIED"):
+                    errors.append(
+                        f"{label}: engine_sync_status invalide ({sync_status!r})"
+                    )
+
+            raw_text = str(prof.get("texte", "")).strip()
+            if not raw_text:
+                errors.append(f"{label}: champ 'texte' vide")
+                continue
+
+            parts = [p.strip() for p in _BR_SPLIT_RE.split(raw_text) if p.strip()]
+            for face_idx, part in enumerate(parts, start=1):
+                no_html = _HTML_TAG_RE.sub("", part).strip()
+                clean = _FACE_LABEL_RE.sub("", no_html).strip()
+
+                words = _WORD_ELISION_RE.findall(clean)
+                if len(words) > 25:
+                    errors.append(
+                        f"{label} (face {face_idx}): {len(words)} mots > 25 max -> {clean!r}"
+                    )
+
+                sentences = [s.strip() for s in _SENTENCE_SPLIT_RE.split(clean) if s.strip()]
+                if len(sentences) != 1:
+                    errors.append(
+                        f"{label} (face {face_idx}): {len(sentences)} phrases (attendu 1 seule) -> {clean!r}"
+                    )
+
+                conds = _CONDITION_RE.findall(clean)
+                if len(conds) > 1:
+                    errors.append(
+                        f"{label} (face {face_idx}): {len(conds)} conditions > 1 max ({conds}) -> {clean!r}"
+                    )
+
+                step_hits = _STEP_CODE_RE.findall(no_html)
+                if step_hits:
+                    errors.append(
+                        f"{label} (face {face_idx}): code numérique d'étape interdit {step_hits}"
+                    )
+
+                for term in _BANNED_TILE_TERMS:
+                    if re.search(rf"(?i)\b{re.escape(term)}\b", no_html):
+                        errors.append(
+                            f"{label} (face {face_idx}): terme banni {term!r} dans {no_html!r}"
+                        )
+
+                if slot_id not in _I_LISIERE_SLOTS:
+                    ins_hits = _INSECT_LEXICON_RE.findall(clean)
+                    if ins_hits:
+                        errors.append(
+                            f"{label} (face {face_idx}): mention Insecte/Essaim hors lisières de I ({ins_hits})"
+                        )
+
+                if slot_id in _A0_AUTONOMOUS_SLOTS:
+                    g_hits = _GARDIEN_LEXICON_RE.findall(clean)
+                    if g_hits:
+                        errors.append(
+                            f"{label} (face {face_idx}): mention Gardien interdite sur tuile A=0 ({g_hits})"
+                        )
+
+    return errors
+
+
+def verify_tiles_canon() -> None:
+    """Linter automatique Canon 0 sur contracts/tiles_canon_v6_2.json et CATALOGUE_TUILES."""
+    if not TILES_CANON_FILE.is_file():
+        raise FileNotFoundError(f"Contrat tuiles Canon 0 manquant : {TILES_CANON_FILE}")
+    if not STUDIO_JS_FILE.is_file():
+        raise FileNotFoundError(f"Fichier Studio JS manquant : {STUDIO_JS_FILE}")
+
+    canon_doc: dict[str, Any] = json.loads(TILES_CANON_FILE.read_text(encoding="utf-8"))
+    canon_tiles: dict[str, Any] = dict(canon_doc.get("tuiles_ciblees", {}))
+    studio_js = _load_studio_js_catalog_and_axes(STUDIO_JS_FILE)
+    studio_tiles: dict[str, Any] = dict(studio_js.get("CATALOGUE_TUILES", {}))
+
+    errors: list[str] = []
+    errors.extend(
+        lint_tiles_canon_dict(
+            canon_tiles,
+            source_label="contracts/tiles_canon_v6_2.json",
+            require_engine_sync_status=True,
+        )
+    )
+    errors.extend(
+        lint_tiles_canon_dict(
+            studio_tiles,
+            source_label="docs/data/amazonia_data_v6_0.js[CATALOGUE_TUILES]",
+            require_engine_sync_status=False,
+        )
+    )
+
+    if canon_tiles != studio_tiles:
+        errors.append(
+            "Désynchronisation entre contracts/tiles_canon_v6_2.json['tuiles_ciblees'] "
+            "et docs/data/amazonia_data_v6_0.js['CATALOGUE_TUILES']"
+        )
+
+    if errors:
+        raise RuntimeError("VIOLATION Linter Tuiles Canon 0 :\n" + "\n".join(errors))
+
+    faces_total = sum(
+        len([p for p in _BR_SPLIT_RE.split(str(prof.get("texte", ""))) if p.strip()])
+        for slot in canon_tiles.values()
+        for prof in slot["profils"].values()
+    )
+    print(
+        f"[5/10] Linter Tuiles Canon 0 ({len(canon_tiles)} slots, {faces_total} faces ≤ 25 mots, "
+        "clôture I & autonomie A=0) : OK"
+    )
+
+
+def verify_global_anti_vestiges() -> None:
+    """Scanner global anti-vestiges sur contracts/*.json, docs/data/*.json, STUDIO_CONTEXT et .agents/**/*.md."""
+    guards: dict[str, Any] = json.loads(GUARDS_FILE.read_text(encoding="utf-8"))
+    banned_patterns: list[str] = [str(p) for p in guards.get("banned_global_vestiges", [])]
+    if not banned_patterns:
+        raise RuntimeError("Liste 'banned_global_vestiges' vide dans studio_rules_guards.json")
+
+    targets: list[Path] = []
+    for f in sorted(CONTRACTS_DIR.glob("*.json")):
+        if f.name == GUARDS_FILE.name:
+            continue
+        targets.append(f)
+    targets.extend(sorted(DOCS_DATA_DIR.glob("*.json")))
+    if STUDIO_CONTEXT_FILE.is_file():
+        targets.append(STUDIO_CONTEXT_FILE)
+    agents_dir = ROOT / ".agents"
+    if agents_dir.is_dir():
+        targets.extend(sorted(agents_dir.rglob("*.md")))
+
+    errors: list[str] = []
+    for path in targets:
+        rel = path.relative_to(ROOT).as_posix()
+        txt = path.read_text(encoding="utf-8")
+        for pat in banned_patterns:
+            if pat in txt:
+                errors.append(f"{rel}: vestige interdit {pat!r} détecté")
+
+    if errors:
+        raise RuntimeError("VIOLATION Scanner Global Anti-Vestiges :\n" + "\n".join(errors))
+    print(
+        f"[6/10] Scanner global anti-vestiges ({len(targets)} fichiers contrats/docs/.agents) : OK"
+    )
+
+
 def verify_studio_coherence() -> None:
-    """Vérifie la cohérence du Cœur entre docs/data/ (Studio) et le simulateur Python v6.1.
+    """Vérifie la cohérence SSOT v6.2 entre contracts/, docs/data/ et le simulateur Python.
 
     Contrôles actifs :
-    - docs/data/spec_formelle_v6_0.json == data/spec_bundle_v6_0.json['spec_formelle_v6_0'] ;
-    - Topologie canonique P4_2233 dans catalog_v6_0.json == engine.state.CANONICAL_DOTATION (2,2,3,3) ;
-    - Cohérence interne Studio (amazonia_data_v6_0.js <-> data/spec_bundle_v6_0.json) ;
-    - Réglette des Tactiques T1..T6 == engine.state.TACTIQUES_SPEC ;
-    - Empreintes SHA-256 de data/studio_lock.json alignées avec docs/data/.
+    - Existence & empreintes SHA-256 des 3 contrats SSOT (`rules_canon_v6_2`, `invariants` 22, `tiles_canon_v6_2`) ;
+    - `docs/data/spec_formelle_v6_0.json == data/spec_bundle_v6_0.json['spec_formelle_v6_0']` ;
+    - Topologie canonique `P4_2233` dans `catalog_v6_0.json` == `engine.state.CANONICAL_DOTATION (2,2,3,3)` ;
+    - Châssis verrouillé (`Placement_Initial_Machines.defaultVal == 'BULLDOZER_P1_ABATTEUSE_P2'`) ;
+    - Réglette des Tactiques `T1..T6` == `engine.state.TACTIQUES_SPEC` ;
+    - Empreintes SHA-256 de `data/studio_lock.json` alignées avec `docs/data/` et `contracts/`.
     """
     studio_lock_file = ROOT / "data" / "studio_lock.json"
     for req_file in (
+        RULES_CANON_FILE,
+        INVARIANTS_FILE,
+        TILES_CANON_FILE,
         STUDIO_CATALOG_FILE,
         STUDIO_SPEC_FILE,
         STUDIO_JS_FILE,
@@ -289,8 +522,9 @@ def verify_studio_coherence() -> None:
         studio_lock_file,
     ):
         if not req_file.is_file():
-            raise FileNotFoundError(f"Fichier Studio/Simulateur manquant : {req_file}")
+            raise FileNotFoundError(f"Fichier SSOT/Studio manquant : {req_file}")
 
+    invariants_doc: dict[str, Any] = json.loads(INVARIANTS_FILE.read_text(encoding="utf-8"))
     catalog: dict[str, Any] = json.loads(STUDIO_CATALOG_FILE.read_text(encoding="utf-8"))
     spec_doc: dict[str, Any] = json.loads(STUDIO_SPEC_FILE.read_text(encoding="utf-8"))
     bundle: dict[str, Any] = json.loads(SPEC_BUNDLE_FILE.read_text(encoding="utf-8"))
@@ -298,6 +532,15 @@ def verify_studio_coherence() -> None:
     studio_js = _load_studio_js_catalog_and_axes(STUDIO_JS_FILE)
 
     errors: list[str] = []
+
+    # 0. Registre permanent des 22 invariants INV-01..INV-22
+    inv_ids = [str(item.get("id", "")) for item in invariants_doc.get("invariants", [])]
+    expected_inv_ids = [f"INV-{i:02d}" for i in range(1, 23)]
+    if inv_ids != expected_inv_ids:
+        errors.append(
+            f"Registre invariants invalide : attendu {expected_inv_ids[0]}..{expected_inv_ids[-1]}, "
+            f"obtenu {inv_ids}"
+        )
 
     # 1. Cohérence spec_formelle_v6_0.json <-> bundle
     if bundle.get("spec_formelle_v6_0") != spec_doc:
@@ -324,13 +567,13 @@ def verify_studio_coherence() -> None:
                 f"engine.state.CANONICAL_DOTATION ({CANONICAL_DOTATION})"
             )
 
-    # 3. Cohérence interne Studio <-> spec_bundle sur les métadonnées Studio
+    # 3. Cohérence Studio <-> spec_bundle & verrouillage C3-06
     studio_axes_raw: list[dict[str, Any]] = studio_js["CHASSIS_AXES_SPEC"]
     bundle_axes_raw: list[dict[str, Any]] = bundle["chassis_axes"]
 
-    def _norm_axes(axes_list: list[dict[str, Any]]) -> list[tuple[str, tuple[Any, ...]]]:
+    def _norm_axes(axes_list: list[dict[str, Any]]) -> list[tuple[str, Any, tuple[Any, ...]]]:
         return [
-            (str(ax["key"]).lower(), tuple(opt["val"] for opt in ax["options"]))
+            (str(ax["key"]).lower(), ax.get("defaultVal"), tuple(opt["val"] for opt in ax["options"]))
             for ax in axes_list
         ]
 
@@ -338,6 +581,15 @@ def verify_studio_coherence() -> None:
         errors.append(
             "Désynchronisation entre docs/data/amazonia_data_v6_0.js['CHASSIS_AXES_SPEC'] "
             "et data/spec_bundle_v6_0.json['chassis_axes']"
+        )
+
+    placement_ax = next(
+        (ax for ax in studio_axes_raw if ax.get("key") == "Placement_Initial_Machines"),
+        None,
+    )
+    if placement_ax is None or placement_ax.get("defaultVal") != "BULLDOZER_P1_ABATTEUSE_P2":
+        errors.append(
+            "Bug C3-06 actif : Placement_Initial_Machines.defaultVal doit valoir 'BULLDOZER_P1_ABATTEUSE_P2'"
         )
 
     # 4. Réglette des Tactiques T1..T6 : spec_bundle <-> engine.state.TACTIQUES_SPEC
@@ -357,7 +609,7 @@ def verify_studio_coherence() -> None:
                     f"Écart Tactique T{idx} entre spec_bundle ({b_tac}) et TACTIQUES_SPEC ({e_tac})"
                 )
 
-    # 5. Empreintes SHA-256 du Studio verrouillées dans data/studio_lock.json
+    # 5. Empreintes SHA-256 du Studio et des contrats verrouillées dans data/studio_lock.json
     for fname, info in lock_doc.get("files", {}).items():
         expected_sha = str(info.get("sha256", "")).lower()
         target_f = DOCS_DATA_DIR / str(fname)
@@ -371,11 +623,25 @@ def verify_studio_coherence() -> None:
                     f"attendu {expected_sha[:12]}, obtenu {actual_sha[:12]}"
                 )
 
+    for cname, info in lock_doc.get("contracts", {}).items():
+        expected_sha = str(info.get("sha256", "")).lower()
+        target_c = CONTRACTS_DIR / str(cname)
+        if not target_c.is_file():
+            errors.append(f"Contrat SSOT listé dans studio_lock.json introuvable : {cname}")
+        else:
+            actual_sha = hashlib.sha256(target_c.read_bytes()).hexdigest().lower()
+            if actual_sha != expected_sha:
+                errors.append(
+                    f"Empreinte SHA-256 Contrat SSOT divergente sur {cname} : "
+                    f"attendu {expected_sha[:12]}, obtenu {actual_sha[:12]} "
+                    "(exécuter scripts/build_studio_artifacts.py)"
+                )
+
     if errors:
-        raise RuntimeError("VIOLATION Cohérence Studio <-> Simulateur :\n" + "\n".join(errors))
+        raise RuntimeError("VIOLATION Cohérence SSOT Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/8] Cohérence Socle v6.1 Studio (docs/data/ <-> simulateur : "
-        f"spec_formelle, châssis unique {CANONICAL_PROFIL_PISTE}, 6 tactiques, studio_lock) : OK"
+        f"[4/10] Cohérence SSOT v6.2 (contracts/ <-> docs/data/ <-> simulateur : "
+        f"22 invariants, châssis unique {CANONICAL_PROFIL_PISTE}, 6 tactiques, studio_lock) : OK"
     )
 
 
@@ -404,12 +670,14 @@ def main() -> int:
     verify_effects_ast()
     verify_zero_llm_api_billing()
     verify_studio_coherence()
-    run_tool("[5/8] ruff", [sys.executable, "-m", "ruff", "check", "."])
-    run_tool("[6/8] pyright", [sys.executable, "-m", "pyright"])
-    run_tool("[7/8] pytest", [sys.executable, "-m", "pytest", "-q"])
+    verify_tiles_canon()
+    verify_global_anti_vestiges()
+    run_tool("[7/10] ruff", [sys.executable, "-m", "ruff", "check", "."])
+    run_tool("[8/10] pyright", [sys.executable, "-m", "pyright"])
+    run_tool("[9/10] pytest", [sys.executable, "-m", "pytest", "-q"])
     uv_bin = _find_uv()
     run_tool(
-        "[8/8] PyPy Invariant Fuzzer",
+        "[10/10] PyPy Invariant Fuzzer",
         [
             uv_bin,
             "run",
@@ -422,7 +690,7 @@ def main() -> int:
             "1000",
         ],
     )
-    print("verify_lot.py : 8/8 PORTES 100% VERT")
+    print("verify_lot.py : 10/10 PORTES 100% VERT")
     return 0
 
 

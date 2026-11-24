@@ -1,45 +1,39 @@
 ---
 trigger: glob
-description: Règles d'architecture et invariants v5.3 du noyau déterministe scellé
+description: Règles d'architecture et invariants v6.2 du noyau déterministe scellé
 globs: "engine/state.py, engine/rng.py, engine/primitives.py, engine/core_engine.py"
 ---
 
-# Règles du Noyau (`engine/`)
+# Règles du Noyau (`engine/`) — Cible SSOT `v6.2`
+
+> **Statut transitoire (Chantiers 1 à 3)** : les 4 fichiers du noyau (`engine/rng.py`, `engine/state.py`, `engine/primitives.py`, `engine/core_engine.py`) restent **officiellement scellés** dans `contracts/kernel_locks.sha256` jusqu'au **Chantier 4**, où ils basculeront de manière atomique et approuvée sur `contracts/rules_canon_v6_2.json` et `contracts/physical_and_edge_invariants.json`. Interdiction absolue d'y toucher sans feu vert explicite de l'auteur.
 
 ## 1. Représentation de l'état (`engine/state.py`)
-- `GameState` est scellé avec `__slots__ = ("_buf", "_continuation", "cfg")` sur un `bytearray(384)` (`STATE_BUF_SIZE = 384`, 6 cache lines) alloué séquentiellement via `_Layout.alloc()` — **zéro magic number**.
+- `GameState` utilise `__slots__ = ("_buf", "_continuation", "cfg")` sur un `bytearray` compact alloué séquentiellement via `_Layout.alloc()` — **zéro magic number**, **100 % stdlib PyPy 3.11 / CPython 3.12**.
 - `clone()` s'effectue par copie brute `bytearray(self._buf)` et copie légère de `_continuation`.
-- Une plage dédiée d'octets transitoires de tour est remise à zéro systématiquement en sous-étape **6.2**.
-- **Isolation État Public / Privé** : `get_observation(seat_id)` masque strictement les informations privées tant que les paravents sont fermés (avant **3.2**, hors cas explicite du sacrifice `G4 B`).
+- Une plage dédiée d'octets transitoires de tour est remise à zéro systématiquement au ménage de fin de tour (`mem_debt == 0` : tout état persistant est porté par une pièce physique du plateau).
+- **Isolation État Public / Privé** : `get_observation(seat_id)` masque strictement les jetons piochés, le Perchoir de l'Oiseau et les dés secrets tant que les paravents sont fermés.
 
 ## 2. Déterminisme & PRNG (`engine/rng.py`)
 - PRNG déterministe adressable par compteur : `rand_event(exp_seed, rep_id, source_type, tour, entity_id, draw_idx)`.
 - **Aucun `branch_id`** sur les événements comparables :
-  - Jets de dés indexés par `(DICE, tour, peuple_id)` (uniquement pour les joueurs ayant tiré une carte Machine).
-  - Mélange du paquet Machine (incluant les cartes Sabotage intégrées définitivement) indexé par `(MACHINE_DECK_SHUFFLE, tour)`.
+  - Jets de dés universels indexés par `(DICE, tour, peuple_id)` (tous les joueurs lancent leurs dés sous paravent fermé, y compris sur Sabotage ou Écaille dont le jet est ignoré).
+  - Tirage au sac opaque (2N jetons Machine + Sabotages + jusqu'à 4 Écailles) à mélange stable indexé par `(MACHINE_DECK_SHUFFLE, tour)`.
 
 ## 3. Machine à états suspendable BGA-ready (`engine/core_engine.py`)
 - Interface `step_until_decision() -> DecisionRequest | GameOver` et `apply_choice(choice)`.
-- Le **Coordonnateur du tour** tourne en sens horaire pour trancher les ordres globaux non attribués :
-  - Ordre des constructions en **3.1**.
-  - Ordre d'activation des machines en Siège en **5**, sous contrainte stricte : **Abatteuse avant Bulldozer sur un même rayon**.
+- Le **Coordonnateur du tour** tourne en sens horaire : il sert de point de départ en cas de pénurie au sac (avec l'Oiseau toujours servi en dernier) et tranche les ordres globaux non attribués.
+- Sur un même rayon au même rang (ou en Ratissage), **l'Abatteuse agit toujours avant le Bulldozer**.
 
-## 4. Invariants métier v5.3
-- **Dés épurés (sans double aux dés)** : seul un joueur ayant pioché une carte Machine lance 2D6 et retient `M = min(D1, D2)` (ou `max` sous Loi). Un joueur tirant une carte Sabotage ou sans carte en pénurie ne lance pas de dés.
-- **Sabotage par dilution permanente** : toutes les cartes Sabotage sont identiques et sans effet propre (réserve illimitée). Acquérir un Sabotage (`4.1`, `4.2`, tuiles) ajoute définitivement `+1` carte Sabotage au paquet Machine (remélangée en **6.3**, allume `3. Sabotage`). Tirer une carte Sabotage en Étape 1 fait perdre l'activation du Contremaître pour le tour.
-- **Siège `T4` & Apprentissage (`A10`)** : une machine en Siège `T4` attaque de manière autonome en **5** même si `T4` est éjectée ; en **6.1**, elle génère normalement de l'Apprentissage sur `T4` si et seulement si `T4` figure encore sur la piste.
-- **Seuil Imprimé fixe** : `P4_2233` `[2, 2, 3, 3]` ou `P5_22233` `[2, 2, 2, 3, 3]`, indépendant du nombre d'Arbres ou de Souches.
-- **Furtivité à 4 emplacements jumeaux** : entrer sur un emplacement tire l'autre pion sur le jumeau de la rive choisie ; retourner `réflexion -> définitif` s'effectue sur place.
-- **Chaîne des 4 parades** (zéro dette, zéro verrouillage) :
-  1. `Jaguar` (2 bleus)
-  2. `Harpie`
-  3. `Piège Embuscade` (si `Déf >= 1`)
-  4. `Parade classique` (défausse immédiate des Insectes)
-- **Routes** : sautées le long d'un rayon, infranchissables latéralement.
-- **Nids** : un Nid est indivisible en **4.2** avant balayage.
-- **Cascades Gardiens** : balayage à plat `1 -> 6` avec marquage utilisé immédiat.
-- **Conditions de fin en 5.3** : Tour 8 atteint, Rêve au rang 1, ou Réveil des Gardiens fixe `min(N, G0, 5)` si `G0 >= 3` (+ exception `R9 B` en **6.2**).
-
-## 5. Définition exacte des Modes 1 & 2
-- **Mode 1 (Cœur symétrique)** : 0 tuile `G/R/M`, 0 piste `Bug/Colonie`, Sabotage par dilution permanente du paquet Machine actif (via `4.1`), fin au Tour 8.
-- **Mode 2 (Asymétrie à vide)** : tuiles `G/R/M` présentes sans texte ni pouvoir propre, mais fonctions structurelles actives (Nids `+1/+2`, Rêves insérés/avancés/annulant une machine sur dé `M`, Gardiens marqués utilisés, fins anticipées `5.3` actives) et Migrations fixées à `A/A`.
+## 4. Invariants métier cibles `v6.2` (`contracts/rules_canon_v6_2.json` & `INV-01..INV-22`)
+- **Châssis canonique unique** : piste `P4_2233` (`[2, 2, 3, 3]`, dotation finie exacte de `10 × N` pions uniques recto-verso `Arbre debout` / `Souche`), départ décalé `Bulldozer p=1` / `Abatteuse p=2`.
+- **Sac opaque & Dés universels** : `2N` jetons Machine épais + Sabotages + jusqu'à `4` Écailles ; non piochés cachés ; pénurie horaire depuis le Coordonnateur (Oiseau dernier) ; tous les joueurs lancent 2 dés (+ Dé d'Envol `1–6` chez `O`) sous paravent fermé.
+- **2 Défenseurs recto-verso (`Réflexion` / `Définitif`)** : 1er pion posé face `Définitif` (jamais sur les Gardiens ; repli sur parcelle alliée si aucun emplacement légal), 2e pion posé face `Réflexion` puis validé face `Définitif` (figeant Duel/Plume ; clôture à `N−1` validés → au plus 1 ultime ajustement) ; chez `H`, 2 Chamanes uniques (`1 Tambour`, `1 Chant`).
+- **Réglette fixe `1–6` + bandelette d'Acte réversible** : bandelette retournée seule au début du Tour 5 (Acte 1 `1–3 Charge / 4–6 Assaut`, Acte 2 inversé) sans déplacer ni Rêves ni Insectes.
+- **Piste des Gardiens à 6 icônes (`[PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE, RESONANCE]`)** : Résonance en 6e position avec compteur individuel sans écrasement de bit et reprise gauche → droite ; 2 encoches visibles par Gardien (`≥ 1` pion dessus = pari perdu ; `0` dessus et `≥ 1` encoche = pari gagné → Face 2 ; `0` dessus et `0` encoche = aucune mise → reste en place sans évoluer).
+- **Seuil de Parade unifié** : en Mode Charge, seuls les jetons rouges sont ignorés ; les **jetons bleus Surchauffe (`−1`) s'appliquent dans TOUS les modes** (Charge, Assaut, Ratissage), `−1` aux rangs `3` et `6`, `minimum 1`. Gain Charge = `+1` rouge max/activation (`FRAPPE_NON_PAREE`).
+- **Ratissage physique** : au ménage, toute machine terminant sur la dernière parcelle glisse son jeton Machine sous elle (hors sac), conserve ses jetons Puissance et gagne `+1` jeton rouge physique (convertible en bleu ; zéro bonus imprimé). Immobile absolu, mais sa parcelle compte comme « parcelle ciblée » tant qu'elle n'a pas frappé.
+- **Cibles figées & Repli de bordure** : parcelles ciblées figées au début de l'activation (toute cible devenue Route est annulée sans report). Une poussée de Route en bordure vers le cœur couvre et remplace l'avancée finale de `En avançant` (zéro double bond `+2`).
+- **Ouverture & Rêves** : jetons Machine visibles jusqu'à Furtivité (inclinés 90° si annulés) ; ordre Sabotage/Écaille un par un (+ balayage) → déviation `±1` une par une (+ balayage) → Rêves défendus de gauche à droite (le propriétaire choisit les machines annulées y compris déviées, résout le pouvoir propre dès que défendu hors *« Quand ce Rêve annule… »*, puis allume `REVE` + balayage si `≥ 1` annulation ; Défenseurs solidaires des déplacements du Rêve).
+- **Contacts & Routes** : zéro écrasement au contact hors Route (Nids, Insectes, Pièges, Duel intacts). Seule la création d'une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel en réserve). Max 1 Piège ordinaire autonome (`SINGLE_STRIKE`) par parcelle ; le `Croc` Reptile cohabite et pare en premier.
+- **Modules `3 + 3` & Enracinement** : Module Gardiens & Éveil (`M/R/O`), Module Rêves & Sommeil (`H/E`), Module Essaim clos sur `I` (incluant Déviation `±1` et Bouclier de lisière facultatif gouverné par `I`, descente sur place de l'Insecte passager au ménage) ; accessoires `3 + 3` (`H/M/O` Tour 1 ; `E` Altération, `R` Écailles/Croc/Cale, `I` Essaim) ; Enracinement volontaire au ménage (`1` Souche F1/unique, `2` F2 au décompte final ; Rêve enraciné interdit le Sommeil).

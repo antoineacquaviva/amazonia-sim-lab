@@ -1,39 +1,72 @@
-"""Tests de rendu headless et garde-fous sémantiques d'Amazonia Doc Studio.
+"""Tests de rendu headless, garde-fous sémantiques SSOT v6.2 et linter Canon 0 d'Amazonia Doc Studio.
 
-Exécuté automatiquement par `pytest` (porte [7/8] de `verify_lot.py`) sans aucune
-dépendance npm :
-1. Vérifie les schémas critiques de `amazonia_data_v5_5.js` (`VERSION_CHANGELOG[*].deltas`,
-   `TOPOLOGIES_PISTE_SPEC[*].{code, p_max, dotation, somme, arbres_par_rayon}`).
-2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `livret_v5_5.js` dans
-   Node `vm` sur un mini-DOM mocké pour plusieurs tables (`0`, `1`, `2` peuples oniriques)
-   et tous les 6 profils de pistes.
-3. Vérifie : zéro exception JS, zéro `NaN` / `undefined` dans le DOM rendu, journal
-   d'évolution non vide, et respect intégral des garde-fous de
-   `contracts/studio_rules_guards.json` (termes bannis hors historique + assertions positives).
+Exécuté automatiquement par `pytest` (porte [9/10] de `verify_lot.py`) sans dépendance npm :
+1. Vérifie les schémas SSOT de `amazonia_data_v6_0.js` (`VERSION_CHANGELOG`, `TOPOLOGIES_PISTE_SPEC`,
+   `CHASSIS_AXES_SPEC` verrouillé avec `Placement_Initial_Machines.defaultVal = 'BULLDOZER_P1_ABATTEUSE_P2'`,
+   30 tuiles du Canon 0 dans `CATALOGUE_TUILES`).
+2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `livret_v6_0.js` dans
+   Node `vm` sur un mini-DOM mocké :
+   - vérifie `0 écart` initial sur le châssis et la neutralisation des axes morts `v6.0` ;
+   - teste l'appel à `resetChassisToDefault()` ;
+   - vérifie le rendu sans erreur JS des 30 tuiles du Canon 0 ;
+   - active automatiquement le contrôleur bloquant `data-inv="INV-01"` .. `data-inv="INV-22"`
+     dès que `livret` déclare `LIVRET_SCHEMA_VERSION = "6.2.0"` (Chantier 2).
+3. Vérifie le linter automatique `verify_tiles_canon` et le scanner global anti-vestiges.
 """
 
 from __future__ import annotations
 
+import copy
 import json
+import re
 import subprocess
 from pathlib import Path
+from typing import Any
+
+from verify_lot import (
+    lint_tiles_canon_dict,
+    verify_global_anti_vestiges,
+    verify_tiles_canon,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 GUARDS_PATH = ROOT / "contracts" / "studio_rules_guards.json"
+INVARIANTS_PATH = ROOT / "contracts" / "physical_and_edge_invariants.json"
+TILES_CANON_PATH = ROOT / "contracts" / "tiles_canon_v6_2.json"
 STUDIO_INDEX = ROOT / "docs" / "index.html"
 STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v6_0.js"
 STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v6_0.js"
+
+
+def check_rulebook_html_invariants(
+    rulebook_html: str,
+    invariants_doc: dict[str, Any],
+) -> list[str]:
+    """Vérifie la présence de chaque `data-inv="INV-XX"` et de ses `assertions_livret` dans le HTML."""
+    errors: list[str] = []
+    for inv in invariants_doc.get("invariants", []):
+        inv_id = str(inv["id"])
+        attr_pat = re.compile(rf'data-inv=["\'][^"\']*\b{re.escape(inv_id)}\b[^"\']*["\']')
+        if not attr_pat.search(rulebook_html):
+            errors.append(f"Attribut HTML manquant dans #rulebook-article : data-inv=\"{inv_id}\"")
+        for assertion in inv.get("assertions_livret", []):
+            if str(assertion).lower() not in rulebook_html.lower():
+                errors.append(
+                    f"Assertion livret manquante pour {inv_id} : {assertion!r}"
+                )
+    return errors
 
 
 _NODE_HARNESS = r"""
 const fs = require('fs');
 const vm = require('vm');
 
-const [indexPath, dataPath, livretPath, guardsPath] = process.argv.slice(1);
+const [indexPath, dataPath, livretPath, guardsPath, invariantsPath] = process.argv.slice(1);
 const html = fs.readFileSync(indexPath, 'utf8');
 const dataJs = fs.readFileSync(dataPath, 'utf8');
 const livretJs = fs.readFileSync(livretPath, 'utf8');
 const guards = JSON.parse(fs.readFileSync(guardsPath, 'utf8'));
+const invariantsDoc = JSON.parse(fs.readFileSync(invariantsPath, 'utf8'));
 
 // Extract inline <script> blocks from docs/index.html (skipping external <script src=...>)
 const inlineScripts = [];
@@ -52,8 +85,9 @@ function makeElement(id) {
     _innerHTML: '',
     _textContent: '',
     value: id === 'changelog-filter-select' ? 'ALL'
-         : id === 'diff-version-select' ? 'v5.5'
-         : id === 'filter-famille' || id === 'filter-peuple' || id === 'filter-tag' || id === 'filter-scope' ? 'ALL'
+         : id === 'diff-version-select' ? 'v6.1'
+         : id === 'filter-family' || id === 'filter-peuple' || id === 'filter-scope' ? 'ALL'
+         : id === 'filter-profile-letter' ? 'ALL_COMPARE'
          : '',
     className: '',
     options: [],
@@ -67,7 +101,6 @@ function makeElement(id) {
     get innerHTML() { return this._innerHTML; },
     set innerHTML(v) {
       this._innerHTML = String(v);
-      // Extract <option value="..."> for <select> elements
       const opts = [];
       for (const om of this._innerHTML.matchAll(/<option[^>]*value="([^"]*)"/g)) {
         opts.push({ value: om[1] });
@@ -137,12 +170,15 @@ for (let i = 0; i < inlineScripts.length; i++) {
   vm.runInContext(inlineScripts[i], sandbox, { filename: `docs/index.html#script${i}` });
 }
 
-// 1. Validate VERSION_CHANGELOG schema & TOPOLOGIES_PISTE_SPEC schema
+// 1. Validate VERSION_CHANGELOG, TOPOLOGIES_PISTE_SPEC, CHASSIS_AXES_SPEC & 30 Canon 0 tiles
 const schemaReport = vm.runInContext(`(() => {
   const errs = [];
   if (!Array.isArray(VERSION_CHANGELOG) || VERSION_CHANGELOG.length === 0) {
     errs.push('VERSION_CHANGELOG vide ou absent');
   } else {
+    if (VERSION_CHANGELOG[0].version !== 'v6.2') {
+      errs.push('VERSION_CHANGELOG[0].version attendu v6.2, trouvé ' + VERSION_CHANGELOG[0].version);
+    }
     for (const b of VERSION_CHANGELOG) {
       if (!b.version || !b.titre || !b.resume) errs.push('Bloc changelog incomplet: ' + b.version);
       if (!Array.isArray(b.deltas) || b.deltas.length === 0) {
@@ -155,7 +191,7 @@ const schemaReport = vm.runInContext(`(() => {
     }
   }
   const topoKeys = Object.keys(TOPOLOGIES_PISTE_SPEC || {});
-  if (topoKeys.length !== 6) errs.push('Attendu 6 topologies dans TOPOLOGIES_PISTE_SPEC, trouvé ' + topoKeys.length);
+  if (!topoKeys.includes('P4_2233')) errs.push('Topologie canonique P4_2233 absente');
   for (const k of topoKeys) {
     const t = TOPOLOGIES_PISTE_SPEC[k];
     const sumDot = (t.dotation || []).reduce((a, b) => a + b, 0);
@@ -163,21 +199,101 @@ const schemaReport = vm.runInContext(`(() => {
     if (t.somme !== sumDot) errs.push('TOPOLOGIES_PISTE_SPEC[' + k + '].somme != sum(dotation)');
     if (t.arbres_par_rayon !== sumDot) errs.push('TOPOLOGIES_PISTE_SPEC[' + k + '].arbres_par_rayon != sum(dotation)');
   }
-  return { errs, topoKeys, catalogueTuilesJson: JSON.stringify(CATALOGUE_TUILES) };
+  const placementAx = CHASSIS_AXES_SPEC.find(a => a.key === 'Placement_Initial_Machines');
+  if (!placementAx || placementAx.defaultVal !== 'BULLDOZER_P1_ABATTEUSE_P2') {
+    errs.push('Bug C3-06 : Placement_Initial_Machines.defaultVal doit valoir BULLDOZER_P1_ABATTEUSE_P2');
+  }
+  const tileKeys = Object.keys(CATALOGUE_TUILES || {});
+  if (tileKeys.length !== 30) {
+    errs.push('Attendu exactement 30 tuiles Canon 0 dans CATALOGUE_TUILES, trouvé ' + tileKeys.length);
+  }
+  return {
+    errs,
+    topoKeys,
+    tileKeys,
+    catalogueTuilesJson: JSON.stringify(CATALOGUE_TUILES),
+    livretSchemaVersion: typeof LIVRET_SCHEMA_VERSION !== 'undefined' ? LIVRET_SCHEMA_VERSION : null,
+  };
 })()`, sandbox);
 
 if (schemaReport.errs.length > 0) {
   throw new Error('Erreurs schéma Studio:\n' + schemaReport.errs.join('\n'));
 }
 
-// 2. Check banned patterns in CATALOGUE_TUILES (excluding VERSION_CHANGELOG history)
+// 2. Check banned patterns in CATALOGUE_TUILES
 for (const pat of guards.banned_in_catalogue_tuiles || []) {
   if (schemaReport.catalogueTuilesJson.includes(pat)) {
     throw new Error(`Motif banni trouvé dans CATALOGUE_TUILES: ${JSON.stringify(pat)}`);
   }
 }
 
-// 3. Render across all 6 track profiles and check 0 exceptions, 0 NaN, 0 undefined
+// 3. Initial render: verify 0 écart on chassis, locked axes neutralization, resetChassisToDefault(), and 30 Canon 0 tiles
+const chassisReport = vm.runInContext(`(() => {
+  refreshAllUI();
+  const initialModified = getModifiedAxesList().length;
+  const initialBadge = document.getElementById('modified-axes-count').textContent;
+  const initialPlacement = state.chassis.Placement_Initial_Machines;
+  const initialConfigIdx = computeConfigurationIndex();
+
+  // Attempt to mutate a locked dead v6.0 axis via UI handler
+  updateChassisAxis('Placement_Initial_Machines', 'MEME_PARCELLE_P1');
+  updateChassisAxis('Offset_Seuil_Parade', '1');
+  const afterLockedAttemptPlacement = state.chassis.Placement_Initial_Machines;
+  const afterLockedAttemptModified = getModifiedAxesList().length;
+
+  // Force corrupt state in memory then call resetChassisToDefault()
+  state.chassis.Placement_Initial_Machines = 'MEME_PARCELLE_P1';
+  state.chassis.Offset_Seuil_Parade = 1;
+  resetChassisToDefault();
+  const afterResetPlacement = state.chassis.Placement_Initial_Machines;
+  const afterResetOffset = state.chassis.Offset_Seuil_Parade;
+  const afterResetModified = getModifiedAxesList().length;
+  const afterResetBadge = document.getElementById('modified-axes-count').textContent;
+
+  return {
+    initialModified,
+    initialBadge,
+    initialPlacement,
+    initialConfigIdx,
+    afterLockedAttemptPlacement,
+    afterLockedAttemptModified,
+    afterResetPlacement,
+    afterResetOffset,
+    afterResetModified,
+    afterResetBadge,
+  };
+})()`, sandbox);
+
+if (chassisReport.initialModified !== 0 || chassisReport.initialBadge !== '0 écart') {
+  throw new Error('Bug C3-06 : attendu 0 écart initial, obtenu ' + JSON.stringify(chassisReport));
+}
+if (chassisReport.initialPlacement !== 'BULLDOZER_P1_ABATTEUSE_P2') {
+  throw new Error('Placement initial incorrect : ' + chassisReport.initialPlacement);
+}
+if (chassisReport.afterLockedAttemptPlacement !== 'BULLDOZER_P1_ABATTEUSE_P2' || chassisReport.afterLockedAttemptModified !== 0) {
+  throw new Error('Axes morts v6.0 non neutralisés : ' + JSON.stringify(chassisReport));
+}
+if (
+  chassisReport.afterResetPlacement !== 'BULLDOZER_P1_ABATTEUSE_P2' ||
+  chassisReport.afterResetOffset !== 0 ||
+  chassisReport.afterResetModified !== 0 ||
+  chassisReport.afterResetBadge !== '0 écart'
+) {
+  throw new Error('resetChassisToDefault() ne rétablit pas 0 écart sur standard v6.2 : ' + JSON.stringify(chassisReport));
+}
+
+// Verify all 30 Canon 0 tiles render cleanly without JS errors or NaN/undefined
+const catalogueHtml = getEl('catalogue-grid').innerHTML;
+const catalogueCountBadge = getEl('catalogue-count-badge').textContent;
+if (!catalogueCountBadge.includes('30 emplacements') || !catalogueCountBadge.includes('30 profils')) {
+  throw new Error('Compteur Explorateur inattendu : ' + catalogueCountBadge);
+}
+for (const tid of schemaReport.tileKeys) {
+  if (!catalogueHtml.includes(`>${tid}<`)) {
+    throw new Error(`Tuile Canon 0 non rendue dans #catalogue-grid : ${tid}`);
+  }
+}
+
 const watchedIds = [
   'header-config-badge',
   'summary-peuples-pill',
@@ -186,31 +302,24 @@ const watchedIds = [
   'rulebook-article',
   'catalogue-grid',
   'changelog-content',
-  'json-output',
+  'json-manifest-output',
 ];
-
-for (const topoCode of schemaReport.topoKeys) {
-  vm.runInContext(`(() => {
-    state.chassis.Profil_Piste = ${JSON.stringify(topoCode)};
-    refreshAllUI();
-  })()`, sandbox);
-  for (const id of watchedIds) {
-    const el = getEl(id);
-    const combined = (el.textContent || '') + '\n' + (el.innerHTML || '');
-    for (const banned of guards.banned_in_rendered_dom || []) {
-      const re = new RegExp(`\\b${banned}\\b`);
-      if (re.test(combined)) {
-        throw new Error(`Motif interdit "${banned}" dans #${id} pour Profil_Piste=${topoCode}`);
-      }
+for (const id of watchedIds) {
+  const el = getEl(id);
+  const combined = (el.textContent || '') + '\n' + (el.innerHTML || '');
+  for (const banned of guards.banned_in_rendered_dom || []) {
+    const re = new RegExp(`\\b${banned}\\b`);
+    if (re.test(combined)) {
+      throw new Error(`Motif interdit "${banned}" dans #${id}`);
     }
   }
-  const changelogHtml = getEl('changelog-content').innerHTML;
-  if (!changelogHtml || changelogHtml.length < 200) {
-    throw new Error('changelog-content est vide après refreshAllUI()');
-  }
+}
+const changelogHtml = getEl('changelog-content').innerHTML;
+if (!changelogHtml || changelogHtml.length < 200 || !changelogHtml.includes('v6.2')) {
+  throw new Error('changelog-content vide ou sans entrée v6.2 après refreshAllUI()');
 }
 
-// 4. Check positive rulebook assertions per table composition (0, 1, 2 oniric peoples)
+// 4. Check positive rulebook assertions per table composition
 for (const check of guards.required_livret_assertions || []) {
   vm.runInContext(`(() => {
     state.peuplesCercle = ${JSON.stringify(check.peuples)};
@@ -234,7 +343,30 @@ for (const check of guards.required_livret_assertions || []) {
   }
 }
 
-// 5. Verify 12 Coup d'œil quick-access links in docs/index.html match rendered anchors + dynamic controls
+// 5. Blocking INV-01..INV-22 data-inv guard (auto-activated when LIVRET_SCHEMA_VERSION === '6.2.0')
+let invGuardActivated = false;
+if (schemaReport.livretSchemaVersion === '6.2.0') {
+  invGuardActivated = true;
+  vm.runInContext(`(() => {
+    state.peuplesCercle = ['M', 'R', 'O', 'H', 'E', 'I'];
+    refreshAllUI();
+  })()`, sandbox);
+  const fullLivretHtml = getEl('rulebook-article').innerHTML;
+  const fullLower = fullLivretHtml.toLowerCase();
+  for (const inv of invariantsDoc.invariants || []) {
+    const invRe = new RegExp(`data-inv=["'][^"']*\\b${inv.id}\\b[^"']*["']`);
+    if (!invRe.test(fullLivretHtml)) {
+      throw new Error(`Invariant ${inv.id} manquant dans #rulebook-article (attribut data-inv="${inv.id}" requis en 6.2.0)`);
+    }
+    for (const phrase of inv.assertions_livret || []) {
+      if (!fullLower.includes(String(phrase).toLowerCase())) {
+        throw new Error(`Assertion livret manquante pour ${inv.id} : ${JSON.stringify(phrase)}`);
+      }
+    }
+  }
+}
+
+// 6. Verify quick-access links & dynamic highlight label in docs/index.html
 const expectedBriques = [
   'brique-mise-en-place',
   'brique-preparation',
@@ -249,8 +381,8 @@ const expectedBriques = [
   'brique-peuple-insectes',
   'brique-memento',
 ];
-if (!html.includes('selon vos réglages v6.1') || html.includes('selon vos réglages v6.0')) {
-  throw new Error('Libellé dynamique de docs/index.html non aligné sur v6.1');
+if (!html.includes('selon vos réglages v6.2') || html.includes('selon vos réglages v6.0')) {
+  throw new Error('Libellé dynamique de docs/index.html non aligné sur v6.2');
 }
 if (html.includes('livret_v5_3.js')) {
   throw new Error('Commentaire obsolète livret_v5_3.js encore présent dans docs/index.html');
@@ -265,35 +397,25 @@ for (const bid of expectedBriques) {
   }
 }
 
-// Verify dynamic option variations (Offset +1, grouped placement, N=3, toggleDynamicHighlight)
 vm.runInContext(`(() => {
   toggleDynamicHighlight(false);
   toggleDynamicHighlight(true);
   state.peuplesCercle = ['M', 'H', 'I'];
-  state.chassis.Offset_Seuil_Parade = 1;
-  state.chassis.Placement_Initial_Machines = 'MEME_PARCELLE_P1';
-  state.chassis.Synergie_Binome_Machines = 'MUTUALISATION_PUISSANCE_MEME_PARCELLE';
   refreshAllUI();
 })()`, sandbox);
-const altLivretHtml = getEl('rulebook-article').innerHTML;
-if (!altLivretHtml.includes('Table à 3 joueurs') || !altLivretHtml.includes('+ 1 (décalage de difficulté actif)')) {
-  throw new Error('Interpolations dynamiques (N=3 / Offset +1) absentes du Livret rendu');
-}
-if (!altLivretHtml.includes('Mutualisation') || !altLivretHtml.includes('départ groupé')) {
-  throw new Error('Interpolations dynamiques (Synergie / Placement groupé) absentes du Livret rendu');
-}
-for (const banned of guards.banned_in_rendered_dom || []) {
-  const re = new RegExp(`\\b${banned}\\b`);
-  if (re.test(altLivretHtml)) {
-    throw new Error(`Motif interdit "${banned}" dans le Livret rendu (options alternatives)`);
-  }
+const n3LivretHtml = getEl('rulebook-article').innerHTML;
+if (!n3LivretHtml.includes('Table à 3 joueurs')) {
+  throw new Error('Interpolation dynamique N=3 absente du Livret rendu');
 }
 
 console.log(JSON.stringify({
   ok: true,
   topologies_checked: schemaReport.topoKeys.length,
+  tiles_rendered: schemaReport.tileKeys.length,
   tables_checked: (guards.required_livret_assertions || []).length,
   briques_checked: expectedBriques.length,
+  inv_guard_activated: invGuardActivated,
+  invariants_registered: (invariantsDoc.invariants || []).length,
 }));
 """
 
@@ -307,7 +429,7 @@ def test_studio_banned_terms_in_livret_source() -> None:
 
 
 def test_studio_headless_render_and_semantic_guards() -> None:
-    """Exécute refreshAllUI() en headless Node vm sur les 6 topologies et 3 tables oniriques."""
+    """Exécute refreshAllUI() en headless Node vm : 0 écart, resetChassisToDefault, 30 tuiles Canon 0."""
     proc = subprocess.run(
         [
             "node",
@@ -317,6 +439,7 @@ def test_studio_headless_render_and_semantic_guards() -> None:
             str(STUDIO_DATA),
             str(STUDIO_LIVRET),
             str(GUARDS_PATH),
+            str(INVARIANTS_PATH),
         ],
         cwd=ROOT,
         capture_output=True,
@@ -328,9 +451,71 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     )
     payload = json.loads(proc.stdout.strip().splitlines()[-1])
     assert payload["ok"] is True
-    assert payload["topologies_checked"] == 6
+    assert payload["topologies_checked"] == 1
+    assert payload["tiles_rendered"] == 30
     assert payload["tables_checked"] == 4
     assert payload["briques_checked"] == 12
+    assert payload["invariants_registered"] == 22
+
+
+def test_inv_html_guard_enforces_all_22_invariants_when_livret_is_6_2() -> None:
+    """Prouve que le contrôleur data-inv='INV-XX' prêt pour Chantier 2 bloque tout invariant manquant."""
+    inv_doc = json.loads(INVARIANTS_PATH.read_text(encoding="utf-8"))
+    assert len(inv_doc["invariants"]) == 22
+
+    # 1. HTML synthétique couvrant tous les 22 data-inv et leurs assertions -> 0 erreur
+    blocks: list[str] = []
+    for inv in inv_doc["invariants"]:
+        phrases = " ".join(inv["assertions_livret"])
+        blocks.append(f'<section data-inv="{inv["id"]}">{phrases}</section>')
+    complete_html = "\n".join(blocks)
+    assert check_rulebook_html_invariants(complete_html, inv_doc) == []
+
+    # 2. Suppression de INV-11 -> erreur bloquante immédiate
+    incomplete_html = "\n".join(b for b in blocks if 'data-inv="INV-11"' not in b)
+    errs = check_rulebook_html_invariants(incomplete_html, inv_doc)
+    assert any("INV-11" in e for e in errs)
+
+
+def test_tiles_canon_linter_and_anti_vestiges_guards() -> None:
+    """Vérifie le linter Canon 0 (positif + cas négatifs) et le scanner global anti-vestiges."""
+    verify_tiles_canon()
+    verify_global_anti_vestiges()
+
+    canon = json.loads(TILES_CANON_PATH.read_text(encoding="utf-8"))["tuiles_ciblees"]
+
+    # Cas négatif 1 : > 25 mots sur une face
+    bad_words = copy.deepcopy(canon)
+    bad_words["G1"]["profils"]["A"]["texte"] = (
+        "<strong>Face 1 :</strong> " + " ".join(["mot"] * 26) + "."
+    )
+    errs_words = lint_tiles_canon_dict(bad_words)
+    assert any("26 mots > 25" in e for e in errs_words)
+
+    # Cas négatif 2 : code d'étape numérique 3.2 et terme banni 'carte'
+    bad_step = copy.deepcopy(canon)
+    bad_step["G2"]["profils"]["A"]["texte"] = (
+        "<strong>Face 1 :</strong> En 3.2, défaussez une carte du paquet."
+    )
+    errs_step = lint_tiles_canon_dict(bad_step)
+    assert any("code numérique d'étape" in e for e in errs_step)
+    assert any("terme banni 'carte'" in e for e in errs_step)
+
+    # Cas négatif 3 : Insecte mentionné hors des 10 tuiles des 5 lisières de I
+    bad_insect = copy.deepcopy(canon)
+    bad_insect["G1"]["profils"]["A"]["texte"] = (
+        "<strong>Face 1 :</strong> Ajoutez 1 Insecte sur une parcelle ciblée."
+    )
+    errs_insect = lint_tiles_canon_dict(bad_insect)
+    assert any("hors lisières de I" in e for e in errs_insect)
+
+    # Cas négatif 4 : Gardien mentionné sur une tuile A=0 (R1)
+    bad_a0 = copy.deepcopy(canon)
+    bad_a0["R1"]["profils"]["A"]["texte"] = (
+        "À l’ouverture, activez un Gardien voisin."
+    )
+    errs_a0 = lint_tiles_canon_dict(bad_a0)
+    assert any("tuile A=0" in e for e in errs_a0)
 
 
 _NODE_COPY_DIGEST_HARNESS = r"""
