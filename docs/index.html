@@ -246,6 +246,7 @@
       }
     }
   </style>
+  <link rel="stylesheet" href="explorer_v6_2.css" />
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
 
@@ -514,8 +515,11 @@
         </div>
       </div>
 
-      <!-- Barre de filtres multicritères -->
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+      <!-- Explorateur v6.2 (3 Modes, 197 Assises, Rayons X & Filtres multi-critères) -->
+      <div id="explorer-v6-2-toolbar"></div>
+
+      <!-- Barre de filtres multicritères (repli headless si explorer_v6_2.js non chargé) -->
+      <div id="legacy-catalogue-filters" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 class="text-lg font-bold text-slate-900">Explorateur du Catalogue Canon 0 (30 Emplacements · 30 Profils A)</h2>
@@ -707,6 +711,7 @@
   <!-- ===================================================================== -->
   <script src="data/amazonia_data_v6_0.js"></script>
   <script src="data/livret_v6_0.js"></script>
+  <script src="explorer_v6_2.js"></script>
   <script>
     // 5. ÉTAT RÉACTIF DE L'INSTANCE EN COURS
     // -------------------------------------------------------------------------
@@ -1853,6 +1858,10 @@
     // 11. RENDU DE L'EXPLORATEUR DES 116 PROFILS (ONGLET 2)
     // -------------------------------------------------------------------------
     function renderCatalogue() {
+      if (typeof window.AmazoniaExplorerV62 !== 'undefined' && typeof window.AmazoniaExplorerV62.render === 'function') {
+        window.AmazoniaExplorerV62.render();
+        return;
+      }
       const search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
       const fam = document.getElementById('filter-family').value;
       const peuple = document.getElementById('filter-peuple').value;
@@ -2154,6 +2163,9 @@
     // 13b. EXPORT CONTEXTUEL CIBLÉ POUR GEMINI
     // -------------------------------------------------------------------------
     function getFilteredCatalogueSelection() {
+      if (typeof window.AmazoniaExplorerV62 !== 'undefined' && typeof window.AmazoniaExplorerV62.getFilteredSelection === 'function') {
+        return window.AmazoniaExplorerV62.getFilteredSelection();
+      }
       const search = (document.getElementById('filter-search').value || '').toLowerCase().trim();
       const fam = document.getElementById('filter-family').value;
       const peuple = document.getElementById('filter-peuple').value;
