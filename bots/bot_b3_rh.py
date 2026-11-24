@@ -13,6 +13,7 @@ from typing import Any
 from bots.b2_rollouts import determinize_state_from_obs
 from bots.belief_and_ticks import (
     BeliefSummary,
+    _apply_step2_tick_accessories,
     build_belief_summary,
     compute_private_urgency,
     order_seats_by_tick_and_urgency,
@@ -20,6 +21,7 @@ from bots.belief_and_ticks import (
 )
 from bots.heuristic_engine import BotB2, choose_b2, score_target_b2
 from engine.core_engine import (
+    DEC_HUMAIN_CHAMAN_2_1,
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
     advance_step2_to_2_2,
@@ -152,6 +154,7 @@ def _rollout_horizon_b2(
         if sim_state.tour >= stop_tour and sim_state.step == STEP_2_1_DEF1:
             return evaluate_horizon_state(sim_state)
         if sim_state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_HUMAIN_CHAMAN_2_1,
             DEC_POSE_DEFENSEUR_1,
             DEC_POSE_DEFENSEUR_2,
         ):
@@ -499,6 +502,7 @@ def _resolve_step2_b3(
                         obs_s, cfg, bel_s, legal_1, is_first=True, salt_base=210 + current_tick
                     )
                     apply_step2_def1(state, s, t_best, check_legal=False, telemetry=telemetry)
+                    _apply_step2_tick_accessories(state, s, t_best, obs_s, bel_s)
                 rem_1.remove(s)
         advance_step2_to_2_2(state, telemetry=telemetry)
 
@@ -540,6 +544,7 @@ def _resolve_step2_b3(
                 apply_step2_def2(
                     state, s, ("POSER_REFLEXION", t_2), check_legal=False, telemetry=telemetry
                 )
+                _apply_step2_tick_accessories(state, s, t_2, obs_s, bel_s)
             rem_2.remove(s)
 
     # 3. Passes rapides heuristiques B2 (convergence coopérative sur signaux de table)
@@ -591,6 +596,7 @@ def _resolve_step2_b3(
                     check_legal=False,
                     telemetry=telemetry,
                 ):
+                    _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
                     moved_cnt += 1
             else:
                 apply_step2_def2(
@@ -671,6 +677,7 @@ def _resolve_step2_b3(
                     check_legal=False,
                     telemetry=telemetry,
                 )
+                _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
 
     # 5. Repli propre des pions restés orphelins (1/2 Furtivité/Lisière ou pari Gardien Mode 2 incomplet)
     for s in range(n):
@@ -715,6 +722,7 @@ def _resolve_step2_b3(
             apply_step2_def2(
                 state, s, ("DEPLACER_REFLEXION", fb_t), check_legal=False, telemetry=telemetry
             )
+            _apply_step2_tick_accessories(state, s, fb_t, obs_s, bel_s)
 
     finish_step2_to_3_1(state, telemetry=telemetry)
 
@@ -751,6 +759,7 @@ def play_game_b3(
             return out
 
         if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_HUMAIN_CHAMAN_2_1,
             DEC_POSE_DEFENSEUR_1,
             DEC_POSE_DEFENSEUR_2,
         ):

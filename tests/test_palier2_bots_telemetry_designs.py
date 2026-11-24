@@ -41,6 +41,7 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
+    STEP_2_1_DEF1,
     STEP_3_2_REVEAL,
     STEP_4_3_MIGRATION,
     STEP_5_1_TACTIQUES,
@@ -89,7 +90,12 @@ def test_b1_and_b2_strict_isolation_under_closed_paravents() -> None:
 def test_ticks_sabotage_altruist_tick1_zero_seat0_bias_and_early_stop() -> None:
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=4242, rep_id=3)
     state = GameState(cfg)
-    _ = step_until_decision(state)
+    while state.step < STEP_2_1_DEF1:
+        r_s1 = step_until_decision(state)
+        assert isinstance(r_s1, DecisionRequest)
+        if state.step >= STEP_2_1_DEF1:
+            break
+        apply_choice(state, r_s1.options[0])
 
     # Forcer le siège 2 à détenir CARD_SABOTAGE et le siège 0 à détenir une carte annulée sur Rêve
     state.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
@@ -185,7 +191,7 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     cfg = GameConfig(
         n_players=4,
         mode=2,
-        peuples=("M", "R", "O", "H"),
+        peuples=("M", "R", "O", "I"),
         exp_seed=5150,
     )
     state = GameState(cfg)
@@ -207,20 +213,20 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     apply_choice(state, ("RESTER",), telemetry=trk)
     assert trk.total_physical_ops - ops_before_stay == 0
 
-    # 2) Cascades & mid_combat_interrupts en Mode 2 (Pari Gardiens + Résonance)
+    # 2) Cascades & mid_combat_interrupts en Mode 2 (Pari Gardiens + Résonance en case 6 v6.2)
     state.set_gardien_at_case(1, 9, face=1)
-    state.set_gardien_at_case(4, 10, face=1)
+    state.set_gardien_at_case(6, 10, face=1)
     state.place_defender_gardien_pari(0, 1, 2)
-    state.place_defender_gardien_pari(1, 4, 2)
+    state.place_defender_gardien_pari(1, 6, 2)
     state.step = STEP_5_1_TACTIQUES
     state.set_machine_pos_status(1, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
-    state.set_parcel_defenseurs(1, 1, 3)  # Pare la frappe sur R -> allume case 1 -> cascade 1 -> 4 !
+    state.set_parcel_defenseurs(1, 1, 3)  # Pare la frappe sur R -> allume case 1 -> cascade 1 -> 6 !
     resolve_single_machine_attack(state, 1, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)
 
     snap_mid = trk.summary()
     assert snap_mid.cascade_sweeps >= 1
-    assert snap_mid.mid_combat_interrupts == 2  # Gardien case 1 + Gardien case 4 durant 5.1 !
+    assert snap_mid.mid_combat_interrupts == 2  # Gardien case 1 + Gardien case 6 durant 5.1 !
 
     # 3) mem_debt_score : 1 modificateur transitoire traversant 3.2 -> 4.1 -> ... -> 6.2
     st_mem = GameState(cfg)

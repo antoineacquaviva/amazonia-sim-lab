@@ -1,4 +1,4 @@
-"""Bus des 7 Primitives Formelles actives v6.1, structures de décision/fin et registre de hooks Mode 4."""
+"""Bus des 7 Primitives Formelles actives v6.2, structures de décision/fin et registre de hooks Mode 4."""
 
 from __future__ import annotations
 
@@ -7,16 +7,25 @@ from dataclasses import dataclass
 from typing import Any, ClassVar, NamedTuple
 
 from engine.state import (
+    CALE_ECAILLE,
+    CALE_NONE,
+    CALE_SABOTAGE,
     FACE_DEFINITIF,
     FAMILLE_CROISSANCE,
     FAMILLE_GARDIEN,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
+    MACHINE_STATUS_NORMAL,
     MACHINE_STATUS_RETIRED,
+    MAX_ECAILLES,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
     SYNERGY_META,
     TRACK_LEN,
+    TRIG_INSECTE,
+    TRIG_PIEGEAGE,
+    TRIG_RESONANCE,
+    TRIG_SABOTAGE,
     GameState,
     is_reve_code,
 )
@@ -52,6 +61,7 @@ __all__ = (
     "HOOK_5_SEUIL_PARADE",
     "HOOK_5_TERRASSEMENT",
     "HOOK_EFFECT_RESUME",
+    "HOOK_ENRACINEMENT",
     "HOOK_GARDIEN_OUVERTURE",
     "HOOK_REPOUSSE_FINALE",
     "PRIM_CREATION_ENTITE",
@@ -78,6 +88,7 @@ __all__ = (
     "prim_mod_seuil",
     "prim_partage_info_etat_gardien",
     "prim_permutation_piste",
+    "push_continuation_sequence",
     "push_effect_decision",
     "register_tile",
 )
@@ -90,7 +101,7 @@ CAUSE_REVEIL_GARDIENS: str = "REVEIL_GARDIENS"
 # Type canonique de décision émise par un effet de tuile
 DEC_EFFET_TUILE: str = "EFFET_TUILE"
 
-# Les 7 Primitives Formelles actives v6.1 / Mode 4
+# Les 7 Primitives Formelles actives v6.2 / Mode 4
 PRIM_MOD_SEUIL: str = "MOD_SEUIL"
 PRIM_CREATION_ENTITE: str = "CREATION_ENTITE"
 PRIM_DEPLACEMENT: str = "DEPLACEMENT"
@@ -109,7 +120,7 @@ ALL_PRIMITIVES: tuple[str, ...] = (
     PRIM_MOD_LOI_DU_COEUR,
 )
 
-# Fenêtres / Hooks du bus d'exécution (Panier 2 : prises d'accroche Mode 4 préservées)
+# Fenêtres / Hooks du bus d'exécution (Panier 2 : prises d'accroche Mode 4 préservées + v6.2)
 HOOK_1_3_LECTURE_DE: str = "HOOK_1_3_LECTURE_DE"
 HOOK_2_1_DEBUT: str = "HOOK_2_1_DEBUT"
 HOOK_2_1_PORTEE_DEF1: str = "HOOK_2_1_PORTEE_DEF1"
@@ -135,6 +146,7 @@ HOOK_5_TERRASSEMENT: str = "HOOK_5_TERRASSEMENT"
 HOOK_5_CONTACT_NID: str = "HOOK_5_CONTACT_NID"
 HOOK_5_FIN_ATTAQUE_MACHINE: str = "HOOK_5_FIN_ATTAQUE_MACHINE"
 HOOK_5_3_PRE_RETRAIT: str = "HOOK_5_3_PRE_RETRAIT"
+HOOK_ENRACINEMENT: str = "HOOK_ENRACINEMENT"
 HOOK_REPOUSSE_FINALE: str = "HOOK_REPOUSSE_FINALE"
 HOOK_EFFECT_RESUME: str = "HOOK_EFFECT_RESUME"
 
@@ -244,6 +256,14 @@ def has_pending_decision(state: GameState) -> bool:
     return bool(state._continuation and state._continuation[0][0] == "WAIT_DECISION")
 
 
+def push_continuation_sequence(
+    state: GameState, frames: Sequence[tuple[Any, ...]]
+) -> None:
+    """Empile une séquence de frames en tête de continuation dans leur ordre chronologique naturel (C3-02)."""
+    if frames:
+        state._continuation[0:0] = list(frames)
+
+
 def push_effect_decision(
     state: GameState,
     decideur: int,
@@ -269,21 +289,29 @@ def push_effect_decision(
         options=opts_tuple,
         context=ctx_copy,
     )
-    state._continuation.insert(
-        0,
-        ("APPLY_EFFECT_CHOICE", slot_id, profile, resume_tag, tuple(resume_payload)),
+    push_continuation_sequence(
+        state,
+        (
+            ("WAIT_DECISION", req),
+            ("APPLY_EFFECT_CHOICE", slot_id, profile, resume_tag, tuple(resume_payload)),
+        ),
     )
-    state._continuation.insert(0, ("WAIT_DECISION", req))
     return req
 
 
-def _is_slot_in_play_for_hook(state: GameState, slot_id: str) -> bool:
+def _is_slot_in_play_for_hook(
+    state: GameState, slot_id: str, hook_name: str = ""
+) -> bool:
     """Vérifie qu'un emplacement est effectivement en jeu avant d'exécuter son hook."""
     if slot_id in ("SLOT_BUG_CERVEAU", "SLOT_COLONISATION_GARDIENS"):
-        return state.cfg.mode >= 2
+        return state.cfg.mode >= 2 and state.cfg.has_insectes_peuple
     meta = SYNERGY_META.get(slot_id)
     if meta is None:
         return False
+    if hook_name in (HOOK_ENRACINEMENT, HOOK_REPOUSSE_FINALE):
+        l_slot = state.find_lisiere_slot_by_tile_id(slot_id)
+        if l_slot is not None and state.is_slot_rooted(l_slot):
+            return True
     fam, _, num = meta
     if fam == FAMILLE_GARDIEN:
         for c in range(1, TRACK_LEN + 1):
@@ -309,7 +337,7 @@ def _matching_registrations(
             continue
         if state.cfg.profile_for_slot(reg.slot_id) != reg.profile:
             continue
-        if not _is_slot_in_play_for_hook(state, reg.slot_id):
+        if not _is_slot_in_play_for_hook(state, reg.slot_id, hook_name):
             continue
         out.append(reg)
     return out
@@ -392,22 +420,35 @@ def prim_creation_entite(
     ray: int = 0,
     p: int = 1,
     lisiere: int | None = None,
+    m_type: int = 0,
+    cale_type: int = CALE_SABOTAGE,
     count: int = 1,
     light_trigger: bool = True,
 ) -> None:
-    """Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Sabotage ou Arbre (Repousse)."""
+    """Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Croc, Sabotage, Écaille, Altération, Cale ou Arbre."""
     assert count >= 1
     if entity_type == "INSECTE":
-        if lisiere is not None:
-            state.set_furtivite_insectes(lisiere, p, state.get_furtivite_insectes(lisiere, p) + count)
-        else:
-            state.set_parcel_insectes(ray, p, state.get_parcel_insectes(ray, p) + count)
+        if not state.cfg.has_insectes_peuple:
+            return
+        assert lisiere is None, "Insectes en Furtivité strictement interdits en v6.2"
+        state.set_parcel_insectes(ray, p, state.get_parcel_insectes(ray, p) + count)
         _record_phys_ops(state, count)
         if light_trigger:
-            state.light_trigger(6)
+            state.light_trigger(TRIG_INSECTE)
             trk = _get_active_telemetry()
             if trk is not None:
-                trk.on_trigger_lit(6)
+                trk.on_trigger_lit(TRIG_INSECTE)
+        return
+
+    if entity_type == "PASSENGER_INSECTE":
+        if not state.cfg.has_insectes_peuple:
+            return
+        pos, st, _ = state.get_machine_pos_status(ray, m_type)
+        if st == MACHINE_STATUS_RETIRED or pos == 0:
+            return
+        cur = state.get_machine_passenger_insects(ray, m_type)
+        state.set_machine_passenger_insects(ray, m_type, min(15, cur + count))
+        _record_phys_ops(state, count)
         return
 
     if entity_type == "PIEGE":
@@ -419,9 +460,15 @@ def prim_creation_entite(
         if trk is not None:
             trk.ok_pieges_placed += 1
             if light_trigger:
-                trk.on_trigger_lit(2)
+                trk.on_trigger_lit(TRIG_PIEGEAGE)
         if light_trigger:
-            state.light_trigger(2)
+            state.light_trigger(TRIG_PIEGEAGE)
+        return
+
+    if entity_type == "CROC":
+        assert not state.is_route_forestiere(ray, p), "Impossible de poser le Croc sur une Route Forestière"
+        state.set_croc_parcel(ray, p)
+        _record_phys_ops(state, 1)
         return
 
     if entity_type == "SABOTAGE":
@@ -430,8 +477,43 @@ def prim_creation_entite(
         if trk is not None:
             trk.ok_sabotage_acquired += count
             if light_trigger:
-                trk.on_trigger_lit(3)
+                trk.on_trigger_lit(TRIG_SABOTAGE)
         _record_phys_ops(state, count)
+        return
+
+    if entity_type == "ECAILLE":
+        added = state.add_ecaille_to_bag(count=count)
+        if added > 0:
+            trk = _get_active_telemetry()
+            if trk is not None:
+                trk.ok_sabotage_acquired += added
+                if light_trigger:
+                    trk.on_trigger_lit(TRIG_SABOTAGE)
+            if light_trigger:
+                state.light_trigger(TRIG_SABOTAGE)
+            _record_phys_ops(state, added)
+        return
+
+    if entity_type == "ALTERATION":
+        pos, st, _ = state.get_machine_pos_status(ray, m_type)
+        if st != MACHINE_STATUS_NORMAL or pos == 0:
+            return
+        if state.has_machine_alteration(ray, m_type):
+            return
+        state.set_machine_alteration(ray, m_type, True)
+        _record_phys_ops(state, 1)
+        return
+
+    if entity_type == "CALE":
+        pos, st, _ = state.get_machine_pos_status(ray, m_type)
+        if st != MACHINE_STATUS_NORMAL or pos == 0:
+            return
+        if state.get_machine_cale(ray, m_type) != CALE_NONE:
+            return
+        if cale_type == CALE_ECAILLE and state.count_total_ecailles_in_play() >= MAX_ECAILLES:
+            return
+        state.set_machine_cale(ray, m_type, cale_type)
+        _record_phys_ops(state, 1)
         return
 
     if entity_type == "ARBRE":
@@ -449,31 +531,13 @@ def prim_creation_entite(
 
 
 def apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool:
-    """Règle A16 : tout mouvement entrant d'une machine sur un Nid non protégé le renvoie
-    en lisière (reconstructible) et défausse tous les Insectes locaux.
+    """Règle v6.2 (INV-16) : zéro écrasement au contact hors Route Forestière.
+
+    Nids, Insectes, Pièges, Croc et Duel cohabitent pacifiquement avec toute machine en forêt.
+    Seule la création d'une Route Forestière (0 Arbre, 0 Souche) vide la case.
     """
-    m_num, _ = state.get_parcel_nid(ray, p)
-    if m_num == 0:
-        return False
-
-    ctx: dict[str, Any] = {"ray": ray, "p": p, "m_num": m_num, "protected": False}
-    dispatch_hook(state, HOOK_5_CONTACT_NID, ctx)
-    if ctx.get("protected"):
-        return False
-
-    state.clear_nid(m_num)
-    tile_id = f"M{m_num}"
-    l_slot = state.find_lisiere_slot_by_tile_id(tile_id)
-    if l_slot is not None:
-        state.set_lisiere_tile_state(l_slot, LISIERE_UNCONSTRUCTED, 0)
-    ins_before = state.get_parcel_insectes(ray, p)
-    state.set_parcel_insectes(ray, p, 0)
-    trk = _get_active_telemetry()
-    if trk is not None:
-        trk.ok_contact_nid_renvois += 1
-        trk.ok_contact_nid_insectes_perdus += ins_before
-    _record_phys_ops(state, 1 + ins_before)
-    return True
+    _ = (state, ray, p)
+    return False
 
 
 def _tracked_defenders_at(
@@ -483,15 +547,22 @@ def _tracked_defenders_at(
     src_p: int,
     src_lisiere: int | None,
     src_lisiere_slot: int | None,
+    from_waiting: bool = False,
+    src_seat: int | None = None,
 ) -> list[tuple[int, int]]:
     matched: list[tuple[int, int]] = []
     for s in range(state.cfg.n_players):
+        if src_seat is not None and s != src_seat:
+            continue
         for d in (0, 1):
             raw = state.get_player_def_loc_raw(s, d)
             if raw == 0:
                 continue
             kind, a, b, _ = state.decode_def_loc(raw)
-            if src_lisiere_slot is not None:
+            if from_waiting:
+                if kind == "WAITING":
+                    matched.append((s, d))
+            elif src_lisiere_slot is not None:
                 if kind == "LISIERE" and a == src_lisiere_slot:
                     matched.append((s, d))
             elif src_lisiere is not None:
@@ -513,30 +584,34 @@ def prim_deplacement(
     src_lisiere: int | None = None,
     dst_lisiere: int | None = None,
     src_lisiere_slot: int | None = None,
+    from_waiting: bool = False,
+    src_seat: int | None = None,
     m_type: int = 0,
+    dst_machine_type: int | None = None,
     global_track: str | None = None,
     global_case: int = 1,
     count: int = 1,
 ) -> bool:
-    """Primitive 3 : DEPLACEMENT — déplace Insecte, Machine ou Défenseur."""
+    """Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile ou Défenseur."""
     if entity_type == "INSECTE":
-        if src_lisiere is not None:
-            cur = state.get_furtivite_insectes(src_lisiere, src_p)
-            assert cur >= count
-            state.set_furtivite_insectes(src_lisiere, src_p, cur - count)
-        else:
-            cur = state.get_parcel_insectes(src_ray, src_p)
-            assert cur >= count
-            state.set_parcel_insectes(src_ray, src_p, cur - count)
+        if not state.cfg.has_insectes_peuple:
+            return False
+        assert src_lisiere is None and dst_lisiere is None, (
+            "Insectes en Furtivité strictement interdits en v6.2"
+        )
+        cur = state.get_parcel_insectes(src_ray, src_p)
+        assert cur >= count
+        state.set_parcel_insectes(src_ray, src_p, cur - count)
 
-        if global_track == "BUG":
+        if dst_machine_type is not None:
+            pos_m, st_m, _ = state.get_machine_pos_status(dst_ray, dst_machine_type)
+            assert st_m != MACHINE_STATUS_RETIRED and pos_m > 0
+            cur_p = state.get_machine_passenger_insects(dst_ray, dst_machine_type)
+            state.set_machine_passenger_insects(dst_ray, dst_machine_type, min(15, cur_p + count))
+        elif global_track == "BUG":
             state.set_bugs_at_case(global_case, state.get_bugs_at_case(global_case) + count)
         elif global_track == "COLONIE":
             state.set_colonie_at_case(global_case, state.get_colonie_at_case(global_case) + count)
-        elif dst_lisiere is not None:
-            state.set_furtivite_insectes(
-                dst_lisiere, dst_p, state.get_furtivite_insectes(dst_lisiere, dst_p) + count
-            )
         else:
             assert not state.is_route_forestiere(dst_ray, dst_p)
             state.set_parcel_insectes(dst_ray, dst_p, state.get_parcel_insectes(dst_ray, dst_p) + count)
@@ -545,12 +620,12 @@ def prim_deplacement(
 
     if entity_type == "MACHINE":
         pos, st, pending_s = state.get_machine_pos_status(src_ray, m_type)
-        if st == MACHINE_STATUS_RETIRED or pos == 0:
+        # INV-12 : une machine en Ratissage est strictement immobile
+        if st != MACHINE_STATUS_NORMAL or pos == 0:
             return False
         assert not state.is_route_forestiere(dst_ray, dst_p)
         state.set_machine_pos_status(dst_ray, m_type, dst_p, st, pending_s)
         _record_phys_ops(state, 1)
-        apply_machine_nid_contact(state, dst_ray, dst_p)
         return True
 
     if entity_type == "DEFENSEUR":
@@ -562,6 +637,8 @@ def prim_deplacement(
             src_p=src_p,
             src_lisiere=src_lisiere,
             src_lisiere_slot=src_lisiere_slot,
+            from_waiting=from_waiting,
+            src_seat=src_seat,
         )
         moved_tracked = min(count, len(tracked))
         for idx in range(moved_tracked):
@@ -569,7 +646,7 @@ def prim_deplacement(
             state.place_defender_foret(s_id, d_id, dst_ray, dst_p, FACE_DEFINITIF)
         rem_untracked = count - moved_tracked
         if rem_untracked > 0:
-            assert src_lisiere is None and src_lisiere_slot is None, (
+            assert src_lisiere is None and src_lisiere_slot is None and not from_waiting, (
                 "Déplacement non suivi autorisé uniquement depuis une parcelle Forêt"
             )
             cur = state.get_parcel_defenseurs(src_ray, src_p)
@@ -613,21 +690,28 @@ def prim_permutation_piste(
     action: str,
     *,
     rank_a: int = 0,
+    rank_b: int = 0,
     seat: int = 0,
     delta_m: int = 0,
     rebind_tactique: bool = False,
 ) -> bool:
-    """Primitive 5 : PERMUTATION_PISTE — avancée Rêve Mode 4 (ADVANCE_REVE_LEFT) ou décalage dé M."""
+    """Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve (ADVANCE_REVE_LEFT), échange de rangs ou décalage dé M."""
     if action == "ADVANCE_REVE_LEFT":
         assert 0 <= rank_a < TRACK_LEN
         code = state.get_tactique_at_rank(rank_a)
         assert is_reve_code(code), "La tuile ciblée n'est pas un Rêve"
-        dest = state.get_reve_advance_dest_rank(rank_a)
-        if dest is None:
+        # INV-15 : 1 seul physique de poussée de bloc contigu vers la gauche + Défenseurs solidaires
+        new_rank = state.shift_reve_block_left(rank_a)
+        if new_rank is None:
             return False
-        # Hook Mode 4 : le Rêve avance vers la 1re case libre à gauche ; la case libérée retrouve T{rank_a+1}.
-        state.set_tactique_at_rank(dest, code)
-        state.set_tactique_at_rank(rank_a, rank_a + 1)
+        _record_phys_ops(state, 1)
+        return True
+
+    if action == "SWAP_RANKS":
+        assert 0 <= rank_a < TRACK_LEN and 0 <= rank_b < TRACK_LEN
+        if rank_a == rank_b:
+            return False
+        state.swap_tactique_ranks(rank_a, rank_b)
         _record_phys_ops(state, 1)
         return True
 
@@ -669,36 +753,36 @@ def prim_partage_info_etat_gardien(
             return False
         if not state.consume_one_gardien_pari_defender(case_1_6):
             return False
-        # Retrait d'1 Défenseur (mis de côté jusqu'au ménage 6.2/6.3) ;
-        # le passage Face 1 -> Face 2 des Gardiens double-face a lieu en 5.3 si le pari est gagné.
+        # Glisse 1 Défenseur dans son encoche latérale (jusqu'en 6.2) ;
+        # le passage Face 1 -> Face 2 a lieu en 5.3 si le pari est gagné.
         _record_phys_ops(state, 1)
 
-        # Déclenchement de 4. Gardien verrouillé sur DISTINCT_OPEN_1 (anti-boucle strict sur case 4) :
-        # chaque autre Gardien distinct qui s'ouvre pour la 1re fois du tour allume 4. Gardien 1 fois.
-        should_light_4 = False
-        if case_1_6 != 4:
+        # INV-09 : Résonance en 6e position avec compteur individuel sans écrasement (anti-boucle strict sur 6) :
+        # chaque autre Gardien distinct qui s'active pour la 1re fois du tour incrémente TRIG_RESONANCE (6) de +1.
+        should_light_res = False
+        if case_1_6 != TRIG_RESONANCE:
             first_open = not state.has_gardien_opened_this_turn(case_1_6)
             state.mark_gardien_opened_this_turn(case_1_6)
-            should_light_4 = first_open
+            should_light_res = first_open
         else:
-            trk_c4 = _get_active_telemetry()
-            if trk_c4 is not None:
-                trk_c4.ok_cascade_case4_openings += 1
+            trk_res = _get_active_telemetry()
+            if trk_res is not None:
+                trk_res.ok_cascade_case4_openings += 1
 
-        sync_frame = ("LIGHT_TRIGGER_SYNC", 4)
-        if should_light_4:
-            state._continuation.insert(0, sync_frame)
+        sync_frame = ("LIGHT_TRIGGER_SYNC", TRIG_RESONANCE)
+        if should_light_res:
+            push_continuation_sequence(state, (sync_frame,))
         dispatch_hook(
             state,
             HOOK_GARDIEN_OUVERTURE,
             {"slot_id": f"G{g_num}", "case": case_1_6, "face": face},
         )
-        if should_light_4 and state._continuation and state._continuation[0] == sync_frame:
+        if should_light_res and state._continuation and state._continuation[0] == sync_frame:
             state._continuation.pop(0)
-            state.light_trigger(4)
+            state.light_trigger(TRIG_RESONANCE)
             trk = _get_active_telemetry()
             if trk is not None:
-                trk.on_trigger_lit(4)
+                trk.on_trigger_lit(TRIG_RESONANCE)
         return True
 
     if action == "FLIP_GARDIEN_FACE":

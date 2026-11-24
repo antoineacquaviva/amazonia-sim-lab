@@ -278,7 +278,8 @@ def reconstruct_state_from_trace_record(record: HumanDecisionRecord) -> GameStat
         for c_off, col_cnt in enumerate(bs.get("colonie_by_case", [])):
             st.set_colonie_at_case(c_off + 1, int(col_cnt))
         for l_idx, l_pair in enumerate(bs.get("lisieres", [])):
-            st.set_lisiere_tile_state(l_idx, int(l_pair[0]), int(l_pair[1]))
+            # Les bâtisseurs en lisière sont replacés ci-dessous via place_defender_lisiere_tile (évite le double-comptage)
+            st.set_lisiere_tile_state(l_idx, int(l_pair[0]), 0)
 
     # Reconstruire la pioche cohérente puis appliquer les mains et retirer les cartes tenues
     saved_pend = st.sabotage_pending_count

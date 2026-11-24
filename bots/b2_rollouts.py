@@ -29,9 +29,11 @@ from engine.core_engine import (
 from engine.primitives import DecisionRequest, GameOver
 from engine.rng import SRC_DICE, rand_u64, roll_d6
 from engine.state import (
+    CARD_ECAILLE,
     CARD_NONE,
     CARD_SABOTAGE,
     LISIERE_CONSTRUCTED,
+    LISIERE_ROOTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
@@ -41,6 +43,7 @@ from engine.state import (
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     TRACK_LEN,
+    TRIG_RESONANCE,
     GameState,
     PlayerObservation,
     is_reve_code,
@@ -77,11 +80,10 @@ def determinize_state_from_obs(
 
     Garanties :
     - Isolation stricte : deux états `s1`, `s2` produisant la même `PlayerObservation`
-      engendrent des octets `raw_used_bytes()` strictement identiques.
-    - Conservation exacte du multi-ensemble total (Machines normales + Sabotages) :
-      toutes les mains connues (Machines ET Sabotages) sont soustraites, les mains inconnues
-      sont tirées sans remise selon les signaux publics alliés du plateau, et le reliquat
-      exact compose la pioche restante (`deck_len` / `deck_cursor` alignés sur `obs`).
+      engendrent des octets `raw_used_bytes()` strictement identiques (y compris Perchoir O & Dé d'Envol).
+    - Conservation exacte du multi-ensemble total (Machines normales + Sabotages + Écailles) :
+      toutes les mains connues et le Perchoir connu de O sont soustraits, les mains inconnues
+      et le Perchoir masqué sont tirés sans remise, et le reliquat exact compose le sac restant.
     """
     cfg = template_state.cfg
     seat = obs.observer_seat
@@ -99,7 +101,7 @@ def determinize_state_from_obs(
     det = template_state.clone()
     det.cfg = replace(cfg, exp_seed=det_seed, rep_id=det_rep)
 
-    # 1. Multi-ensemble exact de toutes les cartes du cycle courant (Machines normales + Sabotages en paquet)
+    # 1. Multi-ensemble exact de toutes les cartes du cycle courant (Machines normales + Sabotages + Écailles)
     remaining_pool: list[int] = []
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -107,8 +109,9 @@ def determinize_state_from_obs(
             if st == MACHINE_STATUS_NORMAL:
                 remaining_pool.append(machine_card_code(r, mt))
     remaining_pool.extend([CARD_SABOTAGE] * obs.sabotage_deck_count)
+    remaining_pool.extend([CARD_ECAILLE] * obs.ecaille_deck_count)
 
-    # 2. Soustraire toutes les mains connues (Machines ET Sabotages) et lister les sièges masqués
+    # 2. Soustraire toutes les mains connues et le Perchoir visible de O, et lister les sièges masqués
     unknown_seats: list[int] = []
     for s in range(n):
         h = obs.hand_of(s)
@@ -119,12 +122,23 @@ def determinize_state_from_obs(
         if h.card is None:
             unknown_seats.append(s)
             continue
-        # Main visible : retirer exactement une copie de cette carte du multi-ensemble
         if h.card in remaining_pool:
             remaining_pool.remove(h.card)
 
-    # 3. Échantillonner sans remise les mains inconnues avec pondération compatible aux signaux alliés
-    if not obs.paravents_ouverts and unknown_seats:
+    det_perchoir_card: int = CARD_NONE
+    need_sample_perchoir = False
+    if obs.oiseau_has_perchoir:
+        known_p = obs.oiseau_perchoir_card
+        if known_p is not None and known_p != CARD_NONE:
+            det_perchoir_card = int(known_p)
+            if det_perchoir_card in remaining_pool:
+                remaining_pool.remove(det_perchoir_card)
+        else:
+            need_sample_perchoir = True
+
+    # 3. Échantillonner sans remise les mains inconnues (et le Perchoir masqué) avec pondération alliée
+    need_sampling = (not obs.paravents_ouverts and bool(unknown_seats)) or need_sample_perchoir
+    if need_sampling and remaining_pool:
         own_f1 = obs.player_def1_furtivite_target(seat)
         own_f2 = obs.player_def2_furtivite_target(seat)
         own_l1 = obs.player_def1_lisiere_slot(seat)
@@ -149,7 +163,7 @@ def determinize_state_from_obs(
         # Clés A-Res (Efraimidis-Spirakis) déterministes pour tirage pondéré sans remise
         keyed_pool: list[tuple[float, int, int]] = []
         for idx_p, c_code in enumerate(remaining_pool):
-            if c_code == CARD_SABOTAGE:
+            if c_code in (CARD_SABOTAGE, CARD_ECAILLE):
                 w = sab_weight
             else:
                 r_u, mt_u = unpack_machine_card(c_code)
@@ -171,35 +185,53 @@ def determinize_state_from_obs(
             keyed_pool.append((exp_key, idx_p, c_code))
 
         keyed_pool.sort()
-        n_assign = min(len(unknown_seats), len(keyed_pool))
-        for idx_u, s in enumerate(unknown_seats):
-            if idx_u >= n_assign:
-                det.set_player_hand(s, CARD_NONE, 0, 0, 0, 0)
-                continue
-            c_draw = keyed_pool[idx_u][2]
-            if c_draw == CARD_SABOTAGE:
-                det.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-            else:
+        cursor_k = 0
+        if not obs.paravents_ouverts and unknown_seats:
+            for s in unknown_seats:
+                if cursor_k >= len(keyed_pool):
+                    det.set_player_hand(s, CARD_NONE, 0, 0, 0, 0)
+                    continue
+                c_draw = keyed_pool[cursor_k][2]
+                cursor_k += 1
                 d1 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2)
                 d2 = roll_d6(det_seed, det_rep, SRC_DICE, obs.tour, s, det_idx * 2 + 1)
-                lec_m = min(d1, d2)
-                t_code, _ = obs.tactique_code_bugs(lec_m - 1)
-                bound_t = t_code if is_tactique_code(t_code) else 0
-                det.set_player_hand(s, c_draw, d1, d2, lec_m, bound_t)
+                if c_draw in (CARD_SABOTAGE, CARD_ECAILLE):
+                    det.set_player_hand(s, c_draw, d1, d2, 0, 0)
+                else:
+                    lec_m = min(d1, d2)
+                    t_code, _ = obs.tactique_code_bugs(lec_m - 1)
+                    bound_t = t_code if is_tactique_code(t_code) else 0
+                    det.set_player_hand(s, c_draw, d1, d2, lec_m, bound_t)
+        if need_sample_perchoir and cursor_k < len(keyed_pool):
+            det_perchoir_card = int(keyed_pool[cursor_k][2])
+            cursor_k += 1
 
-    # 4. Reconstruire la pioche restante exacte (reliquat de Machines ET de Sabotages hors mains)
+    # Masquage strict du Dé d'Envol de O lorsque paravents fermés et observateur != O
+    seat_o = cfg.seat_of_peuple("O")
+    if not obs.paravents_ouverts and seat_o is not None and seat != seat_o:
+        det.set_oiseau_de_envol(0, False)
+
+    # 4. Reconstruire la pioche restante exacte (Machines + Sabotages + Écailles hors mains et Perchoir)
     orig_sab_deck = obs.sabotage_deck_count
     orig_sab_pend = obs.sabotage_pending_count
+    orig_ec_deck = obs.ecaille_deck_count
+    orig_ec_pend = obs.ecaille_pending_count
     det.sabotage_deck_count = orig_sab_deck
     det.sabotage_pending_count = 0
+    det.ecaille_deck_count = orig_ec_deck
+    det.ecaille_pending_count = 0
     det.rebuild_and_shuffle_machine_deck(increment_reshuffle=False)
     det.sabotage_pending_count = orig_sab_pend
+    det.ecaille_pending_count = orig_ec_pend
 
-    # Retirer du paquet TOUTES les cartes tenues en main (Machines normales ET Sabotages, 1 pour 1)
+    # Retirer du sac TOUTES les cartes tenues en main + le jeton posé sur le Perchoir de O
     for s in range(n):
         c_held, _, _, _, _ = det.get_player_hand(s)
         if c_held != CARD_NONE:
             det.remove_machine_card_from_deck_if_present(c_held)
+    if det_perchoir_card != CARD_NONE:
+        det.remove_machine_card_from_deck_if_present(det_perchoir_card)
+    det.oiseau_perchoir_card = det_perchoir_card
 
     target_rem = obs.deck_remaining_count
     if det.deck_len > target_rem:
@@ -234,7 +266,13 @@ def evaluate_turn_state_trees(state: GameState) -> float:
 
     # Actifs durables en équivalent-arbres
     assets = 0.0
-    sab_tot = min(4, state.sabotage_deck_count + state.sabotage_pending_count)
+    sab_tot = min(
+        6,
+        state.sabotage_deck_count
+        + state.sabotage_pending_count
+        + state.ecaille_deck_count
+        + state.ecaille_pending_count,
+    )
     if sab_tot > 0 and rem_turns > 0:
         assets += 0.28 * float(min(4, rem_turns)) * float(sab_tot)
 
@@ -253,6 +291,13 @@ def evaluate_turn_state_trees(state: GameState) -> float:
             st_l, _ = state.get_lisiere_tile_state(slot_idx)
             if st_l == LISIERE_CONSTRUCTED:
                 assets += 0.35
+            elif st_l == LISIERE_ROOTED:
+                rinfo = state.get_slot_rooted_info(slot_idx)
+                if rinfo is not None:
+                    r_rt, p_rt, f_rt, _ = rinfo
+                    if p_rt > 0 and not state.is_route_forestiere(r_rt, p_rt):
+                        souches_rt = state.get_parcel_souches(r_rt, p_rt)
+                        assets += 0.85 * float(min(souches_rt, 2 if f_rt == 2 else 1))
         for rk in range(TRACK_LEN):
             if is_reve_code(state.get_tactique_at_rank(rk)):
                 assets += 0.35 * float(TRACK_LEN - rk) / float(TRACK_LEN)
@@ -426,10 +471,10 @@ def arbitrate_step2_gardien_reve_crn(
                 c_num = int(tgt[1])
                 own_c = obs_s.player_def2_gardien_pari_case(s)
                 allies_c = max(0, obs_s.gardien_pari_defenders(c_num) - (1 if own_c == c_num else 0))
-                if c_num == 4:
+                if c_num == TRIG_RESONANCE:
                     exp_t = sum(
                         min(1.0, exp_trigs[k - 1])
-                        for k in (1, 2, 3, 5, 6)
+                        for k in (1, 2, 3, 4, 5)
                         if obs_s.gardien_present_at_case(k)
                     )
                 else:

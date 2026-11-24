@@ -17,7 +17,9 @@ from bots.heuristic_engine import score_target_b2
 from campaigns.digest_builder import build_active_core_rules
 from campaigns.worker_main import _execute_manifest_unit, resolve_manifest_plan
 from engine.core_engine import (
+    DEC_CHOIX_CIBLE_REVE_3_2,
     _run_step_3_2,
+    apply_choice,
     apply_step2_def2,
     list_legal_targets,
     lock_all_def2_in_place,
@@ -29,6 +31,7 @@ from engine.primitives import (
     CAUSE_REVE_RANG_1,
     CAUSE_REVEIL_GARDIENS,
     CAUSE_TOUR_8,
+    DecisionRequest,
     GameOver,
     prim_partage_info_etat_gardien,
 )
@@ -53,7 +56,7 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_gardien_bet_cap_uniform_max_2() -> None:
-    """En v6.1, pari uniforme max 2 Défenseurs sur chaque Gardien (1..6, y compris case 4)."""
+    """En v6.2, pari uniforme max 2 Défenseurs sur chaque Gardien (1..6, y compris case 6 Résonance)."""
     assert GARDIEN_BET_CAP == 2
 
     # Sans Animal Sauvage (H, E, I) : cible GARDIEN_PARI interdite
@@ -69,7 +72,7 @@ def test_gardien_bet_cap_uniform_max_2() -> None:
     st_m1.set_gardien_at_case(1, 1, face=1)
     assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_m1, 0, is_first_defender=False)
 
-    # Pari uniforme max 2 sur cases 1..6 y compris case 4, 3e interdit
+    # Pari uniforme max 2 sur cases 1..6 y compris case 6, 3e interdit
     cfg_u2 = GameConfig(n_players=5, mode=2, peuples=("M", "R", "O", "H", "I"))
     st_u2 = GameState(cfg_u2)
     for c in range(1, 7):
@@ -77,71 +80,71 @@ def test_gardien_bet_cap_uniform_max_2() -> None:
 
     # 1er Défenseur ne peut jamais cibler GARDIEN_PARI
     assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_u2, 0, is_first_defender=True)
-    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st_u2, 0, is_first_defender=True)
+    assert ("GARDIEN_PARI", 6) not in list_legal_targets(st_u2, 0, is_first_defender=True)
 
     apply_step2_def2(st_u2, 0, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
     assert ("GARDIEN_PARI", 1) in list_legal_targets(st_u2, 1, is_first_defender=False)
     apply_step2_def2(st_u2, 1, ("POSER_DEFINITIF", ("GARDIEN_PARI", 1)))
     assert ("GARDIEN_PARI", 1) not in list_legal_targets(st_u2, 2, is_first_defender=False)
 
-    apply_step2_def2(st_u2, 2, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
-    assert ("GARDIEN_PARI", 4) in list_legal_targets(st_u2, 3, is_first_defender=False)
-    apply_step2_def2(st_u2, 3, ("POSER_DEFINITIF", ("GARDIEN_PARI", 4)))
-    assert ("GARDIEN_PARI", 4) not in list_legal_targets(st_u2, 4, is_first_defender=False)
+    apply_step2_def2(st_u2, 2, ("POSER_DEFINITIF", ("GARDIEN_PARI", 6)))
+    assert ("GARDIEN_PARI", 6) in list_legal_targets(st_u2, 3, is_first_defender=False)
+    apply_step2_def2(st_u2, 3, ("POSER_DEFINITIF", ("GARDIEN_PARI", 6)))
+    assert ("GARDIEN_PARI", 6) not in list_legal_targets(st_u2, 4, is_first_defender=False)
 
     with pytest.raises(AssertionError):
         st_u2.place_defender_gardien_pari(4, 1, FACE_DEFINITIF)
     with pytest.raises(AssertionError):
-        st_u2.place_defender_gardien_pari(4, 4, FACE_DEFINITIF)
+        st_u2.place_defender_gardien_pari(4, 6, FACE_DEFINITIF)
 
 
 def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
-    """2 Déf sur case 1 + 2 Déf sur case 4 (anti-boucle 4) ; échec partiel -> retour lisière Face 1."""
+    """2 Déf sur case 1 + 2 Déf sur case 6 Résonance (anti-boucle 6) ; échec partiel -> retour lisière Face 1, pari gagné -> Face 2."""
     load_all_effects()
 
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))
     st = GameState(cfg)
     st.set_gardien_at_case(1, 1, face=1)
-    st.set_gardien_at_case(4, 2, face=1)
+    st.set_gardien_at_case(6, 2, face=1)
 
     # 0 Défenseur -> inactif
     st.light_trigger(1)
     assert sweep_gardiens(st) == 0
 
-    # 2 Défenseurs sur case 1 et 2 Défenseurs sur case 4
+    # 2 Défenseurs sur case 1 et 2 Défenseurs sur case 6 (Résonance)
     st.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
-    st.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
 
-    # 1er déclenchement case 1 -> ouvre case 1 -> allume 4 -> ouvre case 4 (anti-boucle : 4 éteinte)
+    # 1er déclenchement case 1 -> ouvre case 1 -> allume 6 -> ouvre case 6 (anti-boucle : 6 éteinte)
     st.light_trigger(1)
     assert sweep_gardiens(st) == 2
     assert st.count_gardien_pari_defenders_at_case(1) == 1
     assert st.count_gardien_pari_consumed_at_case(1) == 1
-    assert st.count_gardien_pari_defenders_at_case(4) == 1
-    assert st.count_gardien_pari_consumed_at_case(4) == 1
-    assert not st.is_trigger_lit(4)
+    assert st.count_gardien_pari_defenders_at_case(6) == 1
+    assert st.count_gardien_pari_consumed_at_case(6) == 1
+    assert not st.is_trigger_lit(6)
 
-    # 2e déclenchement case 1 : même autre Gardien -> ne ré-allume PAS 4. Gardien (DISTINCT_OPEN_1 natif)
+    # 2e déclenchement case 1 : même autre Gardien -> ne ré-allume PAS 6. Résonance (DISTINCT_OPEN_1 natif)
     st.light_trigger(1)
     assert sweep_gardiens(st) == 1
     assert st.count_gardien_pari_defenders_at_case(1) == 0
     assert st.count_gardien_pari_consumed_at_case(1) == 2
-    assert st.count_gardien_pari_defenders_at_case(4) == 1
-    assert st.count_gardien_pari_consumed_at_case(4) == 1
+    assert st.count_gardien_pari_defenders_at_case(6) == 1
+    assert st.count_gardien_pari_consumed_at_case(6) == 1
 
-    # Un 2e autre Gardien distinct (case 2) allume 4. Gardien !
+    # Un 2e autre Gardien distinct (case 2) allume 6. Résonance !
     st.set_gardien_at_case(2, 3, face=1)
     st.set_player_def_loc_raw(0, 1, 0)
     st.place_defender_gardien_pari(0, 2, FACE_DEFINITIF)
     st.light_trigger(2)
     assert sweep_gardiens(st) == 2
-    assert st.count_gardien_pari_defenders_at_case(4) == 0
-    assert st.count_gardien_pari_consumed_at_case(4) == 2
-    assert not st.is_trigger_lit(4)
+    assert st.count_gardien_pari_defenders_at_case(6) == 0
+    assert st.count_gardien_pari_consumed_at_case(6) == 2
+    assert not st.is_trigger_lit(6)
 
-    # Échec partiel d'un pari à 2 Défenseurs -> retour immédiat en lisière Face 1
+    # Échec partiel d'un pari à 2 Défenseurs -> retour immédiat en lisière Face 1 ; pari gagné -> Face 2 (INV-10)
     st_part = GameState(cfg)
     st_part.tour = 2
     g1_slot = st_part.find_lisiere_slot_by_tile_id("G1")
@@ -165,7 +168,7 @@ def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
     step_until_decision(st_part, telemetry=trk)
     assert st_part.get_gardien_at_case(1) == (0, 1)
     assert st_part.get_lisiere_tile_state(g1_slot)[0] == LISIERE_UNCONSTRUCTED
-    assert st_part.get_gardien_at_case(2) == (2, 1)
+    assert st_part.get_gardien_at_case(2) == (2, 2)
     ts = trk.summary()
     assert ts.gardien_bets_won == 1
     assert ts.gardien_bets_lost == 1
@@ -179,7 +182,7 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     st_rej = GameState(cfg)
     st_rej.tour = 3
     st_rej.set_gardien_at_case(1, 1, face=1)
-    st_rej.set_gardien_at_case(4, 2, face=1)
+    st_rej.set_gardien_at_case(6, 2, face=1)
     st_rej.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_rej.set_player_hand(0, 1, 6, 6, 6, 0)
     st_rej.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
@@ -188,7 +191,7 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
 
     st_rej.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_rej.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
-    st_rej.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
+    st_rej.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
     st_rej.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
 
     assert st_rej.is_eveil_attempt_eligible() is False
@@ -216,13 +219,13 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     st_ok.tour = 3
     st_ok.set_gardien_at_case(1, 1, face=1)
     st_ok.set_gardien_at_case(2, 3, face=1)
-    st_ok.set_gardien_at_case(4, 2, face=1)
+    st_ok.set_gardien_at_case(6, 2, face=1)
     for s in range(4):
         st_ok.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
     st_ok.place_defender_gardien_pari(0, 1, FACE_REFLEXION)
     st_ok.place_defender_gardien_pari(1, 2, FACE_REFLEXION)
-    st_ok.place_defender_gardien_pari(2, 4, FACE_REFLEXION)
-    st_ok.place_defender_gardien_pari(3, 4, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(2, 6, FACE_REFLEXION)
+    st_ok.place_defender_gardien_pari(3, 6, FACE_REFLEXION)
 
     trk = TelemetryTracker()
     lock_all_def2_in_place(st_ok)
@@ -250,17 +253,17 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     assert ts.rs_def_resonance == 2
     assert ts.rs_distinct_gardiens_bet == 3
     assert ts.rs_def_reve == 0
-    assert ts.rs_trig4_lit == 1
+    assert ts.rs_trig6_lit == 1
 
     # Cas C : Priorité absolue à CAUSE_TOUR_8 au Tour 8
     st_t8 = GameState(cfg)
     st_t8.tour = 8
     st_t8.set_gardien_at_case(1, 1, face=1)
-    st_t8.set_gardien_at_case(4, 2, face=1)
+    st_t8.set_gardien_at_case(6, 2, face=1)
     st_t8.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_t8.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(3, 4, FACE_DEFINITIF)
+    st_t8.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_t8.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
     st_t8.light_trigger(1)
     sweep_gardiens(st_t8)
     st_t8.light_trigger(1)
@@ -272,27 +275,30 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
 
 
 def test_reve_pure_blocking_mode_2_clear_rank_only() -> None:
-    """v6.1 Mode 2 : blocage pur automatique (1 Déf = 1 machine annulée, Rêve immobile, 5. Rêve allumé)."""
+    """v6.2 Mode 2 : blocage (1 Déf = 1 machine annulée avec choix propriétaire sur surcharge, 4. Rêve allumé)."""
     from engine.core_engine import _advance_continuation
 
     cfg_ex = GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"))
 
-    # 1. 1 Défenseur face à 2 machines au rang 6 (R3) -> 1/2 annulée, 1 joue T6 dessous, R3 immobile
+    # 1. 1 Défenseur face à 2 machines au rang 6 (R3) -> propriétaire choisit 1/2 annulée, 1 joue T6 dessous, R3 immobile
     st_blk = GameState(cfg_ex)
-    st_blk.set_gardien_at_case(5, 1, face=1)
+    st_blk.set_gardien_at_case(4, 1, face=1)
     st_blk.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_blk.set_player_hand(0, 1, 6, 6, 6, 0)
     st_blk.set_player_hand(1, 3, 6, 6, 6, 0)
     st_blk.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
     st_blk.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
-    st_blk.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
+    st_blk.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
 
     st_blk.step = STEP_3_2_REVEAL
     _run_step_3_2(st_blk)
     while st_blk._continuation:
-        assert _advance_continuation(st_blk) is None
+        res_c = _advance_continuation(st_blk)
+        if isinstance(res_c, DecisionRequest):
+            assert res_c.decision_type == DEC_CHOIX_CIBLE_REVE_3_2
+            apply_choice(st_blk, res_c.options[0])
     assert st_blk.has_reve_opened_this_turn(3) is True
-    assert st_blk.count_gardien_pari_consumed_at_case(5) == 1
+    assert st_blk.count_gardien_pari_consumed_at_case(4) == 1
     assert st_blk.total_reve_activation_consumed() == 1
     bound_vals = sorted([st_blk.get_player_hand(0)[4], st_blk.get_player_hand(1)[4]])
     assert bound_vals == [0, 6]
@@ -300,14 +306,14 @@ def test_reve_pure_blocking_mode_2_clear_rank_only() -> None:
 
     # 2. 2 Défenseurs (2.1 + 2.2) face à 2 machines au rang 6 (R3) -> 2/2 annulées, R3 immobile
     st_blk2 = GameState(cfg_ex)
-    st_blk2.set_gardien_at_case(5, 1, face=1)
+    st_blk2.set_gardien_at_case(4, 1, face=1)
     st_blk2.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_blk2.set_player_hand(0, 1, 6, 6, 6, 0)
     st_blk2.set_player_hand(1, 3, 6, 6, 6, 0)
     st_blk2.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
     st_blk2.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)
     st_blk2.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=1)
-    st_blk2.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
+    st_blk2.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
 
     st_blk2.step = STEP_3_2_REVEAL
     _run_step_3_2(st_blk2)

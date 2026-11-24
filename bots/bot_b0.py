@@ -5,14 +5,23 @@ from __future__ import annotations
 from typing import Any
 
 from engine.core_engine import (
+    DEC_BOUCLIER_LISIERE_5_3,
     DEC_CHOIX_CASE_GARDIEN,
+    DEC_CHOIX_CIBLE_REVE_3_2,
+    DEC_ENRACINEMENT_6_1,
+    DEC_HUMAIN_CHAMAN_2_1,
     DEC_LIBERATION_BATISSEUR_3_1,
+    DEC_MAMMIFERE_DUEL_2,
     DEC_MIGRATION_INSECTE_4_3,
+    DEC_OISEAU_DE_ENVOL_1_3,
+    DEC_OISEAU_PERCHOIR_1_1,
+    DEC_OISEAU_PLUME_2,
     DEC_ORDRE_CONSTRUCTION_3_1,
     DEC_PLACEMENT_NID_3_1,
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
     DEC_POSE_PIEGE_FURTIVITE_4_1,
+    DEC_REPTILE_POSE_CROC_3_2,
     DEC_REVISION_DEFENSEUR_2,
     apply_choice,
     step_until_decision,
@@ -21,7 +30,11 @@ from engine.primitives import DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
     CANONICAL_DOTATION,
+    CARD_ECAILLE,
     CARD_SABOTAGE,
+    CHAMAN_CHANT,
+    CHAMAN_TAMBOUR,
+    DUEL_TERRITOIRE_TENU,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
     FURT_RIVE_PIEGE,
@@ -34,14 +47,25 @@ from engine.state import (
     MAX_P,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
+    PLUME_CALME,
+    PLUME_CHAUD,
+    PLUME_KIND_RAY,
     SYNERGY_META,
     TACTIQUES_SPEC,
+    TRACK_LEN,
+    TRIG_INSECTE,
+    TRIG_PARADE,
+    TRIG_PIEGEAGE,
+    TRIG_RESONANCE,
+    TRIG_REVE,
+    TRIG_SABOTAGE,
     GameConfig,
     GameState,
     HandObs,
     PlayerObservation,
     is_reve_code,
     is_tactique_code,
+    machine_threat_key_3_2,
     unpack_machine_card,
 )
 
@@ -279,7 +303,9 @@ class BotB0:
 
         if dtype in (DEC_POSE_DEFENSEUR_1, DEC_POSE_DEFENSEUR_2):
             own_hand = obs.hand_of(obs.observer_seat)
-            drew_sab = (not own_hand.has_card) or (own_hand.card == CARD_SABOTAGE)
+            drew_sab = (not own_hand.has_card) or (
+                own_hand.card in (CARD_SABOTAGE, CARD_ECAILLE)
+            )
             threat_mask, machine_mask = _compute_threat_and_machine_masks(obs, cfg, own_hand)
 
             is_def1 = dtype == DEC_POSE_DEFENSEUR_1
@@ -363,6 +389,143 @@ class BotB0:
                     return opt
             return opts[0]
 
+        if dtype == DEC_OISEAU_PERCHOIR_1_1:
+            # Préfère garder un Sabotage ou une Écaille en main (zéro frappe), sinon bris d'égalité
+            for cand_c in opts:
+                if int(cand_c) in (CARD_SABOTAGE, CARD_ECAILLE):
+                    return cand_c
+            best_c = opts[0]
+            best_score_c = -10**9
+            for idx, cand_c in enumerate(opts):
+                ci = int(cand_c)
+                if 1 <= ci <= 2 * obs.n_players:
+                    rm, mt = unpack_machine_card(ci)
+                    pos, _ = obs.machine_pos_status(rm, mt)
+                    sc_c = -10 * pos - 5 * obs.machine_effective_rouges(rm, mt)
+                else:
+                    sc_c = 0
+                if sc_c > best_score_c:
+                    best_score_c = sc_c
+                    best_c = cand_c
+            return best_c
+
+        if dtype == DEC_OISEAU_DE_ENVOL_1_3:
+            # Choisit le rang qui tombe sur un Rêve ou qui déclenche le moins de frappes
+            best_rk = opts[0]
+            best_sc_rk = -10**9
+            for rk in opts:
+                ri = int(rk)
+                t_c, _ = obs.tactique_code_bugs(ri - 1)
+                if is_reve_code(t_c):
+                    sc_rk = 200 if obs.reve_activation_defenders(ri) >= 1 else 120
+                elif is_tactique_code(t_c):
+                    spec = TACTIQUES_SPEC[t_c]
+                    sc_rk = -40 * len(spec.cibles) - 20 * spec.mod_seuil
+                else:
+                    sc_rk = 0
+                if sc_rk > best_sc_rk:
+                    best_sc_rk = sc_rk
+                    best_rk = rk
+            return best_rk
+
+        if dtype == DEC_HUMAIN_CHAMAN_2_1:
+            own_hand = obs.hand_of(obs.observer_seat)
+            own_hits_reve = (
+                own_hand.card is not None
+                and 1 <= own_hand.card <= 2 * obs.n_players
+                and own_hand.lecture_m is not None
+                and obs.reve_at_case(own_hand.lecture_m) > 0
+            )
+            if own_hits_reve and CHAMAN_CHANT in opts:
+                return CHAMAN_CHANT
+            if CHAMAN_TAMBOUR in opts:
+                return CHAMAN_TAMBOUR
+            return opts[0]
+
+        if dtype == DEC_MAMMIFERE_DUEL_2:
+            if (
+                obs.duel_state != DUEL_TERRITOIRE_TENU
+                and "POSER_DUEL_DEFI" in opts
+            ):
+                return "POSER_DUEL_DEFI"
+            return "PASSER" if "PASSER" in opts else opts[0]
+
+        if dtype == DEC_OISEAU_PLUME_2:
+            own_hand = obs.hand_of(obs.observer_seat)
+            if own_hand.card is not None and 1 <= own_hand.card <= 2 * obs.n_players:
+                r_m, _ = unpack_machine_card(own_hand.card)
+                cand_pl = (PLUME_CHAUD, PLUME_KIND_RAY, r_m)
+                if cand_pl in opts:
+                    return cand_pl
+            elif (not own_hand.has_card) or own_hand.card in (CARD_SABOTAGE, CARD_ECAILLE):
+                cand_pl = (PLUME_CALME, PLUME_KIND_RAY, obs.observer_seat)
+                if cand_pl in opts:
+                    return cand_pl
+            return "PASSER" if "PASSER" in opts else opts[0]
+
+        if dtype == DEC_REPTILE_POSE_CROC_3_2:
+            best_rp = opts[0]
+            best_sc_rp = -1
+            for idx, rp in enumerate(opts):
+                r_c, p_c = int(rp[0]), int(rp[1])
+                sc_rp = (
+                    obs.parcel_arbres(r_c, p_c) * 40
+                    + (60 if obs.parcel_piege(r_c, p_c) == PIEGE_AUCUN else 0)
+                    + (45 if obs.parcel_has_nid(r_c, p_c) else 0)
+                    + p_c * 15
+                )
+                if sc_rp > best_sc_rp:
+                    best_sc_rp = sc_rp
+                    best_rp = rp
+            return best_rp
+
+        if dtype == DEC_CHOIX_CIBLE_REVE_3_2:
+            def _seat_threat_b0(s_id: int) -> tuple[int, int, int, int, int]:
+                h_s = obs.hand_of(s_id)
+                if h_s.card is not None and 1 <= h_s.card <= 2 * obs.n_players:
+                    rm, mt = unpack_machine_card(h_s.card)
+                    pos_m, st_m = obs.machine_pos_status(rm, mt)
+                    return machine_threat_key_3_2(
+                        s_id, pos_m, st_m, obs.machine_effective_rouges(rm, mt)
+                    )
+                return (0, 0, 0, 0, -s_id)
+
+            return max(
+                opts,
+                key=lambda combo: (
+                    tuple(sorted((_seat_threat_b0(int(s_i)) for s_i in combo), reverse=True)),
+                    _tiebreak_u64(cfg, obs, opts.index(combo)),
+                ),
+            )
+
+        if dtype == DEC_BOUCLIER_LISIERE_5_3:
+            if obs.tour < 8 and "UTILISER_BOUCLIER" in opts:
+                return "UTILISER_BOUCLIER"
+            return "LAISSER_RETOURNER" if "LAISSER_RETOURNER" in opts else opts[0]
+
+        if dtype == DEC_ENRACINEMENT_6_1:
+            if obs.tour < 7:
+                return "PASSER" if "PASSER" in opts else opts[0]
+            reves_on = sum(1 for c_r in range(1, TRACK_LEN + 1) if obs.reve_at_case(c_r) > 0)
+            best_root: Any = "PASSER" if "PASSER" in opts else opts[0]
+            best_sc_rt = 0
+            for opt in opts:
+                if opt == "PASSER":
+                    continue
+                sl_idx, p_rt = int(opt[0]), int(opt[1])
+                tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
+                fam_rt, _, _ = SYNERGY_META[tid_rt]
+                if fam_rt == FAMILLE_REVE and obs.tour == 7 and reves_on >= max(1, cfg.total_reves_partie - 1):
+                    continue
+                souches = obs.parcel_souches(obs.observer_seat, p_rt)
+                if souches <= 0:
+                    continue
+                sc_rt = souches * 100 + p_rt * 10
+                if sc_rt > best_sc_rt:
+                    best_sc_rt = sc_rt
+                    best_root = opt
+            return best_root
+
         if dtype == DEC_POSE_PIEGE_FURTIVITE_4_1:
             ray_p = int(decision.context.get("ray", obs.observer_seat))
             m_mask = _active_machine_mask(obs)
@@ -418,25 +581,27 @@ class BotB0:
             return best_slot
 
         if dtype == DEC_CHOIX_CASE_GARDIEN:
+            has_ins_p = "I" in cfg.peuples
             best_case = opts[0]
             best_sc = -1
             best_tb = -1
             best_idx = 0
             for idx, c_num in enumerate(opts):
                 c_int = int(c_num)
-                w = (
-                    60
-                    if c_int == 1
-                    else (
-                        55
-                        if c_int == 6
-                        else (
-                            50
-                            if c_int == 4
-                            else (45 if c_int == 2 else (35 if c_int == 3 else 30))
-                        )
-                    )
-                )
+                if c_int == TRIG_PARADE:
+                    w = 60
+                elif c_int == TRIG_INSECTE:
+                    w = 55 if has_ins_p else 20
+                elif c_int == TRIG_RESONANCE:
+                    w = 50
+                elif c_int == TRIG_PIEGEAGE:
+                    w = 45
+                elif c_int == TRIG_SABOTAGE:
+                    w = 35
+                elif c_int == TRIG_REVE:
+                    w = 30
+                else:
+                    w = 25
                 if w > best_sc:
                     best_sc = w
                     best_tb = -1

@@ -52,6 +52,8 @@ def _gov(state: GameState, peuple_code: str) -> int:
 
 
 def _nid_1cran_moves(state: GameState, r: int, p: int) -> list[tuple[Any, ...]]:
+    if not state.cfg.has_insectes_peuple:
+        return []
     opts: list[tuple[Any, ...]] = []
     p_fwd = state.next_non_razed_towards_heart(r, p)
     if p_fwd is not None:

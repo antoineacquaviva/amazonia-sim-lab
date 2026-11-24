@@ -127,17 +127,17 @@ def test_v6_1_ratissage_flip_6_3_printed_red_and_fixed_track() -> None:
         False,
     )
 
-    # Conservation des jetons rouges physiques + ajout du +1 rouge imprimé
-    assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)
+    # Conservation des jetons rouges physiques + ajout du +1 rouge physique au passage en Ratissage (INV-12 v6.2)
+    assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (2, 0)
     assert state.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 2
     assert state.get_machine_effective_rouges(0, MACHINE_BULLDOZER) == 1
 
-    # Mode individuel v6.1 : Seuil Abatteuse = base(3) + T1(0) + 2 rouges effectifs = 5 !
+    # Mode individuel v6.2 : Seuil Abatteuse = base(3) + T1(0) + 2 rouges physiques = 5 !
     # Avec 4 Défenseurs -> attaque non parée ; avec 5 Défenseurs -> parée.
     state.set_parcel_defenseurs(0, 4, 4)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], is_ratissage=True)
     assert state.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
-    assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)  # T1: gain_rouge=0
+    assert state.get_machine_tokens(0, MACHINE_ABATTEUSE) == (2, 0)  # T1: gain_rouge=0
 
     state.set_parcel_arbres_souches(0, 4, 3, 0)
     state.set_parcel_defenseurs(0, 4, 5)

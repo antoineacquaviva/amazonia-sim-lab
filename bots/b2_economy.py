@@ -16,6 +16,7 @@ from typing import Any, ClassVar
 from bots.belief_and_ticks import BeliefSummary
 from engine.state import (
     CANONICAL_DOTATION,
+    CARD_ECAILLE,
     CARD_SABOTAGE,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
@@ -34,6 +35,7 @@ from engine.state import (
     SYNERGY_META,
     TACTIQUES_SPEC,
     TRACK_LEN,
+    TRIG_RESONANCE,
     GameConfig,
     PlayerObservation,
     is_reve_code,
@@ -377,10 +379,10 @@ def compute_b2_resource_and_trigger_values_trees(
                         )
                 trig_val[c] = v_open
 
-        res_4 = trig_val[4] if obs.gardien_available_at_case(4) else 0.0
+        res_6 = trig_val[TRIG_RESONANCE] if obs.gardien_available_at_case(TRIG_RESONANCE) else 0.0
         for c in range(1, TRACK_LEN + 1):
-            if c != 4 and obs.gardien_available_at_case(c):
-                trig_val[c] += weights.trig_resonance_share * res_4
+            if c != TRIG_RESONANCE and obs.gardien_available_at_case(c):
+                trig_val[c] += weights.trig_resonance_share * res_6
             if econ is not None:
                 g_slot = gardiens[c - 1]
                 if g_slot.tile_id is not None and g_slot.remaining_defenders >= 1:
@@ -457,7 +459,7 @@ def _machine_discrete_strike_dist(
             continue
         if h.card is None:
             unknown_holders += 1
-        elif h.card == CARD_SABOTAGE:
+        elif h.card in (CARD_SABOTAGE, CARD_ECAILLE):
             known_sab_cnt += 1
         elif 1 <= h.card <= 2 * n:
             known_cards_cnt += 1
@@ -802,7 +804,7 @@ def score_forest_marginal_trees(
 def is_own_hand_covered(obs: PlayerObservation, cfg: GameConfig) -> bool:
     """Vrai si le joueur n'a aucune frappe non parée issue de sa propre carte sous paravent."""
     own_hand = obs.hand_of(obs.observer_seat)
-    if (not own_hand.has_card) or own_hand.card == CARD_SABOTAGE:
+    if (not own_hand.has_card) or own_hand.card in (CARD_SABOTAGE, CARD_ECAILLE):
         return True
     if own_hand.card is None or not (1 <= own_hand.card <= 2 * obs.n_players):
         return True
@@ -1054,7 +1056,7 @@ def estimate_expected_gardien_triggers(
 
     own_hand = obs.hand_of(obs.observer_seat)
     own_card = own_hand.card
-    own_is_sab = own_card == CARD_SABOTAGE
+    own_is_sab = own_card in (CARD_SABOTAGE, CARD_ECAILLE)
     own_reve_consumed_sole_def = -1
     if own_is_sab:
         exp_sabotage += 1.0
@@ -1084,7 +1086,7 @@ def estimate_expected_gardien_triggers(
         if obs.machine_pos_status(r, mt)[1] == MACHINE_STATUS_NORMAL
         and obs.machine_pos_status(r, mt)[0] > 0
     )
-    sab_in_deck = obs.sabotage_deck_count
+    sab_in_deck = obs.sabotage_deck_count + obs.ecaille_deck_count
     sab_others = max(0, sab_in_deck - (1 if own_is_sab else 0))
     total_deck_est = max(n, active_deck_machines + sab_in_deck)
     p_other_sab = min(0.85, sab_others / max(1.0, float(total_deck_est - 1)))
@@ -1115,7 +1117,7 @@ def estimate_expected_gardien_triggers(
             float(total_bugs_avail), float(n - 1) * p_other_mach * prob_bug_rank
         )
 
-    return (exp_parade, exp_piege, exp_sabotage, 0.0, exp_reve, exp_insecte)
+    return (exp_parade, exp_piege, exp_sabotage, exp_reve, exp_insecte, 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -1518,7 +1520,7 @@ def score_gardien_pari_marginal_trees(
     distinct_other_cap = 0.0
     distinct_other_bet_exp = 0.0
     has_other_empty_supported = False
-    for c_k in (1, 2, 3, 5, 6):
+    for c_k in (1, 2, 3, 4, 5):
         if obs.gardien_present_at_case(c_k):
             total_slots_cap += GARDIEN_BET_CAP
             t_k = eveil_trigs[c_k - 1]
@@ -1530,7 +1532,7 @@ def score_gardien_pari_marginal_trees(
             elif c_k != case_c and t_k >= 0.85:
                 has_other_empty_supported = True
 
-    has_res = obs.gardien_present_at_case(4)
+    has_res = obs.gardien_present_at_case(TRIG_RESONANCE)
     if has_res:
         total_slots_cap += GARDIEN_BET_CAP
     res_cap = min(float(GARDIEN_BET_CAP), distinct_other_cap) if has_res else 0.0
@@ -1538,7 +1540,7 @@ def score_gardien_pari_marginal_trees(
 
     exp_for_case = (
         min(distinct_other_cap, distinct_other_bet_exp + 0.80 * unplaced_allies)
-        if case_c == 4
+        if case_c == TRIG_RESONANCE
         else eveil_trigs[case_c - 1]
     )
     needed = allies_on_case + 1
@@ -1581,7 +1583,7 @@ def score_gardien_pari_marginal_trees(
     base_gp = 0.18
     if eveil_feasible:
         pen = 0.0
-        if case_c == 4 and distinct_other_bet_exp < (float(needed) - 0.15) and distinct_other_cap > distinct_other_bet_exp + 0.35:
+        if case_c == TRIG_RESONANCE and distinct_other_bet_exp < (float(needed) - 0.15) and distinct_other_cap > distinct_other_bet_exp + 0.35:
             pen += 0.40
         if allies_on_case >= 1 and has_other_empty_supported:
             pen += 0.32
@@ -1607,7 +1609,11 @@ def score_gardien_pari_marginal_trees(
             base_gp = max(0.35, base * eveil_mult + margin_b + bouclier_safety - pen)
     if base_gp <= 0.25 and obs.mode >= 3:
         cur_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=False)
-        cur_exp = eveil_trigs[3] if case_c == 4 else cur_trigs[case_c - 1]
+        cur_exp = (
+            min(distinct_other_cap, distinct_other_bet_exp)
+            if case_c == TRIG_RESONANCE
+            else cur_trigs[case_c - 1]
+        )
         if cur_exp >= (float(needed) + 0.05):
             g_face = obs.gardien_face_at_case(case_c)
             face_b = weights.gardien_mode4_face1_bonus if g_face == 1 else 0.15

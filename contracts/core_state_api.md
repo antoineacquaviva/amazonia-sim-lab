@@ -11,7 +11,7 @@ zéro `import random`, zéro état global mutable).
 
 *Source : `engine/state.py`*
 
-> État de jeu déterministe scellé sur bytearray(384) et vue isolée PlayerObservation.
+> État de jeu déterministe scellé sur bytearray(384) et vue isolée PlayerObservation (v6.2).
 
 ### Constantes publiques
 
@@ -33,6 +33,13 @@ zéro `import random`, zéro état global mutable).
 - `BULLDOZER_INIT_PARCEL: int = 1`
 - `ABATTEUSE_INIT_PARCEL: int = 2`
 - `GARDIEN_BET_CAP: int = 2`
+- `TRIG_PARADE: int = 1`
+- `TRIG_PIEGEAGE: int = 2`
+- `TRIG_SABOTAGE: int = 3`
+- `TRIG_REVE: int = 4`
+- `TRIG_INSECTE: int = 5`
+- `TRIG_RESONANCE: int = 6`
+- `GUARDIAN_ICONS_ORDER: tuple[str, ...] = ('PARADE', 'PIEGEAGE', 'SABOTAGE', 'REVE', 'INSECTE', 'RESONANCE')`
 - `PFLAG_SANCTUAIRE_SOUCHE: int = 1 << 0`
 - `PFLAG_MATAMATA_MARK: int = 1 << 1`
 - `PFLAG_AUTO_PARADE_ONCE: int = 1 << 2`
@@ -48,15 +55,32 @@ zéro `import random`, zéro état global mutable).
 - `FACE_DEFINITIF: int = 2`
 - `FURT_RIVE_PIEGE: int = 0`
 - `FURT_RIVE_SABOTAGE: int = 1`
+- `CHAMAN_NONE: int = 0`
+- `CHAMAN_TAMBOUR: int = 1`
+- `CHAMAN_CHANT: int = 2`
+- `DUEL_NONE: int = 0`
+- `DUEL_DEFI: int = 1`
+- `DUEL_TERRITOIRE_TENU: int = 2`
+- `PLUME_NONE: int = 0`
+- `PLUME_CHAUD: int = 1`
+- `PLUME_CALME: int = 2`
+- `PLUME_KIND_RAY: int = 0`
+- `PLUME_KIND_RANK: int = 1`
+- `CALE_NONE: int = 0`
+- `CALE_SABOTAGE: int = 1`
+- `CALE_ECAILLE: int = 2`
+- `MAX_ECAILLES: int = 4`
 - `LISIERE_ABSENT: int = 0`
 - `LISIERE_UNCONSTRUCTED: int = 1`
 - `LISIERE_CONSTRUCTED: int = 2`
 - `LISIERE_EJECTED: int = 3`
+- `LISIERE_ROOTED: int = 3`
 - `FAMILLE_GARDIEN: str = 'GARDIEN'`
 - `FAMILLE_REVE: str = 'REVE'`
 - `FAMILLE_CROISSANCE: str = 'CROISSANCE'`
 - `CARD_NONE: int = 0`
 - `CARD_SABOTAGE: int = 13`
+- `CARD_ECAILLE: int = 14`
 - `TILE_R_BASE: int = 100`
 - `STEP_1_2_DEAL: int = 12`
 - `STEP_1_3_DICE: int = 13`
@@ -70,10 +94,11 @@ zéro `import random`, zéro état global mutable).
 - `STEP_5_1_TACTIQUES: int = 51`
 - `STEP_5_2_RATISSAGE: int = 52`
 - `STEP_5_3_END_CHECK: int = 53`
+- `STEP_6_1_ENRACINEMENT: int = 61`
 - `STEP_6_2_EVOLUTION: int = 62`
 - `STEP_6_3_END_TURN: int = 63`
 - `STEP_GAME_OVER: int = 99`
-- `DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = ...`
+- `DOUBLE_FACE_UPGRADE_GARDIENS: frozenset[tuple[str, str]] = frozenset(((f'G{i}', 'A') for i in range(1, 16)))`
 - `PEUPLES_ORDER: tuple[str, ...] = ('M', 'R', 'O', 'H', 'E', 'I')`
 - `ANIMAUX_SAUVAGES: frozenset[str] = frozenset(('M', 'R', 'O'))`
 - `PEUPLES_ONIRIQUES: frozenset[str] = frozenset(('H', 'E'))`
@@ -114,7 +139,7 @@ Profil structurel immuable d'une tuile Tactique T1..T6.
 
 ### Classe `GameConfig`
 
-Configuration immuable d'une partie sur le socle canonique v6.1 (`P4_2233`, Mode 1..4).
+Configuration immuable d'une partie sur le socle canonique v6.2 (`P4_2233`, Mode 1..4).
 
 **Champs :**
 - `n_players: int`
@@ -125,6 +150,7 @@ Configuration immuable d'une partie sur le socle canonique v6.1 (`P4_2233`, Mode
 - `coordonnateur_initial: int`
 - `max_revision_passes: int`
 - `tile_profiles: tuple[tuple[str, str], ...]`
+- `symmetric_core_only: bool`
 - `profil_piste: str`
 - `p_max: int`
 - `dotation_arbres: tuple[int, ...]`
@@ -134,9 +160,14 @@ Configuration immuable d'une partie sur le socle canonique v6.1 (`P4_2233`, Mode
 - `nb_animaux_sauvages: int`
 - `nb_peuples_oniriques: int`
 
+**Propriétés :**
+- `has_insectes_peuple: bool` — Vrai uniquement si le Peuple Insectes ('I') siège autour de la table (clôture Essaim INV-21).
+- `accessories_enabled: bool` — Vrai si les accessoires 3+3 sont actifs (actifs par défaut en Mode >= 2 sauf symmetric_core_only).
+- `enracinement_enabled: bool` — Vrai si l'Enracinement volontaire au ménage est actif (actif par défaut en Mode >= 2 sauf symmetric_core_only).
+
 **Méthodes :**
 - `seat_of_peuple(self, peuple_code: str) -> int | None` — Retourne le siège contrôlant ce Peuple, ou None s'il est absent de la table.
-- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (v6.1 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE).
+- `profile_for_slot(self, slot_id: str) -> str | None` — Retourne le profil actif d'un emplacement (v6.2 : Bug=B & Colonie=B ; Mode 3/4 : STANDARD_A ou NEUTRE).
 
 ### Classe `ParcelObs`
 
@@ -229,6 +260,20 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `piste_tactiques: tuple[TactiqueSlotObs, ...]`
 - `piste_colonie: tuple[int, ...]`
 - `machines: tuple[MachineObs, ...]`
+- `has_insectes_peuple: bool`
+- `accessories_enabled: bool`
+- `enracinement_enabled: bool`
+- `resonance_pending_count: int` — Nombre d'activations Résonance (icône 6) en attente sans écrasement (0..7).
+- `ecaille_deck_count: int`
+- `ecaille_pending_count: int`
+- `croc_parcel: tuple[int, int] | None` — Retourne `(ray, p)` si le Croc Reptile est posé sur le plateau, sinon None (en réserve).
+- `duel_state: tuple[int, int, int]` — Retourne `(status, ray, p)` du jeton Duel Mammifère (`(DUEL_NONE, 0, 0)` si en réserve).
+- `oiseau_has_perchoir: bool` — Vrai si un jeton est actuellement posé face cachée sur le Perchoir de Vigie de O.
+- `oiseau_perchoir_card: int | None` — Code carte sur le Perchoir de O (None si masqué pour autrui ou vide si CARD_NONE).
+- `oiseau_de_envol: int | None` — Valeur (1..6) du Dé d'Envol de O, ou None si masqué/non lancé.
+- `oiseau_plume: tuple[int, int, int, bool]` — Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée).
+- `has_any_rooted_reve: bool` — Vrai si au moins un Rêve a été enraciné (rendant le Sommeil impossible, INV-22).
+- `rooted_tiles: tuple[tuple[int, str, int, int, int], ...]` — Tuiles enracinées : tuple de `(slot_idx, tile_id, ray, p, tier_souches)`.
 
 **Méthodes :**
 - `hand_of(self, seat: int) -> HandObs` — Accès direct O(1) à la main observée d'un siège (masquée si paravent fermé).
@@ -240,7 +285,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `parcel_defenseurs(self, r: int, p: int) -> int` — Nombre de Défenseurs en forêt sur (r, p) en O(1).
 - `parcel_def1_count(self, r: int, p: int) -> int` — Nombre de 1ers Défenseurs (Étape 2.1, publics) posés sur la parcelle (r, p).
 - `parcel_has_nid(self, r: int, p: int) -> bool` — Retourne True si un Nid est présent sur (r, p) en Mode >= 2.
-- `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes) sur la case Furtivité (lisiere, p) en O(1).
+- `furtivite_defs_and_ins(self, lisiere: int, p: int) -> tuple[int, int]` — Retourne (nb_total_defenseurs, nb_insectes=0) sur la case Furtivité (lisiere, p) en O(1).
 - `furtivite_rive_defs(self, lisiere: int, p: int, rive: int) -> int` — Retourne le nombre de Défenseurs (0..2) sur la rive `rive` (0 ou 1) de (lisiere, p) en O(1).
 - `is_ray_furtivite_open(self, ray: int) -> bool` — Vrai si la piste de forêt `ray` n'est pas intégralement rasée (au moins 1 parcelle non-Route et >= 1 machine non retirée).
 - `furtivite_ray_rive_defs(self, ray: int, rive: int) -> int` — Nombre de Défenseurs (0..2) sur la rive `rive` (0=Piège, 1=Sabotage) au pied du rayon `ray`.
@@ -248,13 +293,13 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `furtivite_ray_def1_rive_count(self, ray: int, rive: int) -> int` — Nombre de 1ers Défenseurs (2.1, publics) posés sur la rive `rive` au pied du rayon `ray`.
 - `player_def1_furtivite_target(self, seat: int) -> tuple[int, int] | None` — Retourne `(ray, rive)` si le 1er Défenseur de `seat` est en Furtivité, sinon None.
 - `player_def2_furtivite_target(self, seat: int) -> tuple[int, int] | None` — Retourne `(ray, rive)` si le 2e Défenseur de `seat` est en Furtivité, sinon None.
-- `mobilized_machines_for_ray(self, ray: int) -> int` — Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : cartes Machine révélées du rayon + Ratissages.
+- `mobilized_machines_for_ray(self, ray: int) -> int` — Retourne `m(ray)` (0..2) lorsque les paravents sont ouverts : jetons Machine révélés du rayon + Ratissages.
 - `lisiere_tile_info(self, slot_idx: int) -> tuple[str, int, int]` — Retourne (tile_id, status, constructors) pour l'emplacement de lisière `slot_idx`.
 - `player_def1_lisiere_slot(self, seat: int) -> int | None` — Retourne `slot_idx` si le 1er Défenseur de `seat` est sur une tuile en lisière, sinon None.
 - `player_def2_lisiere_slot(self, seat: int) -> int | None` — Retourne `slot_idx` si le 2e Défenseur de `seat` est sur une tuile en lisière, sinon None.
 - `machine_pos_status(self, r: int, m_type: int) -> tuple[int, int]` — Retourne (position, status) de la machine `(r, m_type)` en O(1).
-- `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si en Ratissage).
-- `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
+- `machine_effective_rouges(self, r: int, m_type: int) -> int` — Retourne le nombre de jetons rouges physiques (v6.2 INV-12 : 0 bonus imprimé en Ratissage).
+- `is_sommeil_victory(self) -> bool` — Vrai si tous les Rêves en jeu sont en bloc à gauche ET aucun Rêve n'a été enraciné (INV-22).
 - `gardien_available_at_case(self, case_1_6: int) -> bool` — Retourne True si un Gardien occupe la case `1..6` et porte >= 1 2e Défenseur actif.
 - `gardien_present_at_case(self, case_1_6: int) -> bool` — Retourne True si un Gardien est construit sur la case `1..6`.
 - `gardien_face_at_case(self, case_1_6: int) -> int` — Retourne 0 (vide), 1 (Face 1) ou 2 (Face 2) sur la case `1..6`.
@@ -274,6 +319,13 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `player_def1_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée sur un Rêve par le 1er Défenseur (`2.1`) de `seat`, ou 0.
 - `player_def2_reve_case(self, seat: int) -> int` — Retourne la case `1..6` ciblée sur un Rêve par le 2e Défenseur (`2.2`) de `seat`, ou 0.
 - `tactique_code_bugs(self, rank_0_5: int) -> tuple[int, int]` — Retourne (code, bugs) au rang `0..5` de la Réglette des Tactiques.
+- `is_trigger_lit(self, case_num: int) -> bool` — Retourne True si l'icône Gardien `1..6` est allumée (compteur > 0 pour 6=RESONANCE).
+- `machine_cale(self, r: int, m_type: int) -> int` — Retourne CALE_NONE (0), CALE_SABOTAGE (1) ou CALE_ECAILLE (2) sous la machine.
+- `machine_has_alteration(self, r: int, m_type: int) -> bool` — Retourne True si la machine porte un jeton d'Altération des Entités (E).
+- `machine_passenger_insects(self, r: int, m_type: int) -> int` — Nombre d'Insectes passagers (M1) embarqués sur cette machine.
+- `humain_chaman_archetype(self, def_idx: int) -> int` — Archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du Défenseur `def_idx` (0 ou 1) de H.
+- `is_slot_rooted(self, slot_idx: int) -> bool` — Vrai si la tuile de lisière `slot_idx` a été enracinée volontairement.
+- `waiting_defenders_count(self, seat: int) -> int` — Nombre de Défenseurs couchés « en attente » devant `seat` (après construction 3.1).
 
 ### Classe `GameState`
 
@@ -291,14 +343,18 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `deck_cursor: int`
 - `sabotage_deck_count: int`
 - `sabotage_pending_count: int`
+- `ecaille_deck_count: int`
+- `ecaille_pending_count: int`
 - `reshuffle_count: int`
+- `oiseau_perchoir_card: int` — Code jeton (CARD_NONE ou 1..14) posé face cachée sur le Perchoir de Vigie de O.
 
 **Méthodes :**
 - `clone(self) -> GameState` — Copie rapide et strictement indépendante à l'octet près (compatible IS-MCTS / Forks).
 - `raw_used_bytes(self) -> bytes` — Extrait immuable des octets alloués (pour assertions de tests et hachage déterministe).
-- `light_trigger(self, case_num: int) -> None` — Allume le signal binaire d'une case 1..6 sur la Piste des Gardiens.
+- `get_resonance_pending_count(self) -> int` — Compteur individuel (0..7) d'activations en attente sur l'icône 6 (RESONANCE, INV-09).
+- `light_trigger(self, case_num: int) -> None` — Allume l'icône Gardien `1..6` (incrémente le compteur 3 bits sans écrasement sur 6=RESONANCE).
 - `is_trigger_lit(self, case_num: int) -> bool`
-- `clear_trigger(self, case_num: int) -> None`
+- `clear_trigger(self, case_num: int) -> None` — Éteint l'icône `1..5` ou décrémente d'1 le compteur de l'icône `6` (RESONANCE).
 - `get_parcel_arbres(self, r: int, p: int) -> int`
 - `get_parcel_souches(self, r: int, p: int) -> int`
 - `set_parcel_arbres_souches(self, r: int, p: int, arbres: int, souches: int) -> None`
@@ -335,6 +391,8 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `is_player_def2_definitif(self, seat: int) -> bool`
 - `set_player_def2_definitif(self, seat: int, is_definitif: bool) -> None`
 - `decode_def_loc(self, raw_loc: int) -> tuple[str, int, int, int]` — Décode une localisation brute en (kind, a, b, c).
+- `mark_defender_waiting(self, seat: int, def_idx: int) -> None` — Couche le Défenseur (seat, def_idx) « en attente » devant son propriétaire (après construction 3.1, INV-19).
+- `list_waiting_defenders(self) -> list[tuple[int, int]]` — Retourne tous les `(seat, def_idx)` actuellement couchés « en attente ».
 - `remove_player_defender(self, seat: int, def_idx: int) -> None` — Retire proprement le Défenseur (seat, def_idx) de sa position actuelle vers la main.
 - `place_defender_foret(self, seat: int, def_idx: int, r: int, p: int, face: int) -> None`
 - `is_ray_furtivite_open(self, ray: int) -> bool` — Vrai si le rayon `ray` n'est pas intégralement rasé (>= 1 parcelle non-Route et >= 1 machine non retirée).
@@ -374,12 +432,15 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `get_machine_pos_status(self, ray: int, m_type: int) -> tuple[int, int, bool]` — Retourne (pos 0..P_Max, status, pending_ratissage).
 - `set_machine_pos_status(self, ray: int, m_type: int, pos: int, status: int, pending_ratissage: bool=False) -> None`
 - `get_machine_tokens(self, ray: int, m_type: int) -> tuple[int, int]` — Retourne (rouges physiques, bleus).
-- `get_machine_effective_rouges(self, ray: int, m_type: int) -> int` — Retourne la puissance rouge totale (jetons rouges + 1 imprimé si face Ratissage).
+- `get_machine_effective_rouges(self, ray: int, m_type: int) -> int` — Retourne le nombre de jetons rouges physiques (v6.2 INV-12 : 0 bonus imprimé en Ratissage).
 - `set_machine_tokens(self, ray: int, m_type: int, rouges: int, bleus: int) -> None`
 - `machines_on_parcel(self, ray: int, p: int) -> list[int]` — Retourne la liste des types de machines physiquement présentes sur (ray, p).
-- `is_sommeil_victory(self) -> bool` — Vrai si toutes les tuiles Rêves en jeu (2 * peuples oniriques > 0) sont en bloc à gauche.
-- `add_permanent_sabotage(self, count: int=1, *, light_case_3: bool=True) -> None` — Ajoute définitivement +count cartes Sabotage (mises de côté pour le remélange 6.3).
-- `rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None` — Reconstitue le paquet Machine hors Ratissages/retirées + Sabotages avec mélange stable par carte.
+- `is_sommeil_victory(self) -> bool` — Vrai si tous les Rêves en jeu sont en bloc à gauche ET aucun Rêve n'est enraciné (INV-22).
+- `count_active_cale_ecaille(self) -> int` — Nombre de jetons Écaille actuellement glissés en cale sous des machines.
+- `count_total_ecailles_in_play(self) -> int` — Total physique d'Écailles sorties de la réserve Reptile (sac + attente + cales <= 4).
+- `add_ecaille_to_bag(self, count: int=1) -> int` — Ajoute jusqu'à `count` jetons Écaille depuis la réserve Reptile (plafond physique 4). Retourne le nombre ajouté.
+- `add_permanent_sabotage(self, count: int=1, *, light_case_3: bool=True) -> None` — Ajoute définitivement +count jetons Sabotage (rejoignent le sac au ménage 6.3).
+- `rebuild_and_shuffle_machine_deck(self, *, increment_reshuffle: bool) -> None` — Reconstitue le sac opaque hors Ratissages/retirées + Sabotages + Écailles et vide le Perchoir.
 - `remove_machine_card_from_deck_if_present(self, card_code: int) -> None` — Retire une carte Machine du paquet restant si elle passe en Siège en 1.1.
 - `draw_next_machine_card(self) -> int` — Pioche la prochaine carte du paquet Machine (ou CARD_NONE si paquet épuisé).
 - `get_player_hand(self, seat: int) -> tuple[int, int, int, int, int]` — Retourne (card_code, d1, d2, lecture_m, bound_tactique) pour seat.
@@ -407,9 +468,42 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `mark_gardien_opened_this_turn(self, case_1_6: int) -> None` — Marque la case Gardien `1..6` comme ayant déjà été ouverte ce tour.
 - `was_seat_deviated_by_bug_this_turn(self, seat: int) -> bool` — Vrai si la carte Machine du siège `seat` a déjà été déviée par un Bug en 3.2 ce tour.
 - `mark_seat_deviated_by_bug_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant consommé son déclencheur 3.2 sur 6. Insecte (Bug).
-- `get_reve_advance_dest_rank(self, rank_0_5: int) -> int | None` — Hook Mode 4 : retourne l'index `0..5` de la 1re case libre à gauche, ou None.
+- `get_reve_advance_dest_rank(self, rank_0_5: int) -> int | None` — Retourne l'index `0..5` de la 1re case non-Rêve à gauche de `rank_0_5`, ou None si bloqué au bord.
+- `shift_reve_block_left(self, rank_0_5: int) -> int | None` — Glisse le Rêve en `rank_0_5` d'1 rang à gauche en poussant tout bloc contigu et ses Défenseurs (INV-15). Retourne le nouvel index `rank_0_5 - 1` du Rêve poussé, ou None s'il est bloqué contre le rang 1.
+- `swap_tactique_ranks(self, rank_a: int, rank_b: int) -> None` — Échange les tuiles Rêve présentes aux rangs `rank_a` et `rank_b` avec leurs Défenseurs solidaires.
+- `get_croc_parcel(self) -> tuple[int, int] | None` — Retourne `(ray, p)` si le Croc Reptile est en forêt, ou None s'il est en réserve.
+- `set_croc_parcel(self, ray: int, p: int) -> None` — Pose ou déplace le Croc Reptile sur la parcelle `(ray, p)` (peut cohabiter avec un Piège).
+- `clear_croc(self) -> None` — Renvoie le Croc dans la réserve Reptile.
+- `get_machine_cale(self, ray: int, m_type: int) -> int` — Retourne CALE_NONE (0), CALE_SABOTAGE (1) ou CALE_ECAILLE (2) sous la machine.
+- `set_machine_cale(self, ray: int, m_type: int, cale_type: int) -> None` — Pose (ou retire via CALE_NONE) une cale Sabotage/Écaille sous une machine mobile (max 1).
+- `has_machine_alteration(self, ray: int, m_type: int) -> bool` — Vrai si la machine porte un jeton d'Altération des Entités (max 1 par machine mobile).
+- `set_machine_alteration(self, ray: int, m_type: int, active: bool) -> None` — Pose ou retire le jeton d'Altération des Entités sur la machine `(ray, m_type)`.
+- `was_seat_altered_this_turn(self, seat: int) -> bool` — Vrai si la machine révélée par `seat` en 3.2 a été altérée (recul sans frappe).
+- `mark_seat_altered_this_turn(self, seat: int) -> None` — Marque le siège `seat` comme ayant eu sa machine altérée en 3.2.
+- `get_machine_passenger_insects(self, ray: int, m_type: int) -> int` — Nombre d'Insectes passagers (M1) actuellement embarqués sur cette machine.
+- `set_machine_passenger_insects(self, ray: int, m_type: int, count: int) -> None` — Définit le nombre d'Insectes passagers (0..15) sur la machine (0 si I absent).
+- `get_duel_state(self) -> tuple[int, int, int]` — Retourne `(status, ray, p)` du jeton Duel Mammifère (`(DUEL_NONE, 0, 0)` si en réserve).
+- `set_duel_defi(self, ray: int, p: int) -> None` — Pose ou déplace le jeton Duel face `DEFI` sur la parcelle `(ray, p)`.
+- `flip_duel_to_territoire_tenu(self) -> bool` — Bascule le Duel de `DEFI` vers `TERRITOIRE_TENU` en place. Retourne True si basculé.
+- `clear_duel(self) -> None` — Renvoie le jeton Duel dans la réserve Mammifère.
+- `is_duel_territoire_tenu_at(self, ray: int, p: int) -> bool` — Vrai si le jeton Duel est sur `(ray, p)` face `TERRITOIRE_TENU` (bloque avancée rangs 3/6).
+- `get_humain_chaman_archetype(self, def_idx: int) -> int` — Retourne l'archétype Chamane (CHAMAN_NONE/TAMBOUR/CHANT) du pion `def_idx` (0 ou 1) de H.
+- `set_humain_chaman_archetype(self, def_idx: int, archetype: int) -> None` — Enregistre l'archétype du pion `def_idx` de H et impose automatiquement l'autre au binôme.
+- `is_chant_on_reve_case(self, case_1_6: int) -> bool` — Vrai si le pion Chamane `CHANT` des Humains (H) défend (actif ou consommé) le Rêve en `case_1_6`.
+- `get_oiseau_de_envol(self) -> tuple[int, bool]` — Retourne `(valeur_1_6_ou_0, retenu_en_double_horizon)` du Dé d'Envol de O.
+- `set_oiseau_de_envol(self, val: int, chose_de_envol: bool=False) -> None`
+- `get_oiseau_plume(self) -> tuple[int, int, int, bool]` — Retourne `(face, kind, idx, locked)` de la Plume de Vigie (`face=0` si non posée).
+- `set_oiseau_plume(self, face: int, kind: int, idx: int, *, locked: bool=False) -> None` — Pose ou ajuste la Plume de Vigie (`face`: CHAUD/CALME, `kind`: RAY/RANK, `idx`: 0..5).
+- `lock_oiseau_plume(self) -> None` — Fige la Plume de Vigie lorsque O retourne son 2e pion sur Définitif (INV-03).
+- `is_slot_rooted(self, slot_idx: int) -> bool` — Vrai si l'emplacement de lisière `slot_idx` a été enraciné volontairement.
+- `get_slot_rooted_info(self, slot_idx: int) -> tuple[int, int, int, bool] | None` — Retourne `(ray, p, tier_souches 1|2, is_reve)` si `slot_idx` est enraciné, sinon None.
+- `root_tile_at_parcel(self, slot_idx: int, ray: int, p: int, tier_souches: int=1) -> None` — Enracine la tuile construite `slot_idx` au pied de `ray` face à `(ray, p)` (INV-22).
+- `list_rooted_tiles(self) -> list[tuple[int, str, int, int, int]]` — Liste toutes les tuiles enracinées : `(slot_idx, tile_id, ray, p, tier_souches)`.
+- `has_any_rooted_reve(self) -> bool` — Vrai si au moins un Rêve a été enraciné (Sommeil du Contremaître impossible, INV-22).
+- `was_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> bool` — Vrai si une création de Route en bordure a déjà poussé cette machine vers le cœur (INV-13).
+- `mark_machine_pushed_heart_this_turn(self, ray: int, m_type: int) -> None` — Marque la machine comme déjà poussée d'1 parcelle vers le cœur sur création de Route en bordure.
 - `reset_transient_modifiers(self) -> None` — Remet intégralement à zéro la plage dédiée de modificateurs transitoires en 6.2.
-- `cleanup_end_of_turn_6_2(self) -> None` — Ménage rapide de fin de tour 6.2 par tranches mémoire contiguës.
+- `cleanup_end_of_turn_6_2(self) -> None` — Ménage rapide de fin de tour 6.2 par tranches mémoire contiguës + descente Insectes passagers (INV-21).
 - `get_observation(self, seat_id: int) -> PlayerObservation` — Construit une vue immuable strictement isolée sur snapshot 384B assaini en O(1).
 
 ## PRNG adressable par événement (`engine.rng`)
@@ -439,7 +533,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 
 *Source : `engine/primitives.py`*
 
-> Bus des 7 Primitives Formelles actives v6.1, structures de décision/fin et registre de hooks Mode 4.
+> Bus des 7 Primitives Formelles actives v6.2, structures de décision/fin et registre de hooks Mode 4.
 
 ### Constantes publiques
 
@@ -480,6 +574,7 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `HOOK_5_CONTACT_NID: str = 'HOOK_5_CONTACT_NID'`
 - `HOOK_5_FIN_ATTAQUE_MACHINE: str = 'HOOK_5_FIN_ATTAQUE_MACHINE'`
 - `HOOK_5_3_PRE_RETRAIT: str = 'HOOK_5_3_PRE_RETRAIT'`
+- `HOOK_ENRACINEMENT: str = 'HOOK_ENRACINEMENT'`
 - `HOOK_REPOUSSE_FINALE: str = 'HOOK_REPOUSSE_FINALE'`
 - `HOOK_EFFECT_RESUME: str = 'HOOK_EFFECT_RESUME'`
 - `EffectHandler = Callable[[GameState, str, dict[str, Any]], Any]`
@@ -491,14 +586,15 @@ Vue immuable strictement isolée sur snapshot 384 octets assaini (zéro fuite pa
 - `list_registered_tiles() -> tuple[tuple[str, str], ...]`
 - `clear_tile_registry() -> None`
 - `has_pending_decision(state: GameState) -> bool` — Retourne True si une DecisionRequest est déjà en tête de la pile de continuation.
+- `push_continuation_sequence(state: GameState, frames: Sequence[tuple[Any, ...]]) -> None` — Empile une séquence de frames en tête de continuation dans leur ordre chronologique naturel (C3-02).
 - `push_effect_decision(state: GameState, decideur: int, options: Sequence[Any], context: dict[str, Any], *, slot_id: str, profile: str, resume_tag: str='RESUME', resume_payload: tuple[Any, ...]=(), decision_type: str=DEC_EFFET_TUILE) -> DecisionRequest` — Suspend proprement un effet de tuile sur une DecisionRequest gouvernée par `decideur`.
 - `dispatch_hook(state: GameState, hook_name: str, ctx: dict[str, Any] | None=None) -> list[Any]` — Exécute le bus de hooks pour les tuiles en jeu ayant un profil actif. En Mode 1 : retourne immédiatement []. En Mode 2 : neutralise les textes de G/R/M (profile_for_slot -> None) tout en laissant passer les hooks structurels et Migration A/A. Si un handler suspend via push_effect_decision, met en file les handlers restants.
 - `prim_mod_seuil(state: GameState, delta: int, *, ray: int | None=None, p: int | None=None, m_type: int | None=None) -> None` — Primitive 1 : MOD_SEUIL — modifie le Seuil de Parade (parcelle, rayon, machine ou global).
-- `prim_creation_entite(state: GameState, entity_type: str, *, ray: int=0, p: int=1, lisiere: int | None=None, count: int=1, light_trigger: bool=True) -> None` — Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Sabotage ou Arbre (Repousse).
-- `apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool` — Règle A16 : tout mouvement entrant d'une machine sur un Nid non protégé le renvoie en lisière (reconstructible) et défausse tous les Insectes locaux.
-- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, m_type: int=0, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine ou Défenseur.
+- `prim_creation_entite(state: GameState, entity_type: str, *, ray: int=0, p: int=1, lisiere: int | None=None, m_type: int=0, cale_type: int=CALE_SABOTAGE, count: int=1, light_trigger: bool=True) -> None` — Primitive 2 : CREATION_ENTITE — crée Insecte, Piège, Croc, Sabotage, Écaille, Altération, Cale ou Arbre.
+- `apply_machine_nid_contact(state: GameState, ray: int, p: int) -> bool` — Règle v6.2 (INV-16) : zéro écrasement au contact hors Route Forestière. Nids, Insectes, Pièges, Croc et Duel cohabitent pacifiquement avec toute machine en forêt. Seule la création d'une Route Forestière (0 Arbre, 0 Souche) vide la case.
+- `prim_deplacement(state: GameState, entity_type: str, *, src_ray: int=0, src_p: int=1, dst_ray: int=0, dst_p: int=1, src_lisiere: int | None=None, dst_lisiere: int | None=None, src_lisiere_slot: int | None=None, from_waiting: bool=False, src_seat: int | None=None, m_type: int=0, dst_machine_type: int | None=None, global_track: str | None=None, global_case: int=1, count: int=1) -> bool` — Primitive 3 : DEPLACEMENT — déplace Insecte, Machine mobile ou Défenseur.
 - `prim_mod_puissance(state: GameState, ray: int, m_type: int, *, delta_rouges: int=0, delta_bleus: int=0, flip_rouge_to_bleu: int=0) -> None` — Primitive 4 : MOD_PUISSANCE — ajuste les jetons Puissance rouges et bleus Surchauffe.
-- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 5 : PERMUTATION_PISTE — avancée Rêve Mode 4 (ADVANCE_REVE_LEFT) ou décalage dé M.
+- `prim_permutation_piste(state: GameState, action: str, *, rank_a: int=0, rank_b: int=0, seat: int=0, delta_m: int=0, rebind_tactique: bool=False) -> bool` — Primitive 5 : PERMUTATION_PISTE — glissement contigu Rêve (ADVANCE_REVE_LEFT), échange de rangs ou décalage dé M.
 - `prim_partage_info_etat_gardien(state: GameState, action: str, *, case_1_6: int=1, new_face: int=2) -> bool` — Primitive 7 : PARTAGE_INFO_ETAT_GARDIEN — états Gardiens & ouverture paravents.
 - `prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool=True) -> bool` — Primitive 8 : MOD_LOI_DU_COEUR — point d'entrée typé des Lois passives/temporaires.
 

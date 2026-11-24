@@ -43,14 +43,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
-    """Vérifie le déclencheur 5. Rêve natif (actif uniquement si défendu) et la partition 6. Insecte > 5. Rêve."""
-    # 1) Rêve en case 6 SANS Défenseur touché par un dé M=6 -> inerte, 5. Rêve NE s'allume PAS
+    """Vérifie le déclencheur 4. Rêve (v6.2 actif si défendu) et le cumul 5. Insecte + 4. Rêve sur déviation annulée (C3-04)."""
+    # 1) Rêve en case 6 SANS Défenseur touché par un dé M=6 -> inerte, 4. Rêve NE s'allume PAS
     cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "H", "I"), exp_seed=7101)
     st_inert = GameState(cfg)
     st_inert.tour = 2
     st_inert.set_tactique_at_rank(5, TILE_R_BASE + 1)
-    st_inert.set_gardien_at_case(5, 1, 1)
-    st_inert.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
+    st_inert.set_gardien_at_case(4, 1, 1)
+    st_inert.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
     st_inert.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_inert.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
@@ -58,19 +58,19 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     st_inert.set_parcel_insectes(3, 1, 1)
     st_inert.step = STEP_3_2_REVEAL
     _ = step_until_decision(st_inert)
-    assert st_inert.has_gardien_opened_this_turn(5) is False
-    assert st_inert.count_gardien_pari_defenders_at_case(5) == 1
+    assert st_inert.has_gardien_opened_this_turn(4) is False
+    assert st_inert.count_gardien_pari_defenders_at_case(4) == 1
 
-    # 2) Partition stricte 6. Insecte > 5. Rêve : carte déviée par Bug vers un Rêve défendu -> seul 6. Insecte s'allume !
+    # 2) v6.2 (INV-15 / C3-04) : carte déviée par Bug vers un Rêve défendu et annulée -> allume 5. Insecte ET 4. Rêve !
     st_bug = GameState(cfg)
     st_bug.tour = 2
     st_bug.set_tactique_at_rank(5, TILE_R_BASE + 1)
     st_bug.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)
     st_bug.set_bugs_at_case(5, 1)
-    st_bug.set_gardien_at_case(5, 1, 1)
-    st_bug.set_gardien_at_case(6, 2, 1)
-    st_bug.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
-    st_bug.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
+    st_bug.set_gardien_at_case(4, 1, 1)
+    st_bug.set_gardien_at_case(5, 2, 1)
+    st_bug.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
+    st_bug.place_defender_gardien_pari(2, 5, FACE_DEFINITIF)
     st_bug.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_bug.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)
     for s in (1, 2, 3):
@@ -81,16 +81,16 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     assert isinstance(req_bug, DecisionRequest)
     apply_choice(st_bug, "M_PLUS_1")
     _ = step_until_decision(st_bug)
-    assert st_bug.has_gardien_opened_this_turn(6) is True
-    assert st_bug.has_gardien_opened_this_turn(5) is False
+    assert st_bug.has_gardien_opened_this_turn(5) is True
+    assert st_bug.has_gardien_opened_this_turn(4) is True
     assert st_bug.get_player_hand(0)[4] == 0  # Machine déviée annulée par le Défenseur sur R1
 
-    # 3) Rêve portant >= 1 Défenseur (posé en 2.1) annulant une carte non déviée -> 5. Rêve s'allume !
+    # 3) Rêve portant >= 1 Défenseur (posé en 2.1) annulant une carte non déviée -> 4. Rêve s'allume !
     st_act = GameState(cfg)
     st_act.tour = 2
     st_act.set_tactique_at_rank(5, TILE_R_BASE + 1)
-    st_act.set_gardien_at_case(5, 1, 1)
-    st_act.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
+    st_act.set_gardien_at_case(4, 1, 1)
+    st_act.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
     st_act.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)
     st_act.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_act.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
@@ -99,8 +99,8 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     st_act.set_parcel_insectes(3, 1, 1)
     st_act.step = STEP_3_2_REVEAL
     _ = step_until_decision(st_act)
-    assert st_act.has_gardien_opened_this_turn(5) is True
-    assert st_act.count_gardien_pari_defenders_at_case(5) == 0
+    assert st_act.has_gardien_opened_this_turn(4) is True
+    assert st_act.count_gardien_pari_defenders_at_case(4) == 0
 
 
 def test_v6_1_furtivite_piege_and_sabotage_active_in_b2_b1_and_b3() -> None:

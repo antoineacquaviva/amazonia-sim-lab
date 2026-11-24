@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from typing import NamedTuple
 
 from engine.state import (
+    CARD_ECAILLE,
     CARD_NONE,
     CARD_SABOTAGE,
     MACHINE_ABATTEUSE,
@@ -24,6 +25,8 @@ from engine.state import (
     STEP_6_3_END_TURN,
     STEP_GAME_OVER,
     TRACK_LEN,
+    TRIG_PARADE,
+    TRIG_RESONANCE,
     GameState,
     is_reve_code,
 )
@@ -676,7 +679,7 @@ class TelemetryTracker:
         bound_tact = 0
         for s in range(n):
             card, _d1, _d2, _lecture_m, bound_t = state.get_player_hand(s)
-            if card == CARD_SABOTAGE:
+            if card in (CARD_SABOTAGE, CARD_ECAILLE):
                 cards_sab += 1
             elif card == CARD_NONE:
                 cards_none += 1
@@ -1170,9 +1173,9 @@ class TelemetryTracker:
                 if kind in ("GARDIEN_PARI", "GARDIEN_PARI_CONSUMED"):
                     def_gard += 1
                     distinct_gardien_cases.add(a)
-                    if a == 1:
+                    if a == TRIG_PARADE:
                         def_parade += 1
-                    if a == 4:
+                    if a == TRIG_RESONANCE:
                         def_res += 1
                     else:
                         def_other += 1

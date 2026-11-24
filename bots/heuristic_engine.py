@@ -28,9 +28,17 @@ from bots.belief_and_ticks import (
     softmax_select_index,
 )
 from engine.core_engine import (
+    DEC_BOUCLIER_LISIERE_5_3,
     DEC_CHOIX_CASE_GARDIEN,
+    DEC_CHOIX_CIBLE_REVE_3_2,
+    DEC_ENRACINEMENT_6_1,
+    DEC_HUMAIN_CHAMAN_2_1,
     DEC_LIBERATION_BATISSEUR_3_1,
+    DEC_MAMMIFERE_DUEL_2,
     DEC_MIGRATION_INSECTE_4_3,
+    DEC_OISEAU_DE_ENVOL_1_3,
+    DEC_OISEAU_PERCHOIR_1_1,
+    DEC_OISEAU_PLUME_2,
     DEC_ORDRE_ATTAQUE_5_1,
     DEC_ORDRE_CONSTRUCTION_3_1,
     DEC_ORDRE_NID_4_2,
@@ -39,6 +47,7 @@ from engine.core_engine import (
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
     DEC_POSE_PIEGE_FURTIVITE_4_1,
+    DEC_REPTILE_POSE_CROC_3_2,
     DEC_REVISION_DEFENSEUR_2,
     apply_choice,
     step_until_decision,
@@ -47,6 +56,11 @@ from engine.primitives import DEC_EFFET_TUILE, DecisionRequest, GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
     CANONICAL_DOTATION,
+    CARD_ECAILLE,
+    CARD_SABOTAGE,
+    CHAMAN_CHANT,
+    CHAMAN_TAMBOUR,
+    DUEL_TERRITOIRE_TENU,
     FAMILLE_CROISSANCE,
     FAMILLE_REVE,
     FURT_RIVE_PIEGE,
@@ -61,12 +75,21 @@ from engine.state import (
     MAX_P,
     PIEGE_ACTIF,
     PIEGE_AUCUN,
+    PLUME_CALME,
+    PLUME_CHAUD,
+    PLUME_KIND_RAY,
     RATISSAGE_TACTIQUE_SPEC,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     SYNERGY_META,
     TACTIQUES_SPEC,
     TRACK_LEN,
+    TRIG_INSECTE,
+    TRIG_PARADE,
+    TRIG_PIEGEAGE,
+    TRIG_RESONANCE,
+    TRIG_REVE,
+    TRIG_SABOTAGE,
     GameConfig,
     GameState,
     PlayerObservation,
@@ -74,6 +97,7 @@ from engine.state import (
     is_reve_code,
     is_tactique_charge,
     is_tactique_code,
+    machine_threat_key_3_2,
     unpack_machine_card,
 )
 
@@ -992,20 +1016,185 @@ def _choose_policy(
     if dtype == DEC_REVISION_DEFENSEUR_2:
         pass_idx = int(decision.context.get("pass", 1))
         eps = (24.0 if is_b2 else 32.0) + (pass_idx - 1) * 12.0
-        move_opts = [o for o in opts if o[0] == "DEPLACER_REFLEXION"]
+        move_opts = [o for o in opts if o[0] in ("DEPLACER_REFLEXION", "DEPLACER_DEFINITIF")]
+        keep_opt: Any = None
+        for o in opts:
+            if o[0] in ("GARDER_REFLEXION", "VERROUILLER_DEFINITIF"):
+                keep_opt = o
+                break
         if not move_opts:
-            for o in opts:
-                if o[0] == "GARDER_REFLEXION":
-                    return o
-            return opts[0]
+            return keep_opt if keep_opt is not None else opts[0]
         scores_rev = [scorer(obs, cfg, belief, mv[1], False) for mv in move_opts]
         pick_r = softmax_select_index(scores_rev, eff_tau, cfg, obs, 20 + pass_idx)
         if scores_rev[pick_r] > 520.0 + eps:
             return move_opts[pick_r]
-        for o in opts:
-            if o[0] == "GARDER_REFLEXION":
-                return o
+        return keep_opt if keep_opt is not None else opts[0]
+
+    if dtype == DEC_OISEAU_PERCHOIR_1_1:
+        # Garde en main Sabotage/Écaille en priorité, sinon la carte machine la moins dangereuse
+        for cand_c in opts:
+            if int(cand_c) in (CARD_SABOTAGE, CARD_ECAILLE):
+                return cand_c
+        def _perchoir_sc(cand_c: int) -> tuple[float, int]:
+            ci = int(cand_c)
+            if 1 <= ci <= 2 * obs.n_players:
+                rm, mt = unpack_machine_card(ci)
+                pos_m, _ = obs.machine_pos_status(rm, mt)
+                red_m = obs.machine_effective_rouges(rm, mt)
+                arbres_m = obs.parcel_arbres(rm, pos_m) if pos_m > 0 else 0
+                sc_m = -25.0 * pos_m - 20.0 * red_m - (15.0 if mt == MACHINE_BULLDOZER else 0.0) - 8.0 * arbres_m
+            else:
+                sc_m = 50.0
+            return (sc_m, _tiebreak(cfg, obs, ci, 71))
+
+        return max(opts, key=_perchoir_sc)
+
+    if dtype == DEC_OISEAU_DE_ENVOL_1_3:
+        own_h = obs.hand_of(obs.observer_seat)
+        c_o = own_h.card
+        def _envol_sc(rk: int) -> tuple[float, int]:
+            ri = int(rk)
+            t_c, t_bugs = obs.tactique_code_bugs(ri - 1)
+            if is_reve_code(t_c):
+                n_def_r = obs.reve_activation_defenders(ri)
+                # Fort bonus pour tomber sur un Rêve (surtout déjà défendu ou défendable !)
+                sc_r = 320.0 if n_def_r >= 1 else 185.0
+                return (sc_r, _tiebreak(cfg, obs, ri, 72))
+            sc_t = 0.0
+            if is_tactique_code(t_c):
+                spec = TACTIQUES_SPEC[t_c]
+                is_chg = is_tactique_charge(t_c, obs.tour)
+                sc_t -= 70.0 * len(spec.cibles)
+                sc_t -= 30.0 * spec.mod_seuil
+                if is_chg and obs.tour <= 6:
+                    sc_t -= 45.0
+                if t_bugs >= 1:
+                    sc_t += 20.0
+                if c_o is not None and 1 <= c_o <= 2 * obs.n_players:
+                    rm, _ = unpack_machine_card(c_o)
+                    pos_m, _ = obs.machine_pos_status(rm, unpack_machine_card(c_o)[1])
+                    if pos_m > 0 and "SUR_PLACE" in spec.cibles and obs.parcel_piege(rm, pos_m) == PIEGE_ACTIF:
+                        sc_t += 55.0
+            return (sc_t, _tiebreak(cfg, obs, ri, 72))
+
+        return max(opts, key=_envol_sc)
+
+    if dtype == DEC_HUMAIN_CHAMAN_2_1:
+        own_h = obs.hand_of(obs.observer_seat)
+        own_hits_reve = (
+            own_h.card is not None
+            and 1 <= own_h.card <= 2 * obs.n_players
+            and own_h.lecture_m is not None
+            and obs.reve_at_case(own_h.lecture_m) > 0
+        )
+        if own_hits_reve and CHAMAN_CHANT in opts:
+            return CHAMAN_CHANT
+        if CHAMAN_TAMBOUR in opts:
+            return CHAMAN_TAMBOUR
         return opts[0]
+
+    if dtype == DEC_MAMMIFERE_DUEL_2:
+        r_d = int(decision.context.get("ray", obs.observer_seat))
+        p_d = int(decision.context.get("p", 1))
+        idx_d = r_d * MAX_P + (p_d - 1)
+        if (
+            obs.duel_state != DUEL_TERRITOIRE_TENU
+            and "POSER_DUEL_DEFI" in opts
+            and (belief.parcel_strike_prob[idx_d] >= 0.15 or obs.duel_state == 0)
+        ):
+            return "POSER_DUEL_DEFI"
+        return "PASSER" if "PASSER" in opts else opts[0]
+
+    if dtype == DEC_OISEAU_PLUME_2:
+        own_h = obs.hand_of(obs.observer_seat)
+        if own_h.card is not None and 1 <= own_h.card <= 2 * obs.n_players:
+            r_o, _ = unpack_machine_card(own_h.card)
+            cand_pl = (PLUME_CHAUD, PLUME_KIND_RAY, r_o)
+            if cand_pl in opts:
+                return cand_pl
+        elif (not own_h.has_card) or own_h.card in (CARD_SABOTAGE, CARD_ECAILLE):
+            cand_pl = (PLUME_CALME, PLUME_KIND_RAY, obs.observer_seat)
+            if cand_pl in opts:
+                return cand_pl
+        return "PASSER" if "PASSER" in opts else opts[0]
+
+    if dtype == DEC_REPTILE_POSE_CROC_3_2:
+        def _croc_sc(rp: tuple[int, int]) -> tuple[float, int]:
+            r_c, p_c = int(rp[0]), int(rp[1])
+            idx_c = r_c * MAX_P + (p_c - 1)
+            defs_c = obs.parcel_defenseurs(r_c, p_c) + obs.parcel_insectes(r_c, p_c)
+            seuil_c = belief.parcel_expected_seuil[idx_c]
+            uncovered = 140.0 if defs_c < seuil_c else 15.0
+            no_trap = 80.0 if obs.parcel_piege(r_c, p_c) == PIEGE_AUCUN else 10.0
+            arbres_c = obs.parcel_arbres(r_c, p_c) * 45.0
+            bulldo_b = 75.0 * belief.parcel_bulldo_prob[idx_c]
+            nid_b = 55.0 if obs.parcel_has_nid(r_c, p_c) else 0.0
+            return (uncovered + no_trap + arbres_c + bulldo_b + nid_b, _tiebreak(cfg, obs, idx_c, 73))
+
+        return max(opts, key=_croc_sc)
+
+    if dtype == DEC_CHOIX_CIBLE_REVE_3_2:
+        def _seat_threat_h(s_id: int) -> tuple[int, int, int, int, int]:
+            h_s = obs.hand_of(s_id)
+            if h_s.card is not None and 1 <= h_s.card <= 2 * obs.n_players:
+                rm, mt = unpack_machine_card(h_s.card)
+                pos_m, st_m = obs.machine_pos_status(rm, mt)
+                return machine_threat_key_3_2(
+                    s_id, pos_m, st_m, obs.machine_effective_rouges(rm, mt)
+                )
+            return (0, 0, 0, 0, -s_id)
+
+        return max(
+            opts,
+            key=lambda combo: (
+                tuple(sorted((_seat_threat_h(int(s_i)) for s_i in combo), reverse=True)),
+                _tiebreak(cfg, obs, opts.index(combo), 74),
+            ),
+        )
+
+    if dtype == DEC_BOUCLIER_LISIERE_5_3:
+        g_face = int(decision.context.get("face", 1))
+        if (obs.tour <= 7 or g_face == 2) and "UTILISER_BOUCLIER" in opts:
+            return "UTILISER_BOUCLIER"
+        return "LAISSER_RETOURNER" if "LAISSER_RETOURNER" in opts else opts[0]
+
+    if dtype == DEC_ENRACINEMENT_6_1:
+        # Enraciner en fin de partie (Tours 7-8, ou Tour 6 sur parcelle à >= 2 Souches sans casser un Sommeil)
+        if obs.tour < 6:
+            return "PASSER" if "PASSER" in opts else opts[0]
+        reves_on = sum(1 for c_r in range(1, TRACK_LEN + 1) if obs.reve_at_case(c_r) > 0)
+        best_rt: Any = "PASSER" if "PASSER" in opts else opts[0]
+        best_sc_rt = 0.0
+        for opt in opts:
+            if opt == "PASSER":
+                continue
+            sl_idx, p_rt = int(opt[0]), int(opt[1])
+            souches = obs.parcel_souches(obs.observer_seat, p_rt)
+            if souches <= 0:
+                continue
+            tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
+            fam_rt, _, num_rt = SYNERGY_META[tid_rt]
+            # Éviter d'enraciner un Rêve si la victoire Sommeil est à portée avant le Tour 8
+            if fam_rt == FAMILLE_REVE and obs.tour <= 7 and reves_on >= max(1, cfg.total_reves_partie - 1):
+                continue
+            gain_trees = 1
+            if fam_rt != FAMILLE_REVE:
+                for c_g in range(1, TRACK_LEN + 1):
+                    g_sl = obs.piste_gardiens[c_g - 1]
+                    if g_sl.gardien_num == num_rt and g_sl.face == 2:
+                        gain_trees = 2
+                        break
+            effective_gain = min(souches, gain_trees)
+            if obs.tour == 6 and effective_gain < 2:
+                continue
+            # Privilégier les parcelles plus proches du cœur (moins exposées aux routes) et Face 2
+            sc_rt = 100.0 * float(effective_gain) + 12.0 * float(p_rt)
+            if obs.tour == 8:
+                sc_rt += 50.0
+            if sc_rt > best_sc_rt:
+                best_sc_rt = sc_rt
+                best_rt = opt
+        return best_rt
 
     if dtype == DEC_EFFET_TUILE:
         scores_e = [_score_effect_option(obs, cfg, belief, decision, opt, is_b2=is_b2) for opt in opts]
@@ -1030,16 +1219,27 @@ def _choose_policy(
 
     if dtype == DEC_CHOIX_CASE_GARDIEN:
         has_ins_peuple = "I" in cfg.peuples
-        sab_tot = obs.sabotage_deck_count + obs.sabotage_pending_count
+        sab_tot = (
+            obs.sabotage_deck_count
+            + obs.sabotage_pending_count
+            + obs.ecaille_deck_count
+            + obs.ecaille_pending_count
+        )
         reves_on = sum(1 for c2 in range(1, TRACK_LEN + 1) if obs.reve_at_case(c2) > 0)
-        w6 = 88.0 if has_ins_peuple else 25.0
-        w3 = 89.0 if (is_b2 and sab_tot >= 2) else (81.0 if (is_b2 and sab_tot == 1) else 62.0)
+        w_ins = 88.0 if has_ins_peuple else 25.0
+        w_sab = 89.0 if (is_b2 and sab_tot >= 2) else (81.0 if (is_b2 and sab_tot == 1) else 62.0)
         if cfg.total_reves_partie == 0:
-            w5 = 25.0
+            w_rev = 25.0
         else:
-            # En v6.1, un 1er Défenseur (2.1) posé sur un Rêve allume 5. Rêve même pendant un Éveil 100 % Gardiens !
-            w5 = 83.0 if (is_b2 and reves_on >= 1) else 68.0
-        case_weights = {1: 95.0, 6: w6, 4: 82.0, 2: 79.0, 5: w5, 3: w3}
+            w_rev = 83.0 if (is_b2 and reves_on >= 1) else 68.0
+        case_weights = {
+            TRIG_PARADE: 95.0,
+            TRIG_PIEGEAGE: 79.0,
+            TRIG_SABOTAGE: w_sab,
+            TRIG_REVE: w_rev,
+            TRIG_INSECTE: w_ins,
+            TRIG_RESONANCE: 82.0,
+        }
         tid = str(decision.context.get("tile_id", ""))
         if is_b2 and obs.mode >= 3 and tid:
             econ = get_economie_catalog()
@@ -1047,12 +1247,12 @@ def _choose_policy(
             node = econ.get((tid, prof_g)) if prof_g is not None else None
             if node is not None and node.is_law:
                 case_weights = {
-                    1: 110.0,
-                    4: 105.0,
-                    6: (95.0 if has_ins_peuple else 25.0),
-                    2: 86.0,
-                    3: (92.0 if sab_tot >= 1 else 68.0),
-                    5: (85.0 if cfg.total_reves_partie > 0 else 35.0),
+                    TRIG_PARADE: 110.0,
+                    TRIG_PIEGEAGE: 86.0,
+                    TRIG_SABOTAGE: (92.0 if sab_tot >= 1 else 68.0),
+                    TRIG_REVE: (85.0 if cfg.total_reves_partie > 0 else 35.0),
+                    TRIG_INSECTE: (95.0 if has_ins_peuple else 25.0),
+                    TRIG_RESONANCE: 105.0,
                 }
         return max(opts, key=lambda c: (case_weights.get(int(c), 50.0), _tiebreak(cfg, obs, int(c), 3)))
 
@@ -1085,7 +1285,7 @@ def _choose_policy(
             sr_defs = obs.parcel_defenseurs(sr, sp)
             sr_ins = obs.parcel_insectes(sr, sp)
             sr_seuil = belief.parcel_expected_seuil[sr_idx]
-            # En v6.1 les Pièges sont autonomes : ne retenir un Insecte que s'il boucle une Parade classique !
+            # En v6.2 les Pièges sont autonomes : ne retenir un Insecte que s'il boucle une Parade classique !
             if (
                 is_b2
                 and obs.parcel_piege(sr, sp) != PIEGE_ACTIF
@@ -1103,8 +1303,8 @@ def _choose_policy(
         )
         total_bugs = sum(obs.tactique_code_bugs(c_b)[1] for c_b in range(TRACK_LEN))
         total_colonies = sum(obs.piste_colonie)
-        g6_present = obs.gardien_present_at_case(6)
-        g6_bet = obs.gardien_pari_defenders(6) >= 1
+        g_ins_present = obs.gardien_present_at_case(TRIG_INSECTE)
+        g_ins_bet = obs.gardien_pari_defenders(TRIG_INSECTE) >= 1
 
         def _has_frontline_machine(r_q: int, p_q: int) -> bool:
             for mt_q in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
@@ -1121,7 +1321,7 @@ def _choose_policy(
                 rem_bets = obs.gardien_pari_defenders(c_num)
                 cur_col = obs.piste_colonie[c_num - 1]
                 if has_g and rem_bets >= 1 and cur_col == 0:
-                    if c_num in (3, 5):
+                    if c_num in (TRIG_SABOTAGE, TRIG_REVE):
                         return 620.0 if is_b2 else 560.0
                     return 485.0 if is_b2 else 450.0
                 if has_g and cur_col == 0:
@@ -1152,8 +1352,8 @@ def _choose_policy(
                         c_num >= 2 and is_reve_code(obs.tactique_code_bugs(c_num - 2)[0])
                     )
                     danger_b = 65.0 if t_code in (3, 6) else 25.0
-                    g6_b = 45.0 if (is_b2 and g6_present and total_bugs <= 1) else 0.0
-                    return base_bug + danger_b + (55.0 if (is_b2 and right_of_reve) else 0.0) + g6_b
+                    g_ins_b = 45.0 if (is_b2 and g_ins_present and total_bugs <= 1) else 0.0
+                    return base_bug + danger_b + (55.0 if (is_b2 and right_of_reve) else 0.0) + g_ins_b
                 return 150.0
             if mk == "FORET":
                 dr, dp = int(mv[1]), int(mv[2])
@@ -1164,7 +1364,7 @@ def _choose_policy(
                 has_p_dst = obs.parcel_piege(dr, dp) == PIEGE_ACTIF
                 if not has_p_dst and belief.parcel_strike_prob[d_idx] >= 0.50 and (d_defs + d_ins) < d_seuil:
                     if (d_defs + d_ins + 1) >= d_seuil:
-                        return 610.0 + (65.0 if g6_bet else 0.0)
+                        return 610.0 + (65.0 if g_ins_bet else 0.0)
                     return 440.0
                 if is_b2 and obs.parcel_has_nid(dr, dp) and d_ins == 1:
                     return 420.0
@@ -1179,7 +1379,7 @@ def _choose_policy(
                 if obs.mode >= 2 and src_kind == "FORET" and dp > int(src_p):
                     return 290.0
                 return 95.0
-            # RESTER : valoriser la conservation d'une réserve forestière (soutien Parade, Nid +2, 6. Insecte)
+            # RESTER : valoriser la conservation d'une réserve forestière (soutien Parade, Nid +2, 5. Insecte)
             if is_b2 and src_kind == "FORET":
                 sr_r, sp_r = int(src_a), int(src_p)
                 cur_ins_r = obs.parcel_insectes(sr_r, sp_r)
@@ -1195,7 +1395,7 @@ def _choose_policy(
                     stay_sc += 255.0
                     if total_forest_ins <= n_pl:
                         stay_sc += 55.0
-                    if g6_present:
+                    if g_ins_present:
                         stay_sc += 35.0
                 elif obs.parcel_arbres(sr_r, sp_r) >= 1 and cur_ins_r == 1 and total_forest_ins <= n_pl:
                     stay_sc += 210.0
@@ -1627,6 +1827,7 @@ def _play_game_cooperative(
             return out
 
         if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_HUMAIN_CHAMAN_2_1,
             DEC_POSE_DEFENSEUR_1,
             DEC_POSE_DEFENSEUR_2,
         ):

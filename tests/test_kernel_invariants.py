@@ -59,6 +59,7 @@ from engine.state import (
     PIEGE_AUCUN,
     STATE_BUF_SIZE,
     STEP_1_2_DEAL,
+    STEP_2_1_DEF1,
     STEP_5_2_RATISSAGE,
     STEP_5_3_END_CHECK,
     STEP_6_2_EVOLUTION,
@@ -108,10 +109,16 @@ def test_01_clone_byte_independence_and_memory_budget() -> None:
 # Test 2 : Isolation stricte de get_observation() sous paravent fermé vs ouvert
 # ---------------------------------------------------------------------------
 def test_02_observation_strict_isolation_paravents() -> None:
-    cfg = GameConfig(n_players=4, mode=2, exp_seed=2026, rep_id=1)
+    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"), exp_seed=2026, rep_id=1)
     state = GameState(cfg)
 
-    # Avancer jusqu'à 2.1 : cartes distribuées et dés lancés sous paravent fermé
+    # Avancer à travers les éventuels choix Oiseau (Perchoir 1.2 / Dé d'Envol 1.3) jusqu'à STEP_2_1_DEF1
+    while state.step < STEP_2_1_DEF1:
+        r_s1 = step_until_decision(state)
+        assert isinstance(r_s1, DecisionRequest)
+        if state.step >= STEP_2_1_DEF1:
+            break
+        apply_choice(state, r_s1.options[0])
     req = step_until_decision(state)
     assert isinstance(req, DecisionRequest)
     assert state.paravents_ouverts is False
@@ -133,10 +140,8 @@ def test_02_observation_strict_isolation_paravents() -> None:
         assert obs0.hands[other_seat].lecture_m is None
         assert obs0.hands[other_seat].bound_tactique is None
 
-    # Placer 1 Insecte sur la roue pour suspendre le moteur en 4.3 du Tour 1 (après 3.2, avant 6.2)
-    state.set_parcel_insectes(0, 1, 1)
-
-    # Aller jusqu'après l'ouverture des paravents en 3.2 (arrêt en 4.3 du Tour 1)
+    # Aller jusqu'après l'ouverture des paravents en 3.2 (ancre Insecte sur (3,1) pour stopper en 4.3)
+    state.set_parcel_insectes(3, 1, 1)
     while not state.paravents_ouverts:
         r = step_until_decision(state)
         assert isinstance(r, DecisionRequest)
@@ -187,7 +192,7 @@ def test_03_crn_independence_sabotage_vs_future_dice() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 4 : Sabotage par dilution permanente (Étape 1 = 0 dé lancé, 0 activation)
+# Test 4 : Sabotage par dilution permanente (v6.2 INV-07 : lancer universel, jet ignoré, 0 activation)
 # ---------------------------------------------------------------------------
 def test_04_sabotage_drawn_in_step1_rolls_zero_dice_and_loses_activation() -> None:
     cfg = GameConfig(n_players=3, mode=1, exp_seed=1234, rep_id=0)
@@ -207,7 +212,9 @@ def test_04_sabotage_drawn_in_step1_rolls_zero_dice_and_loses_activation() -> No
         card, d1, d2, lec_m, bound_t = state.get_player_hand(s)
         if card == CARD_SABOTAGE:
             sabotage_seats += 1
-            assert (d1, d2, lec_m, bound_t) == (0, 0, 0, 0)
+            # INV-07 : lancer universel sous paravent (zéro fuite sonore), jet ignoré -> lec_m == 0, bound_t == 0
+            assert 1 <= d1 <= 6 and 1 <= d2 <= 6
+            assert (lec_m, bound_t) == (0, 0)
         else:
             machine_seats += 1
             assert card == m_card
@@ -369,7 +376,7 @@ def test_08_route_creation_and_machine_retreat_rules() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 9 : Contact Machine-Nid renvoyant le Nid en lisière reconstructible
+# Test 9 : v6.2 INV-16 — Zéro écrasement au contact hors Route ; Route vide la case
 # ---------------------------------------------------------------------------
 def test_09_machine_nid_contact_returns_nid_reconstructible_and_clears_insects() -> None:
     cfg = GameConfig(n_players=6, mode=2, exp_seed=99)  # Inclut I en siège 5 (M1, M5 présents)
@@ -383,17 +390,29 @@ def test_09_machine_nid_contact_returns_nid_reconstructible_and_clears_insects()
     state.set_parcel_defenseurs(0, 2, 2)
     state.set_parcel_piege(0, 2, PIEGE_ACTIF)
 
-    # Abatteuse en p=1 avance en p=2 sur T3 (le Piège pare la frappe DEVANT puis est défaussé aussitôt)
+    # Abatteuse en p=1 avance en p=2 sur T3 : zéro écrasement hors Route (Nid & Insectes restent intacts !)
     state.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[3])
 
     assert state.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 2
     assert state.get_parcel_arbres(0, 2) == 2  # Arbres protégés par le Piège autonome !
-    assert state.get_parcel_nid(0, 2) == (0, False)
-    assert state.get_parcel_insectes(0, 2) == 0  # Insectes défaussés au contact !
-    assert state.get_parcel_defenseurs(0, 2) == 2  # Défenseurs préservés !
+    assert state.get_parcel_nid(0, 2) == (1, False)  # INV-16 : cohabitation pacifique hors Route
+    assert state.get_parcel_insectes(0, 2) == 4  # Insectes intacts hors Route !
+    assert state.get_parcel_defenseurs(0, 2) == 2
     assert state.get_parcel_piege(0, 2) == PIEGE_AUCUN  # Défaussé aussitôt (SINGLE_STRIKE) !
-    assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_UNCONSTRUCTED, 0)  # Reconstructible !
+    assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_CONSTRUCTED, 0)
+
+    # Seule la création d'une Route Forestière (0/0) vide la case et renvoie le Nid reconstructible
+    state.set_parcel_arbres_souches(0, 2, 1, 0)
+    state.set_parcel_defenseurs(0, 2, 0)
+    state.set_parcel_insectes(0, 2, 1)
+    state.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
+    state.set_machine_tokens(0, MACHINE_BULLDOZER, 3, 0)
+    resolve_single_machine_attack(state, 0, MACHINE_BULLDOZER, TACTIQUES_SPEC[4])
+    assert state.is_route_forestiere(0, 2)
+    assert state.get_parcel_nid(0, 2) == (0, False)
+    assert state.get_parcel_insectes(0, 2) == 0
+    assert state.get_lisiere_tile_state(m1_slot) == (LISIERE_UNCONSTRUCTED, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -425,20 +444,21 @@ def test_10_reve_insertion_partial_slide_and_fixed_bugs() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 11 : Ratissage v5.4.2 (T1 autonome en 5.2, piste fixe sans Apprentissage)
+# Test 11 : Ratissage v6.2 INV-12 (T1 autonome en 5.2, zéro +1 virtuel, jetons physiques)
 # ---------------------------------------------------------------------------
 def test_11_ratissage_autonomy_when_t1_ejected_vs_learning_when_present() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1111)
 
     s_rat = GameState(cfg)
     s_rat.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
+    s_rat.set_machine_tokens(0, MACHINE_ABATTEUSE, 1, 0)  # +1 rouge physique acquis en 6.3
     s_rat.step = STEP_5_2_RATISSAGE
     track_before = [s_rat.get_tactique_at_rank(i) for i in range(6)]
     _ = step_until_decision(s_rat)
 
-    # L'attaque autonome du Ratissage a bien eu lieu en 5.2 avec +1 puissance imprimée
+    # L'attaque autonome du Ratissage a bien eu lieu en 5.2 avec son jeton rouge physique (zéro +1 virtuel)
     assert s_rat.get_parcel_arbres(0, 4) == 0  # Coupe tous les Arbres debout de la parcelle
-    assert s_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
+    assert s_rat.get_machine_tokens(0, MACHINE_ABATTEUSE) == (1, 0)
     assert s_rat.get_machine_effective_rouges(0, MACHINE_ABATTEUSE) == 1
     # Piste T1..T6 inchangée (aucun Apprentissage ni glissement en Étape 6)
     assert [s_rat.get_tactique_at_rank(i) for i in range(6)] == track_before
@@ -475,26 +495,26 @@ def test_12_bugs_preserved_and_fixed_track_in_step_6_2() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Test 13 : Cascades Gardiens à plat 1 -> 6 avec Résonance 4 sans boucle infinie
+# Test 13 : Cascades Gardiens à plat 1 -> 6 avec Résonance 6 (INV-09) sans boucle infinie
 # ---------------------------------------------------------------------------
 def test_13_flat_gardien_cascade_with_resonance_4_no_infinite_loop() -> None:
     cfg = GameConfig(n_players=4, mode=2, exp_seed=1313)
     state = GameState(cfg)
 
     state.set_gardien_at_case(2, 1, face=1)
-    state.set_gardien_at_case(4, 2, face=1)
-    state.set_gardien_at_case(6, 5, face=1)
+    state.set_gardien_at_case(6, 2, face=1)  # v6.2 INV-09 : Résonance en 6e position
+    state.set_gardien_at_case(4, 5, face=1)  # Rêve en 4e position
     state.place_defender_gardien_pari(0, 2, 2)
-    state.place_defender_gardien_pari(1, 4, 2)
-    state.place_defender_gardien_pari(2, 6, 2)
+    state.place_defender_gardien_pari(1, 6, 2)
+    state.place_defender_gardien_pari(2, 4, 2)
 
     prim_creation_entite(state, "PIEGE", ray=0, p=2, light_trigger=True)
     opened = sweep_gardiens(state)
 
     assert opened == 2
     assert state.count_gardien_pari_defenders_at_case(2) == 0
-    assert state.count_gardien_pari_defenders_at_case(4) == 0
-    assert state.count_gardien_pari_defenders_at_case(6) == 1
+    assert state.count_gardien_pari_defenders_at_case(6) == 0
+    assert state.count_gardien_pari_defenders_at_case(4) == 1
     assert state.triggers_lit == 0
 
 
@@ -523,18 +543,18 @@ def test_14_early_victory_in_5_3_triggers_final_regrowth_skipping_step_6() -> No
     assert s_reve.get_parcel_arbres(1, 1) == 2
     assert s_reve.get_parcel_piege(0, 1) == PIEGE_ACTIF
 
-    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts)
+    # Sous-cas B : Éveil de la Forêt (N=4, >= 1 Animal Sauvage -> 4 Gardiens distincts, Résonance en 6)
     cfg_gard = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"), exp_seed=1415)
     s_gard = GameState(cfg_gard)
     s_gard.tour = 4
     s_gard.set_gardien_at_case(1, 1, face=1)
     s_gard.set_gardien_at_case(2, 2, face=1)
     s_gard.set_gardien_at_case(3, 3, face=1)
-    s_gard.set_gardien_at_case(4, 4, face=1)
+    s_gard.set_gardien_at_case(6, 4, face=1)  # v6.2 INV-09 : Résonance en case 6
     s_gard.place_defender_gardien_pari(0, 1, 2)
     s_gard.place_defender_gardien_pari(1, 2, 2)
     s_gard.place_defender_gardien_pari(2, 3, 2)
-    s_gard.place_defender_gardien_pari(3, 4, 2)
+    s_gard.place_defender_gardien_pari(3, 6, 2)
     s_gard.light_trigger(1)
     s_gard.light_trigger(2)
     s_gard.light_trigger(3)

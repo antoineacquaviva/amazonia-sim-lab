@@ -17,7 +17,9 @@ from engine.core_engine import (
     DEC_ORDRE_ATTAQUE_5_1,
     DEC_ORDRE_NID_4_2,
     DEC_ORDRE_RATISSAGE_5_2,
-    _bind_hands_and_resolve_reves_3_2,
+    _advance_continuation,
+    _run_step_3_2,
+    apply_choice,
 )
 from engine.primitives import DecisionRequest
 from engine.rng import rand_u64
@@ -33,6 +35,7 @@ from engine.state import (
     PIEGE_ACTIF,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
+    STEP_3_2_REVEAL,
     STEP_4_2_NIDS,
     STEP_5_1_TACTIQUES,
     STEP_5_2_RATISSAGE,
@@ -44,6 +47,21 @@ from engine.state import (
 )
 
 R1_CODE = tile_id_to_code("R1")
+
+
+def _resolve_reves_3_2_with_b2(st_eng: GameState) -> None:
+    """Exécute la révélation 3.2 v6.2 en répondant aux choix de cible Rêve avec BotB2."""
+    for s in range(st_eng.cfg.n_players):
+        card, d1, d2, lec_m, _bound = st_eng.get_player_hand(s)
+        st_eng.set_player_hand(s, card, d1, d2, lec_m, 0)
+    st_eng.step = STEP_3_2_REVEAL
+    st_eng._continuation.clear()
+    _run_step_3_2(st_eng)
+    while st_eng._continuation:
+        req = _advance_continuation(st_eng)
+        if isinstance(req, DecisionRequest):
+            choice = BotB2.choose(st_eng.get_observation(req.decideur), req, st_eng.cfg)
+            apply_choice(st_eng, choice)
 
 
 def _setup_mode2_state(seed: int = 42, n_players: int = 4) -> GameState:
@@ -91,9 +109,9 @@ def test_reve_open_paravents_two_machines_one_defender_exact_engine_concordance(
     assert bel1.parcel_strike_prob[0 * MAX_P + (2 - 1)] == pytest.approx(0.0)
     assert bel1.parcel_strike_prob[1 * MAX_P + (2 - 1)] == pytest.approx(1.0)
 
-    # Concordance 100 % avec l'exécution réelle du moteur en 3.2
+    # Concordance 100 % avec l'exécution réelle du moteur en 3.2 (BotB2 choisit la combo de menace max)
     st_eng = st.clone()
-    _bind_hands_and_resolve_reves_3_2(st_eng)
+    _resolve_reves_3_2_with_b2(st_eng)
     assert st_eng.get_player_hand(0)[4] == 0
     assert st_eng.get_player_hand(1)[4] == 1
 
@@ -128,9 +146,9 @@ def test_reve_open_paravents_100pct_concordance_randomized_scenarios() -> None:
             bel = build_belief_summary(st.get_observation(s), st.cfg)
             predicted_cancelled[s] = bel.own_machine_cancelled_by_reve
 
-        # Résolution moteur réelle en 3.2
+        # Résolution moteur réelle en 3.2 (owner B2 choisit la combo max menace)
         st_eng = st.clone()
-        _bind_hands_and_resolve_reves_3_2(st_eng)
+        _resolve_reves_3_2_with_b2(st_eng)
 
         for s, _r_m, _mt in assigned:
             actual_cancelled = st_eng.get_player_hand(s)[4] == 0

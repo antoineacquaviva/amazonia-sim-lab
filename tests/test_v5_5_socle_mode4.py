@@ -15,6 +15,7 @@ import run_campaign as rc_mod
 from campaigns.digest_builder import load_spec_bundle
 from campaigns.worker_main import resolve_manifest_plan, run_campaign_manifest
 from engine.core_engine import (
+    DEC_BOUCLIER_LISIERE_5_3,
     apply_choice,
     step_until_decision,
     sweep_gardiens,
@@ -181,9 +182,12 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
     assert st.get_gardien_at_case(1) == (1, 1)
     assert st.count_gardien_pari_defenders_at_case(1) == 1
 
-    # En 5.3 : Bouclier de lisière consomme l'Insecte et maintient G1:A en piste SUR SA FACE ACTUELLE (Face 1)
+    # En 5.3 : Bouclier de lisière facultatif (INV-18) gouverné par I maintient G1:A en piste SUR SA FACE ACTUELLE (Face 1)
     st.step = STEP_5_3_END_CHECK
     trk = TelemetryTracker()
+    req_b = step_until_decision(st, telemetry=trk)
+    assert isinstance(req_b, DecisionRequest) and req_b.decision_type == DEC_BOUCLIER_LISIERE_5_3
+    apply_choice(st, "UTILISER_BOUCLIER", telemetry=trk)
     res_53 = step_until_decision(st, telemetry=trk)
     assert not isinstance(res_53, GameOver)  # pari perdu -> pas d'Éveil
     assert st.get_gardien_at_case(1) == (1, 1)
@@ -200,14 +204,14 @@ def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
     st6 = GameState(cfg6)
     st6.step = STEP_2_1_DEF1
     st6.paravents_ouverts = False
-    st6.set_gardien_at_case(5, 6, face=1)  # G6:A
-    st6.place_defender_gardien_pari(0, 5, FACE_DEFINITIF)
-    st6.place_defender_gardien_pari(1, 5, FACE_DEFINITIF)
+    st6.set_gardien_at_case(4, 6, face=1)  # G6:A sur case 4 (Rêve ; case 5 = Insecte fermée sans I)
+    st6.place_defender_gardien_pari(0, 4, FACE_DEFINITIF)
+    st6.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
 
     # Deux activations préparées avant 3.2 -> 2 bits de préparation allumés
-    st6.light_trigger(5)
+    st6.light_trigger(4)
     assert sweep_gardiens(st6) == 1
-    st6.light_trigger(5)
+    st6.light_trigger(4)
     assert sweep_gardiens(st6) == 1
     assert st6.has_used_once_per_turn(40) and st6.has_used_once_per_turn(41)
 
@@ -288,7 +292,7 @@ def test_v5_5_tile_effects_strict_trigger_partition_and_m2_physical_red() -> Non
     assert st.get_parcel_piege(0, 1) == PIEGE_ACTIF
     assert not st.is_trigger_lit(2)
 
-    # G13:A pose un Insecte sans allumer le déclencheur 6
+    # G13:A pose un Insecte sans allumer le déclencheur 5 (Insecte)
     st.set_parcel_defenseurs(1, 1, 1)
     st.set_gardien_at_case(3, 13, face=1)
     st.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
@@ -296,7 +300,7 @@ def test_v5_5_tile_effects_strict_trigger_partition_and_m2_physical_red() -> Non
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
     assert st.get_parcel_insectes(1, 1) == 1
-    assert not st.is_trigger_lit(6)
+    assert not st.is_trigger_lit(5)
 
     # M2:A (paire R-I active, Nid M2 construit sur (0,1)) ignore une machine en Ratissage avec 0 rouge physique
     st.set_parcel_nid(0, 1, 2)
