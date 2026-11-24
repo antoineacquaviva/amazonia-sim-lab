@@ -429,6 +429,66 @@
       .replace(/'/g, '&#39;');
   }
 
+  const FALLBACK_REPTILE_ICON_INNER_SVG =
+    '<path d="M1.8 14.4L4.2 9.4L6.8 6.4L9.2 7.5L11.3 5.5L13.5 8.1L21.5 9.6C22.4 9.8 22.6 11.7 21.6 12.2L13.2 13L20.8 15.2C21.2 16.2 20.1 17.6 18.2 18.1C12.8 19.3 6.8 19.3 1.8 17.6Z" fill="#10b981" stroke="#064e3b" stroke-width="1.5" stroke-linejoin="round"/>' +
+    '<path d="M12.8 12.9L21 12.3L20.2 15.1L12.8 12.9Z" fill="#064e3b"/>' +
+    '<path d="M14.2 12.7L15.4 14.8L16.6 12.5M17.5 12.4L18.7 14.5L19.9 12.2" fill="#ffffff" stroke="#064e3b" stroke-width="0.7" stroke-linejoin="round"/>' +
+    '<path d="M3.8 16.5C8.2 17.6 13.4 17.6 18 16.5" fill="none" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/>' +
+    '<circle cx="9.6" cy="9.9" r="2.3" fill="#fbbf24" stroke="#064e3b" stroke-width="1.1"/>' +
+    '<ellipse cx="9.8" cy="9.9" rx="0.65" ry="1.5" fill="#064e3b"/>' +
+    '<circle cx="19.6" cy="10.4" r="0.9" fill="#064e3b"/>';
+
+  function getTileIllustrationsModule() {
+    if (typeof global.AmazoniaTileIllustrationsV62 !== 'undefined' && global.AmazoniaTileIllustrationsV62) {
+      return global.AmazoniaTileIllustrationsV62;
+    }
+    return null;
+  }
+
+  function renderPeupleIconHtml(code, fallbackIcon, size) {
+    if (code === 'R') {
+      const mod = getTileIllustrationsModule();
+      const px = Number(size) > 0 ? Number(size) : 14;
+      if (mod && typeof mod.getReptileIconSvg === 'function') {
+        return mod.getReptileIconSvg(px);
+      }
+      return (
+        `<svg xmlns="http://www.w3.org/2000/svg" class="exp-peuple-icon-svg exp-peuple-icon-R" ` +
+        `data-peuple-icon="R" width="${px}" height="${px}" viewBox="0 0 24 24" ` +
+        `role="img" aria-label="Reptiles" focusable="false">${FALLBACK_REPTILE_ICON_INNER_SVG}</svg>`
+      );
+    }
+    return fallbackIcon || '';
+  }
+
+  function renderPeupleWheelIconSvg(code, fallbackIcon, cx, cy) {
+    if (code === 'R') {
+      const mod = getTileIllustrationsModule();
+      if (mod && typeof mod.getReptileWheelIconSvg === 'function') {
+        return mod.getReptileWheelIconSvg(cx, cy, 20);
+      }
+      return (
+        `<svg class="exp-wheel-peuple-icon exp-peuple-icon-R" data-peuple-icon="R" ` +
+        `x="${(cx - 10).toFixed(1)}" y="${(cy - 26).toFixed(1)}" width="20" height="20" ` +
+        `viewBox="0 0 24 24" aria-hidden="true">${FALLBACK_REPTILE_ICON_INNER_SVG}</svg>`
+      );
+    }
+    return `<text x="${cx.toFixed(1)}" y="${(cy - 9).toFixed(1)}" text-anchor="middle" font-size="17">${fallbackIcon}</text>`;
+  }
+
+  function getPeupleSelectOptionIcon(code, fallbackIcon) {
+    if (code === 'R') return '🦎';
+    return fallbackIcon || '';
+  }
+
+  function renderTileMedallionHtml(tileId) {
+    const mod = getTileIllustrationsModule();
+    if (!mod || typeof mod.getTileIllustrationSvg !== 'function') return '';
+    const svg = mod.getTileIllustrationSvg(tileId);
+    if (!svg) return '';
+    return `<div class="exp-tile-medallion" data-tile-illustration="${escapeHtml(tileId)}" aria-hidden="true">${svg}</div>`;
+  }
+
   function stripHtml(str) {
     return String(str || '').replace(/<[^>]+>/g, '').trim();
   }
@@ -1518,6 +1578,7 @@
     }
 
     const isFocused = explorerState.xrayFocusId === tileId;
+    const medallionHtml = renderTileMedallionHtml(tile.id);
     const digestFooter = typeof global.renderSlotDigestFooter === 'function'
       ? global.renderSlotDigestFooter(tileId, ['A'])
       : '';
@@ -1528,9 +1589,9 @@
         <div class="exp-card-head">
           <div class="exp-card-head-left">
             <span class="exp-orient-pill" title="${escapeHtml(originP.nom + ' vers ' + neighborP.nom + ' · Emplacement ' + tile.id)}">
-              <span class="exp-orient-half exp-p-${originCode}">${originP.icon} ${originCode}</span>
+              <span class="exp-orient-half exp-p-${originCode}">${renderPeupleIconHtml(originCode, originP.icon)} ${originCode}</span>
               <span class="exp-orient-arrow">➔</span>
-              <span class="exp-orient-half exp-p-${neighborCode}">${neighborP.icon} ${neighborCode}</span>
+              <span class="exp-orient-half exp-p-${neighborCode}">${renderPeupleIconHtml(neighborCode, neighborP.icon)} ${neighborCode}</span>
               <span class="exp-orient-id">${tile.id}</span>
             </span>
             <span class="exp-family-pill fam-${tile.famille}">${famMeta.icon} ${famMeta.label}</span>
@@ -1543,10 +1604,13 @@
           </div>
         </div>
 
-        <div class="exp-card-title-row">
-          <div>
-            <h4 class="exp-card-title">${escapeHtml(prof.nom || tile.nomBase)}</h4>
-            ${prof.animal_ou_theme ? `<div class="exp-card-theme">${escapeHtml(prof.animal_ou_theme)}</div>` : ''}
+        <div class="exp-card-title-row ${medallionHtml ? 'has-medallion' : ''}">
+          <div class="exp-card-identity">
+            ${medallionHtml}
+            <div class="exp-card-title-block">
+              <h4 class="exp-card-title">${escapeHtml(prof.nom || tile.nomBase)}</h4>
+              ${prof.animal_ou_theme ? `<div class="exp-card-theme">${escapeHtml(prof.animal_ou_theme)}</div>` : ''}
+            </div>
           </div>
           ${isInCircle ? '<span class="exp-inplay-tag">✓ En jeu</span>' : ''}
         </div>
@@ -1618,9 +1682,9 @@
           <div class="exp-border-duo ${isInTable ? 'is-in-table' : ''}" data-border="${pA}-${pB}">
             <div class="exp-border-banner">
               <div class="exp-border-title">
-                <span class="exp-orient-half exp-p-${pA}" style="border-radius:0.45rem;border:1px solid;">${pInfoA.icon} ${pA}</span>
+                <span class="exp-orient-half exp-p-${pA}" style="border-radius:0.45rem;border:1px solid;">${renderPeupleIconHtml(pA, pInfoA.icon)} ${pA}</span>
                 <span>↔</span>
-                <span class="exp-orient-half exp-p-${pB}" style="border-radius:0.45rem;border:1px solid;">${pInfoB.icon} ${pB}</span>
+                <span class="exp-orient-half exp-p-${pB}" style="border-radius:0.45rem;border:1px solid;">${renderPeupleIconHtml(pB, pInfoB.icon)} ${pB}</span>
                 <span style="color:#64748b;font-weight:600;font-size:0.72rem;">${escapeHtml(pInfoA.nom)} – ${escapeHtml(pInfoB.nom)}</span>
                 ${isInTable ? '<span class="exp-inplay-tag">✓ Lisière active sur la table</span>' : ''}
               </div>
@@ -1731,7 +1795,7 @@
       return `
         <g class="exp-wheel-node" data-wheel-peuple="${pt.code}" onclick="AmazoniaExplorerV62.selectWheelFilter('peuple','${pt.code}')">
           <circle cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="38" fill="${col.fill}" stroke="${isNodeSelected ? '#0f2119' : col.stroke}" stroke-width="${isNodeSelected ? '3.5' : '2.2'}" />
-          <text x="${pt.x.toFixed(1)}" y="${(pt.y - 9).toFixed(1)}" text-anchor="middle" font-size="17">${pInfo.icon}</text>
+          ${renderPeupleWheelIconSvg(pt.code, pInfo.icon, pt.x, pt.y)}
           <text x="${pt.x.toFixed(1)}" y="${(pt.y + 8).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="12" font-weight="800" fill="${col.text}">${pt.code} · #${idx + 1}</text>
           <text x="${pt.x.toFixed(1)}" y="${(pt.y + 21).toFixed(1)}" text-anchor="middle" font-family="Inter, sans-serif" font-size="8.2" font-weight="600" fill="${col.text}">${escapeHtml(acc.tier === 'ACTIF_TOUR_1' ? 'Actif T1' : 'Progressif')}</text>
         </g>
@@ -1833,7 +1897,7 @@
               const nextIdx = (idx + 1) % health.n;
               return `
                 <span class="exp-seat-pill exp-p-${code}">
-                  <span>#${idx + 1} ${pInfo.icon} ${code}</span>
+                  <span class="exp-seat-label">#${idx + 1} ${renderPeupleIconHtml(code, pInfo.icon)} ${code}</span>
                   ${idx > 0 ? `<button type="button" class="exp-seat-move-btn" onclick="AmazoniaExplorerV62.swapTableSeats(${idx - 1}, ${idx})" title="Déplacer à gauche">←</button>` : ''}
                   ${idx < health.n - 1 ? `<button type="button" class="exp-seat-move-btn" onclick="AmazoniaExplorerV62.swapTableSeats(${idx}, ${nextIdx})" title="Déplacer à droite">→</button>` : ''}
                   ${health.n > 3 ? `<button type="button" class="exp-seat-move-btn" onclick="AmazoniaExplorerV62.toggleTablePeuple('${code}')" title="Retirer ${code} de la table">✕</button>` : ''}
@@ -1842,7 +1906,7 @@
             }).join('')}
             ${PEUPLE_CANON_ORDER.filter(c => !health.circle.includes(c)).map(code => {
               const pInfo = peuplesMap[code] || { icon: '', nom: code };
-              return `<button type="button" class="exp-btn" onclick="AmazoniaExplorerV62.toggleTablePeuple('${code}')" title="Ajouter ${escapeHtml(pInfo.nom)} à la table">+ ${pInfo.icon} ${code}</button>`;
+              return `<button type="button" class="exp-btn" onclick="AmazoniaExplorerV62.toggleTablePeuple('${code}')" title="Ajouter ${escapeHtml(pInfo.nom)} à la table">+ ${renderPeupleIconHtml(code, pInfo.icon)} ${code}</button>`;
             }).join('')}
           </div>
         </div>
@@ -1999,7 +2063,7 @@
       const active = code === selectedCode;
       return `
         <button type="button" class="exp-peuple-tab-btn exp-p-${code} ${active ? 'is-active' : ''}" data-peuple-tab="${code}" onclick="AmazoniaExplorerV62.setPeupleTab('${code}')">
-          <span>${pi.icon}</span>
+          <span class="exp-peuple-tab-icon">${renderPeupleIconHtml(code, pi.icon)}</span>
           <span>${code} · ${escapeHtml(pi.nom)}</span>
         </button>
       `;
@@ -2049,7 +2113,7 @@
         <div class="exp-peuple-banner exp-p-${selectedCode}">
           <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0.5rem;">
             <div style="display:flex;align-items:center;gap:0.55rem;">
-              <span style="font-size:1.6rem;">${pInfo.icon}</span>
+              <span class="exp-peuple-banner-icon" style="font-size:1.6rem;">${renderPeupleIconHtml(selectedCode, pInfo.icon, 28)}</span>
               <div>
                 <h3 style="margin:0;font-family:'Crimson Pro',serif;font-size:1.35rem;font-weight:700;">${selectedCode} · ${escapeHtml(pInfo.nom)} — ${escapeHtml(acc.shortTag)}</h3>
                 <div style="font-size:0.75rem;opacity:0.9;">${escapeHtml(pInfo.famille || '')} · <strong>${escapeHtml(acc.tierLabel)}</strong></div>
@@ -2134,7 +2198,7 @@
               <div class="exp-xray-node-list">
                 ${xray.upstreamAccessories.map(a => `
                   <span class="exp-xray-acc-pill" title="${escapeHtml(a.shortTag)}">
-                    ${a.icon} ${escapeHtml(a.name)} · ${escapeHtml(a.states.map(s => getStateMeta(s).icon + getStateMeta(s).label).concat(a.icons.map(i => GUARDIAN_ICON_BY_ID[i] ? '★' + GUARDIAN_ICON_BY_ID[i].label : i)).join(', '))}
+                    ${renderPeupleIconHtml(a.code, a.icon)} ${escapeHtml(a.name)} · ${escapeHtml(a.states.map(s => getStateMeta(s).icon + getStateMeta(s).label).concat(a.icons.map(i => GUARDIAN_ICON_BY_ID[i] ? '★' + GUARDIAN_ICON_BY_ID[i].label : i)).join(', '))}
                   </span>
                 `).join('')}
               </div>
@@ -2258,7 +2322,7 @@
                 <option value="ALL" ${f.peuple === 'ALL' ? 'selected' : ''}>Tous (6)</option>
                 ${PEUPLE_CANON_ORDER.map(c => {
                   const p = peuplesMap[c] || { icon: '', nom: c };
-                  return `<option value="${c}" ${f.peuple === c ? 'selected' : ''}>${p.icon} ${c} · ${escapeHtml(p.nom)}</option>`;
+                  return `<option value="${c}" ${f.peuple === c ? 'selected' : ''}>${getPeupleSelectOptionIcon(c, p.icon)} ${c} · ${escapeHtml(p.nom)}</option>`;
                 }).join('')}
               </select>
             </div>

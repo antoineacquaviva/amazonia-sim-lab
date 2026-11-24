@@ -730,13 +730,71 @@
   border-color: #4338ca;
 }
 
-/* Titre & Ruban de rôle modèle */
+/* Mini-icône SVG Peuple (Reptile 14x14 nette et alignée) */
+.exp-peuple-icon-svg {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  vertical-align: -0.16em;
+}
+
+.exp-peuple-tab-icon,
+.exp-seat-label,
+.exp-peuple-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.exp-peuple-banner-icon .exp-peuple-icon-svg {
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+}
+
+/* Titre, Médaillon SVG 56x56 & Ruban de rôle modèle */
 .exp-card-title-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.45rem;
+  gap: 0.55rem;
+}
+
+.exp-card-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.72rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.exp-tile-medallion {
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  background: var(--exp-surface-soft);
+}
+
+.exp-tile-medallion svg,
+.exp-tile-svg {
+  width: 56px;
+  height: 56px;
+  display: block;
+}
+
+.exp-card-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.14rem;
+  min-width: 0;
 }
 
 .exp-card-title {
