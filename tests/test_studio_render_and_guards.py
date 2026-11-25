@@ -620,28 +620,40 @@ def test_inv_html_guard_enforces_all_22_invariants_when_livret_is_6_2() -> None:
 
 
 def test_tiles_canon_linter_and_anti_vestiges_guards() -> None:
-    """Vérifie le linter Canon 0 (positif + cas négatifs) et le scanner global anti-vestiges."""
+    """Vérifie le linter structurel (I07 sans C02 : positif + négatifs) et le scanner global anti-vestiges."""
     verify_tiles_canon()
     verify_global_anti_vestiges()
 
     canon = json.loads(TILES_CANON_PATH.read_text(encoding="utf-8"))["tuiles_ciblees"]
 
-    # Cas négatif 1 : > 25 mots sur une face
-    bad_words = copy.deepcopy(canon)
-    bad_words["G1"]["profils"]["A"]["texte"] = (
-        "<strong>Face 1 :</strong> " + " ".join(["mot"] * 26) + "."
+    # Cas positif I07 : C02 purgé — un texte riche (> 25 mots, multi-phrases, multi-conditions) passe sans erreur
+    rich_text = copy.deepcopy(canon)
+    rich_text["G1"]["profils"]["A"]["texte"] = (
+        "<strong>Face 1 :</strong> Si une parcelle ciblée porte un jeton Duel, déplacez un "
+        "Défenseur en attente vers cette parcelle puis retournez un jeton rouge en bleu. "
+        "Lorsque le Duel bascule ensuite sur Territoire tenu, vous pouvez également "
+        "glisser une encoche de pari sur le Jaguar sans dépenser de pion supplémentaire."
     )
-    errs_words = lint_tiles_canon_dict(bad_words)
-    assert any("26 mots > 25" in e for e in errs_words)
+    errs_rich = lint_tiles_canon_dict(rich_text)
+    assert errs_rich == [], f"I07 violé — C02 ne doit plus bloquer les textes riches : {errs_rich}"
 
-    # Cas négatif 2 : code d'étape numérique 3.2 et terme banni 'carte'
+    # Cas négatif 1 : dette mémorielle flottante (`mem_debt = 0`)
+    bad_mem = copy.deepcopy(canon)
+    bad_mem["G1"]["profils"]["A"]["texte"] = (
+        "<strong>Face 1 :</strong> Les machines subissent -1 au Seuil de Parade pour ce tour."
+    )
+    errs_mem = lint_tiles_canon_dict(bad_mem)
+    assert any("terme banni 'pour ce tour'" in e for e in errs_mem)
+
+    # Cas négatif 2 : code d'étape numérique 3.2 et jargon de pioche obsolète ('carte Machine', 'paquet')
     bad_step = copy.deepcopy(canon)
     bad_step["G2"]["profils"]["A"]["texte"] = (
-        "<strong>Face 1 :</strong> En 3.2, défaussez une carte du paquet."
+        "<strong>Face 1 :</strong> En 3.2, défaussez une carte Machine du paquet."
     )
     errs_step = lint_tiles_canon_dict(bad_step)
     assert any("code numérique d'étape" in e for e in errs_step)
-    assert any("terme banni 'carte'" in e for e in errs_step)
+    assert any("terme banni 'carte Machine'" in e for e in errs_step)
+    assert any("terme banni 'paquet'" in e for e in errs_step)
 
     # Cas négatif 3 : Insecte mentionné hors des 10 tuiles des 5 lisières de I
     bad_insect = copy.deepcopy(canon)

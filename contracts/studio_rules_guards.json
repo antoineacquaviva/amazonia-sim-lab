@@ -46,9 +46,11 @@
     "v5.5"
   ],
   "banned_in_tiles_canon_words": [
-    "carte",
-    "cartes",
     "paquet",
+    "carte Machine",
+    "cartes Machine",
+    "carte Sabotage",
+    "cartes Sabotage",
     "non rasée",
     "hors Ratissage",
     "sans Piège",

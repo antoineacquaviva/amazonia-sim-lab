@@ -20,10 +20,13 @@ import copy
 import hashlib
 import json
 import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 CONTRACTS_DIR = ROOT / "contracts"
 DOCS_DATA_DIR = ROOT / "docs" / "data"
 DATA_DIR = ROOT / "data"
@@ -397,23 +400,44 @@ def _build_amazonia_js(
     return "\n".join(sections)
 
 
-def build_all_artifacts() -> dict[str, Any]:
-    """Compile l'ensemble des artefacts dérivés depuis les 3 contrats SSOT de `contracts/`."""
-    for req in (RULES_CONTRACT_PATH, INVARIANTS_CONTRACT_PATH, TILES_CONTRACT_PATH):
+def compile_studio_payloads(
+    rules: dict[str, Any],
+    invariants: dict[str, Any],
+    tiles: dict[str, Any],
+    existing_changelog: list[dict[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any], str, dict[str, Any]]:
+    """Compile en mémoire `(spec_formelle, catalog_doc, amazonia_js, adapted_tiles)` pour v6.2 ou v6.3."""
+    from scripts.tiles_v6_3_schema import adapt_tiles_contract_for_studio
+
+    adapted_tiles = adapt_tiles_contract_for_studio(tiles)
+    spec_formelle = _build_spec_formelle(rules, invariants, adapted_tiles)
+    catalog_doc = _build_catalog_json(rules, spec_formelle, adapted_tiles)
+    amazonia_js = _build_amazonia_js(
+        rules, invariants, adapted_tiles, spec_formelle, existing_changelog
+    )
+    _validate_js_syntax(amazonia_js, "docs/data/amazonia_data_v6_0.js")
+    return spec_formelle, catalog_doc, amazonia_js, adapted_tiles
+
+
+def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, Any]:
+    """Compile l'ensemble des artefacts dérivés depuis les 3 contrats SSOT de `contracts/`.
+
+    Accepte un `tiles_contract_path` optionnel (par défaut `contracts/tiles_canon_v6_2.json`,
+    compatible de manière transparente avec le schéma bi-composant `tiles_canon_v6_3.json`).
+    """
+    active_tiles_path = tiles_contract_path or TILES_CONTRACT_PATH
+    for req in (RULES_CONTRACT_PATH, INVARIANTS_CONTRACT_PATH, active_tiles_path):
         if not req.is_file():
             raise FileNotFoundError(f"Contrat SSOT manquant : {req}")
 
     rules: dict[str, Any] = json.loads(RULES_CONTRACT_PATH.read_text(encoding="utf-8"))
     invariants: dict[str, Any] = json.loads(INVARIANTS_CONTRACT_PATH.read_text(encoding="utf-8"))
-    tiles: dict[str, Any] = json.loads(TILES_CONTRACT_PATH.read_text(encoding="utf-8"))
+    raw_tiles: dict[str, Any] = json.loads(active_tiles_path.read_text(encoding="utf-8"))
 
     existing_changelog = _extract_existing_changelog(OUT_DOCS_JS)
-    spec_formelle = _build_spec_formelle(rules, invariants, tiles)
-    catalog_doc = _build_catalog_json(rules, spec_formelle, tiles)
-    amazonia_js = _build_amazonia_js(rules, invariants, tiles, spec_formelle, existing_changelog)
-
-    # Validation syntaxique et d'exécution JS avant écriture
-    _validate_js_syntax(amazonia_js, "docs/data/amazonia_data_v6_0.js")
+    spec_formelle, catalog_doc, amazonia_js, tiles = compile_studio_payloads(
+        rules, invariants, raw_tiles, existing_changelog
+    )
 
     # 1. Écriture des artefacts Studio (docs/data/)
     _write_json(OUT_DOCS_SPEC, spec_formelle)
@@ -433,7 +457,7 @@ def build_all_artifacts() -> dict[str, Any]:
     contracts_sha256: dict[str, dict[str, object]] = {
         "rules_canon_v6_2.json": _file_lock_entry(RULES_CONTRACT_PATH),
         "physical_and_edge_invariants.json": _file_lock_entry(INVARIANTS_CONTRACT_PATH),
-        "tiles_canon_v6_2.json": _file_lock_entry(TILES_CONTRACT_PATH),
+        active_tiles_path.name: _file_lock_entry(active_tiles_path),
     }
 
     lock_payload: dict[str, Any] = {

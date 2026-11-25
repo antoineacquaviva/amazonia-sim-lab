@@ -1,0 +1,6 @@
+# Sanctuarisation du socle v6.2.0 & référence archive Canon 0 (Chantier v6.3 Étape 1)
+# Empreintes SHA-256 vérifiées automatiquement par verify_lot.py (porte [1/10]).
+# Interdiction de modifier ces 3 contrats sans Micro-ADR explicite validé par l'auteur.
+2d68a5ba7e3a5b0b38efff81de4e1516dbec0fd9fdf6e17a6bfe948682c4e30c  contracts/rules_canon_v6_2.json
+7dd780ecfcf1f06f258e8aad4fbba1aa4346975e3ec0d5ea1d50053b5afaa52f  contracts/physical_and_edge_invariants.json
+4a21fc21e55b480e4a835ae4bff4bf742066142fd40022781da61d060d7fba32  contracts/tiles_canon_v6_2.json

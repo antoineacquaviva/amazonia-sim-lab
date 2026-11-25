@@ -1,13 +1,14 @@
-# CORE_FREEZE_CRITERIA.md — Gouvernance SSOT `v6.2`, Micro-ADR & Critères de Gel
+# CORE_FREEZE_CRITERIA.md — Gouvernance SSOT `v6.2` (Sanctuarisée), Chantier `v6.3` & Micro-ADR
 
-> **Cible unifiée active** : **`v6.2`** (*Socle épuré + Asymétrie Hybride `3 + 3` + Enracinement volontaire + Canon 0 de 30 tuiles*).
-> **Sources uniques de vérité (SSOT)** : `contracts/rules_canon_v6_2.json`, `contracts/physical_and_edge_invariants.json` (`INV-01..INV-22`), `contracts/tiles_canon_v6_2.json`.
-> **Plan de convergence en 5 Chantiers** :
-> 1. **Chantier 1** : Fondation SSOT `v6.2`, registre `INV-01..INV-22`, compilateur dérivé unique, purge contextes IA & garde-fous `verify_lot.py` (`engine/*.py` scellé intact).
-> 2. **Chantier 2** : Refonte du Livret Joueur modulaire (`LIVRET_SCHEMA_VERSION = "6.2.0"`) avec traçabilité bloquante `data-inv="INV-01"` .. `data-inv="INV-22"`.
-> 3. **Chantier 3** : Refonte UX/UI de l'Explorateur des 30 tuiles Canon 0.
-> 4. **Chantier 4** : Ouverture approuvée et mise à niveau du noyau Python (`engine/*.py`) vers `rules_canon_v6_2.json`, suivie de son re-scellement `kernel_locks.sha256`.
-> 5. **Chantier 5** : Implémentation stateless des 30 tuiles Canon 0 (`engine_sync_status -> ACTIVE_VERIFIED`), 35 témoins exécutables et calibration multi-tables `N=3..6`.
+> **Socle règles cœur sanctuarisé** : **`v6.2.0`** (`contracts/rules_canon_v6_2.json`, `contracts/physical_and_edge_invariants.json` `INV-01..INV-22`, noyau PyPy dans `contracts/kernel_locks.sha256` et archive de comparaison `contracts/tiles_canon_v6_2.json` verrouillée dans `contracts/v6_2_socle_locks.sha256` + tag Git `archive/v6.2.0-socle-canon0`).
+> **Jalon `v6.2` (Chantiers 1–5) : ARCHIVÉ & TERMINÉ.**
+> **Chantier actif : `v6.3` — Refonte bi-composant des 30 Tuiles (Mini-Tuile Plateau + Grande Carte Joueur, zéro contrainte `C02`)**
+> *Source d'autorité* : `docs/cadrage_tuiles_v6_3.md` & `contracts/tiles_canon_v6_3.schema.json`.
+> 1. **Étape 1** : Cadrage `v6.3`, sanctuarisation `v6.2`, purge `C02`, `scripts/audit_197.py` et contrat JSON bi-composant `contracts/tiles_canon_v6_3.json`.
+> 2. **Étape 2** : Conception créative et audit structurel (`197` assises) du nouveau panel de `30` tuiles (priorité synergies & twists).
+> 3. **Étape 3** : Affinage ergonomique et double rédaction éditoriale (Grande Carte + Mini-Tuile).
+> 4. **Étape 4** : Ré-encodage PyPy, nouveaux témoins exécutables, heuristiques bots synergiques et calibration Monte-Carlo `v6.3` face au `Lot 0`.
+> 5. **Étape 5 (secondaire)** : Refonte UX/UI de l'explorateur de tuiles dans Doc Studio (vue dédoublée Mini-Tuile / Grande Carte, retrait des compteurs de mots, guide des pictogrammes).
 
 ---
 
@@ -17,8 +18,8 @@ Avant toute modification d'une règle du cœur dans `contracts/rules_canon_v6_2.
 
 1. **Invariant & Motivation** : quel invariant (`INV-01..INV-22`) ou clause de `rules_canon_v6_2.json` change, et quel signal factuel (playtest physique ou télémétrie avec IC 95 %) justifie la retouche ?
 2. **Impact Matériel & Cas Limites** : quelles pièces physiques (dotation finie `10 × N`, sac opaque, 2 Défenseurs recto-verso, bandelette d'Acte, 6 icônes Gardiens, 2 encoches visibles, accessoires `3 + 3`) sont affectées ? Vérification stricte de `mem_debt == 0`.
-3. **Propagation Modules & Canon 0** : quels modules (*Gardiens & Éveil*, *Rêves & Sommeil*, *Essaim*) et quelles tuiles parmi les 30 emplacements de `contracts/tiles_canon_v6_2.json` sont impactés (clôture `I`, autonomie `A=0`, budget `≤ 25` mots/face) ?
-4. **Preuves & Synchronisation Dérivée** : quels tests (`target_test_id`, témoins, linter `verify_tiles_canon`, scanner anti-vestiges) prouvent la non-régression après régénération par `uv run python scripts/build_studio_artifacts.py` ?
+3. **Propagation Modules & Panel 30 Tuiles** : quels modules (*Gardiens & Éveil*, *Rêves & Sommeil*, *Essaim*) et quelles tuiles parmi les 30 emplacements (`contracts/tiles_canon_v6_3.json` / archive `v6.2`) sont impactés (clôture `I01` élargie à la jumelle `Y>X`, autonomie `I02` `A=0`, quotas `I03..I06` ; **zéro plafond de mots `I07`**) ?
+4. **Preuves & Synchronisation Dérivée** : quels tests (`target_test_id`, témoins, `scripts/audit_197.py`, `verify_tiles_canon`, scanner anti-vestiges) prouvent la non-régression après régénération par `uv run python scripts/build_studio_artifacts.py` ?
 
 ---
 

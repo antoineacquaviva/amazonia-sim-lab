@@ -1,0 +1,2089 @@
+{
+  "_meta": {
+    "projet": "Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)",
+    "schema_version": "6.3.0-draft",
+    "socle_verrouille": "6.2.0",
+    "cadrage_source": "docs/cadrage_tuiles_v6_3.md",
+    "etape_active": "ETAPE_1_CADRAGE_ET_SCHEMA",
+    "statut_global": "SCAFFOLD_PRET_ETAPE_2",
+    "genere_le": "2026-11-25",
+    "slots_count": 30,
+    "c02_supprime": true,
+    "note_retrocompatibilite": "Squelette initialisé à l'Étape 1 : le build Doc Studio actif reste transitoirement sur contracts/tiles_canon_v6_2.json (archive de référence sanctuarisée) jusqu'aux Étapes 3–5, tout en disposant déjà de l'adaptateur bi-composant v6.3."
+  },
+  "referentiel_pictogrammes": {
+    "PIC_ARBRE": {
+      "code": "PIC_ARBRE",
+      "categorie": "FORET",
+      "libelle": "Arbre debout",
+      "symbole": "🌳"
+    },
+    "PIC_SOUCHE": {
+      "code": "PIC_SOUCHE",
+      "categorie": "FORET",
+      "libelle": "Souche (retournable en Arbre)",
+      "symbole": "🪵"
+    },
+    "PIC_ROUTE": {
+      "code": "PIC_ROUTE",
+      "categorie": "FORET",
+      "libelle": "Route forestière",
+      "symbole": "🛣️"
+    },
+    "PIC_ENRACINEMENT": {
+      "code": "PIC_ENRACINEMENT",
+      "categorie": "FORET",
+      "libelle": "Enracinement volontaire",
+      "symbole": "🌱"
+    },
+    "PIC_DEFENSEUR": {
+      "code": "PIC_DEFENSEUR",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur",
+      "symbole": "🛡️"
+    },
+    "PIC_DEFENSEUR_ATTENTE": {
+      "code": "PIC_DEFENSEUR_ATTENTE",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur en attente (bâtisseur / rive / Rêve)",
+      "symbole": "♻️"
+    },
+    "PIC_PIEGE": {
+      "code": "PIC_PIEGE",
+      "categorie": "DEFENSE",
+      "libelle": "Piège autonome",
+      "symbole": "🪤"
+    },
+    "PIC_CROC": {
+      "code": "PIC_CROC",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Croc Reptile (réutilisable)",
+      "symbole": "🦷"
+    },
+    "PIC_SABOTAGE": {
+      "code": "PIC_SABOTAGE",
+      "categorie": "SAC",
+      "libelle": "Jeton Sabotage (sac opaque)",
+      "symbole": "💥"
+    },
+    "PIC_ECAILLE": {
+      "code": "PIC_ECAILLE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Sabotage Écaille (Reptiles)",
+      "symbole": "🦎"
+    },
+    "PIC_DES_PARAVENT": {
+      "code": "PIC_DES_PARAVENT",
+      "categorie": "SAC",
+      "libelle": "Dés lancés sous paravent",
+      "symbole": "🎲"
+    },
+    "PIC_ROUGE": {
+      "code": "PIC_ROUGE",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Puissance Rouge (+1)",
+      "symbole": "🔴"
+    },
+    "PIC_BLEU": {
+      "code": "PIC_BLEU",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Surchauffe Bleu (−1 tous modes)",
+      "symbole": "🔵"
+    },
+    "PIC_RECUL": {
+      "code": "PIC_RECUL",
+      "categorie": "MACHINES",
+      "libelle": "Recul de machine (−1 parcelle)",
+      "symbole": "⏪"
+    },
+    "PIC_CALE": {
+      "code": "PIC_CALE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Cale sous machine mobile (Reptiles)",
+      "symbole": "🧱"
+    },
+    "PIC_ALTERATION": {
+      "code": "PIC_ALTERATION",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Altération (Entités)",
+      "symbole": "🌀"
+    },
+    "PIC_RANG_MACHINE": {
+      "code": "PIC_RANG_MACHINE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Rang de machine sur la Réglette 1–6",
+      "symbole": "🔢"
+    },
+    "PIC_REVE": {
+      "code": "PIC_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Tuile Rêve sur la Réglette 1–6",
+      "symbole": "🌙"
+    },
+    "PIC_AVANCEE_REVE": {
+      "code": "PIC_AVANCEE_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Déplacement / avancée de Rêve",
+      "symbole": "⬅️"
+    },
+    "PIC_ANNULATION": {
+      "code": "PIC_ANNULATION",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Machine annulée (jeton incliné 90°)",
+      "symbole": "🚫"
+    },
+    "PIC_PARI_ENCOCHE": {
+      "code": "PIC_PARI_ENCOCHE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Encoche / sécurisation de pari Gardien",
+      "symbole": "⭐"
+    },
+    "PIC_RESONANCE": {
+      "code": "PIC_RESONANCE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Icône Résonance / cascade de Gardiens",
+      "symbole": "🔔"
+    },
+    "PIC_TAMBOUR": {
+      "code": "PIC_TAMBOUR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Tambour (Humains)",
+      "symbole": "🥁"
+    },
+    "PIC_CHANT": {
+      "code": "PIC_CHANT",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Chant (Humains)",
+      "symbole": "🎶"
+    },
+    "PIC_DUEL": {
+      "code": "PIC_DUEL",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Duel — Défi / Territoire tenu (Mammifères)",
+      "symbole": "⚔️"
+    },
+    "PIC_PLUME": {
+      "code": "PIC_PLUME",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Plume de Vigie — Chaud / Calme (Oiseaux)",
+      "symbole": "🪶"
+    },
+    "PIC_PERCHOIR": {
+      "code": "PIC_PERCHOIR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Perchoir de Vigie & Dé d’Envol (Oiseaux)",
+      "symbole": "🦅"
+    },
+    "PIC_INSECTE": {
+      "code": "PIC_INSECTE",
+      "categorie": "ESSAIM",
+      "libelle": "Jeton Insecte (exclusif lisières de I)",
+      "symbole": "🐜"
+    },
+    "PIC_NID": {
+      "code": "PIC_NID",
+      "categorie": "ESSAIM",
+      "libelle": "Nid de l’Essaim (exclusif lisières de I)",
+      "symbole": "🪹"
+    },
+    "PIC_MIGRATION": {
+      "code": "PIC_MIGRATION",
+      "categorie": "ESSAIM",
+      "libelle": "Migration / phorésie de l’Essaim",
+      "symbole": "➡️"
+    },
+    "PIC_LOI_PASSIVE": {
+      "code": "PIC_LOI_PASSIVE",
+      "categorie": "ACTION",
+      "libelle": "Loi passive permanente",
+      "symbole": "⚖️"
+    },
+    "PIC_TWIST": {
+      "code": "PIC_TWIST",
+      "categorie": "ACTION",
+      "libelle": "Brique-Twist 2K3",
+      "symbole": "⚡"
+    }
+  },
+  "casting_gardiens_verrouille": {
+    "G1": {
+      "alias_oriente": "M>R",
+      "nom_animal": "Le Jaguar",
+      "origine": "M",
+      "voisin": "R"
+    },
+    "G2": {
+      "alias_oriente": "R>M",
+      "nom_animal": "L’Anaconda vert",
+      "origine": "R",
+      "voisin": "M"
+    },
+    "G3": {
+      "alias_oriente": "M>O",
+      "nom_animal": "L’Atèle",
+      "origine": "M",
+      "voisin": "O"
+    },
+    "G4": {
+      "alias_oriente": "O>M",
+      "nom_animal": "L’Ara rouge",
+      "origine": "O",
+      "voisin": "M"
+    },
+    "G5": {
+      "alias_oriente": "R>O",
+      "nom_animal": "L’Iguane vert",
+      "origine": "R",
+      "voisin": "O"
+    },
+    "G6": {
+      "alias_oriente": "O>R",
+      "nom_animal": "Le Toucan toco",
+      "origine": "O",
+      "voisin": "R"
+    },
+    "G7": {
+      "alias_oriente": "M>H",
+      "nom_animal": "Le Tapir",
+      "origine": "M",
+      "voisin": "H"
+    },
+    "G8": {
+      "alias_oriente": "M>E",
+      "nom_animal": "Le Boto",
+      "origine": "M",
+      "voisin": "E"
+    },
+    "G9": {
+      "alias_oriente": "R>H",
+      "nom_animal": "Le Caïman noir",
+      "origine": "R",
+      "voisin": "H"
+    },
+    "G10": {
+      "alias_oriente": "R>E",
+      "nom_animal": "La Matamata",
+      "origine": "R",
+      "voisin": "E"
+    },
+    "G11": {
+      "alias_oriente": "O>H",
+      "nom_animal": "La Harpie féroce",
+      "origine": "O",
+      "voisin": "H"
+    },
+    "G12": {
+      "alias_oriente": "O>E",
+      "nom_animal": "L’Ibijau",
+      "origine": "O",
+      "voisin": "E"
+    },
+    "G13": {
+      "alias_oriente": "M>I",
+      "nom_animal": "Le Tamanoir",
+      "origine": "M",
+      "voisin": "I"
+    },
+    "G14": {
+      "alias_oriente": "R>I",
+      "nom_animal": "Le Téju",
+      "origine": "R",
+      "voisin": "I"
+    },
+    "G15": {
+      "alias_oriente": "O>I",
+      "nom_animal": "Le Colibri",
+      "origine": "O",
+      "voisin": "I"
+    }
+  },
+  "carte_des_roles": {
+    "statut": "A_CONCEVOIR_ETAPE_2",
+    "roles": {
+      "catalyseurs_eveil": [],
+      "leviers_reve": [],
+      "synergies_enracinement": [],
+      "lois_passives": [],
+      "autonomie_A0": [
+        "R1=H>E",
+        "R2=E>H",
+        "R6=H>I",
+        "R10=E>I",
+        "M4=I>H",
+        "M5=I>E"
+      ],
+      "twists_2K3": []
+    }
+  },
+  "rapport_audit_197": {
+    "verdict_global": "EN_ATTENTE_ETAPE_2 — Squelette v6.3 initialisé ; zéro contrainte C02.",
+    "c02_word_count_purged": true
+  },
+  "tuiles_ciblees": {
+    "G1": {
+      "id": "G1",
+      "alias_oriente": "M>R",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "R",
+      "couple": [
+        "M",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "Le Jaguar",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Jaguar",
+        "entite_illustree": "Le Jaguar — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G2": {
+      "id": "G2",
+      "alias_oriente": "R>M",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "M",
+      "couple": [
+        "R",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "L’Anaconda vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Anaconda vert",
+        "entite_illustree": "L’Anaconda vert — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G3": {
+      "id": "G3",
+      "alias_oriente": "M>O",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "O",
+      "couple": [
+        "M",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "L’Atèle",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Atèle",
+        "entite_illustree": "L’Atèle — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G4": {
+      "id": "G4",
+      "alias_oriente": "O>M",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "M",
+      "couple": [
+        "O",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "L’Ara rouge",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ara rouge",
+        "entite_illustree": "L’Ara rouge — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G5": {
+      "id": "G5",
+      "alias_oriente": "R>O",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "O",
+      "couple": [
+        "R",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "L’Iguane vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Iguane vert",
+        "entite_illustree": "L’Iguane vert — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G6": {
+      "id": "G6",
+      "alias_oriente": "O>R",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "R",
+      "couple": [
+        "O",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "Le Toucan toco",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Toucan toco",
+        "entite_illustree": "Le Toucan toco — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G7": {
+      "id": "G7",
+      "alias_oriente": "M>H",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "H",
+      "couple": [
+        "M",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "Le Tapir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tapir",
+        "entite_illustree": "Le Tapir — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G8": {
+      "id": "G8",
+      "alias_oriente": "M>E",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "E",
+      "couple": [
+        "M",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "Le Boto",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Boto",
+        "entite_illustree": "Le Boto — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G9": {
+      "id": "G9",
+      "alias_oriente": "R>H",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "H",
+      "couple": [
+        "R",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "Le Caïman noir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Caïman noir",
+        "entite_illustree": "Le Caïman noir — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G10": {
+      "id": "G10",
+      "alias_oriente": "R>E",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "E",
+      "couple": [
+        "R",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "La Matamata",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "La Matamata",
+        "entite_illustree": "La Matamata — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G11": {
+      "id": "G11",
+      "alias_oriente": "O>H",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "H",
+      "couple": [
+        "O",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "La Harpie féroce",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "La Harpie féroce",
+        "entite_illustree": "La Harpie féroce — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G12": {
+      "id": "G12",
+      "alias_oriente": "O>E",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "E",
+      "couple": [
+        "O",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "L’Ibijau",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ibijau",
+        "entite_illustree": "L’Ibijau — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G13": {
+      "id": "G13",
+      "alias_oriente": "M>I",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "I",
+      "couple": [
+        "M",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tamanoir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tamanoir",
+        "entite_illustree": "Le Tamanoir — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G14": {
+      "id": "G14",
+      "alias_oriente": "R>I",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "I",
+      "couple": [
+        "R",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Téju",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Téju",
+        "entite_illustree": "Le Téju — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "G15": {
+      "id": "G15",
+      "alias_oriente": "O>I",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "I",
+      "couple": [
+        "O",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "",
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Colibri",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Colibri",
+        "entite_illustree": "Le Colibri — animal sauvage entier dans son biotope amazonien",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": "",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R1": {
+      "id": "R1",
+      "alias_oriente": "H>E",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "E",
+      "couple": [
+        "H",
+        "E"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R2": {
+      "id": "R2",
+      "alias_oriente": "E>H",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "H",
+      "couple": [
+        "E",
+        "H"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R3": {
+      "id": "R3",
+      "alias_oriente": "H>M",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "M",
+      "couple": [
+        "H",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R4": {
+      "id": "R4",
+      "alias_oriente": "H>R",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "R",
+      "couple": [
+        "H",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R5": {
+      "id": "R5",
+      "alias_oriente": "H>O",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "O",
+      "couple": [
+        "H",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R6": {
+      "id": "R6",
+      "alias_oriente": "H>I",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "I",
+      "couple": [
+        "H",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R7": {
+      "id": "R7",
+      "alias_oriente": "E>M",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "M",
+      "couple": [
+        "E",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R8": {
+      "id": "R8",
+      "alias_oriente": "E>R",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "R",
+      "couple": [
+        "E",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R9": {
+      "id": "R9",
+      "alias_oriente": "E>O",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "O",
+      "couple": [
+        "E",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "R10": {
+      "id": "R10",
+      "alias_oriente": "E>I",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "I",
+      "couple": [
+        "E",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "M1": {
+      "id": "M1",
+      "alias_oriente": "I>M",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "M",
+      "couple": [
+        "I",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "M2": {
+      "id": "M2",
+      "alias_oriente": "I>R",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "R",
+      "couple": [
+        "I",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "M3": {
+      "id": "M3",
+      "alias_oriente": "I>O",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "O",
+      "couple": [
+        "I",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "M4": {
+      "id": "M4",
+      "alias_oriente": "I>H",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "H",
+      "couple": [
+        "I",
+        "H"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    },
+    "M5": {
+      "id": "M5",
+      "alias_oriente": "I>E",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "E",
+      "couple": [
+        "I",
+        "E"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "",
+      "entrees": [],
+      "sorties": [],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [],
+        "mots_cles_plateau": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": ""
+      },
+      "carte_joueur": {
+        "titre_complet": "",
+        "entite_illustree": "",
+        "brief_illustration": "",
+        "pitch_ambiance": "",
+        "texte_regle": {
+          "face_1": "",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "",
+          "renoncement": ""
+        }
+      },
+      "temoins": [],
+      "heuristique_bot": "",
+      "engine_sync_status": "DRAFT_V6_3",
+      "statut_conception": "A_CONCEVOIR"
+    }
+  }
+}

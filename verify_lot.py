@@ -19,9 +19,12 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 CONTRACTS_DIR = ROOT / "contracts"
 LOCKS_FILE = CONTRACTS_DIR / "kernel_locks.sha256"
+SOCLE_V6_2_LOCKS_FILE = CONTRACTS_DIR / "v6_2_socle_locks.sha256"
 RULES_CANON_FILE = CONTRACTS_DIR / "rules_canon_v6_2.json"
 INVARIANTS_FILE = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CANON_FILE = CONTRACTS_DIR / "tiles_canon_v6_2.json"
+TILES_CANON_V6_3_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.json"
+TILES_CANON_V6_3_SCHEMA_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.schema.json"
 GUARDS_FILE = CONTRACTS_DIR / "studio_rules_guards.json"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
@@ -50,16 +53,13 @@ _FORBIDDEN_PACKAGES: tuple[str, ...] = (
     "google-cloud-aiplatform",
 )
 
-# Linter Canon 0 (tuiles)
+# Linter structurel des tuiles (I07 : ZÉRO comptage de mots, de phrases ni de conditions)
 _FACE_LABEL_RE = re.compile(
     r"^\s*(?:Face\s+[12]|Enraciné|En\s+Parade|En\s+Migration)\s*:\s*",
     re.IGNORECASE,
 )
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _BR_SPLIT_RE = re.compile(r"<br\s*/?>", re.IGNORECASE)
-_WORD_ELISION_RE = re.compile(r"[0-9A-Za-zÀ-ÖØ-öø-ÿ]+")
-_SENTENCE_SPLIT_RE = re.compile(r"[.!?]+")
-_CONDITION_RE = re.compile(r"(?i)\b(?:si|quand|lorsque|lorsqu)\b")
 _STEP_CODE_RE = re.compile(r"\b[1-6]\.[0-3]\b")
 _INSECT_LEXICON_RE = re.compile(r"(?i)\b(?:insectes?|nids?|essaims?|migrations?)\b")
 _GARDIEN_LEXICON_RE = re.compile(r"(?i)\b(?:gardiens?|éveil|encoches?|résonance)\b")
@@ -69,9 +69,11 @@ _I_LISIERE_SLOTS: frozenset[str] = frozenset(
 )
 _A0_AUTONOMOUS_SLOTS: frozenset[str] = frozenset({"R1", "R2", "R6", "R10", "M4", "M5"})
 _BANNED_TILE_TERMS: tuple[str, ...] = (
-    "carte",
-    "cartes",
     "paquet",
+    "carte Machine",
+    "cartes Machine",
+    "carte Sabotage",
+    "cartes Sabotage",
     "non rasée",
     "hors Ratissage",
     "sans Piège",
@@ -225,23 +227,19 @@ def check_zero_llm_api_source(source: str, filename: str = "<string>") -> list[s
     return errors
 
 
-def verify_kernel_locks() -> None:
-    """Vérifie les empreintes SHA-256 listées dans contracts/kernel_locks.sha256."""
-    if not LOCKS_FILE.exists():
-        raise FileNotFoundError(f"Fichier de verrouillage manquant : {LOCKS_FILE}")
+def _verify_sha256_lock_file(lock_file: Path) -> int:
+    """Vérifie toutes les empreintes SHA-256 déclarées dans un fichier de verrouillage."""
+    if not lock_file.exists():
+        raise FileNotFoundError(f"Fichier de verrouillage manquant : {lock_file}")
     lines = [
         line.strip()
-        for line in LOCKS_FILE.read_text(encoding="utf-8").splitlines()
+        for line in lock_file.read_text(encoding="utf-8").splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]
-    if not lines:
-        print("[1/10] kernel_locks.sha256 vide : OK")
-        return
-
     for line in lines:
         parts = line.split(maxsplit=1)
         if len(parts) != 2:
-            raise ValueError(f"Ligne invalide dans kernel_locks.sha256 : {line}")
+            raise ValueError(f"Ligne invalide dans {lock_file.name} : {line}")
         expected_hash, rel_path = parts[0].lower(), parts[1].strip().lstrip("*")
         target = ROOT / rel_path
         if not target.exists():
@@ -249,10 +247,20 @@ def verify_kernel_locks() -> None:
         actual_hash = hashlib.sha256(target.read_bytes()).hexdigest().lower()
         if actual_hash != expected_hash:
             raise RuntimeError(
-                f"VIOLATION kernel_locks.sha256 sur {rel_path}: "
+                f"VIOLATION {lock_file.name} sur {rel_path}: "
                 f"attendu {expected_hash}, obtenu {actual_hash}"
             )
-    print(f"[1/10] kernel_locks.sha256 ({len(lines)} fichiers scellés intacts) : OK")
+    return len(lines)
+
+
+def verify_kernel_locks() -> None:
+    """Vérifie les empreintes SHA-256 du noyau (`kernel_locks.sha256`) et du socle v6.2 (`v6_2_socle_locks.sha256`)."""
+    n_kernel = _verify_sha256_lock_file(LOCKS_FILE)
+    n_socle = _verify_sha256_lock_file(SOCLE_V6_2_LOCKS_FILE)
+    print(
+        f"[1/10] kernel_locks.sha256 ({n_kernel} fichiers noyau) + "
+        f"v6_2_socle_locks.sha256 ({n_socle} contrats v6.2 sanctuarisés intacts) : OK"
+    )
 
 
 def verify_effects_ast() -> None:
@@ -373,24 +381,7 @@ def lint_tiles_canon_dict(
                 no_html = _HTML_TAG_RE.sub("", part).strip()
                 clean = _FACE_LABEL_RE.sub("", no_html).strip()
 
-                words = _WORD_ELISION_RE.findall(clean)
-                if len(words) > 25:
-                    errors.append(
-                        f"{label} (face {face_idx}): {len(words)} mots > 25 max -> {clean!r}"
-                    )
-
-                sentences = [s.strip() for s in _SENTENCE_SPLIT_RE.split(clean) if s.strip()]
-                if len(sentences) != 1:
-                    errors.append(
-                        f"{label} (face {face_idx}): {len(sentences)} phrases (attendu 1 seule) -> {clean!r}"
-                    )
-
-                conds = _CONDITION_RE.findall(clean)
-                if len(conds) > 1:
-                    errors.append(
-                        f"{label} (face {face_idx}): {len(conds)} conditions > 1 max ({conds}) -> {clean!r}"
-                    )
-
+                # Invariant I07 : aucune vérification de nombre de mots, de phrases ou de conditions (C02 purgé).
                 step_hits = _STEP_CODE_RE.findall(no_html)
                 if step_hits:
                     errors.append(
@@ -488,11 +479,18 @@ def check_active_tile_handlers_non_noop(
 
 
 def verify_tiles_canon() -> None:
-    """Linter automatique Canon 0 sur contracts/tiles_canon_v6_2.json et CATALOGUE_TUILES."""
+    """Linter structurel, audit 197 assises (I01..I07, C02 purgé) et contrat bi-composant v6.3."""
     if not TILES_CANON_FILE.is_file():
         raise FileNotFoundError(f"Contrat tuiles Canon 0 manquant : {TILES_CANON_FILE}")
     if not STUDIO_JS_FILE.is_file():
         raise FileNotFoundError(f"Fichier Studio JS manquant : {STUDIO_JS_FILE}")
+    if not TILES_CANON_V6_3_SCHEMA_FILE.is_file():
+        raise FileNotFoundError(f"Schéma JSON v6.3 manquant : {TILES_CANON_V6_3_SCHEMA_FILE}")
+    if not TILES_CANON_V6_3_FILE.is_file():
+        raise FileNotFoundError(f"Contrat bi-composant v6.3 manquant : {TILES_CANON_V6_3_FILE}")
+
+    from scripts.audit_197 import audit_tiles_catalog_197
+    from scripts.tiles_v6_3_schema import validate_tiles_canon_v6_3
 
     canon_doc: dict[str, Any] = json.loads(TILES_CANON_FILE.read_text(encoding="utf-8"))
     canon_tiles: dict[str, Any] = dict(canon_doc.get("tuiles_ciblees", {}))
@@ -528,17 +526,35 @@ def verify_tiles_canon() -> None:
             f"Nombre de profils ACTIVE_VERIFIED invalide : attendu 30, obtenu {verified_handlers}"
         )
 
-    if errors:
-        raise RuntimeError("VIOLATION Linter Tuiles Canon 0 :\n" + "\n".join(errors))
+    # Audit structurel sur les 197 assises (zéro C02) sur l'archive v6.2 de référence
+    audit_v62 = audit_tiles_catalog_197(canon_doc, allow_draft=False)
+    if audit_v62["verdict_global"] != "OK":
+        errors.extend(f"audit_197[v6.2]: {e}" for e in audit_v62["errors"])
 
-    faces_total = sum(
-        len([p for p in _BR_SPLIT_RE.split(str(prof.get("texte", ""))) if p.strip()])
-        for slot in canon_tiles.values()
-        for prof in slot["profils"].values()
+    # Validation du schéma JSON v6.3 et du contrat bi-composant tiles_canon_v6_3.json
+    schema_v63 = json.loads(TILES_CANON_V6_3_SCHEMA_FILE.read_text(encoding="utf-8"))
+    if not isinstance(schema_v63, dict) or "$defs" not in schema_v63:
+        errors.append("contracts/tiles_canon_v6_3.schema.json invalide")
+    v63_doc: dict[str, Any] = json.loads(TILES_CANON_V6_3_FILE.read_text(encoding="utf-8"))
+    v63_is_draft = any(
+        isinstance(t, Mapping) and t.get("statut_conception") == "A_CONCEVOIR"
+        for t in (v63_doc.get("tuiles_ciblees") or {}).values()
     )
+    errors.extend(
+        f"tiles_canon_v6_3.json: {e}"
+        for e in validate_tiles_canon_v6_3(v63_doc, strict=not v63_is_draft)
+    )
+    audit_v63 = audit_tiles_catalog_197(v63_doc, allow_draft=v63_is_draft)
+    if audit_v63["verdict_global"] != "OK":
+        errors.extend(f"audit_197[v6.3]: {e}" for e in audit_v63["errors"])
+
+    if errors:
+        raise RuntimeError("VIOLATION Linter Tuiles / Audit 197 / Schéma v6.3 :\n" + "\n".join(errors))
+
+    v63_mode = "DRAFT_V6_3" if v63_is_draft else "STRICT_V6_3"
     print(
-        f"[5/10] Linter Tuiles Canon 0 ({len(canon_tiles)} slots, {faces_total} faces ≤ 25 mots, "
-        f"{verified_handlers}/30 ACTIVE_VERIFIED, 0 PENDING, 0 no-op, clôture I & autonomie A=0) : OK"
+        f"[5/10] Linter Tuiles + Audit 197 + Schéma v6.3 ({len(canon_tiles)} slots, C02 purgé I07, "
+        f"{verified_handlers}/30 ACTIVE_VERIFIED, 0 no-op, 197 assises I01..I07, {v63_mode}) : OK"
     )
 
 

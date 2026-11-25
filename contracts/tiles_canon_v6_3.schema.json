@@ -1,0 +1,396 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://amazonia-sim-lab/contracts/tiles_canon_v6_3.schema.json",
+  "title": "Amazonia : Dernier Rempart — Contrat Bi-Composant des 30 Tuiles de Synergie (v6.3)",
+  "description": "Schéma formel du catalogue canonique v6.3 (30 emplacements orientés Origine>Voisin). Chaque tuile distingue strictement la Mini-Tuile Plateau (`tuile_plateau`, repère visuel synthétique à 360°, zéro phrase rédigée) et la Grande Carte Joueur (`carte_joueur`, illustration totémique + pitch d'ambiance + texte de règle complet sans aucune limite de mots, de phrases ni de conditions — invariant I07).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "_meta",
+    "referentiel_pictogrammes",
+    "casting_gardiens_verrouille",
+    "carte_des_roles",
+    "rapport_audit_197",
+    "tuiles_ciblees"
+  ],
+  "properties": {
+    "_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projet",
+        "schema_version",
+        "socle_verrouille",
+        "cadrage_source",
+        "etape_active",
+        "statut_global",
+        "genere_le",
+        "slots_count",
+        "c02_supprime"
+      ],
+      "properties": {
+        "projet": { "type": "string", "minLength": 1 },
+        "schema_version": { "type": "string", "pattern": "^6\\.3\\." },
+        "socle_verrouille": { "type": "string", "const": "6.2.0" },
+        "cadrage_source": { "type": "string", "const": "docs/cadrage_tuiles_v6_3.md" },
+        "etape_active": {
+          "type": "string",
+          "enum": [
+            "ETAPE_1_CADRAGE_ET_SCHEMA",
+            "ETAPE_2_CONCEPTION_CREATIVE",
+            "ETAPE_3_AFFINAGE_EDITORIAL",
+            "ETAPE_4_ENCODAGE_ET_CALIBRATION",
+            "ETAPE_5_STUDIO_UX"
+          ]
+        },
+        "statut_global": {
+          "type": "string",
+          "enum": [
+            "SCAFFOLD_PRET_ETAPE_2",
+            "CONCEPTION_EN_COURS",
+            "PANEL_30_AFFINE",
+            "ACTIVE_VERIFIED"
+          ]
+        },
+        "genere_le": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+        "slots_count": { "type": "integer", "const": 30 },
+        "c02_supprime": { "type": "boolean", "const": true },
+        "note_retrocompatibilite": { "type": "string" }
+      }
+    },
+    "referentiel_pictogrammes": {
+      "type": "object",
+      "description": "Dictionnaire normalisé des pictogrammes utilisables sur les Mini-Tuiles Plateau.",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "categorie", "libelle", "symbole"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^PIC_[A-Z0-9_]+$" },
+          "categorie": {
+            "type": "string",
+            "enum": [
+              "FORET",
+              "DEFENSE",
+              "MACHINES",
+              "SAC",
+              "PISTE_TACTIQUES",
+              "PISTE_GARDIENS",
+              "ACCESSOIRES",
+              "ESSAIM",
+              "ACTION"
+            ]
+          },
+          "libelle": { "type": "string", "minLength": 1 },
+          "symbole": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "casting_gardiens_verrouille": {
+      "type": "object",
+      "description": "Casting animalier intangible des 15 Gardiens (section 4 de docs/cadrage_tuiles_v6_3.md).",
+      "additionalProperties": false,
+      "required": [
+        "G1", "G2", "G3", "G4", "G5",
+        "G6", "G7", "G8", "G9", "G10",
+        "G11", "G12", "G13", "G14", "G15"
+      ],
+      "patternProperties": {
+        "^G([1-9]|1[0-5])$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["alias_oriente", "nom_animal", "origine", "voisin"],
+          "properties": {
+            "alias_oriente": { "type": "string", "pattern": "^[MRO]>[HEMROI]$" },
+            "nom_animal": { "type": "string", "minLength": 2 },
+            "origine": { "type": "string", "enum": ["M", "R", "O"] },
+            "voisin": { "type": "string", "enum": ["H", "E", "M", "R", "O", "I"] }
+          }
+        }
+      }
+    },
+    "carte_des_roles": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["statut", "roles"],
+      "properties": {
+        "statut": { "type": "string" },
+        "roles": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "catalyseurs_eveil",
+            "leviers_reve",
+            "synergies_enracinement",
+            "lois_passives",
+            "autonomie_A0",
+            "twists_2K3"
+          ],
+          "properties": {
+            "catalyseurs_eveil": { "type": "array", "items": { "type": "string" } },
+            "leviers_reve": { "type": "array", "items": { "type": "string" } },
+            "synergies_enracinement": { "type": "array", "items": { "type": "string" } },
+            "lois_passives": { "type": "array", "items": { "type": "string" } },
+            "autonomie_A0": { "type": "array", "items": { "type": "string" } },
+            "twists_2K3": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "rapport_audit_197": {
+      "type": "object",
+      "description": "Dernier rapport d'audit mathématique produit par scripts/audit_197.py (zéro métrique C02).",
+      "additionalProperties": true,
+      "required": ["verdict_global", "c02_word_count_purged"],
+      "properties": {
+        "verdict_global": { "type": "string" },
+        "c02_word_count_purged": { "type": "boolean", "const": true }
+      }
+    },
+    "tuiles_ciblees": {
+      "type": "object",
+      "minProperties": 30,
+      "maxProperties": 30,
+      "additionalProperties": false,
+      "required": [
+        "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8", "G9", "G10",
+        "G11", "G12", "G13", "G14", "G15",
+        "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R9", "R10",
+        "M1", "M2", "M3", "M4", "M5"
+      ],
+      "patternProperties": {
+        "^(G([1-9]|1[0-5])|R([1-9]|10)|M[1-5])$": {
+          "$ref": "#/$defs/tile_v6_3"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "peuple_code": {
+      "type": "string",
+      "enum": ["H", "E", "M", "R", "O", "I"]
+    },
+    "icone_gardien": {
+      "type": "string",
+      "enum": [
+        "ICONE_PARADE",
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE",
+        "ICONE_REVE",
+        "ICONE_INSECTE",
+        "ICONE_RESONANCE"
+      ]
+    },
+    "role_porte": {
+      "type": "string",
+      "enum": [
+        "CATALYSEUR_EVEIL",
+        "LEVIER_REVE",
+        "ENRACINEMENT",
+        "LOI_PASSIVE",
+        "AUTONOMIE_A0",
+        "TWIST_2K3"
+      ]
+    },
+    "paiement_code": {
+      "type": "string",
+      "enum": ["P_ARBRE", "P_PARI", "P_RANG", "P_SOUCHE"]
+    },
+    "temoin_v6_3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "resume", "etat_attendu_verifie", "statut"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(G([1-9]|1[0-5])|R([1-9]|10)|M[1-5])_T[1-3]$" },
+        "resume": { "type": "string", "minLength": 1 },
+        "etat_attendu_verifie": { "type": "object" },
+        "statut": { "type": "string", "enum": ["A_CODER", "OK"] }
+      }
+    },
+    "tile_v6_3": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "alias_oriente",
+        "famille",
+        "origine",
+        "voisin",
+        "couple",
+        "cycle",
+        "cablage",
+        "roles_portes",
+        "est_twist",
+        "vecteurs",
+        "entrees",
+        "sorties",
+        "paiement",
+        "nature",
+        "declencheurs_amorces",
+        "double_ouverture",
+        "tags",
+        "tuile_plateau",
+        "carte_joueur",
+        "temoins",
+        "heuristique_bot",
+        "engine_sync_status",
+        "statut_conception"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^(G([1-9]|1[0-5])|R([1-9]|10)|M[1-5])$" },
+        "alias_oriente": { "type": "string", "pattern": "^[HEMROI]>[HEMROI]$" },
+        "famille": { "type": "string", "enum": ["GARDIEN", "REVE", "CROISSANCE"] },
+        "origine": { "$ref": "#/$defs/peuple_code" },
+        "voisin": { "$ref": "#/$defs/peuple_code" },
+        "couple": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/peuple_code" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "cycle": {
+          "type": "string",
+          "enum": ["DOUBLE_FACE_UPGRADE", "SIMPLE_CONTINU", "PASSIF_CONTINU"]
+        },
+        "cablage": {
+          "oneOf": [
+            { "type": "null" },
+            {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1, "maximum": 6 },
+              "minItems": 1,
+              "maxItems": 6
+            }
+          ]
+        },
+        "roles_portes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/role_porte" },
+          "uniqueItems": true
+        },
+        "est_twist": { "type": "boolean" },
+        "vecteurs": { "type": "string" },
+        "entrees": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "uniqueItems": true
+        },
+        "sorties": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "uniqueItems": true
+        },
+        "paiement": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/paiement_code" },
+          "uniqueItems": true
+        },
+        "nature": { "type": "string", "enum": ["ACTION", "LOI_PASSIVE"] },
+        "declencheurs_amorces": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/icone_gardien" },
+          "uniqueItems": true
+        },
+        "double_ouverture": {
+          "oneOf": [{ "type": "null" }, { "type": "string" }]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "uniqueItems": true
+        },
+        "tuile_plateau": {
+          "type": "object",
+          "description": "Mini-Tuile Plateau : repère spatial 360°, 2 à 4 pictogrammes normalisés + mots-clés ultra-courts, zéro phrase rédigée.",
+          "additionalProperties": false,
+          "required": [
+            "nom_court",
+            "fenetre_badge",
+            "icone_conseillee",
+            "pictogrammes",
+            "mots_cles_plateau",
+            "resume_plateau"
+          ],
+          "properties": {
+            "nom_court": { "type": "string" },
+            "fenetre_badge": { "type": "string" },
+            "icone_conseillee": {
+              "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/icone_gardien" }]
+            },
+            "pictogrammes": {
+              "type": "array",
+              "items": { "type": "string", "pattern": "^PIC_[A-Z0-9_]+$" },
+              "maxItems": 4,
+              "uniqueItems": true
+            },
+            "mots_cles_plateau": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["face_1", "face_2", "enracine"],
+              "properties": {
+                "face_1": { "type": "string" },
+                "face_2": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+                "enracine": { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+              }
+            },
+            "resume_plateau": { "type": "string" }
+          }
+        },
+        "carte_joueur": {
+          "type": "object",
+          "description": "Grande Carte Joueur : entité illustrée, pitch d'ambiance et texte de règle complet structuré sans limite de mots, de phrases ni de conditions (I07).",
+          "additionalProperties": false,
+          "required": [
+            "titre_complet",
+            "entite_illustree",
+            "brief_illustration",
+            "pitch_ambiance",
+            "texte_regle",
+            "decision_et_renoncement"
+          ],
+          "properties": {
+            "titre_complet": { "type": "string" },
+            "entite_illustree": { "type": "string" },
+            "brief_illustration": { "type": "string" },
+            "pitch_ambiance": { "type": "string" },
+            "texte_regle": {
+              "type": "object",
+              "description": "Texte de règle libre de toute limite de mots, de phrases ou de conditions (I07).",
+              "additionalProperties": false,
+              "required": ["face_1", "face_2", "enracine"],
+              "properties": {
+                "face_1": { "type": "string" },
+                "face_2": { "oneOf": [{ "type": "null" }, { "type": "string" }] },
+                "enracine": { "oneOf": [{ "type": "null" }, { "type": "string" }] }
+              }
+            },
+            "decision_et_renoncement": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["choix", "renoncement"],
+              "properties": {
+                "choix": { "type": "string" },
+                "renoncement": { "type": "string" }
+              }
+            }
+          }
+        },
+        "temoins": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/temoin_v6_3" },
+          "maxItems": 3
+        },
+        "heuristique_bot": { "type": "string" },
+        "engine_sync_status": {
+          "type": "string",
+          "enum": ["DRAFT_V6_3", "DESIGNED_V6_3", "REFINED_V6_3", "ACTIVE_VERIFIED"]
+        },
+        "statut_conception": {
+          "type": "string",
+          "enum": ["A_CONCEVOIR", "PASSE_1_CREATIF", "PASSE_2_AFFINE", "VALIDE_V6_3"]
+        }
+      }
+    }
+  }
+}

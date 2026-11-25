@@ -7,15 +7,17 @@
 ## 1. Identité & Rôle dans l'Écosystème
 
 - **Projet** : *Amazonia : Dernier Rempart* — Jeu de société coopératif asymétrique à communication muette (`3` à `6` joueurs, `8` tours max en `2` Actes).
-- **Cible unifiée** : **`v6.2` (`schema_version: "6.2.0"`)** — *Socle épuré + Asymétrie Hybride `3 + 3` + Enracinement volontaire + Canon 0 de 30 tuiles*.
+- **Socle règles cœur sanctuarisé** : **`v6.2` (`schema_version: "6.2.0"`)** — *Socle épuré + Asymétrie Hybride `3 + 3` + Enracinement volontaire* (verrouillé dans `contracts/v6_2_socle_locks.sha256` et tag Git `archive/v6.2.0-socle-canon0`).
+- **Chantier actif tuiles** : **`v6.3`** — *Refonte bi-composant des 30 Tuiles de Synergie (Mini-Tuile Plateau + Grande Carte Joueur, zéro contrainte `C02` — voir `docs/cadrage_tuiles_v6_3.md`)*.
 - **Dépôt & Hébergement** :
   - GitHub : `https://github.com/antoineacquaviva/amazonia-sim-lab` (`docs/`)
   - Production (GitHub Pages) : `https://antoineacquaviva.github.io/amazonia-sim-lab/`
 - **Architecture Source Unique de Vérité (SSOT)** :
-  1. `contracts/rules_canon_v6_2.json` : contrat formel typé unique (châssis unique verrouillé `P4_2233` départ décalé `Bulldozer p=1 / Abatteuse p=2`, matériel fini recto-verso, sac opaque, supports fixes, formule de Seuil, 6 icônes Gardiens, séquence du tour, 3 modules, accessoires `3 + 3`, Enracinement volontaire).
+  1. `contracts/rules_canon_v6_2.json` : contrat formel typé unique du socle (châssis unique verrouillé `P4_2233` départ décalé `Bulldozer p=1 / Abatteuse p=2`, matériel fini recto-verso, sac opaque, supports fixes, formule de Seuil, 6 icônes Gardiens, séquence du tour, 3 modules, accessoires `3 + 3`, Enracinement volontaire).
   2. `contracts/physical_and_edge_invariants.json` : registre permanent des **22 invariants** (`INV-01` à `INV-22`, catégories `MATERIEL`, `CAS_LIMITE`, `GOUVERNANCE`) avec assertions vérifiables dans le livret joueur (`data-inv="INV-XX"`).
-  3. `contracts/tiles_canon_v6_2.json` : catalogue canonique des **30 emplacements** (`G1..G15`, `R1..R10`, `M1..M5` — 30 profils `A`, `48` faces `≤ 25` mots, `35` témoins, `carte_des_roles`, `rapport_audit_197` sur 197 assises et `vivier_candidats_B_C_phase_5`). Les règles de déviation `±1` et de Bouclier de lisière facultatif sont désormais des règles natives du **Module Essaim**.
-  4. **Compilateur dérivé unique** (`scripts/build_studio_artifacts.py`) : génère sans aucune constante métier codée en dur les fichiers dérivés de `docs/data/` (`amazonia_data_v6_0.js`, `catalog_v6_0.json`, `spec_formelle_v6_0.json`) ainsi que `data/spec_bundle_v6_0.json` et `data/studio_lock.json`.
+  3. `contracts/tiles_canon_v6_2.json` : archive de référence sanctuarisée du `Canon 0` `v6.2` (`30` emplacements, `35` témoins, maintenue transitoirement pour le rendu Explorateur jusqu'à l'Étape 5 de la `v6.3`).
+  4. `contracts/tiles_canon_v6_3.json` & `contracts/tiles_canon_v6_3.schema.json` : contrat bi-composant `v6.3` (`tuile_plateau` + `carte_joueur`, audité par `scripts/audit_197.py` sans aucune limite de mots/phrases/conditions — `I07`).
+  5. **Compilateur dérivé unique** (`scripts/build_studio_artifacts.py`) : génère sans aucune constante métier codée en dur les fichiers dérivés de `docs/data/` (`amazonia_data_v6_0.js`, `catalog_v6_0.json`, `spec_formelle_v6_0.json`) ainsi que `data/spec_bundle_v6_0.json` et `data/studio_lock.json` (avec adaptateur transparent `v6.2`/`v6.3`).
 
 ---
 
