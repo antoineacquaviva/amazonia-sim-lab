@@ -17,8 +17,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTRACTS_DIR = ROOT / "contracts"
+PANELS_DIR = CONTRACTS_DIR / "panels"
 V6_3_SCHEMA_PATH = CONTRACTS_DIR / "tiles_canon_v6_3.schema.json"
 V6_3_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_3.json"
+
+MURS_PORTEURS_V6_3: tuple[str, ...] = (
+    "M1_TEMPS_BATAILLE",
+    "M2_CONSERVATION_THERMIQUE",
+    "M3_INTEGRITE_PLATEAU_ET_ICONES",
+    "M4_AUTONOMIE_PLANCHER_SOLO",
+)
 
 SLOTS_SPEC_30: tuple[tuple[str, str, str, str, str], ...] = (
     ("G1", "GARDIEN", "M", "R", "M>R"),
@@ -494,6 +502,22 @@ def validate_tiles_canon_v6_3(
             if not isinstance(tile.get(list_field), list):
                 errors.append(f"{lbl}: {list_field} doit être une liste")
 
+        for opt_list in ("entrees_plancher", "entrees_synergie"):
+            if opt_list in tile and not isinstance(tile.get(opt_list), list):
+                errors.append(f"{lbl}: {opt_list} doit être une liste")
+        if isinstance(tile.get("entrees_plancher"), list) and isinstance(
+            tile.get("entrees_synergie"), list
+        ):
+            overlap = sorted(
+                {str(x).upper() for x in tile["entrees_plancher"]}
+                & {str(x).upper() for x in tile["entrees_synergie"]}
+            )
+            if overlap:
+                errors.append(
+                    f"{lbl}: entrees_plancher et entrees_synergie doivent être disjoints "
+                    f"(doublons={overlap})"
+                )
+
         for pay in tile.get("paiement") or []:
             if pay not in VALID_PAIEMENTS:
                 errors.append(f"{lbl}: paiement invalide {pay!r}")
@@ -716,6 +740,8 @@ def build_v6_3_scaffold(*, genere_le: str = "2026-11-25") -> dict[str, Any]:
             "roles_portes": roles_portes,
             "est_twist": False,
             "vecteurs": "",
+            "entrees_plancher": [],
+            "entrees_synergie": [],
             "entrees": [],
             "sorties": [],
             "paiement": [],
@@ -759,7 +785,7 @@ def build_v6_3_scaffold(*, genere_le: str = "2026-11-25") -> dict[str, Any]:
     return {
         "_meta": {
             "projet": "Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)",
-            "schema_version": "6.3.0-draft",
+            "schema_version": "6.3.1-draft",
             "socle_verrouille": "6.2.0",
             "cadrage_source": "docs/cadrage_tuiles_v6_3.md",
             "etape_active": "ETAPE_1_CADRAGE_ET_SCHEMA",
@@ -767,10 +793,13 @@ def build_v6_3_scaffold(*, genere_le: str = "2026-11-25") -> dict[str, Any]:
             "genere_le": genere_le,
             "slots_count": 30,
             "c02_supprime": True,
+            "panel_id": "canon_v6_3",
+            "murs_porteurs_verrouilles": list(MURS_PORTEURS_V6_3),
             "note_retrocompatibilite": (
-                "Squelette initialisé à l'Étape 1 : le build Doc Studio actif reste transitoirement "
-                "sur contracts/tiles_canon_v6_2.json (archive de référence sanctuarisée) jusqu'aux "
-                "Étapes 3–5, tout en disposant déjà de l'adaptateur bi-composant v6.3."
+                "Squelette v6.3.1 (4 murs porteurs M1..M4 + séparation entrees_plancher / "
+                "entrees_synergie) : le build Doc Studio actif reste transitoirement sur "
+                "contracts/tiles_canon_v6_2.json (archive sanctuarisée) jusqu'aux Étapes 3–5, "
+                "tout en disposant déjà de l'adaptateur bi-composant v6.3."
             ),
         },
         "referentiel_pictogrammes": copy.deepcopy(DEFAULT_REFERENTIEL_PICTOGRAMMES),
@@ -869,7 +898,17 @@ def project_v6_3_tile_to_studio_compat(tile: Mapping[str, Any]) -> dict[str, Any
             "choix": str(dr.get("choix", "")),
             "renoncement": str(dr.get("renoncement", "")),
         },
-        "entrees": list(tile.get("entrees") or []),
+        "entrees_plancher": list(tile.get("entrees_plancher") or []),
+        "entrees_synergie": list(tile.get("entrees_synergie") or []),
+        "entrees": list(
+            dict.fromkeys(
+                [
+                    *(tile.get("entrees_plancher") or []),
+                    *(tile.get("entrees_synergie") or []),
+                    *(tile.get("entrees") or []),
+                ]
+            )
+        ),
         "sorties": list(tile.get("sorties") or []),
         "paiement": list(tile.get("paiement") or []),
         "vecteurs": str(tile.get("vecteurs") or ""),

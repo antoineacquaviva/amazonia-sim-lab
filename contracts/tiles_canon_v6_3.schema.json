@@ -55,6 +55,21 @@
         "genere_le": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
         "slots_count": { "type": "integer", "const": 30 },
         "c02_supprime": { "type": "boolean", "const": true },
+        "panel_id": { "type": "string", "minLength": 1 },
+        "source_modele": { "type": "string" },
+        "murs_porteurs_verrouilles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "M1_TEMPS_BATAILLE",
+              "M2_CONSERVATION_THERMIQUE",
+              "M3_INTEGRITE_PLATEAU_ET_ICONES",
+              "M4_AUTONOMIE_PLANCHER_SOLO"
+            ]
+          },
+          "uniqueItems": true
+        },
         "note_retrocompatibilite": { "type": "string" }
       }
     },
@@ -273,6 +288,19 @@
         "vecteurs": { "type": "string" },
         "entrees": {
           "type": "array",
+          "description": "Union rétro-compatible des entrées (si `entrees_plancher` est absent, audité comme plancher bloquant M4).",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "uniqueItems": true
+        },
+        "entrees_plancher": {
+          "type": "array",
+          "description": "Prérequis bloquants de la Face 1 : doivent être 100 % autonomes en solo (M4_AUTONOMIE_PLANCHER_SOLO, jamais dépendants d'une autre tuile ni même de la jumelle Y>X).",
+          "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
+          "uniqueItems": true
+        },
+        "entrees_synergie": {
+          "type": "array",
+          "description": "États inter-tuiles optionnels utilisés comme alternative (OU), amplificateur (Si…) ou en Face 2 (clos sur les 197 assises via I01).",
           "items": { "type": "string", "pattern": "^[A-Z0-9_]+$" },
           "uniqueItems": true
         },

@@ -56,6 +56,19 @@ Toute tuile `v6.3` s'appuie exclusivement sur la physique exacte de la `v6.2` :
   * *Progressifs via tuiles* : **Entités** (`jetons Altération` sur machine mobile, max 1) ; **Reptiles** (`4 jetons Écaille`, `1 Croc` réutilisable, `max 1 cale` sous machine mobile) ; **Insectes** (`jetons Insectes` et `Nids` strictement réservés aux 10 tuiles des 5 lisières de `I`).
   * *Spécialisation par Grande Carte* : une Grande Carte `E` ou `R` peut enrichir ou détourner l'effet du jeton *Altération*, *Écaille*, *Croc* ou d'une *cale* lorsqu'il se résout, tant que le support physique sur le plateau reste sans ambiguïté (`mem_debt = 0`).
 
+### 3.2 Les 4 Murs Porteurs Physiques (`M1` à `M4` — bloquants dans `audit_197.py`)
+
+Suite au retour d'expérience des 3 premiers panels candidats (`panel_1`, `panel_2`, `panel_3`), quatre invariants physiques intangibles bornent toute conception `v6.3` :
+
+1. **Unité de temps de la bataille (`M1_TEMPS_BATAILLE`)** : interdiction stricte de retourner une `Souche` en `Arbre debout` pendant les Tours `1` à `8` (ni à l'activation, ni à l'ouverture, ni à la production, ni au ménage, ni au moment de la pose d'un Enracinement). Toute régénération `Souche → Arbre debout` se résout **exclusivement au décompte final** (via la règle d'Enracinement volontaire et les clauses `enracine` explicitement lues *au décompte final*). *Lire la présence d'un Arbre debout comme condition spatiale (ex. pont de canopée) reste 100 % valide.*
+2. **Conservation thermique (`M2_CONSERVATION_THERMIQUE`)** : aucun jeton Bleu *Surchauffe* ne peut être posé à sec depuis la réserve sur une machine dépourvue de jeton Rouge. Un Bleu provient toujours du retournement (sur place ou transféré d'une machine à une autre) d'un jeton Rouge déjà présent sur une machine (ou d'une loi modifiant la lecture d'un Rouge existant dans le Seuil).
+3. **Intégrité `2–2–3–3` et fixité d'icône (`M3_INTEGRITE_PLATEAU_ET_ICONES`)** :
+   * Les pions `Arbre / Souche` ne changent jamais de parcelle (respect strict de la dotation gravée `2–2–3–3`) et aucune tuile ne coupe volontairement un Arbre debout allié en Souche comme coût.
+   * Une Mini-Tuile Gardien en piste ne saute pas d'une icône à une autre lors de son activation (**au plus `1` seul emplacement Twist sur `30`** dans tout un panel peut, s'il le souhaite, faire exception comme Twist dédié ; jamais en mécanique générique répétée ni sur une tuile fluide).
+4. **Autonomie plancher en solo (`M4_AUTONOMIE_PLANCHER_SOLO`)** : toute tuile construite seule doit avoir un effet utile garanti dès sa `Face 1` sans dépendre de la construction préalable d'une autre tuile — **pas même sa jumelle de lisière `Y>X`** (qui peut ne pas être construite, retomber en lisière ou être enracinée).
+   * Une tuile ne peut donc pas exiger comme prérequis bloquant (`entrees_plancher`) un état créé exclusivement par d'autres tuiles (`BLEU`, `CALE`, `INSECTE_PASSAGER`, ni `ALTEREE`/`ALTERATION` hors origine `E`, ni `ECAILLE`/`CROC` hors origine `R` — sauf si la tuile précise explicitement qu'elle prélève elle-même ce jeton dans la réserve physique du voisin présent sur sa lisière).
+   * En revanche, ces états inter-tuiles restent pleinement encouragés comme **alternatives (`OU`)** ou **amplificateurs / synergies optionnelles (`Si…` / `Face 2`)**, déclarés dans `entrees_synergie`.
+
 ---
 
 ## 4. Casting verrouillé des 15 Gardiens (Figures animales)
@@ -71,8 +84,9 @@ Chaque emplacement Gardien incarne un unique animal emblématique d'Amazonie :
 
 ### 5.1 Temps 1 — Critères de création et de sélection du Panel 30
 1. **Vraies briques de moteurs inter-peuples** : chaque tuile crée des ponts francs entre la grammaire de son Peuple d'origine et celle de son voisin de lisière (recycler des bâtisseurs/rives perdantes, sculpter la frontière Charge/Assaut, retourner ou consommer la *Surchauffe bleue*, transformer les Souches/Clairières/Routes/Ratissages en leviers tactiques, nourrir ou projeter l'Essaim, orchestrer les cascades des 6 icônes).
-2. **Twists assumés et effets signature** : au moins `6` Briques-Twists distribuées en $2K_3$ (`1` par Peuple d'origine, au plus `1` par lisière) viennent tordre une règle familière du cœur (lecture d'un dé écarté ou sous paravent, phorésie sur machine, archipel de Souches, piston de Rêves, déménagement de Nid ou d'ancrage, torsion de l'ordre d'attaque, sacrifice de Souche ou de Piège). Les `24` autres briques, dites fluides, doivent elles aussi posséder une forte personnalité ludique (zéro simple « distributeur passif de +1 jeton » sans dilemme).
-3. **Dilemme tactique réel** : chaque activation ou positionnement confronte le gouverneur à un renoncement concret (tempo vs masse critique, verrou local vs dilution du sac, pouvoir actif vs Enracinement, Sommeil vs Éveil).
+2. **Focalisation mécanique (anti-couteau suisse)** : privilégier **une mécanique signature forte, lisible et mémorable par tuile** plutôt qu'un empilement de 3–4 micro-effets disjoints. La liberté rédactionnelle de la Grande Carte (`I07`) sert à expliquer clairement une mécanique profonde (son coût, son dilemme, sa synergie et ses cas limites), jamais à diluer l'identité d'une tuile dans une liste hétéroclite de bonus.
+3. **Twists assumés et effets signature** : au moins `6` Briques-Twists distribuées en $2K_3$ (`1` par Peuple d'origine, au plus `1` par lisière) viennent tordre une règle familière du cœur (lecture d'un dé écarté ou sous paravent, phorésie sur machine, archipel de Souches, piston de Rêves, déménagement de Nid ou d'ancrage, torsion de l'ordre d'attaque, sacrifice de Souche ou de Piège). Les `24` autres briques, dites fluides, doivent elles aussi posséder une forte personnalité ludique (zéro simple « distributeur passif de +1 jeton » sans dilemme).
+4. **Dilemme tactique réel** : chaque activation ou positionnement confronte le gouverneur à un renoncement concret (tempo vs masse critique, verrou local vs dilution du sac, pouvoir actif vs Enracinement, Sommeil vs Éveil).
 
 ### 5.2 Temps 2 — Critères d'affinage et d'hygiène (sans appauvrissement)
 * **Dette mémorielle nulle (`mem_debt = 0`)** : interdiction de tout modificateur flottant non porté par une pièce physique (pion, jeton, cale, orientation ou emplacement de tuile).
@@ -80,7 +94,10 @@ Chaque emplacement Gardien incarne un unique animal emblématique d'Amazonie :
 * **Clarté éditoriale** : vocabulaire unifié `v6.2` sur la Grande Carte ; synthèse visuelle immédiate sur la Mini-Tuile.
 
 ### 5.3 Invariants mathématiques maintenus sur les 197 assises (`audit_197`)
-* **`I01` Clôture de disponibilité élargie à la lisière** : une tuile ne peut exiger en entrée qu'un état disponible sur 100 % de ses 64 assises — ce qui inclut les états produits par le socle, par son Peuple, par son voisin de lisière, par elle-même, **ou par sa tuile jumelle de lisière (`Y>X`, co-présente à 100 %)**. Exclusivité stricte des Insectes aux 10 tuiles des 5 lisières de `I`.
+* **`M1` à `M4` (4 Murs Porteurs Physiques)** : unité de temps de la bataille (`M1`), conservation thermique (`M2`), intégrité `2–2–3–3` & fixité d'icône `≤ 1` Twist (`M3`), et autonomie plancher en solo dès la `Face 1` (`M4`).
+* **`I01` Clôture de disponibilité & séparation plancher / synergie** :
+  * **Plancher bloquant (`entrees_plancher`, contrôlé par `M4`)** : ne peut exiger qu'un état garanti en solo par le socle, le Peuple d'origine, le voisin de lisière (accessoires T1 ou prélèvement explicite dans la réserve du voisin) ou la tuile elle-même — jamais une dépendance bloquante à la construction d'une autre tuile, pas même sa jumelle `Y>X`.
+  * **Synergies optionnelles (`entrees_synergie`, alternatives `OU` / bonus `Si…` / `Face 2`)** : doivent rester disponibles sur les `64` assises (via le socle, les Peuples assis, la tuile elle-même ou sa jumelle `Y>X` co-présente à 100 %) et respecter l'exclusivité stricte des Insectes aux 10 tuiles des 5 lisières de `I`.
 * **`I02` Autonomie `A = 0` sur `{H, E, I}`** : `R1, R2, R6, R10, M4, M5` ne dépendent jamais d'un Gardien ni de la Piste des Gardiens.
 * **`I03` Divergence de lisière** : `X>Y` et `Y>X` produisent des sorties principales distinctes et ne forment jamais une boucle infinie fermée à deux.
 * **`I04` Couverture Éveil `(i) + (ii)`** : pour chaque Animal (`M, R, O`), au moins 2 de ses 3 Gardiens tournés vers `{H, E, I}` et au moins 1 Gardien sur chaque lisière Animal–Animal (`M–R`, `M–O`, `R–O`) portent un catalyseur d'ouverture/sécurisation de pari (`≥ 9` Gardiens, et 100 % des 15 Gardiens rentables en double activation).
@@ -90,10 +107,17 @@ Chaque emplacement Gardien incarne un unique animal emblématique d'Amazonie :
 
 ---
 
-## 6. Contrat de données cible d'une Tuile (`v6.3`)
+## 6. Contrat de données cible d'une Tuile (`v6.3.1`) & Staging Multi-Panels
 
-Chaque entrée du futur `contracts/tiles_canon_v6_3.json` distinguera clairement :
-1. **Identité & Rôle** : `id` (`G1`), `alias_oriente` (`M>R`), `famille`, `origine`, `voisin`, `roles_portes`, `est_twist`, `vecteurs`, `entrees`, `sorties`, `paiement`, `nature` (`ACTION` | `LOI_PASSIVE`).
-2. **`tuile_plateau` (Mini-Tuile)** : `nom_court` (ex. `"Le Jaguar"`), `fenetre_badge`, `icone_conseillee`, `pictogrammes` (liste normalisée), `mots_cles_plateau` (aide-mémoire ultra-court par face/état).
+### 6.1 Structure d'une entrée de catalogue (`contracts/tiles_canon_v6_3.schema.json`)
+Chaque entrée de `contracts/tiles_canon_v6_3.json` (et des panels candidats `contracts/panels/panel_*.json`) distinguera clairement :
+1. **Identité & Rôle** : `id` (`G1`), `alias_oriente` (`M>R`), `famille`, `origine`, `voisin`, `roles_portes`, `est_twist`, `vecteurs`, `entrees_plancher` (prérequis bloquants solo `M4`), `entrees_synergie` (synergies optionnelles `OU` / `Si…` / `Face 2`), `entrees` (union complète rétro-compatible), `sorties`, `paiement`, `nature` (`ACTION` | `LOI_PASSIVE`).
+2. **`tuile_plateau` (Mini-Tuile)** : `nom_court` (ex. `"Le Jaguar"`), `fenetre_badge`, `icone_conseillee`, `pictogrammes` (liste normalisée), `mots_cles_plateau` (aide-mémoire ultra-court par face/état), `resume_plateau`.
 3. **`carte_joueur` (Grande Carte)** : `titre_complet`, `entite_illustree` (animal sauvage / vision / nid), `brief_illustration`, `pitch_ambiance`, `texte_regle` (structuré par `face_1`, `face_2` optionnelle, `enracine` optionnel), `decision_et_renoncement`.
-4. **Exécution & Preuve** : `temoins` (1 à 3 tests unitaires exécutables), `heuristique_bot`, `engine_sync_status`.
+4. **Exécution & Preuve** : `temoins` (1 à 3 tests unitaires exécutables), `heuristique_bot`, `engine_sync_status`, `statut_conception`.
+
+### 6.2 Accueil et comparaison parallèle des 3 panels candidats (`contracts/panels/`)
+Les 3 catalogues indépendants issus de nos 3 modèles sont conservés en parallèle dans `contracts/panels/` (`panel_1.json`, `panel_2.json`, `panel_3.json`) avant assemblage du panel retenu dans `contracts/tiles_canon_v6_3.json` :
+* Validation unitaire d'un panel : `uv run python scripts/audit_197.py contracts/panels/panel_1.json`
+* Audit comparatif des 3 panels côte à côte : `uv run python scripts/audit_197.py --panels-dir contracts/panels`
+

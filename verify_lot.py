@@ -25,6 +25,7 @@ INVARIANTS_FILE = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CANON_FILE = CONTRACTS_DIR / "tiles_canon_v6_2.json"
 TILES_CANON_V6_3_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.json"
 TILES_CANON_V6_3_SCHEMA_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.schema.json"
+PANELS_DIR = CONTRACTS_DIR / "panels"
 GUARDS_FILE = CONTRACTS_DIR / "studio_rules_guards.json"
 EFFECTS_DIR = ROOT / "engine" / "effects"
 PYPROJECT_FILE = ROOT / "pyproject.toml"
@@ -489,7 +490,7 @@ def verify_tiles_canon() -> None:
     if not TILES_CANON_V6_3_FILE.is_file():
         raise FileNotFoundError(f"Contrat bi-composant v6.3 manquant : {TILES_CANON_V6_3_FILE}")
 
-    from scripts.audit_197 import audit_tiles_catalog_197
+    from scripts.audit_197 import audit_panels_directory, audit_tiles_catalog_197
     from scripts.tiles_v6_3_schema import validate_tiles_canon_v6_3
 
     canon_doc: dict[str, Any] = json.loads(TILES_CANON_FILE.read_text(encoding="utf-8"))
@@ -526,7 +527,7 @@ def verify_tiles_canon() -> None:
             f"Nombre de profils ACTIVE_VERIFIED invalide : attendu 30, obtenu {verified_handlers}"
         )
 
-    # Audit structurel sur les 197 assises (zéro C02) sur l'archive v6.2 de référence
+    # Audit structurel sur les 197 assises + 4 murs porteurs M1..M4 (zéro C02) sur l'archive v6.2
     audit_v62 = audit_tiles_catalog_197(canon_doc, allow_draft=False)
     if audit_v62["verdict_global"] != "OK":
         errors.extend(f"audit_197[v6.2]: {e}" for e in audit_v62["errors"])
@@ -548,13 +549,28 @@ def verify_tiles_canon() -> None:
     if audit_v63["verdict_global"] != "OK":
         errors.extend(f"audit_197[v6.3]: {e}" for e in audit_v63["errors"])
 
+    # Répertoire multi-panels (`contracts/panels/`) : JSON bien formé requis, audit diagnostic non bloquant
+    panels_summary = "0 panel"
+    if not PANELS_DIR.is_dir():
+        errors.append(f"Répertoire multi-panels manquant : {PANELS_DIR}")
+    else:
+        panel_jsons = sorted(p for p in PANELS_DIR.glob("*.json") if p.is_file())
+        if panel_jsons:
+            try:
+                batch = audit_panels_directory(PANELS_DIR, allow_draft=False)
+                ok_cnt = sum(1 for r in batch["comparison"] if r["verdict"] == "OK")
+                panels_summary = f"{len(panel_jsons)} panels ({ok_cnt} OK)"
+            except (json.JSONDecodeError, TypeError, KeyError) as exc:
+                errors.append(f"contracts/panels/: JSON mal formé ({exc})")
+
     if errors:
         raise RuntimeError("VIOLATION Linter Tuiles / Audit 197 / Schéma v6.3 :\n" + "\n".join(errors))
 
     v63_mode = "DRAFT_V6_3" if v63_is_draft else "STRICT_V6_3"
     print(
-        f"[5/10] Linter Tuiles + Audit 197 + Schéma v6.3 ({len(canon_tiles)} slots, C02 purgé I07, "
-        f"{verified_handlers}/30 ACTIVE_VERIFIED, 0 no-op, 197 assises I01..I07, {v63_mode}) : OK"
+        f"[5/10] Linter Tuiles + Audit 197 (M1..M4 + I01..I07) + Schéma v6.3 "
+        f"({len(canon_tiles)} slots, C02 purgé, {verified_handlers}/30 ACTIVE_VERIFIED, "
+        f"0 no-op, {v63_mode}, {panels_summary}) : OK"
     )
 
 
