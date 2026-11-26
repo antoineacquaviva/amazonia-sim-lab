@@ -509,7 +509,7 @@ def test_audit_panels_directory_compares_three_parallel_panels(tmp_path: Path) -
 
 
 def test_v6_3_schema_contract_and_casting_guards() -> None:
-    """Valide tiles_canon_v6_3.schema.json (6.3.1), le squelette initial et le casting animalier verrouillé."""
+    """Valide tiles_canon_v6_3.schema.json (6.3.1), le squelette, le canon assemblé et le casting verrouillé."""
     schema = json.loads(V6_3_SCHEMA_PATH.read_text(encoding="utf-8"))
     assert schema["$schema"].startswith("https://json-schema.org/draft/2020-12")
     tile_props = schema["$defs"]["tile_v6_3"]["properties"]
@@ -518,11 +518,20 @@ def test_v6_3_schema_contract_and_casting_guards() -> None:
     assert "entrees_plancher" in tile_props
     assert "entrees_synergie" in tile_props
 
-    scaffold = json.loads(V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
+    # 1. Squelette draft généré par build_v6_3_scaffold()
+    scaffold = build_v6_3_scaffold()
     assert is_v6_3_tiles_contract(scaffold) is True
     assert scaffold["_meta"]["schema_version"] == "6.3.1-draft"
     assert scaffold["_meta"]["murs_porteurs_verrouilles"] == list(MURS_PORTEURS_V6_3)
     assert validate_tiles_canon_v6_3(scaffold, strict=False) == []
+
+    # 2. Contrat canonique assemblé contracts/tiles_canon_v6_3.json (hors brouillon, strict)
+    canon_v63 = json.loads(V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
+    assert is_v6_3_tiles_contract(canon_v63) is True
+    assert canon_v63["_meta"]["schema_version"] == "6.3.1"
+    assert canon_v63["_meta"]["statut_global"] != "SCAFFOLD_PRET_ETAPE_2"
+    assert canon_v63["_meta"]["murs_porteurs_verrouilles"] == list(MURS_PORTEURS_V6_3)
+    assert validate_tiles_canon_v6_3(canon_v63, strict=True) == []
 
     complete = _make_complete_v6_3_fixture()
     assert validate_tiles_canon_v6_3(complete, strict=True) == []
@@ -582,9 +591,77 @@ def test_build_studio_artifacts_accepts_v6_3_bicomponent_catalog_without_breakin
         assert eco["outputs_produits"], f"{sid}: economie_bot vide"
 
 
+def test_v6_3_assembled_canon_passe1_contract_and_markdown() -> None:
+    """Valide l'assemblage officiel Étape 2b (22 P1 + 4 P2 + 4 P3, G3 hors-twist, 0 erreur & export Markdown)."""
+    from scripts.assemble_canon_v6_3 import (
+        DEFAULT_MARKDOWN_OUTPUT,
+        EXPECTED_TWISTS_2K3,
+        PANEL_1_SLOTS,
+        PANEL_2_SLOTS,
+        PANEL_3_SLOTS,
+        assemble_canon_v6_3,
+    )
+
+    canon = json.loads(V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
+    assert validate_tiles_canon_v6_3(canon, strict=True) == []
+    rep = audit_tiles_catalog_197(canon, allow_draft=False)
+    assert rep["verdict_global"] == "OK", rep["errors"]
+    assert rep["errors"] == []
+
+    # Vérification G3 (L'Atèle) reclassé hors-twist + exactement 6 Twists 2K3
+    g3 = canon["tuiles_ciblees"]["G3"]
+    assert g3["est_twist"] is False
+    assert "TWIST_2K3" not in g3["roles_portes"]
+    assert "CATALYSEUR_EVEIL" in g3["roles_portes"]
+    assert "PIC_TWIST" not in g3["tuile_plateau"]["pictogrammes"]
+    assert "PIC_TWIST" not in g3["tags"]
+
+    assert set(rep["Q02_twists_2K3"]["twists"]) == EXPECTED_TWISTS_2K3
+    assert rep["Q01_lois_passives"]["nombre"] == 3
+    assert rep["Q01_lois_passives"]["max_par_assise"] == 2
+    assert rep["I04_couverture_eveil"]["nombre"] == 12
+    assert len(rep["I05_couverture_sommeil"]["leviers"]) == 6
+    assert rep["I06_enracinement"]["nombre"] == 4
+    assert all(
+        d["divergent"] and not d["boucle_a_deux_etats"]
+        for d in rep["I03_divergence_lisiere"]["lisieres"]
+    )
+
+    # Cohérence carte_des_roles & rapport_audit_197 recalculés + reproductibilité
+    prov = canon["carte_des_roles"]["provenance_assemblage"]
+    assert tuple(prov["panel_1"]) == PANEL_1_SLOTS
+    assert tuple(prov["panel_2"]) == PANEL_2_SLOTS
+    assert tuple(prov["panel_3"]) == PANEL_3_SLOTS
+    assert canon["rapport_audit_197"]["verdict_global"] == "OK"
+    assert canon["rapport_audit_197"]["Q02_twists_2K3"]["nombre"] == 6
+    assert canon["rapport_audit_197"]["I04_couverture_eveil"]["nombre"] == 12
+
+    rebuilt, _ = assemble_canon_v6_3(genere_le=canon["_meta"]["genere_le"])
+    assert rebuilt == canon
+
+    # Archive comparative panel_{1,2,3}.json toujours intacte et 100 % OK
+    batch = audit_panels_directory(PANELS_DIR, allow_draft=False)
+    assert batch["panels_count"] == 3
+    assert batch["all_ok"] is True
+
+    # Export Markdown lisible Étape 3 présent, UTF-8 sans BOM, LF, couvrant les 30 tuiles
+    assert DEFAULT_MARKDOWN_OUTPUT.is_file()
+    raw_md = DEFAULT_MARKDOWN_OUTPUT.read_bytes()
+    assert not raw_md.startswith(b"\xef\xbb\xbf")
+    assert b"\r\n" not in raw_md
+    md_text = raw_md.decode("utf-8")
+    for sid, *_ in SLOTS_SPEC_30:
+        assert f"##### `{sid}`" in md_text, f"Fiche manquante dans {DEFAULT_MARKDOWN_OUTPUT.name}: {sid}"
+
+
 @pytest.mark.parametrize("slot_id,expected_animal", sorted(LOCKED_GARDIEN_CASTING_V6_3.items()))
 def test_v6_3_scaffold_locks_all_15_gardien_animals(slot_id: str, expected_animal: str) -> None:
-    scaffold = json.loads(V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
-    tile = scaffold["tuiles_ciblees"][slot_id]
+    scaffold = build_v6_3_scaffold()
+    sc_tile = scaffold["tuiles_ciblees"][slot_id]
+    assert sc_tile["tuile_plateau"]["nom_court"] == expected_animal
+    assert sc_tile["carte_joueur"]["titre_complet"] == expected_animal
+
+    canon = json.loads(V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
+    tile = canon["tuiles_ciblees"][slot_id]
     assert tile["tuile_plateau"]["nom_court"] == expected_animal
-    assert tile["carte_joueur"]["titre_complet"] == expected_animal
+    assert expected_animal.lower() in tile["carte_joueur"]["titre_complet"].replace("'", "’").lower()
