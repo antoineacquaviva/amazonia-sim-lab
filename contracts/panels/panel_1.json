@@ -1,15 +1,23 @@
 {
   "_meta": {
     "projet": "Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)",
-    "schema_version": "6.3.0-passe1",
+    "schema_version": "6.3.1",
     "socle_verrouille": "6.2.0",
     "cadrage_source": "docs/cadrage_tuiles_v6_3.md",
     "etape_active": "ETAPE_2_CONCEPTION_CREATIVE",
     "statut_global": "CONCEPTION_EN_COURS",
-    "genere_le": "2026-11-25",
+    "genere_le": "2026-11-26",
     "slots_count": 30,
     "c02_supprime": true,
-    "note_retrocompatibilite": "Panel candidat de Passe 1 (sélection par la richesse) : 30 tuiles rédigées en bi-composant, validées par tiles_v6_3_schema.py --strict et audit_197.py (197 assises). La Passe 2 (affinage éditorial, calibration moteur, codage des témoins) reste à mener ; le build Doc Studio reste transitoirement sur tiles_canon_v6_2.json."
+    "panel_id": "panel_1",
+    "source_modele": "Modèle 1 — Candidat 1 (19 inchangés) + REPONSE_IA1 (11 révisés)",
+    "murs_porteurs_verrouilles": [
+      "M1_TEMPS_BATAILLE",
+      "M2_CONSERVATION_THERMIQUE",
+      "M3_INTEGRITE_PLATEAU_ET_ICONES",
+      "M4_AUTONOMIE_PLANCHER_SOLO"
+    ],
+    "note_retrocompatibilite": "Panel candidat panel_1 compilé en v6.3.1 (4 murs porteurs M1..M4, séparation entrees_plancher / entrees_synergie, 32 pictogrammes officiels) pour arbitrage d'auteur de l'Étape 2b."
   },
   "referentiel_pictogrammes": {
     "PIC_ARBRE": {
@@ -298,7 +306,7 @@
     }
   },
   "carte_des_roles": {
-    "statut": "PASSE_1_CREATIF",
+    "statut": "PASSE_1_CREATIF_V6_3_1",
     "partition_2K3": {
       "triangle_1": "R>M (G2) → M>H (G7) → H>R (R4)",
       "triangle_2": "O>E (G12) → E>I (R10) → I>O (M3)"
@@ -358,98 +366,45 @@
     }
   },
   "rapport_audit_197": {
-    "verdict_global": "OK — 197 assises (N3=20, N4=45, N5=72, N6=60 ; 42 compositions ; 64 assises par emplacement), 0 erreur(s)",
+    "verdict_global": "OK",
     "c02_word_count_purged": true,
-    "genere_par": "scripts/audit_197.py (Passe 1)",
-    "synthese": {
-      "C01_mem_debt": "OK",
-      "I01_cloture_elargie_197": "OK",
-      "I01_dependances_jumelle_lisiere": [
-        {
-          "tuile": "G5",
-          "alias": "R>O",
-          "etat": "BLEU",
-          "fourni_par_jumelle": "G6"
-        },
-        {
-          "tuile": "G7",
-          "alias": "M>H",
-          "etat": "CHAMANE_EN_FORET",
-          "fourni_par_jumelle": "R3"
-        },
-        {
-          "tuile": "G9",
-          "alias": "R>H",
-          "etat": "ECAILLE",
-          "fourni_par_jumelle": "R4"
-        }
-      ],
-      "I02_autonomie_A0": "OK",
-      "I03_divergence_lisiere": "OK",
-      "I04_couverture_eveil": {
-        "verdict": "OK",
-        "nombre": 11,
-        "regle_i_par_animal": {
-          "M": 2,
-          "R": 2,
-          "O": 3
-        },
-        "regle_ii": {
-          "M–R": true,
-          "M–O": true,
-          "R–O": true
-        },
-        "assises_A_ge_1_sans_catalyseur": 0
-      },
-      "I05_couverture_sommeil": {
-        "verdict": "OK",
-        "lisieres_E_couvertes": [
-          "E–M",
-          "E–R",
-          "E–O",
-          "E–I"
-        ],
-        "assises_E_sans_H": 30,
-        "non_couvertes": 0
-      },
-      "I06_enracinement": {
-        "verdict": "OK",
-        "tuiles": [
-          "G15",
-          "G3",
-          "G7",
-          "R1"
-        ]
-      },
-      "Q01_lois_passives": {
-        "verdict": "OK",
-        "lois": [
-          "M5",
-          "R2",
-          "R7",
-          "R8"
-        ],
-        "distribution_par_assise": {
-          "0": 37,
-          "1": 64,
-          "2": 96
-        },
-        "max_par_assise": 2
-      },
-      "Q02_twists_2K3": {
-        "verdict": "OK",
-        "twists": [
-          "G12",
-          "G2",
-          "G7",
-          "M3",
-          "R10",
-          "R4"
-        ]
-      },
-      "V63_schema_et_casting": "OK",
-      "I07_zero_c02": "OK"
-    }
+    "assises_verifiees": 197,
+    "compositions_verifiees": 42,
+    "M1_TEMPS_BATAILLE": "OK",
+    "M2_CONSERVATION_THERMIQUE": "OK",
+    "M3_INTEGRITE_PLATEAU_ET_ICONES": "OK",
+    "M4_AUTONOMIE_PLANCHER_SOLO": "OK",
+    "C01_mem_debt": "OK",
+    "I01_cloture_elargie_197": "OK",
+    "I02_autonomie_A0": "OK",
+    "I03_divergence_lisiere": "OK",
+    "I04_couverture_eveil": {
+      "verdict": "OK",
+      "nombre": 11
+    },
+    "I05_couverture_sommeil": {
+      "verdict": "OK",
+      "lisieres_E_couvertes": [
+        "E–M",
+        "E–R",
+        "E–O",
+        "E–I"
+      ]
+    },
+    "I06_enracinement": {
+      "verdict": "OK",
+      "nombre": 4
+    },
+    "Q01_lois_passives": {
+      "verdict": "OK",
+      "nombre": 4,
+      "max_par_assise": 2
+    },
+    "Q02_twists_2K3": {
+      "verdict": "OK",
+      "nombre": 6
+    },
+    "synergies_optionnelles_couvertes": 23
   },
   "tuiles_ciblees": {
     "G1": {
@@ -476,6 +431,11 @@
       ],
       "est_twist": false,
       "vecteurs": "Croc Reptile (R) posté sur la parcelle du Duel (M) → parade du Croc qui scelle le Territoire tenu → Piégeage en cascade",
+      "entrees_plancher": [
+        "DUEL",
+        "CROC"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "DUEL",
         "CROC"
@@ -582,10 +542,17 @@
       ],
       "est_twist": true,
       "vecteurs": "Territoire tenu (M) ou 2 Défenseurs sur la dernière parcelle → machine arrachée à son Ratissage (jeton remis au sac) → recul",
+      "entrees_plancher": [
+        "RATISSAGE",
+        "DUEL"
+      ],
+      "entrees_synergie": [
+        "TERRITOIRE"
+      ],
       "entrees": [
         "RATISSAGE",
-        "TERRITOIRE",
-        "DUEL"
+        "DUEL",
+        "TERRITOIRE"
       ],
       "sorties": [
         "RATISSAGE_ROMPU",
@@ -689,6 +656,13 @@
       ],
       "est_twist": false,
       "vecteurs": "Arbres debout contigus entre rayons voisins → franchissement latéral de Défenseurs (et du Duel) → Parade chez le voisin ; Plume Chaud (O) ouvre une trouée",
+      "entrees_plancher": [
+        "ARBRE",
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "DUEL"
+      ],
       "entrees": [
         "ARBRE",
         "PLUME",
@@ -790,7 +764,13 @@
         "CATALYSEUR_EVEIL"
       ],
       "est_twist": false,
-      "vecteurs": "Pari d’un autre Gardien → encoche (sécurisation) ; Territoire tenu (M) payé pour un 2e cri ; Face 2 : activation par relais",
+      "vecteurs": "Pari Gardien → encoche libre (ou 2e pari solo en repli) ; Territoire tenu → Défi = 2e cri ; Face 2 : réveil d’un autre Gardien",
+      "entrees_plancher": [
+        "GARDIEN"
+      ],
+      "entrees_synergie": [
+        "TERRITOIRE"
+      ],
       "entrees": [
         "GARDIEN",
         "TERRITOIRE"
@@ -805,7 +785,7 @@
       "declencheurs_amorces": [
         "ICONE_RESONANCE"
       ],
-      "double_ouverture": "Chaque cri fait progresser un pari différent : deux activations bouclent le pari d’un Gardien qui ne s’allume jamais (deux glissements sur la même tuile) ou en sécurisent deux. En Face 2, chaque cri déclenche en plus le pouvoir du Gardien réveillé, et chaque 1re activation ainsi provoquée relance la Résonance où siège l’Ara.",
+      "double_ouverture": "Chaque cri fait progresser un pari différent : deux activations bouclent le pari d’un Gardien qui ne s’allume jamais (deux glissements sur la même tuile) ou en sécurisent deux. En Face 2, chaque cri déclenche en plus le pouvoir du Gardien réveillé, et chaque 1re activation ainsi provoquée relance la Résonance. Seul en piste, une seule activation boucle son propre pari de deux Défenseurs.",
       "tags": [
         "PARI",
         "ENCOCHE",
@@ -821,25 +801,25 @@
           "PIC_DUEL"
         ],
         "mots_cles_plateau": {
-          "face_1": "1 pari d’un autre Gardien → encoche · Territoire tenu → Défi = 2e cri",
-          "face_2": "Un autre Gardien avec pari s’active · Territoire tenu → Défi = 2e réveil",
+          "face_1": "1 pari d’un autre Gardien → encoche · Territoire tenu → Défi = 2e cri · seul en piste : son 2e pari glisse aussi",
+          "face_2": "Un autre Gardien avec pari s’active · Territoire tenu → Défi = 2e réveil · seul en piste : son 2e pari glisse aussi",
           "enracine": null
         },
         "resume_plateau": "Cri d’alarme qui fait avancer les paris"
       },
       "carte_joueur": {
         "titre_complet": "L’Ara rouge, sentinelle de la collpa",
-        "entite_illustree": "L’Ara rouge (Ara macao) — perroquet entier écarlate, jaune et bleu, agrippé à une falaise d’argile (collpa) au milieu de sa volée",
-        "brief_illustration": "Aube sur une collpa d’argile ocre : des dizaines d’aras agrippés à la paroi ; au premier plan, un Ara rouge entier, ailes à demi ouvertes, bec ouvert en plein cri ; en contrebas, un tapir et des pécaris lèvent la tête. Couleurs saturées, poussière d’argile en suspension.",
+        "entite_illustree": "L’Ara rouge (Ara macao), animal entier agrippé à une falaise d’argile",
+        "brief_illustration": "L’Ara rouge (Ara macao), animal entier : perroquet écarlate, jaune et bleu, agrippé à une falaise d’argile (collpa) au milieu de sa volée, le bec ouvert sur le cri d’alarme.",
         "pitch_ambiance": "À la collpa, une sentinelle veille pendant que la volée mange l’argile. Au premier danger, son cri déchire l’aube : en un battement d’ailes, toute la forêt est debout.",
         "texte_regle": {
-          "face_1": "Quand l’Ara rouge s’active : poussez le cri d’alarme : faites glisser 1 Défenseur posé en pari sur un autre Gardien construit vers une encoche libre de ce même Gardien. Ce glissement ne résout pas le pouvoir de ce Gardien et n’allume aucune icône. Écho de la collpa : si le jeton Duel est face Territoire tenu, vous pouvez le retourner sur Défi pour faire glisser de la même façon un 2e Défenseur, posé en pari sur un Gardien différent du premier.",
-          "face_2": "Quand l’Ara rouge s’active : la volée se lève : choisissez un autre Gardien construit qui porte au moins 1 Défenseur en pari ; il s’active aussitôt (son Défenseur glisse dans une encoche et vous résolvez son pouvoir comme si son icône venait de s’allumer ; s’il s’agit de sa 1re activation du tour, la Résonance la compte). Écho de la collpa : si le jeton Duel est face Territoire tenu, vous pouvez le retourner sur Défi pour réveiller de la même façon un 2e Gardien, différent du premier. L’Ara ne se réveille jamais lui-même.",
+          "face_1": "Le cri d’alarme. Quand l’Ara rouge s’active : faites glisser 1 Défenseur posé en pari sur un autre Gardien construit vers une encoche libre de ce même Gardien. Cela ne résout pas le pouvoir de ce Gardien et n’allume aucune icône. Écho de la collpa : si le jeton Duel est face Territoire tenu, vous pouvez le retourner sur Défi pour faire glisser de la même façon un 2e Défenseur, posé en pari sur un Gardien différent du premier.\nSentinelle seule (plancher) : si aucun autre Gardien construit ne porte de Défenseur en pari, l’Ara crie pour sa propre volée : faites aussi glisser son second pari, s’il en porte un, dans son encoche encore libre.",
+          "face_2": "La volée se lève. Quand l’Ara rouge s’active : choisissez un autre Gardien construit qui porte au moins 1 Défenseur en pari ; il s’active aussitôt (son Défenseur glisse dans une encoche et vous résolvez son pouvoir comme si son icône venait de s’allumer ; s’il s’agit de sa 1re activation du tour, la Résonance la compte). Écho de la collpa : si le jeton Duel est face Territoire tenu, vous pouvez le retourner sur Défi pour réveiller de la même façon un 2e Gardien, différent du premier. L’Ara ne se réveille jamais lui-même.\nSentinelle seule (plancher) : si aucun autre Gardien construit ne porte de Défenseur en pari, faites aussi glisser le second pari de l’Ara, s’il en porte un, dans son encoche encore libre, sans résoudre son pouvoir une seconde fois.",
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Quel pari faire progresser : celui du Gardien le plus en retard, ou celui dont le pouvoir doit frapper maintenant (Face 2).",
-          "renoncement": "Retourner le Duel sur Défi pour un 2e cri libère l’avancée des machines de sa parcelle aux rangs 3 et 6."
+          "choix": "Quel pari faire progresser — celui du Gardien le plus en retard, ou celui dont le pouvoir doit frapper maintenant (Face 2).",
+          "renoncement": "Retourner le Duel sur Défi pour un 2e cri libère l’avancée des machines de sa parcelle aux rangs 3 et 6 ; construit en premier, l’Ara posé sur Parade s’active seul, mais renonce à la cascade de la Résonance tant qu’il reste en piste."
         }
       },
       "temoins": [
@@ -847,26 +827,22 @@
           "id": "G4_T1",
           "resume": "La Matamata porte 1 pari et 0 encoche occupée ; l’Ara s’active : le pari glisse dans l’encoche ; en fin d’attaques, 0 pion sur la Matamata et 1 encoche : pari gagné.",
           "etat_attendu_verifie": {
-            "matamata": {
-              "pions_sur_tuile": 0,
-              "encoches": 1,
-              "verdict": "PARI_GAGNE"
-            }
+            "matamata_encoches": 1,
+            "pari_gagne": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G4_T2",
-          "resume": "Face 2 : l’Ara réveille le Jaguar (1 pari) : le Jaguar s’active et poste le Croc ; la Résonance compte une 1re activation.",
+          "resume": "Plancher (Tour 2) : l’Ara, construit au Tour 1 et posé sur Parade (icône de repli), est le seul Gardien en piste ; il porte 2 paris. Après une parade au rang 1, il s’active : son 1er pari glisse dans une encoche ; sentinelle seule, le 2nd aussi. En fin d’attaques, 0 pion sur la tuile et 2 encoches occupées : pari gagné, l’Ara passe en Face 2.",
           "etat_attendu_verifie": {
-            "jaguar_active": true,
-            "croc": "POSTE_SUR_DUEL",
-            "resonance_compteur": "+1"
+            "ara_encoches": 2,
+            "face_2": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Résonance. Glisser d’abord le pari du Gardien dont l’icône a le moins de chances de s’allumer ; n’utiliser l’Écho (Territoire tenu → Défi) que si l’Éveil est atteignable au tour même.",
+      "heuristique_bot": "Siéger sur Résonance (ou Parade en repli si premier Gardien construit). Glisser d’abord le pari du Gardien dont l’icône a le moins de chances de s’allumer ; n’utiliser l’Écho (Territoire tenu → Défi) que si l’Éveil est atteignable au tour même.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -893,10 +869,16 @@
         "CATALYSEUR_EVEIL"
       ],
       "est_twist": false,
-      "vecteurs": "Bleu (Surchauffe rayonnée par le Toucan) bu → Piège sur la parcelle signalée par la Plume (O) ; Face 2 : Piège + Croc (R)",
-      "entrees": [
-        "BLEU",
+      "vecteurs": "Plume de Vigie (O) → Piège garanti là où elle signale (repli R ou O) ; Bleu bu (amplificateur) → Croc en Face 1 ou second plongeon en Face 2",
+      "entrees_plancher": [
         "PLUME"
+      ],
+      "entrees_synergie": [
+        "BLEU"
+      ],
+      "entrees": [
+        "PLUME",
+        "BLEU"
       ],
       "sorties": [
         "PIEGE",
@@ -907,7 +889,7 @@
       "declencheurs_amorces": [
         "ICONE_PIEGEAGE"
       ],
-      "double_ouverture": "Chaque activation boit un Bleu différent pour poser un Piège différent : deux chutes couvrent les deux parcelles d’un « En avançant » (Sur place et Devant). Chaque Piège qui pare allume Piégeage, l’icône de l’Iguane : la chute appelle la chute, tant qu’il reste des Bleus à boire.",
+      "double_ouverture": "Chaque Piège qui pare allume Piégeage, l’icône de l’Iguane : la chute appelle la chute, une fois par pari. Deux chutes couvrent les deux parcelles d’un « En avançant » (Sur place et Devant), ou deux fois la même parcelle visée par l’Abatteuse puis le Bulldozer. Avec le Toucan à ses côtés, chaque chute boit son Bleu : le Croc tombe à chaque fois s’il a regagné la réserve (Face 1), et quatre Pièges couvrent la forêt (Face 2).",
       "tags": [
         "SURCHAUFFE",
         "PIEGE",
@@ -918,55 +900,54 @@
         "fenetre_badge": "ACTIVATION",
         "icone_conseillee": "ICONE_PIEGEAGE",
         "pictogrammes": [
-          "PIC_BLEU",
           "PIC_PIEGE",
           "PIC_PLUME",
-          "PIC_CROC"
+          "PIC_CROC",
+          "PIC_BLEU"
         ],
         "mots_cles_plateau": {
-          "face_1": "1 Bleu bu → 1 Piège sur parcelle ciblée signalée par la Plume",
-          "face_2": "Bleu bu ou Plume Chaud → Piège et Croc sur toute parcelle ciblée",
+          "face_1": "Piège là où signale la Plume (sinon rayon R ou O) · Bleu bu = le Croc tombe aussi",
+          "face_2": "Piège + Croc sur toute parcelle ciblée · Bleu bu = second plongeon",
           "enracine": null
         },
-        "resume_plateau": "Boit la Surchauffe et tombe en Piège"
+        "resume_plateau": "Tombe en Piège au cri des oiseaux"
       },
       "carte_joueur": {
         "titre_complet": "L’Iguane vert, dormeur des hautes branches",
-        "entite_illustree": "L’Iguane vert (Iguana iguana) — grand lézard entier, crête dorsale dressée, allongé au soleil sur une branche au-dessus de l’eau",
-        "brief_illustration": "Plongée depuis la canopée : un Iguane vert entier, fanon déployé, se chauffe sur une branche baignée de soleil au-dessus d’un bras de rivière ; plus bas, une machine fumante au capot rougeoyant ; un toucan perché tout près. Verts acides, chaleur blanche, vapeur.",
+        "entite_illustree": "L’Iguane vert (Iguana iguana), animal entier allongé sur une branche au-dessus de l’eau",
+        "brief_illustration": "L’Iguane vert (Iguana iguana), animal entier : grand lézard à la crête dorsale dressée, allongé au soleil sur une branche au-dessus de l’eau, l’œil tourné vers un oiseau qui donne l’alerte.",
         "pitch_ambiance": "L’Iguane boit la chaleur du jour, immobile des heures durant. Au cri d’alerte des oiseaux, il se laisse tomber de quinze mètres et touche l’eau sans une égratignure : un éclair vert, là où personne ne l’attendait.",
         "texte_regle": {
-          "face_1": "Quand l’Iguane vert s’active : il boit la chaleur : retirez 1 Bleu d’une machine de n’importe quel rayon et remettez-le dans la réserve (cette machine perd la Surchauffe correspondante). Puis il se laisse tomber : posez 1 Piège sur une parcelle ciblée qui n’en porte pas encore, sur le rayon désigné par la Plume de Vigie ou visée par une machine du rang qu’elle désigne ; si la Plume n’est pas en jeu, sur le rayon Reptile ou celui de l’Oiseau. Sans Bleu à boire, l’Iguane ne tombe pas.",
-          "face_2": "Quand l’Iguane vert s’active : retirez 1 Bleu d’une machine de n’importe quel rayon et remettez-le dans la réserve ; si la Plume de Vigie est face Chaud, l’Iguane peut plonger sans boire. Il plonge : posez 1 Piège sur n’importe quelle parcelle ciblée qui n’en porte pas encore et, si le Croc est dans la réserve Reptile, postez-le sur cette même parcelle : il y pare en premier, le Piège ensuite. Chacune de ces parades allume Piégeage.",
+          "face_1": "La chute au cri des oiseaux. Quand l’Iguane vert s’active, il se laisse tomber : posez 1 Piège sur une parcelle ciblée qui n’en porte pas encore, sur le rayon désigné par la Plume de Vigie, ou visée par une machine du rang qu’elle désigne. Si la Plume n’est pas en jeu ou ne signale aucune parcelle ciblée, il tombe au plus près : sur une parcelle ciblée du rayon Reptile ou du rayon de l’Oiseau. S’il n’y en a aucune, il guette : posez le Piège sur n’importe quelle parcelle libre de Piège ordinaire du rayon Reptile, où il attendra la prochaine frappe.\nBoire la chaleur (amplificateur) : avant de tomber, vous pouvez boire 1 Bleu : retirez-le d’une machine de n’importe quel rayon et remettez-le dans la réserve (la machine perd la Surchauffe correspondante). Gorgé de chaleur, l’Iguane tombe avec ses mâchoires : si le Croc est dans la réserve Reptile, postez-le sur la parcelle du Piège. Il y pare en premier, le Piège ensuite.",
+          "face_2": "Le plongeon. Quand l’Iguane vert s’active, il plonge où il veut : posez 1 Piège sur n’importe quelle parcelle ciblée qui n’en porte pas encore, de n’importe quel rayon, et postez-y le Croc s’il est dans la réserve Reptile (si la Plume de Vigie est face Chaud, prenez le Croc où qu’il se trouve sur le plateau). Le Croc pare en premier, le Piège ensuite.\nBoire la chaleur (amplificateur) : avant de plonger, vous pouvez boire 1 Bleu (retiré d’une machine de n’importe quel rayon, rendu à la réserve) : l’Iguane plonge une seconde fois et pose 1 second Piège sur une autre parcelle ciblée libre de Piège ordinaire. Chacune de ces parades allume Piégeage.",
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Quel Bleu boire : de préférence celui d’une machine déjà annulée, ou dont le Seuil est déjà tombé au minimum de 1.",
-          "renoncement": "La machine qui perd son Bleu redevient plus difficile à parer, et ce Bleu manquera au Toucan pour la faire caler."
+          "choix": "Tomber seul là où la Plume l’indique, ou boire un Bleu pour emporter le Croc (Face 1) ou plonger deux fois (Face 2) ; de préférence le Bleu d’une machine déjà annulée, ou dont le Seuil est déjà tombé à 1.",
+          "renoncement": "La machine qui perd son Bleu redevient plus difficile à parer, et ce Bleu manquera au Toucan pour la faire caler ; le Croc emporté ne garde plus la parcelle où une Écaille l’avait posté."
         }
       },
       "temoins": [
         {
           "id": "G5_T1",
-          "resume": "Le Bulldozer du rayon M porte 1 Bleu ; Plume face Chaud au pied du rayon O ; l’Iguane s’active : Bleu remis en réserve, Piège posé sur la parcelle 2 visée du rayon O.",
+          "resume": "Plancher sans Toucan (Tour 2, Acte 1) : aucun Bleu en jeu. La Plume est posée face Chaud au pied du rayon O, dont la parcelle 2 est visée au rang 4 par l’Abatteuse (Sur place) puis au rang 5 par le Bulldozer (Devant). Un Piège pare au rang 1 (Piégeage) : l’Iguane (2 paris) tombe sur la parcelle 2 ; au rang 4 son Piège pare l’Abatteuse (Piégeage), seconde activation, nouveau Piège sur la même parcelle qui pare le Bulldozer au rang 5.",
           "etat_attendu_verifie": {
-            "bulldozer_M": {
-              "bleus": 0
-            },
-            "piege_rayon_O_p2": true
+            "pieges_poses": 2,
+            "arbres_sauves": 2
           },
           "statut": "A_CODER"
         },
         {
           "id": "G5_T2",
-          "resume": "Aucun Bleu en jeu et Plume face Calme : l’Iguane ne pose rien, en Face 1 comme en Face 2.",
+          "resume": "Amplifié par le Toucan (Face 1) : le Toucan a retourné 1 Rouge en Bleu sur l’Abatteuse du rayon M, annulée à l’ouverture par un Rêve. La Plume désigne le rayon R, dont la parcelle 3 est visée aux rangs 4 et 5. Après une parade de Piège au rang 2, l’Iguane boit le Bleu de la machine annulée et tombe avec le Croc sur la parcelle 3 : le Croc pare l’Abatteuse, le Piège pare le Bulldozer (deux fois Piégeage).",
           "etat_attendu_verifie": {
-            "pieges_poses": 0
+            "bleu_bu": 1,
+            "croc_et_piege_poses": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Piégeage. Boire le Bleu d’une machine annulée ou dont le Seuil vaut déjà 1 ; poser le Piège sur la parcelle ciblée qui porte le plus d’Arbres debout.",
+      "heuristique_bot": "Siéger sur Piégeage. En autonomie, poser le Piège sur la parcelle ciblée signalée par la Plume qui porte le plus d’Arbres debout ; avec un Bleu disponible, boire celui d’une machine annulée ou à Seuil 1 pour ajouter le Croc (Face 1) ou doubler la pose de Pièges (Face 2).",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -992,6 +973,13 @@
       "roles_portes": [],
       "est_twist": false,
       "vecteurs": "Rouge → Bleu (Surchauffe) sur la cible désignée par la Plume (O) ; Face 2 : 0 Rouge et 2 Bleus = machine calée ; ces Bleus nourrissent l’Iguane (R)",
+      "entrees_plancher": [
+        "ROUGE",
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "BLEU"
+      ],
       "entrees": [
         "ROUGE",
         "PLUME",
@@ -1095,94 +1083,95 @@
         "ENRACINEMENT"
       ],
       "est_twist": true,
-      "vecteurs": "Tambour ou Chamane en forêt (H) → semis Souche → Arbre ; Souche voisine déplacée → Route Forestière rouverte (l’irréversible devient réversible)",
-      "entrees": [
-        "SOUCHE",
+      "vecteurs": "Duel (M) ou Chamane (H) posé sur une Route → sentier : parcelle vide plus sautée ; sinon Duel → Chamane = Territoire tenu ; Enraciné au décompte final",
+      "entrees_plancher": [
         "ROUTE",
+        "DUEL",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "CHAMANE_EN_FORET"
+      ],
+      "entrees": [
+        "ROUTE",
+        "DUEL",
         "TAMBOUR",
         "CHANT",
         "CHAMANE_EN_FORET"
       ],
       "sorties": [
-        "ROUTE_ROUVERTE",
+        "SENTIER_ROUTE",
+        "TERRITOIRE",
         "ARBRE"
       ],
       "paiement": [
         "P_SOUCHE"
       ],
       "nature": "ACTION",
-      "declencheurs_amorces": [],
-      "double_ouverture": "Deux activations, deux gestes complémentaires : rouvrir une Route en y déplaçant une Souche, puis semer pour la redresser en Arbre ; ou semer deux fois sous le Tambour avant que l’Abatteuse n’y revienne.",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux pas, deux sentiers : la première activation pose le Duel sur une Route, la seconde y fait descendre un Chamane sur une autre, ou sur la même pour que le sentier survive au départ du Duel. Chaque frappe parée sur un sentier allume Parade, l’icône du Tapir. En Face 2, chaque sentier attire en plus les frappes de ses deux voisines.",
       "tags": [
         "ROUTE",
-        "REPOUSSE",
+        "SENTIER",
         "ENRACINEMENT",
         "TWIST"
       ],
       "tuile_plateau": {
         "nom_court": "Le Tapir",
         "fenetre_badge": "ACTIVATION",
-        "icone_conseillee": "ICONE_PIEGEAGE",
+        "icone_conseillee": "ICONE_PARADE",
         "pictogrammes": [
           "PIC_TWIST",
           "PIC_ROUTE",
-          "PIC_SOUCHE",
+          "PIC_DUEL",
           "PIC_TAMBOUR"
         ],
         "mots_cles_plateau": {
-          "face_1": "Semer · 1 Souche → Arbre sous le Tambour ou le Chant ‖ Rouvrir · Souche voisine → Route",
-          "face_2": "Semer deux fois ‖ Rouvrir puis redresser en Arbre",
-          "enracine": "Chaque ménage · 1 Souche → Arbre face au Tapir"
+          "face_1": "Duel ou Chamane sur Route = sentier (parcelle vide, plus sautée) · sinon Duel → Chamane = Territoire tenu",
+          "face_2": "+ frappes des parcelles voisines détournées sur le sentier · l’Abatteuse n’en déloge plus le Duel",
+          "enracine": "Fin de partie : Duel + Chamane sur une parcelle = 1 repousse de plus"
         },
-        "resume_plateau": "Sème sous le Tambour et rouvre les Routes"
+        "resume_plateau": "Change les Routes en sentiers où les machines s’enlisent"
       },
       "carte_joueur": {
         "titre_complet": "Le Tapir, jardinier des sentiers",
-        "entite_illustree": "Le Tapir terrestre (Tapirus terrestris) — grand herbivore entier, trompe mobile, émergeant du sentier qu’il a lui-même tracé",
-        "brief_illustration": "Sous-bois humide au lever du jour : le Tapir entier avance sur un sentier de terre battue qui recoupe une piste de bulldozer ; derrière lui, de jeunes pousses lèvent déjà dans ses traces ; un chamane, tambour à l’épaule, suit le sentier à distance. Bruns chauds, verts tendres, brume.",
-        "pitch_ambiance": "Les anciens disent que le Tapir seul connaissait l’arbre qui portait tous les fruits du monde. Il marche, mange, sème : là où ses sentiers croisent les routes des hommes, la forêt finit toujours par repousser.",
+        "entite_illustree": "Le Tapir terrestre (Tapirus terrestris), animal entier avançant dans un sentier de boue",
+        "brief_illustration": "Le Tapir terrestre (Tapirus terrestris), animal entier : grand herbivore à la trompe mobile, robe brun sombre et courte crinière, qui avance au crépuscule dans un sentier de boue tracé en travers d’une trouée de bulldozer. Empreintes à quatre doigts dans la glaise ; à l’orée, un chamane suit la piste, tambour à la main.",
+        "pitch_ambiance": "Le Tapir ne contourne rien : il trace. Là où la machine a laissé une plaie de terre nue, il passe et repasse, et la plaie devient sentier. Les hommes l’empruntent depuis toujours ; les machines, elles, s’y enlisent. Quant aux graines semées en chemin, elles attendront la fin des combats pour lever.",
         "texte_regle": {
-          "face_1": "Quand le Tapir s’active, choisissez l’un de ses deux gestes. Semer : retournez 1 Souche en Arbre debout sur une parcelle qui porte le Tambour ou le Chant. Rouvrir le sentier : choisissez une Route Forestière et une parcelle adjacente du même rayon qui porte au moins 2 pièces dont 1 Souche ; déplacez cette Souche sur la Route, qui redevient une parcelle. Une parcelle rouverte n’est plus sautée par les machines : elle redevient une cible ordinaire et peut de nouveau accueillir Pièges, Duel et Défenseurs.",
-          "face_2": "Quand le Tapir s’active, choisissez l’un de ses deux gestes. Semer : retournez 1 Souche en Arbre debout sur une parcelle qui porte le Tambour ou le Chant, puis 1 autre Souche sur une parcelle adjacente du même rayon. Rouvrir le sentier : choisissez une Route Forestière et une parcelle adjacente du même rayon qui porte au moins 2 pièces dont 1 Souche ; déplacez cette Souche sur la Route, qui redevient une parcelle, puis retournez-la aussitôt en Arbre debout : l’arbre de tous les fruits repousse. Une parcelle rouverte n’est plus sautée par les machines : elle redevient une cible ordinaire et peut de nouveau accueillir Pièges, Duel et Défenseurs.",
-          "enracine": "Enraciné : le Tapir sème encore depuis la lisière : à chaque ménage, retournez 1 Souche de la parcelle face à laquelle il est enraciné en Arbre debout, s’il en reste une. Au décompte final, il fait en outre repousser 1 Souche (2 s’il était sur sa Face 2), comme toute tuile enracinée."
+          "face_1": "Le sentier battu. Quand le Tapir s’active, choisissez l’un de ses deux pas :\n• Fouler une Route : posez le jeton Duel sur une Route Forestière de n’importe quel rayon — pris dans la réserve ou là où il se trouve, sur sa face actuelle, même sans Défenseur Mammifère —, ou faites-y descendre le Tambour ou le Chant depuis la parcelle voisine de cette Route, sur le même rayon. Cette Route devient un sentier.\n• Frayer (toujours possible, même sans aucune Route en jeu) : posez le jeton Duel, sur sa face actuelle, sur une parcelle ciblée, même sans Défenseur Mammifère. S’il y rejoint le Tambour ou le Chant, retournez-le aussitôt sur Territoire tenu : les hommes tiennent déjà ce terrain.\nLe sentier : (1) tant qu’il porte le Duel ou un Chamane, le sentier compte comme une parcelle, avec le chiffre gravé de sa case, bien qu’il ne porte ni Arbre ni Souche ; (2) les machines ne le sautent plus : une frappe Devant le vise, une avancée s’y arrête, et une frappe sur le sentier ne fait jamais gagner de Rouge ; (3) il accueille Défenseurs, Piège et autres pièces de défense comme toute parcelle, et le Duel y suit ses règles habituelles (parade → Territoire tenu ; frappe non parée et non piégée → retour en réserve) ; (4) une frappe de Bulldozer non parée le refait Route, et dès qu’il ne porte plus ni Duel ni Chamane (frappe, déplacement, retour des Défenseurs au ménage), il redevient Route : la case est vidée et toute machine qui s’y trouve se replie comme sur une Route qui vient de se créer ; (5) jamais de sentier sur la dernière case d’un rayon, tout sentier redevient aussitôt Route si le Tapir quitte la Piste des Gardiens, et aucun pion Arbre ou Souche n’est jamais déplacé.",
+          "face_2": "Le sentier qui égare. Quand le Tapir s’active, choisissez l’un de ses deux pas :\n• Fouler une Route : posez le jeton Duel sur une Route Forestière de n’importe quel rayon (pris dans la réserve ou là où il se trouve, sur sa face actuelle, même sans Défenseur Mammifère), ou faites-y descendre le Tambour ou le Chant depuis la parcelle voisine de cette Route, sur le même rayon : elle devient un sentier.\n• Frayer (toujours possible) : posez le jeton Duel, sur sa face actuelle, sur une parcelle ciblée, même sans Défenseur Mammifère ; s’il y rejoint le Tambour ou le Chant, retournez-le aussitôt sur Territoire tenu.\nEn Face 2, le sentier obéit aux règles du sentier avec deux pas de plus :\n• Les machines s’égarent : quand une machine attaque, avant de figer ses cibles, si l’une d’elles est la parcelle juste avant ou juste après un sentier sur ce rayon, vous pouvez détourner cette frappe sur le sentier.\n• La boue tient : une frappe d’Abatteuse non parée sur un sentier ne déloge plus le Duel : seul un Bulldozer non paré refait la Route.",
+          "enracine": "Les graines du sentier. Au décompte final, en plus de sa repousse habituelle (1 Souche, ou 2 s’il était en Face 2, sur la parcelle qu’il regarde), le Tapir fait repousser 1 Souche de la parcelle qui porte le jeton Duel, si le Tambour ou le Chant s’y tient aussi. Cette clause ne se lit qu’au décompte final."
         },
         "decision_et_renoncement": {
-          "choix": "Semer pour sauver une parcelle menacée de devenir Route, ou rouvrir une Route pour ralentir les machines et regagner du terrain.",
-          "renoncement": "Rouvrir prélève une Souche sur une parcelle voisine et rend la case de nouveau vulnérable ; enraciner le Tapir sacrifie ces gestes pour une repousse lente mais sûre."
+          "choix": "Fouler une Route — avec le Duel, qui tient d’un tour à l’autre, ou avec un Chamane, jusqu’au ménage — ou frayer pour poster le Duel en Territoire tenu auprès d’un Chamane.",
+          "renoncement": "Le Duel posé sur un sentier ne garde plus aucune parcelle boisée ; le Chamane qui descend abandonne la parcelle qu’il gardait ; un Bulldozer non paré refait la Route en vidant la case."
         }
       },
       "temoins": [
         {
           "id": "G7_T1",
-          "resume": "Route en parcelle 2 du rayon H ; la parcelle 1 voisine porte 1 Arbre et 1 Souche ; le Tapir rouvre : parcelle 1 = 1 Arbre, parcelle 2 = parcelle à 1 Souche, plus sautée par les machines.",
+          "resume": "Le sentier tenu par le Tambour (Tour 3, Acte 1) : sur le rayon H, parcelle 1 (2 Arbres) porte Bulldozer (rang 3), Abatteuse (rang 5) et Tambour ; parcelle 2 est une Route ; parcelle 3 porte 3 Arbres. Après une parade au rang 1, le Tapir (sur Parade) fait descendre le Tambour sur la Route (sentier gravé 2). Au rang 3 le Bulldozer frappe la parcelle 1 puis le sentier (paré par le Tambour, Parade) et s’arrête sur le sentier ; au rang 5 l’Abatteuse frappe le sentier à vide ; au ménage le sentier redevient Route et le Bulldozer se replie en parcelle 1. Parcelle 3 intacte.",
           "etat_attendu_verifie": {
-            "rayon_H": {
-              "p1": {
-                "arbres": 1,
-                "souches": 0
-              },
-              "p2": {
-                "arbres": 0,
-                "souches": 1,
-                "route": false
-              }
-            }
+            "parcelle_3_intacte": true,
+            "bulldozer_replie_p1": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G7_T2",
-          "resume": "Tapir enraciné face à la parcelle 3 (0 Arbre, 2 Souches) : au ménage suivant, la parcelle 3 porte 1 Arbre et 1 Souche.",
+          "resume": "Plancher Frayer (Tour 2, Acte 1, aucune Route en jeu) : le Tapir, construit au Tour 1, porte 1 pari. Sur le rayon M, le Bulldozer en parcelle 1 (2 Arbres) est révélé au rang 6 face à 1 Défenseur Mammifère et le Tambour. Après une parade au rang 2, le Tapir fraye : le Duel quitte la réserve, rejoint le Tambour et arrive face Territoire tenu. Au rang 6, la frappe Sur place est parée et Territoire tenu bloque l’avancée en parcelle 1.",
           "etat_attendu_verifie": {
-            "p3": {
-              "arbres": 1,
-              "souches": 1
-            }
+            "duel_territoire_tenu": true,
+            "avancee_bloquee": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Piégeage. Semer sous le Tambour si la parcelle ne porte plus qu’1 pièce (anti-Route) ; sinon rouvrir la Route la plus proche du cœur. Enraciner au plus tard au Tour 5 si le Tapir a déjà perdu un pari.",
+      "heuristique_bot": "Siéger sur Parade. S’il existe une Route devant une parcelle boisée menacée, y poser le Duel ou y faire descendre un Chamane pour absorber les frappes Devant et bloquer l’avancée ; sans Route, Frayer auprès du Tambour/Chant pour verrouiller Territoire tenu. Enraciner en fin de partie si Duel et Chamane peuvent se réunir sur une parcelle à Souches.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -1210,13 +1199,19 @@
         "LEVIER_REVE"
       ],
       "est_twist": false,
-      "vecteurs": "Gardien Mammifère → déplacement des Rêves (E) vers la gauche, ou échange ; amène le Curupira sur les rangs fréquentés et compacte le bloc du Sommeil",
+      "vecteurs": "Rêve nagé d’1 rang à gauche ou échangé (Face 2 : 2 rangs / plongée sous son voisin) ; plancher sans Rêve : 1 Altération de la réserve Entités",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "RANG_REVE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "POSITION_REVE",
         "RANG_REVE"
       ],
       "sorties": [
         "POSITION_REVE",
+        "ALTERATION",
         "ANNULATION"
       ],
       "paiement": [],
@@ -1224,11 +1219,12 @@
       "declencheurs_amorces": [
         "ICONE_REVE"
       ],
-      "double_ouverture": "Deux nages font gagner deux rangs au même Rêve (jusqu’à quatre en Face 2), ou compactent deux Rêves séparés : le plus court chemin vers le Sommeil quand les Humains ne sont pas à la table. Placé sur Rêve, le Boto nage dès la première annulation et amène les Rêves suivants sur les rangs où des machines attendent encore.",
+      "double_ouverture": "Deux nages font gagner deux rangs au même Rêve (jusqu’à quatre en Face 2), ou compactent deux Rêves séparés : le plus court chemin vers le Sommeil quand les Humains ne sont pas à la table. Posé sur Rêve, le Boto nage dès la première annulation ; posé sur Sabotage, il déplace les Rêves avant même leur résolution. Sans Rêve, deux envoûtements sur deux machines différentes.",
       "tags": [
         "REVE",
         "SOMMEIL",
-        "LEVIER"
+        "LEVIER",
+        "ALTERATION"
       ],
       "tuile_plateau": {
         "nom_court": "Le Boto",
@@ -1237,27 +1233,27 @@
         "pictogrammes": [
           "PIC_AVANCEE_REVE",
           "PIC_REVE",
-          "PIC_ANNULATION"
+          "PIC_ALTERATION"
         ],
         "mots_cles_plateau": {
-          "face_1": "1 Rêve glisse d’1 rang à gauche ou échange avec son voisin",
-          "face_2": "1 Rêve glisse de 2 rangs ou plonge sous son voisin · ou échange",
+          "face_1": "1 Rêve glisse d’1 rang à gauche ou échange avec son voisin · aucun Rêve ne nage = 1 Altération",
+          "face_2": "1 Rêve glisse de 2 rangs ou plonge sous son voisin · ou échange · aucun Rêve ne nage = 1 Altération",
           "enracine": null
         },
         "resume_plateau": "Fait nager les Rêves vers le rang 1"
       },
       "carte_joueur": {
         "titre_complet": "Le Boto, l’encantado du fleuve",
-        "entite_illustree": "Le Boto (Inia geoffrensis) — dauphin rose de l’Amazone, animal entier, glissant entre les troncs d’une forêt inondée",
-        "brief_illustration": "Igapó nocturne sous la lune : le Boto entier, rose nacré, ondule entre des troncs immergés ; son reflet à la surface dessine la silhouette d’un homme en blanc coiffé d’un chapeau ; des Rêves lumineux dérivent au fil du courant. Roses, argent, bleu nuit.",
+        "entite_illustree": "Le Boto (Inia geoffrensis), dauphin rose de l’Amazone glissant entre les troncs inondés",
+        "brief_illustration": "Le Boto (Inia geoffrensis), dauphin rose de l’Amazone, animal entier, glissant entre les troncs d’une forêt inondée ; sur l’eau sombre se reflète la silhouette d’un homme en blanc.",
         "pitch_ambiance": "Les nuits de fête, dit-on, le Boto sort du fleuve sous les traits d’un bel homme en blanc. Avant l’aube, il replonge vers l’Encante, la cité sous les eaux, et les rêves le suivent dans le courant.",
         "texte_regle": {
-          "face_1": "Quand le Boto s’active : faites nager un Rêve : glissez-le d’1 rang vers la gauche si ce rang est libre (ses Défenseurs le suivent). Si ce rang est occupé, vous pouvez à la place échanger ce Rêve avec le Rêve qui l’occupe (chacun garde ses Défenseurs). Un Rêve déplacé avant sa résolution annule et résout son pouvoir depuis sa nouvelle place ; un Rêve déjà résolu ne se résout pas une seconde fois.",
-          "face_2": "Quand le Boto s’active : il plonge vers l’Encante : faites glisser un Rêve d’1 ou 2 rangs libres vers la gauche (ses Défenseurs le suivent), ou faites-le plonger sous le Rêve qui le précède : il ressort sur le premier rang libre situé à gauche de celui-ci. Vous pouvez aussi, à la place, échanger deux Rêves voisins (chacun garde ses Défenseurs). Un Rêve déplacé avant sa résolution annule et résout son pouvoir depuis sa nouvelle place ; un Rêve déjà résolu ne se résout pas une seconde fois.",
+          "face_1": "La nage. Quand le Boto s’active : faites nager un Rêve : glissez-le d’1 rang vers la gauche si ce rang est libre (ses Défenseurs le suivent). Si ce rang est occupé, vous pouvez à la place échanger ce Rêve avec le Rêve qui l’occupe (chacun garde ses Défenseurs). Un Rêve déplacé avant sa résolution annule et résout son pouvoir depuis sa nouvelle place ; un Rêve déjà résolu ne se résout pas une seconde fois.\nL’encantado (plancher) : si aucun Rêve ne peut nager (Réglette sans Rêve, ou seul Rêve déjà au rang 1), le Boto envoûte à la place une machine : posez 1 jeton d’Altération, pris dans la réserve des Entités, sur une machine mobile qui n’en porte pas encore.",
+          "face_2": "La plongée vers l’Encante. Quand le Boto s’active : faites glisser un Rêve d’1 ou 2 rangs libres vers la gauche (ses Défenseurs le suivent), ou faites-le plonger sous le Rêve qui le précède : il ressort sur le premier rang libre situé à gauche de celui-ci. Vous pouvez aussi, à la place, échanger deux Rêves voisins (chacun garde ses Défenseurs). Un Rêve déplacé avant sa résolution annule et résout son pouvoir depuis sa nouvelle place ; un Rêve déjà résolu ne se résout pas une seconde fois.\nL’encantado (plancher) : si aucun Rêve ne peut nager ni plonger, posez 1 jeton d’Altération, pris dans la réserve des Entités, sur une machine mobile qui n’en porte pas encore.",
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Faire nager le Rêve vers le rang où des machines viennent d’être révélées (annulation immédiate) ou vers le bloc du Sommeil.",
+          "choix": "Faire nager le Rêve vers le rang où des machines viennent d’être révélées (annulation immédiate) ou vers le bloc du Sommeil ; sans Rêve, envoûter la machine qui menacera la parcelle la plus boisée à sa prochaine sortie.",
           "renoncement": "Un Rêve déplacé quitte le rang qu’il couvrait : les machines qui y arriveraient ensuite (déviées ou relues) ne seront plus annulées."
         }
       },
@@ -1266,29 +1262,21 @@
           "id": "G8_T1",
           "resume": "Rêve E au rang 5 non résolu, machine révélée au rang 4 ; un Rêve au rang 2 annule et allume Rêve ; le Boto s’active : le Rêve E passe au rang 4 et annule la machine.",
           "etat_attendu_verifie": {
-            "reve_E_rang": 4,
-            "machine_rang_4_annulee": true,
-            "icone": "REVE"
+            "reve_e_rang": 4,
+            "machine_annulee": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G8_T2",
-          "resume": "Face 2 : Rêves E aux rangs 6 et 3, rangs 1, 2, 4 et 5 libres ; le Boto fait glisser le Rêve du rang 6 de 2 rangs (rang 4) ; à sa 2e activation, ce Rêve plonge sous celui du rang 3 et ressort au rang 2.",
+          "resume": "Plancher (Tour 2, aucun Rêve construit) : le Boto, construit au Tour 1 et posé sur Sabotage (icône de repli), s’active au premier Sabotage révélé : l’encantado pose 1 Altération sur l’Abatteuse du rayon M en parcelle 2. À sa prochaine révélation, elle compte dans m(r) mais recule en parcelle 1 sans frapper.",
           "etat_attendu_verifie": {
-            "apres_activation_1": [
-              3,
-              4
-            ],
-            "apres_activation_2": [
-              2,
-              3
-            ]
+            "alteration_posee": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Rêve. Si une machine révélée occupe un rang libre juste à gauche d’un Rêve non résolu, nager vers elle ; sinon compacter vers le rang 1 pour viser le Sommeil.",
+      "heuristique_bot": "Siéger sur Rêve (ou Sabotage en repli avant le premier Rêve). Si une machine révélée occupe un rang libre juste à gauche d’un Rêve non résolu, nager vers elle ; sinon compacter vers le rang 1 pour viser le Sommeil ; sans Rêve en jeu, altérer la machine mobile la plus avancée.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -1316,6 +1304,13 @@
       ],
       "est_twist": false,
       "vecteurs": "Sabotage ou Écaille révélé (Écailles semées par la Pirogue) → cale sous une machine du rayon du Tambour (H) → machine tenue, Ratissage bloqué, Sabotage rallumé à chaque révélation",
+      "entrees_plancher": [
+        "SABOTAGE",
+        "ECAILLE"
+      ],
+      "entrees_synergie": [
+        "TAMBOUR"
+      ],
       "entrees": [
         "SABOTAGE",
         "ECAILLE",
@@ -1417,8 +1412,16 @@
       ],
       "roles_portes": [],
       "est_twist": false,
-      "vecteurs": "Annulation par un Rêve (E, dont le Boitatá) → jeton Machine avalé et gardé hors du sac ; Face 2 : clairière de Souches = affût",
+      "vecteurs": "Machine annulée par Rêve (ou proie de passage déjà activée) → avalée hors du sac tant qu’une encoche reste occupée au ménage ; Face 2 : avale sur clairière de Souches",
+      "entrees_plancher": [
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "ANNULATION",
+        "SOUCHE"
+      ],
       "entrees": [
+        "RANG_MACHINE",
         "ANNULATION",
         "SOUCHE"
       ],
@@ -1431,7 +1434,7 @@
       ],
       "nature": "ACTION",
       "declencheurs_amorces": [],
-      "double_ouverture": "La première activation avale la proie de l’ouverture ; la seconde peut l’échanger contre une machine plus dangereuse annulée plus à droite, ou (Face 2) avaler une machine posée sur une clairière avant qu’elle ne frappe. Chaque activation glisse un pari : or c’est une encoche occupée au ménage qui empêche la Matamata de digérer.",
+      "double_ouverture": "La première activation avale la proie de l’ouverture ; la seconde peut l’échanger contre une machine plus dangereuse annulée plus à droite, ou (Face 2) avaler une machine posée sur une clairière avant qu’elle ne frappe. Seule en piste, la seconde troque la proie de passage contre la machine la plus proche de la dernière parcelle, pour lui interdire le Ratissage. Chaque activation glisse un pari : or c’est une encoche occupée au ménage qui empêche la Matamata de digérer.",
       "tags": [
         "SAC",
         "CAMOUFLAGE",
@@ -1448,7 +1451,7 @@
           "PIC_PARI_ENCOCHE"
         ],
         "mots_cles_plateau": {
-          "face_1": "Machine annulée par un Rêve → jeton avalé hors du sac · encoche vide au ménage = proie rendue",
+          "face_1": "Machine annulée par un Rêve → jeton avalé hors du sac · sans annulation : machine qui a déjà attaqué · encoche vide au ménage = proie rendue",
           "face_2": "Ou machine révélée sur clairière de Souches → annulée et avalée",
           "enracine": null
         },
@@ -1456,40 +1459,40 @@
       },
       "carte_joueur": {
         "titre_complet": "La Matamata, la souche qui respire",
-        "entite_illustree": "La Matamata (Chelus fimbriata) — tortue d’eau douce entière, carapace d’écorce et tête frangée de feuilles mortes, immobile au fond d’un ruisseau",
-        "brief_illustration": "Coupe sous l’eau ambrée d’un ruisseau : la Matamata entière, indiscernable d’un tas de feuilles et d’une vieille souche, gueule soudain béante qui aspire un jeton métallique dans un tourbillon ; au-dessus, la lueur d’un Rêve flotte à la surface. Ambres, bruns, éclats verts.",
+        "entite_illustree": "La Matamata (Chelus fimbriata), tortue d’eau douce entière au fond d’un ruisseau ambré",
+        "brief_illustration": "La Matamata (Chelus fimbriata), tortue d’eau douce entière, carapace d’écorce et tête frangée de feuilles mortes, immobile au fond d’un ruisseau ambré, la gueule entrouverte.",
         "pitch_ambiance": "On la prend pour une souche, pour un tas de feuilles mortes. Puis la gueule s’ouvre en un éclair et l’eau s’engouffre : la proie a disparu avant même d’avoir compris.",
         "texte_regle": {
-          "face_1": "Quand la Matamata s’active : choisissez une machine qu’un Rêve vient d’annuler à cette ouverture (son jeton est encore incliné devant son rayon). La Matamata l’avale : posez son jeton Machine face cachée sur la Mini-Tuile de la Matamata au lieu de le remettre dans le sac. Tant qu’il y reste, cette machine ne peut pas être tirée (elle ne s’active pas) et ne peut pas entrer en Ratissage. La Matamata ne garde qu’une proie : si elle en avale une nouvelle, l’ancienne regagne aussitôt le sac. Digestion : au début du ménage, avant le retour des Défenseurs, si aucune encoche de la Matamata n’est occupée, sa proie regagne le sac ; de même si la Matamata quitte la Piste des Gardiens.",
-          "face_2": "Quand la Matamata s’active : choisissez une machine qu’un Rêve vient d’annuler à cette ouverture, ou une machine révélée qui n’a pas encore attaqué et qui se trouve sur une parcelle réduite à des Souches (aucun Arbre debout). La Matamata l’avale : la seconde est annulée (inclinez son jeton) ; posez ce jeton Machine face cachée sur la Mini-Tuile de la Matamata au lieu de le remettre dans le sac. Tant qu’il y reste, cette machine ne peut pas être tirée ni entrer en Ratissage. La Matamata ne garde qu’une proie : si elle en avale une nouvelle, l’ancienne regagne aussitôt le sac. Digestion : au début du ménage, avant le retour des Défenseurs, si aucune encoche de la Matamata n’est occupée, sa proie regagne le sac ; de même si la Matamata quitte la Piste des Gardiens.",
+          "face_1": "La gueule. Quand la Matamata s’active : choisissez une machine qu’un Rêve vient d’annuler à cette ouverture (son jeton est encore incliné devant son rayon). La Matamata l’avale : posez son jeton Machine face cachée sur la Mini-Tuile de la Matamata au lieu de le remettre dans le sac. Tant qu’il y reste, cette machine ne peut pas être tirée (elle n’attaque pas) et ne peut pas entrer en Ratissage. La Matamata ne garde qu’une proie : si elle en avale une nouvelle, l’ancienne regagne aussitôt le sac.\nProie de passage (plancher) : si aucun Rêve n’a annulé de machine à cette ouverture, la Matamata avale à la place, de la même façon, le jeton d’une machine révélée qui a déjà attaqué ce tour (jamais une machine en Ratissage).\nDigestion : au début du ménage, avant le retour des Défenseurs, si aucune encoche de la Matamata n’est occupée, sa proie regagne le sac ; de même si la Matamata quitte la Piste des Gardiens.",
+          "face_2": "L’affût de la clairière. Quand la Matamata s’active : choisissez une machine qu’un Rêve vient d’annuler à cette ouverture, ou une machine révélée qui n’a pas encore attaqué et qui se trouve sur une parcelle réduite à des Souches (aucun Arbre debout). La Matamata l’avale : la seconde est annulée (inclinez son jeton) ; posez ce jeton Machine face cachée sur la Mini-Tuile de la Matamata au lieu de le remettre dans le sac. Tant qu’il y reste, cette machine ne peut pas être tirée ni entrer en Ratissage. La Matamata ne garde qu’une proie : si elle en avale une nouvelle, l’ancienne regagne aussitôt le sac.\nProie de passage (plancher) : si aucune de ces deux proies n’existe, la Matamata avale à la place le jeton d’une machine révélée qui a déjà attaqué ce tour (jamais une machine en Ratissage).\nDigestion : au début du ménage, avant le retour des Défenseurs, si aucune encoche de la Matamata n’est occupée, sa proie regagne le sac ; de même si la Matamata quitte la Piste des Gardiens.",
           "enracine": null
         },
         "decision_et_renoncement": {
           "choix": "Garder la même proie tour après tour (en pariant sur la Matamata) ou l’échanger contre une machine plus menaçante.",
-          "renoncement": "Pour ne pas digérer, la Matamata exige une encoche occupée à chaque ménage : un Défenseur engagé en pari sur elle plutôt qu’en forêt."
+          "renoncement": "Pour ne pas digérer, la Matamata exige une encoche occupée à chaque ménage — un Défenseur engagé en pari sur elle plutôt qu’en forêt."
         }
       },
       "temoins": [
         {
           "id": "G10_T1",
-          "resume": "Un Rêve au rang 2 annule le Bulldozer du rayon E ; la Matamata (sur Rêve) s’active : jeton avalé ; au tour suivant, le sac contient 2N−1 jetons Machine.",
+          "resume": "Un Rêve au rang 2 annule le Bulldozer du rayon E ; la Matamata (sur Rêve) s’active : jeton avalé ; au tour suivant, le sac contient 2N − 1 jetons Machine.",
           "etat_attendu_verifie": {
-            "jeton_avale": "BULLDOZER_E",
-            "sac_jetons_machine": "2N-1"
+            "jeton_avale": true,
+            "sac_diminue_de_1": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G10_T2",
-          "resume": "Au ménage, aucune encoche de la Matamata n’est occupée : la proie regagne le sac.",
+          "resume": "Plancher (Tour 2, aucun Rêve construit) : l’Abatteuse du rayon E a frappé au rang 2 ; au rang 3, une parade allume Parade : la Matamata, construite au Tour 1 et posée sur Parade (icône de repli), avale le jeton de cette Abatteuse. Au ménage, une encoche est occupée : pas de digestion ; au Tour 3, l’Abatteuse reste hors du sac et ne peut pas entrer en Ratissage.",
           "etat_attendu_verifie": {
-            "jeton_avale": null,
-            "sac_jetons_machine": "2N"
+            "proie_de_passage_avalee": true,
+            "digestion_evitee": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Rêve. Avaler la machine la plus avancée vers la dernière parcelle ; garder la proie tant qu’un Défenseur peut parier sur la Matamata à chaque tour.",
+      "heuristique_bot": "Siéger sur Rêve (ou Parade en repli sans Rêve). Avaler la machine la plus avancée vers la dernière parcelle ; garder la proie tant qu’un Défenseur peut parier sur la Matamata chaque tour.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -1517,6 +1520,13 @@
       ],
       "est_twist": false,
       "vecteurs": "Sabotage perché (O) échangé contre une machine révélée → Sabotage rallumé ; Face 2 : proie perchée lâchée sur le rang d’un Rêve Humain (H)",
+      "entrees_plancher": [
+        "PERCHOIR",
+        "SABOTAGE"
+      ],
+      "entrees_synergie": [
+        "POSITION_REVE"
+      ],
       "entrees": [
         "PERCHOIR",
         "SABOTAGE",
@@ -1624,6 +1634,14 @@
       ],
       "est_twist": true,
       "vecteurs": "Dé écarté sous paravent (et dés ignorés des porteurs de Sabotage) → nouveau rang de machine → annulation par un Rêve (E) qui l’attendait à droite",
+      "entrees_plancher": [
+        "DES_SOUS_PARAVENT",
+        "RANG_MACHINE",
+        "POSITION_REVE"
+      ],
+      "entrees_synergie": [
+        "SABOTAGE"
+      ],
       "entrees": [
         "DES_SOUS_PARAVENT",
         "RANG_MACHINE",
@@ -1728,11 +1746,18 @@
         "CATALYSEUR_EVEIL"
       ],
       "est_twist": false,
-      "vecteurs": "Insecte mangé → riposte de production immédiate du Nid (I) ; Face 2 : riposte jaillie sur la parcelle menacée et Duel (M) retourné par une parade aidée",
-      "entrees": [
-        "NID",
+      "vecteurs": "Nid à ≥ 2 Insectes éventré (-1 → +2) ou termitière sauvage (+1 de la réserve) ; Face 2 : riposte projetée sur parcelle adjacente + garde dressée du Duel",
+      "entrees_plancher": [
         "INSECTE",
         "DUEL"
+      ],
+      "entrees_synergie": [
+        "NID"
+      ],
+      "entrees": [
+        "INSECTE",
+        "DUEL",
+        "NID"
       ],
       "sorties": [
         "RIPOSTE_ESSAIM",
@@ -1744,8 +1769,9 @@
       "declencheurs_amorces": [
         "ICONE_INSECTE"
       ],
-      "double_ouverture": "Deux éventrements, deux ripostes : soit deux Nids différents gonflent à la veille des frappes, soit le même Nid riposte deux fois. En Face 2, chaque riposte jaillit sur la parcelle menacée et fait allumer Insecte à la parade, l’icône du Tamanoir.",
+      "double_ouverture": "Deux éventrements, deux ripostes : soit deux Nids différents gonflent à la veille des frappes, soit le même Nid riposte deux fois. En Face 2, chaque riposte jaillit sur la parcelle menacée et fait allumer Insecte à la parade, l’icône du Tamanoir. Sans Nid à éventrer, la seconde termitière sauvage peut porter un Nid tout juste construit jusqu’à ses 2 Insectes.",
       "tags": [
+        "INSECTES",
         "ESSAIM",
         "PRODUCTION",
         "DUEL"
@@ -1760,25 +1786,25 @@
           "PIC_DUEL"
         ],
         "mots_cles_plateau": {
-          "face_1": "Nid à 2 Insectes ou plus · 1 Insecte mangé → riposte de 2 Insectes",
-          "face_2": "Riposte posée sur parcelle ciblée adjacente · parade aidée = Territoire tenu",
+          "face_1": "Nid à 2 Insectes ou plus · 1 Insecte mangé → riposte de 2 · sans Nid à éventrer : 1 Insecte de la réserve",
+          "face_2": "Riposte posée sur parcelle ciblée adjacente · parade aidée = Territoire tenu · sans Nid : idem",
           "enracine": null
         },
         "resume_plateau": "Mange un peu, fait riposter beaucoup"
       },
       "carte_joueur": {
         "titre_complet": "Le Tamanoir, le grand mangeur qui épargne",
-        "entite_illustree": "Le Tamanoir (Myrmecophaga tridactyla) — fourmilier géant entier, longue tête tubulaire et queue en panache, éventrant une termitière",
-        "brief_illustration": "Lisière de forêt : le Tamanoir entier, griffes puissantes plantées dans une termitière qui s’ouvre ; des nuées d’insectes jaillissent et se répandent vers une parcelle menacée par une machine, où veille le jeton Duel. Ocres, gris, poussière dorée.",
+        "entite_illustree": "Le Tamanoir (Myrmecophaga tridactyla), fourmilier géant entier éventrant une termitière",
+        "brief_illustration": "Le Tamanoir (Myrmecophaga tridactyla), fourmilier géant entier, longue tête tubulaire et queue en panache, éventrant une termitière de sa griffe ; des soldats jaillissent déjà des galeries.",
         "pitch_ambiance": "Le Tamanoir avale des dizaines de milliers d’insectes par jour, mais ne s’attarde jamais plus d’une minute sur un même nid : il repart avant l’arrivée des soldats, et le nid survit. Une récolte qui ne détruit pas.",
         "texte_regle": {
-          "face_1": "Quand le Tamanoir s’active : il éventre un Nid construit qui porte au moins 2 Insectes : défaussez-en 1 (le Tamanoir ne vide jamais un Nid). L’Essaim riposte aussitôt : ce Nid produit 2 Insectes, sans allumer d’icône ni appliquer son pouvoir de Nid. Ces Insectes restent sur le Nid et participent normalement aux parades sur sa parcelle.",
-          "face_2": "Quand le Tamanoir s’active : il éventre un Nid construit qui porte au moins 2 Insectes : défaussez-en 1. L’Essaim riposte : ce Nid produit 2 Insectes, sans allumer d’icône, que vous pouvez faire jaillir : posez-les sur la parcelle du Nid ou sur une parcelle ciblée adjacente (même rayon, ou même numéro d’un rayon voisin), où ils participeront aux parades. La garde dressée : si le jeton Duel se trouve sur l’une de ces parcelles, une parade aidée par ces Insectes y retourne le Duel sur Territoire tenu, même sans Défenseur Mammifère.",
+          "face_1": "La récolte. Quand le Tamanoir s’active : il éventre un Nid construit qui porte au moins 2 Insectes : défaussez-en 1 (le Tamanoir ne vide jamais un Nid). L’Essaim riposte aussitôt : ce Nid produit 2 Insectes, sans allumer d’icône ni appliquer son pouvoir de Nid. Ces Insectes restent sur le Nid et participent normalement aux parades sur sa parcelle.\nTermitière sauvage (plancher) : s’il n’existe aucun Nid à éventrer, le Tamanoir fouille une termitière sauvage : prenez 1 Insecte dans la réserve de l’Essaim et posez-le sur un Nid construit ou sur une parcelle ciblée, où il participe aux parades.",
+          "face_2": "La garde dressée. Quand le Tamanoir s’active : il éventre un Nid construit qui porte au moins 2 Insectes : défaussez-en 1. L’Essaim riposte : ce Nid produit 2 Insectes, sans allumer d’icône, que vous pouvez faire jaillir : posez-les sur la parcelle du Nid ou sur une parcelle ciblée adjacente (même rayon, ou même numéro d’un rayon voisin), où ils participeront aux parades. La garde dressée : si le jeton Duel se trouve sur l’une de ces parcelles, une parade aidée par ces Insectes y retourne le Duel sur Territoire tenu, même sans Défenseur Mammifère.\nTermitière sauvage (plancher) : s’il n’existe aucun Nid à éventrer, prenez 1 Insecte dans la réserve de l’Essaim et posez-le sur un Nid construit ou sur une parcelle ciblée ; la garde dressée s’y applique.",
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Quel Nid éventrer : celui qui riposte le plus près de la frappe à venir, ou celui qu’il faut regonfler avant la Production.",
-          "renoncement": "L’Insecte mangé manque à une déviation ou à un Bouclier de lisière ; et un Nid réduit à 1 Insecte ne peut plus être éventré."
+          "choix": "Quel Nid éventrer — celui qui riposte le plus près de la frappe à venir, ou celui qu’il faut regonfler avant la Production.",
+          "renoncement": "L’Insecte mangé manque à une déviation ou à un Bouclier de lisière ; un Nid réduit à 1 Insecte ne peut plus être éventré."
         }
       },
       "temoins": [
@@ -1786,22 +1812,21 @@
           "id": "G13_T1",
           "resume": "Nid à 3 Insectes ; le Tamanoir s’active : 3 − 1 + 2 = 4 Insectes sur le Nid.",
           "etat_attendu_verifie": {
-            "nid_insectes": 4
+            "insectes_nid": 4
           },
           "statut": "A_CODER"
         },
         {
           "id": "G13_T2",
-          "resume": "Face 2 : Nid à 2 Insectes ; la parcelle voisine, visée (Seuil 3), porte le Duel et 1 Défenseur O : la riposte de 2 Insectes y jaillit ; parade avec Insectes (icône Insecte) ; Duel sur Territoire tenu.",
+          "resume": "Plancher (Tour 2, aucun Nid construit) : la parcelle 2 du rayon M est visée au rang 4 (Assaut, Seuil 2) et gardée par 1 Défenseur. Après une parade au rang 1, le Tamanoir (sur Parade, icône de repli) fouille une termitière sauvage et pose 1 Insecte de la réserve sur cette parcelle ; au rang 4, parade réussie avec cet Insecte (icône Insecte).",
           "etat_attendu_verifie": {
-            "parade": "INSECTE",
-            "duel": "TERRITOIRE_TENU",
-            "insectes_defausses": 2
+            "insecte_reserve_pose": 1,
+            "icone_insecte_allumee": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Insecte. Éventrer le Nid le plus proche d’une parcelle visée ; en Face 2, faire jaillir la riposte sur la parcelle visée dont le déficit au Seuil est au plus 2.",
+      "heuristique_bot": "Siéger sur Insecte (ou Parade en repli sans Nid). Éventrer le Nid le plus proche d’une parcelle visée ; en Face 2, faire jaillir la riposte sur la parcelle visée dont le déficit au Seuil est au plus 2.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -1828,10 +1853,18 @@
         "CATALYSEUR_EVEIL"
       ],
       "est_twist": false,
-      "vecteurs": "Écaille (R) glissée sous un Nid (I) → Croc qui éclot à la première frappe → Piégeage ; Face 2 : nichée qui tient la parcelle",
+      "vecteurs": "Écaille couvée sous un Nid (ou ponte au sol rayon R/I) → éclosion du Croc sur frappe → Piégeage + Écaille au sac ; Face 2 : nichée tenant jusqu’au ménage",
+      "entrees_plancher": [
+        "ECAILLE",
+        "CROC"
+      ],
+      "entrees_synergie": [
+        "NID"
+      ],
       "entrees": [
-        "NID",
-        "ECAILLE"
+        "ECAILLE",
+        "CROC",
+        "NID"
       ],
       "sorties": [
         "PONTE",
@@ -1843,8 +1876,9 @@
       "declencheurs_amorces": [
         "ICONE_PIEGEAGE"
       ],
-      "double_ouverture": "Chaque activation installe une ponte sous un Nid différent : deux Nids protégés, deux éclosions possibles, deux icônes Piégeage. En Face 2, une seule ponte suffit à tenir une parcelle pendant toute la phase d’attaques.",
+      "double_ouverture": "Chaque activation installe une ponte sous un Nid différent : deux Nids protégés, deux éclosions possibles, deux icônes Piégeage. En Face 2, une seule ponte suffit à tenir une parcelle pendant toute la phase d’attaques. Sans Nid, la seconde activation déplace la ponte au sol vers la parcelle la plus menacée.",
       "tags": [
+        "INSECTES",
         "PONTE",
         "CROC",
         "ECAILLE",
@@ -1861,7 +1895,7 @@
           "PIC_PIEGE"
         ],
         "mots_cles_plateau": {
-          "face_1": "Écaille sous un Nid · frappe sur ce Nid → le Croc éclot et pare",
+          "face_1": "Écaille sous un Nid (sans Nid libre : au sol, rayon R ou I) · frappe → le Croc éclot et pare",
           "face_2": "Le Croc éclot d’où qu’il soit et pare chaque frappe jusqu’au ménage",
           "enracine": null
         },
@@ -1869,17 +1903,17 @@
       },
       "carte_joueur": {
         "titre_complet": "Le Téju, la ponte au cœur de la termitière",
-        "entite_illustree": "Le Téju (Tupinambis teguixin) — grand lézard entier, robe noire et dorée, griffant la paroi d’une termitière pour y pondre",
-        "brief_illustration": "Coupe d’une termitière : à gauche, le Téju entier, langue fourchue sortie, finit de gratter une brèche ; au centre, une poignée d’œufs blancs déjà scellés par les ouvrières, l’un luisant comme une écaille ; à droite, la chenille d’une machine approche. Bruns de terre, or, noir laqué.",
+        "entite_illustree": "Le Téju (Tupinambis teguixin), grand lézard entier noir et doré griffant une termitière",
+        "brief_illustration": "Le Téju (Tupinambis teguixin), grand lézard entier à la robe noire et dorée, griffant la paroi d’une termitière pour y pondre ; à ses pieds, la litière de feuilles où s’enfouissent les pontes sans abri.",
         "pitch_ambiance": "La femelle Téju éventre une termitière vivante, y pond, puis s’en va : les termites réparent le mur et scellent les œufs dans une couveuse parfaite. Celui qui viendra détruire le nid y trouvera, à l’éclosion, des mâchoires toutes neuves.",
         "texte_regle": {
-          "face_1": "Quand le Téju s’active : il pond : prenez 1 Écaille dans la réserve Reptile (ou une Écaille révélée à cette ouverture) et glissez-la face cachée sous un Nid construit qui n’abrite pas encore de ponte. Éclosion : quand une machine frappe la parcelle de ce Nid et que le Croc est dans la réserve Reptile, la ponte éclot avant toute parade : postez le Croc sur cette parcelle ; il pare cette frappe en premier (allumez Piégeage) puis regagne la réserve, et l’Écaille de la ponte rejoint le sac. Un Nid qui se déplace emporte sa ponte ; un Nid renvoyé en lisière la rend à la réserve Reptile.",
-          "face_2": "Quand le Téju s’active : il pond : prenez 1 Écaille dans la réserve Reptile (ou une Écaille révélée à cette ouverture) et glissez-la face cachée sous un Nid construit qui n’abrite pas encore de ponte. La nichée : quand une machine frappe la parcelle de ce Nid, la ponte éclot avant toute parade : postez le Croc sur cette parcelle, où qu’il se trouve (réserve Reptile ou autre parcelle) ; il pare cette frappe en premier (allumez Piégeage) et, au lieu de regagner la réserve, reste sur place pour parer de même chaque frappe suivante sur cette parcelle jusqu’au ménage, où il regagne la réserve tandis que l’Écaille de la ponte rejoint le sac. Un Nid qui se déplace emporte sa ponte ; un Nid renvoyé en lisière la rend à la réserve Reptile.",
+          "face_1": "La ponte. Quand le Téju s’active : il pond : prenez 1 Écaille dans la réserve Reptile (ou une Écaille révélée à cette ouverture) et glissez-la face cachée sous un Nid construit qui n’abrite pas encore de ponte. Éclosion : quand une machine frappe la parcelle de ce Nid et que le Croc est dans la réserve Reptile, la ponte éclot avant toute parade : postez le Croc sur cette parcelle ; il pare cette frappe en premier (allumez Piégeage) puis regagne la réserve, et l’Écaille de la ponte rejoint le sac. Un Nid qui se déplace emporte sa ponte ; un Nid renvoyé en lisière la rend à la réserve Reptile.\nPonte au sol (plancher) : s’il n’existe aucun Nid construit sans ponte, le Téju pond dans la litière : posez l’Écaille face cachée au bord d’une parcelle du rayon Reptile ou du rayon Insecte. Elle éclot de la même façon quand une machine frappe cette parcelle, et regagne la réserve Reptile si cette parcelle devient Route. Une seule ponte au sol à la fois : pondre de nouveau au sol la déplace.",
+          "face_2": "La nichée. Quand le Téju s’active : il pond : prenez 1 Écaille dans la réserve Reptile (ou une Écaille révélée à cette ouverture) et glissez-la face cachée sous un Nid construit qui n’abrite pas encore de ponte. La nichée : quand une machine frappe la parcelle de ce Nid, la ponte éclot avant toute parade : postez le Croc sur cette parcelle, où qu’il se trouve (réserve Reptile ou autre parcelle) ; il pare cette frappe en premier (allumez Piégeage) et, au lieu de regagner la réserve, reste sur place pour parer de même chaque frappe suivante sur cette parcelle jusqu’au ménage, où il regagne la réserve tandis que l’Écaille de la ponte rejoint le sac. Un Nid qui se déplace emporte sa ponte ; un Nid renvoyé en lisière la rend à la réserve Reptile.\nPonte au sol (plancher) : s’il n’existe aucun Nid construit sans ponte, posez l’Écaille face cachée au bord d’une parcelle du rayon Reptile ou du rayon Insecte : la nichée y éclot de la même façon, et l’Écaille regagne la réserve Reptile si cette parcelle devient Route. Une seule ponte au sol à la fois.",
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Sous quel Nid pondre : celui dont la parcelle est visée ce tour, ou un Nid exposé à long terme près du cœur.",
-          "renoncement": "L’Écaille couvée n’est plus dans le sac tant qu’elle n’a pas éclos (moins de Sabotages tirés) ; et un Croc parti éclore ne protège plus la parcelle où une Écaille l’avait posté."
+          "choix": "Sous quel Nid pondre — celui dont la parcelle est visée ce tour, ou un Nid exposé à long terme près du cœur ; sans Nid, quelle parcelle couver.",
+          "renoncement": "L’Écaille couvée n’est plus dans le sac tant qu’elle n’a pas éclos (moins de Sabotages tirés) ; un Croc parti éclore ne protège plus la parcelle où une Écaille l’avait posté."
         }
       },
       "temoins": [
@@ -1887,24 +1921,22 @@
           "id": "G14_T1",
           "resume": "Ponte sous le Nid de la parcelle 2 du rayon I ; le Bulldozer frappe cette parcelle ; le Croc est en réserve : éclosion, parade du Croc (Piégeage), Écaille au sac.",
           "etat_attendu_verifie": {
-            "parade": "CROC",
-            "icone": "PIEGEAGE",
-            "ponte": null,
-            "sac_ecailles": "+1"
+            "croc_pare": true,
+            "ecaille_au_sac": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G14_T2",
-          "resume": "Face 2 : deux frappes successives sur la parcelle du Nid : le Croc éclos pare les deux, puis regagne la réserve au ménage.",
+          "resume": "Plancher (Tour 2, aucun Nid construit) : après une parade au rang 1, le Téju (sur Parade, icône de repli) pond au sol 1 Écaille face cachée au bord de la parcelle 2 du rayon R. Au rang 4, l’Abatteuse frappe cette parcelle : éclosion du Croc (Piégeage) puis retour en réserve et Écaille au sac.",
           "etat_attendu_verifie": {
-            "frappes_parees": 2,
-            "croc_au_menage": "RESERVE_R"
+            "ponte_au_sol_eclot": true,
+            "ecaille_au_sac": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Insecte. Pondre sous le Nid dont la parcelle est visée par une machine révélée ; sinon sous le Nid le plus proche du cœur.",
+      "heuristique_bot": "Siéger sur Insecte (ou Parade en repli sans Nid). Pondre sous le Nid dont la parcelle est visée par une machine révélée ; sinon sous le Nid le plus proche du cœur, ou en ponte au sol sur une parcelle menacée de R ou I.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -1932,13 +1964,23 @@
         "ENRACINEMENT"
       ],
       "est_twist": false,
-      "vecteurs": "Insecte (I) transporté à vol d’oiseau (O) vers la parcelle menacée → parade Insecte ; pollinisation des Nids ; Enracinement voisin bonifié",
+      "vecteurs": "Insecte transporté à vol d’oiseau (amorçage réserve en solo) → parade Insecte ; Face 2 : pollinisation de Nid (+1 Insecte) et dépôt Réglette via Plume ; Enraciné final",
+      "entrees_plancher": [
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "INSECTE",
+        "NID"
+      ],
       "entrees": [
+        "PLUME",
         "INSECTE",
         "NID"
       ],
       "sorties": [
         "INSECTE_TRANSPORTE",
+        "INSECTE",
+        "INSECTE_RANG",
         "ARBRE"
       ],
       "paiement": [],
@@ -1946,8 +1988,9 @@
       "declencheurs_amorces": [
         "ICONE_INSECTE"
       ],
-      "double_ouverture": "Une goutte par activation : la première complète la parade d’une frappe imminente, la seconde ravitaille une autre parcelle ou une icône menacée (Bouclier de lisière). Chaque parade aidée allume Insecte et relance la Piste.",
+      "double_ouverture": "Une goutte par activation : la première complète la parade d’une frappe imminente, la seconde ravitaille une autre parcelle ou, en Face 2, pollinise un Nid qui produira +2 à sa prochaine Production. Chaque parade aidée allume Insecte et relance la Piste.",
       "tags": [
+        "INSECTES",
         "ESSAIM",
         "TRANSPORT",
         "POLLINISATION",
@@ -1960,51 +2003,51 @@
         "pictogrammes": [
           "PIC_INSECTE",
           "PIC_MIGRATION",
-          "PIC_ARBRE",
+          "PIC_NID",
           "PIC_ENRACINEMENT"
         ],
         "mots_cles_plateau": {
-          "face_1": "1 Insecte pris n’importe où → n’importe quelle parcelle",
-          "face_2": "2 Insectes · arrivée sur un Nid = 1 Souche → Arbre",
-          "enracine": "Tuiles enracinées voisines · 1 repousse de plus"
+          "face_1": "1 Insecte pris n’importe où → n’importe quelle parcelle · aucun Insecte en jeu = 1 de la réserve",
+          "face_2": "2 Insectes · arrivée sur un Nid = +1 Insecte · Plume près d’un rang = dépôt sur la Réglette",
+          "enracine": "Fin de partie : tuiles enracinées voisines, 1 repousse de plus"
         },
         "resume_plateau": "Transporte l’Essaim à vol d’oiseau"
       },
       "carte_joueur": {
         "titre_complet": "Le Colibri, porteur de gouttes et de pollen",
-        "entite_illustree": "Le Colibri (Phaethornis, ermite des sous-bois) — minuscule oiseau entier, en vol stationnaire devant une fleur d’héliconia",
-        "brief_illustration": "Gros plan lumineux : un Colibri entier, ailes floues, bec plongé dans une héliconia rouge ; de minuscules passagers et des grains de pollen accrochés à son bec ; à l’arrière-plan flou, un incendie lointain et un autre colibri portant une goutte d’eau. Rouges vifs, verts émeraude, reflets irisés.",
+        "entite_illustree": "Le Colibri (Phaethornis), minuscule oiseau entier en vol stationnaire devant une fleur d’héliconia",
+        "brief_illustration": "Le Colibri (Phaethornis, ermite des sous-bois), animal entier : minuscule oiseau en vol stationnaire devant une fleur d’héliconia ; dans la lumière rasante, on devine les acariens des fleurs qui voyagent dans ses narines, de corolle en corolle.",
         "pitch_ambiance": "Quand la forêt brûla, raconte-t-on, le colibri allait et venait avec une goutte d’eau dans le bec : il faisait sa part. De fleur en fleur, il transporte aussi de minuscules passagers : rien n’est trop petit pour sauver la forêt.",
         "texte_regle": {
-          "face_1": "Quand le Colibri s’active : il emporte un passager : déplacez 1 Insecte depuis n’importe quel Nid, parcelle, rang de la Réglette ou icône de la Piste des Gardiens vers n’importe quelle parcelle de n’importe quel rayon. Il y participe normalement aux parades (une parade aidée par un Insecte allume l’icône Insecte).",
-          "face_2": "Quand le Colibri s’active : il fait sa tournée : déplacez jusqu’à 2 Insectes, pris n’importe où (Nid, parcelle, rang de la Réglette, icône de la Piste des Gardiens), vers une ou deux parcelles de n’importe quels rayons, où ils participent aux parades. Pollinisation : si l’un d’eux arrive sur une parcelle qui porte un Nid, retournez 1 Souche de cette parcelle en Arbre debout.",
-          "enracine": "Enraciné : le Colibri pollinise la lisière : au décompte final, chaque autre tuile enracinée au pied de son rayon ou d’un rayon voisin fait repousser 1 Souche de plus."
+          "face_1": "Le porteur de gouttes. Quand le Colibri s’active, il emporte un passager : déplacez 1 Insecte depuis n’importe quel Nid, parcelle, rang de la Réglette ou icône de la Piste des Gardiens vers n’importe quelle parcelle de n’importe quel rayon. Il y participe normalement aux parades (une parade aidée par un Insecte allume l’icône Insecte).\nAmorçage — narines fleuries (plancher) : s’il n’y a encore aucun Insecte en jeu, le Colibri en rapporte un des fleurs : prenez-le dans la réserve de l’Essaim.",
+          "face_2": "La tournée. Quand le Colibri s’active, il fait sa tournée : déplacez jusqu’à 2 Insectes, pris n’importe où (Nid, parcelle, rang de la Réglette, icône de la Piste des Gardiens), vers une ou deux parcelles de n’importe quels rayons, où ils participent aux parades. S’il n’y a encore aucun Insecte en jeu, le premier vient de la réserve de l’Essaim.\nPollinisation : si l’un d’eux arrive sur un Nid, ce Nid produit aussitôt 1 Insecte, sans allumer d’icône ni appliquer son pouvoir de Nid.\nFleur signalée : si la Plume de Vigie est posée près d’un rang de la Réglette, vous pouvez déposer l’un de ces passagers sur ce rang plutôt que sur une parcelle : il y servira à une déviation, une lanterne ou un rite.",
+          "enracine": "La part du colibri. Au décompte final, chaque autre tuile enracinée au pied de son rayon ou d’un rayon voisin fait repousser 1 Souche de plus."
         },
         "decision_et_renoncement": {
-          "choix": "Quel Insecte déplacer, et d’où : vider un rang de la Réglette, un Nid ou une icône de la Piste pour compléter la parade d’une frappe imminente.",
-          "renoncement": "Chaque Insecte emporté laisse un trou ailleurs : une déviation, une Production plus faible ou un Bouclier de lisière en moins."
+          "choix": "Quel Insecte déplacer, et d’où — vider un rang, un Nid ou une icône pour compléter une parade imminente ; en Face 2, faire escale sur un Nid pour le polliniser, ou déposer un passager là où siffle la Plume.",
+          "renoncement": "Chaque Insecte emporté laisse un trou ailleurs (une déviation, une Production plus faible, un Bouclier de lisière en moins) ; un passager posé sur la Réglette ne pare rien ce tour-ci."
         }
       },
       "temoins": [
         {
           "id": "G15_T1",
-          "resume": "La parcelle 3 du rayon M est visée (Seuil 3) avec 2 Défenseurs ; après une parade au rang 1, le Colibri (sur Parade) s’active : 1 Insecte d’un rang de la Réglette vole sur cette parcelle ; parade réussie, icône Insecte.",
+          "resume": "Amorçage (Tour 2, aucun Nid construit, aucun Insecte en jeu) : la parcelle 3 du rayon M est visée au rang 4 (Seuil 3) et gardée par 2 Défenseurs. Après une parade au rang 1, le Colibri (sur Parade) apporte 1 Insecte de la réserve sur cette parcelle ; au rang 4, parade réussie avec cet Insecte défaussé (icône Insecte).",
           "etat_attendu_verifie": {
-            "parade_p3": true,
-            "icone": "INSECTE"
+            "insecte_reserve_transporte": 1,
+            "icone_insecte_allumee": true
           },
           "statut": "A_CODER"
         },
         {
           "id": "G15_T2",
-          "resume": "Colibri enraciné au pied du rayon O ; un Rêve enraciné au pied du rayon H voisin : au décompte final, ce Rêve fait repousser 2 Souches au lieu d’1.",
+          "resume": "Pollinisation (Face 2) : un Nid porte 1 Insecte en parcelle 2 du rayon I et 1 Insecte attend sur le rang 4. Le Colibri porte ce dernier sur le Nid (2 Insectes → pollinisation +1 = 3 Insectes), puis porte un second passager depuis l’icône Insecte vers la parcelle 3 du rayon O visée au rang 5.",
           "etat_attendu_verifie": {
-            "repousse_reve_H": 2
+            "insectes_nid_apres_pollinisation": 3
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Siéger sur Parade. Transporter l’Insecte vers la parcelle visée non résolue dont le déficit au Seuil est exactement 1 ; enraciner le Colibri en fin de partie si deux tuiles voisines sont déjà enracinées.",
+      "heuristique_bot": "Siéger sur Parade. Transporter l’Insecte (ou amorcer depuis la réserve) vers la parcelle visée non résolue dont le déficit au Seuil est exactement 1 ; en Face 2, polliniser un Nid à 1 Insecte ou alimenter la Réglette via la Plume ; enraciner en fin de partie si deux tuiles voisines sont déjà enracinées.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -2026,14 +2069,20 @@
         "ENRACINEMENT"
       ],
       "est_twist": false,
-      "vecteurs": "Rêve Humain défendu → Rêve des Entités tiré contre lui → bloc contigu vers le Sommeil ; Enracinement qui ne ferme pas le Sommeil",
+      "vecteurs": "Rêve Humain défendu → Rêve des Entités tiré contre lui → bloc contigu vers le Sommeil ; plancher solo : grimpe d’1 rang ou serre +1 machine ; Enracinement sans fermer le Sommeil",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "RANG_REVE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "POSITION_REVE",
         "RANG_REVE"
       ],
       "sorties": [
         "REVE_COMPACTE",
-        "POSITION_REVE"
+        "POSITION_REVE",
+        "ANNULATION"
       ],
       "paiement": [],
       "nature": "ACTION",
@@ -2052,10 +2101,11 @@
         "pictogrammes": [
           "PIC_REVE",
           "PIC_AVANCEE_REVE",
+          "PIC_ANNULATION",
           "PIC_ENRACINEMENT"
         ],
         "mots_cles_plateau": {
-          "face_1": "Rêve des Entités tiré contre la Liane · collé = la paire glisse à gauche",
+          "face_1": "Rêve des Entités tiré contre la Liane · collé = la paire glisse à gauche · aucun à droite = la Liane grimpe d’1 rang, sinon serre 1 machine de plus",
           "face_2": null,
           "enracine": "Enracinée sans fermer le Sommeil"
         },
@@ -2063,39 +2113,38 @@
       },
       "carte_joueur": {
         "titre_complet": "La Liane des Esprits",
-        "entite_illustree": "Vision chamanique de l’ayahuasca — une liane torsadée qui relie le monde des hommes à celui des esprits",
-        "brief_illustration": "Scène de vision : un chamane assis, yeux clos, une coupe de breuvage à ses pieds ; de sa poitrine monte une liane spiralée qui s’enroule autour d’une créature-esprit translucide et la tire doucement vers lui ; motifs géométriques lumineux sur toute la surface. Violets, verts phosphorescents, or.",
+        "entite_illustree": "Vision chamanique de l’ayahuasca : une liane torsadée reliant le monde des hommes à celui des esprits",
+        "brief_illustration": "Vision chamanique de l’ayahuasca : une liane torsadée qui relie le monde des hommes à celui des esprits ; ses vrilles s’enroulent autour d’un rêve lumineux et l’attirent vers le chamane.",
         "pitch_ambiance": "On l’appelle la liane des âmes. Celui qui boit sa sève voit les esprits de la forêt, et la liane les tire vers lui, un à un, jusqu’à ce qu’ils dansent ensemble.",
         "texte_regle": {
-          "face_1": "Quand ce Rêve est défendu, à sa résolution : la liane s’enroule. Choisissez un Rêve des Entités situé plus à droite sur la Réglette. S’il reste au moins un rang libre entre eux, faites glisser ce Rêve jusqu’au rang libre qui touche la Liane (ses Défenseurs le suivent). S’il touche déjà la Liane, elle l’entraîne : la Liane glisse d’1 rang vers la gauche si ce rang est libre, et ce Rêve glisse d’1 rang à sa suite. Un Rêve déplacé qui n’a pas encore été résolu se résout ensuite depuis sa nouvelle place.",
+          "face_1": "Quand ce Rêve est défendu, à sa résolution, après ses annulations : la liane s’enroule. Choisissez un Rêve des Entités situé plus à droite sur la Réglette. S’il reste au moins un rang libre entre eux, faites glisser ce Rêve jusqu’au rang libre qui touche la Liane (ses Défenseurs le suivent). S’il touche déjà la Liane, elle l’entraîne : la Liane glisse d’1 rang vers la gauche si ce rang est libre, et ce Rêve glisse d’1 rang à sa suite. Un Rêve déplacé qui n’a pas encore été résolu se résout ensuite depuis sa nouvelle place.\nLa liane grimpe (plancher) : s’il n’y a aucun Rêve des Entités à sa droite, la Liane s’enroule sur elle-même : elle glisse d’1 rang vers la gauche si ce rang est libre (ses Défenseurs la suivent ; elle ne se résout pas une seconde fois). Si elle ne peut pas glisser (rang occupé, ou Liane déjà au rang 1), elle serre : elle annule 1 machine de plus sur son rang.",
           "face_2": null,
-          "enracine": "Enraciné : la Liane nourrit encore les rêves : contrairement aux autres Rêves enracinés, elle ne rend pas le Sommeil impossible. Au décompte final, elle fait repousser 1 Souche comme toute tuile enracinée."
+          "enracine": "La Liane nourrit encore les rêves : contrairement aux autres Rêves enracinés, elle ne rend pas le Sommeil impossible. Au décompte final, elle fait repousser 1 Souche comme toute tuile enracinée."
         },
         "decision_et_renoncement": {
-          "choix": "Tirer le Rêve des Entités pour combler un trou du bloc, ou faire glisser la paire vers le rang 1.",
-          "renoncement": "Le Rêve tiré abandonne le rang qu’il couvrait ; enraciner la Liane lui retire ce pouvoir mais garde le Sommeil possible."
+          "choix": "Tirer le Rêve des Entités pour combler un trou du bloc, ou faire glisser la paire vers le rang 1 ; seule, grimper vers le bloc ou serrer une machine de plus.",
+          "renoncement": "Le Rêve tiré abandonne le rang qu’il couvrait ; une Liane qui grimpe quitte un rang où des machines pourraient encore tomber ; enraciner la Liane lui retire ce pouvoir mais garde le Sommeil possible."
         }
       },
       "temoins": [
         {
           "id": "R1_T1",
-          "resume": "Liane au rang 3 défendue, Rêve E au rang 6, rangs 4 et 5 libres : le Rêve E glisse au rang 4.",
+          "resume": "L’enroulement : Liane au rang 3 défendue, Rêve des Entités au rang 6, rangs 4 et 5 libres : le Rêve des Entités glisse au rang 4.",
           "etat_attendu_verifie": {
-            "reve_E_rang": 4,
-            "liane_rang": 3
+            "reve_e_rang": 4
           },
           "statut": "A_CODER"
         },
         {
           "id": "R1_T2",
-          "resume": "Liane enracinée ; tous les Rêves restant sur la Réglette forment le bloc 1..k : le Sommeil reste possible.",
+          "resume": "Plancher (Tour 2, aucun Rêve des Entités construit) : la Liane, au rang 6 avec 1 Défenseur, annule la machine de son rang puis grimpe au rang 5 ; plus tard, collée au rang 2 contre un Rêve Humain au rang 1 avec 2 machines et 1 Défenseur, elle en annule une puis serre la seconde.",
           "etat_attendu_verifie": {
-            "sommeil_possible": true
+            "liane_grimpe_ou_serre": true
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Tirer le Rêve E le plus à droite ; s’il est collé et que le rang de gauche est libre, faire glisser la paire. Enraciner la Liane au Tour 7 si le Sommeil reste lointain.",
+      "heuristique_bot": "Tirer le Rêve E le plus à droite ; s’il est collé et que le rang de gauche est libre, faire glisser la paire ; seule, grimper vers le rang 1 ou serrer une 2e machine sur son rang. Enraciner la Liane en fin de partie sans craindre de fermer le Sommeil.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -2118,6 +2167,11 @@
       ],
       "est_twist": false,
       "vecteurs": "Chant (H) assoupli par la loi de la Iara (E) → glissement de Rêve dès la première annulation ; machines laissées au rang envoûtées (Altération)",
+      "entrees_plancher": [
+        "CHANT",
+        "ANNULATION"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "CHANT",
         "ANNULATION"
@@ -2207,10 +2261,17 @@
       "roles_portes": [],
       "est_twist": false,
       "vecteurs": "Défenseur d’un Rêve (H) → bond vers la parcelle du Duel (M) ou du rayon annulé → double emploi annulation + parade ; dépose un Chamane en forêt pour le Tapir",
+      "entrees_plancher": [
+        "RANG_REVE",
+        "DUEL"
+      ],
+      "entrees_synergie": [
+        "ANNULATION"
+      ],
       "entrees": [
-        "ANNULATION",
+        "RANG_REVE",
         "DUEL",
-        "RANG_REVE"
+        "ANNULATION"
       ],
       "sorties": [
         "CHAMANE_EN_FORET",
@@ -2293,6 +2354,11 @@
       ],
       "est_twist": true,
       "vecteurs": "Rêve-piston : la Pirogue recule pour faire remonter un Rêve, ou pousse tout le convoi depuis la queue ; mue → Écailles (R) dans le sac, qui serviront de cales au Caïman",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "RANG_REVE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "POSITION_REVE",
         "RANG_REVE"
@@ -2389,6 +2455,13 @@
       "roles_portes": [],
       "est_twist": false,
       "vecteurs": "Dé d’Envol (O) → second rang d’annulation pour un Rêve Humain (H)",
+      "entrees_plancher": [
+        "DE_ENVOL",
+        "RANG_REVE"
+      ],
+      "entrees_synergie": [
+        "ANNULATION"
+      ],
       "entrees": [
         "DE_ENVOL",
         "RANG_REVE",
@@ -2471,11 +2544,18 @@
         "AUTONOMIE_A0"
       ],
       "est_twist": false,
-      "vecteurs": "Insectes (I) amenés sur le rang du Rêve → annulations supplémentaires (H)",
-      "entrees": [
-        "INSECTE_RANG",
+      "vecteurs": "Insecte du rayon Humain cueilli sur son rang (ou amorçage réserve en solo) → chaque Insecte défaussé annule +1 machine du rang",
+      "entrees_plancher": [
         "INSECTE",
         "ANNULATION"
+      ],
+      "entrees_synergie": [
+        "INSECTE_RANG"
+      ],
+      "entrees": [
+        "INSECTE",
+        "ANNULATION",
+        "INSECTE_RANG"
       ],
       "sorties": [
         "ANNULATION_RENFORCEE",
@@ -2487,6 +2567,7 @@
       "double_ouverture": null,
       "tags": [
         "A0",
+        "INSECTES",
         "ESSAIM",
         "ANNULATION"
       ],
@@ -2500,7 +2581,7 @@
           "PIC_ANNULATION"
         ],
         "mots_cles_plateau": {
-          "face_1": "1 Insecte du rayon Humain → son rang · chaque Insecte défaussé = 1 annulation de plus",
+          "face_1": "1 Insecte du rayon Humain → son rang (aucun en jeu : de la réserve) · chaque Insecte défaussé = 1 annulation de plus",
           "face_2": null,
           "enracine": null
         },
@@ -2508,16 +2589,16 @@
       },
       "carte_joueur": {
         "titre_complet": "Le Rite de la Tucandeira",
-        "entite_illustree": "Vision rituelle — les gants tressés de fourmis tucandeiras du rite de passage, portés par un jeune initié qui danse",
-        "brief_illustration": "Nuit de rite : un jeune initié danse, les mains glissées dans des gants de paille tressée d’où dépassent des fourmis géantes ; autour de lui, le chœur des anciens ; au-dessus, un Rêve vibre et des fourmis lumineuses s’en échappent vers les machines d’un rang. Paille dorée, noirs brillants, rouge sang.",
+        "entite_illustree": "Gants tressés de fourmis tucandeiras portés lors d’une danse rituelle",
+        "brief_illustration": "Vision rituelle : les gants tressés de fourmis tucandeiras du rite de passage, portés par un jeune initié qui danse ; à ses pieds, les fourmis fraîchement cueillies en forêt.",
         "pitch_ambiance": "Chez les Sateré-Mawé, pour devenir adulte, il faut glisser ses mains dans des gants grouillant de tucandeiras et danser malgré la douleur. Celui qui endure porte la force de l’Essaim.",
         "texte_regle": {
-          "face_1": "Quand ce Rêve est défendu, à sa résolution : la cueillette : vous pouvez d’abord déplacer 1 Insecte d’une parcelle du rayon Humain vers le rang de ce Rêve. Puis le gant de tucandeiras : en plus d’1 machine par Défenseur, ce Rêve annule 1 machine supplémentaire de son rang pour chaque Insecte que vous défaussez de ce rang.",
+          "face_1": "Quand ce Rêve est défendu, à sa résolution : la cueillette : vous pouvez d’abord déplacer 1 Insecte d’une parcelle du rayon Humain vers le rang de ce Rêve.\nAmorçage — cueillette sauvage (plancher) : s’il n’y a encore aucun Insecte en jeu, prenez-le dans la réserve de l’Essaim.\nPuis le gant de tucandeiras : en plus d’1 machine par Défenseur, ce Rêve annule 1 machine supplémentaire de son rang pour chaque Insecte que vous défaussez de ce rang.",
           "face_2": null,
           "enracine": null
         },
         "decision_et_renoncement": {
-          "choix": "Combien d’Insectes offrir au gant : un par machine qui resterait sinon active sur le rang.",
+          "choix": "Combien d’Insectes offrir au gant — un par machine qui resterait sinon active sur le rang.",
           "renoncement": "Les Insectes consumés au rite ne dévieront plus de dés et ne pareront plus de frappes."
         }
       },
@@ -2526,13 +2607,22 @@
           "id": "R6_T1",
           "resume": "Rêve au rang 1 défendu par 1 Défenseur ; 3 machines au rang 1 et 2 Insectes sur ce rang : 3 machines annulées (1 + 2), 2 Insectes défaussés.",
           "etat_attendu_verifie": {
-            "annulees": 3,
+            "machines_annulees": 3,
             "insectes_defausses": 2
+          },
+          "statut": "A_CODER"
+        },
+        {
+          "id": "R6_T2",
+          "resume": "Plancher (Tour 2, aucun Nid construit, aucun Insecte en jeu) : le Rite, au rang 3, est défendu par 1 Défenseur face à 2 machines. Cueillette sauvage : 1 Insecte de la réserve sur le rang 3 ; le gant annule les 2 machines (1 + 1) et l’Insecte est défaussé.",
+          "etat_attendu_verifie": {
+            "machines_annulees": 2,
+            "insecte_reserve_utilise": 1
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Défausser autant d’Insectes que de machines non couvertes au rang du Rêve, en gardant 1 Insecte sur la Réglette si une déviation utile reste possible.",
+      "heuristique_bot": "Défausser autant d’Insectes que de machines non couvertes au rang du Rêve (avec amorçage depuis la réserve si aucun Insecte n’est en jeu), en gardant 1 Insecte sur la Réglette si une déviation utile reste possible.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -2553,6 +2643,14 @@
       ],
       "est_twist": false,
       "vecteurs": "Rang du Curupira (E) → les machines y marchent à reculons (frappe derrière, recul) ; Duel (M) reconquis quand elles reculent",
+      "entrees_plancher": [
+        "RANG_REVE",
+        "POSITION_REVE",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "DUEL"
+      ],
       "entrees": [
         "RANG_REVE",
         "POSITION_REVE",
@@ -2650,6 +2748,12 @@
       ],
       "est_twist": false,
       "vecteurs": "Rang du Boitatá (E) → Rouges retournés contre la machine dans le Seuil ; annulations qui nourrissent la gueule de la Matamata (R) ; le serpent ondule vers la gauche",
+      "entrees_plancher": [
+        "ROUGE",
+        "RANG_REVE",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "ROUGE",
         "RANG_REVE",
@@ -2740,6 +2844,11 @@
       ],
       "est_twist": false,
       "vecteurs": "Plume de Vigie (O) posée près d’un rang → le Rêve (E) s’y envole et annule ; échec = Altération",
+      "entrees_plancher": [
+        "PLUME",
+        "RANG_REVE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "PLUME",
         "RANG_REVE"
@@ -2831,10 +2940,18 @@
         "LEVIER_REVE"
       ],
       "est_twist": true,
-      "vecteurs": "Insectes (I) sur les rangs laissés libres → lanternes qui annulent (E) → le Rêve glisse vers la gauche au risque d’en éteindre une",
-      "entrees": [
-        "INSECTE_RANG",
+      "vecteurs": "Rangs libres de Rêve + Insectes (amorçage 1 luciole en solo) = lanternes d’annulation à distance → glissement du Rêve d’1 rang à gauche",
+      "entrees_plancher": [
+        "INSECTE",
         "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "INSECTE_RANG"
+      ],
+      "entrees": [
+        "INSECTE",
+        "RANG_MACHINE",
+        "INSECTE_RANG"
       ],
       "sorties": [
         "LANTERNE",
@@ -2847,6 +2964,7 @@
       "double_ouverture": null,
       "tags": [
         "A0",
+        "INSECTES",
         "TWIST",
         "ESSAIM",
         "LEVIER",
@@ -2863,7 +2981,7 @@
           "PIC_AVANCEE_REVE"
         ],
         "mots_cles_plateau": {
-          "face_1": "Rang libre avec Insecte = lanterne · 1 Insecte défaussé annule 1 machine · puis glisse d’1 rang",
+          "face_1": "Rang libre avec Insecte = lanterne · aucun en jeu : 1 luciole de la réserve · 1 Insecte défaussé annule 1 machine · puis glisse d’1 rang",
           "face_2": null,
           "enracine": null
         },
@@ -2871,17 +2989,17 @@
       },
       "carte_joueur": {
         "titre_complet": "La Mère des Lucioles",
-        "entite_illustree": "La Mère des Lucioles — esprit-lanterne de la forêt nocturne, silhouette faite de milliers de points lumineux",
-        "brief_illustration": "Nuit noire sur la Réglette des Rêves : une silhouette féminine constellée de lucioles plane au-dessus des rangs vides ; sur chacun d’eux, un petit essaim lumineux forme une lanterne qui arrête net une machine ; un sentier de lumière guide le Rêve vers la gauche. Noirs veloutés, jaunes-verts phosphorescents.",
+        "entite_illustree": "La Mère des Lucioles, esprit-lanterne nocturne fait de milliers de points lumineux",
+        "brief_illustration": "La Mère des Lucioles, esprit-lanterne de la forêt nocturne : une silhouette faite de milliers de points lumineux, penchée sur un chemin de lumière.",
         "pitch_ambiance": "Là où aucun rêve ne veille, la Mère des Lucioles allume ses lanternes. Les égarés suivent ces lumières et rentrent chez eux ; les machines, elles, s’arrêtent, aveuglées, au milieu du chemin.",
         "texte_regle": {
-          "face_1": "Quand ce Rêve est défendu, à sa résolution : les lanternes s’allument. Chaque rang de la Réglette laissé libre de tout Rêve et portant au moins 1 Insecte devient une lanterne : pour chaque machine révélée et non annulée sur un tel rang, vous pouvez défausser 1 Insecte de ce rang pour l’annuler (inclinez son jeton). Ces annulations comptent comme celles de ce Rêve. Le sentier de lumière : si au moins une lanterne a annulé une machine, ce Rêve glisse ensuite d’1 rang vers la gauche si ce rang est libre (ses Défenseurs le suivent), au risque d’éteindre la lanterne qui s’y trouvait.",
+          "face_1": "Quand ce Rêve est défendu, à sa résolution : les lanternes s’allument.\nAmorçage — première luciole (plancher) : s’il n’y a encore aucun Insecte en jeu, posez d’abord 1 Insecte de la réserve de l’Essaim sur un rang de la Réglette libre de tout Rêve.\nChaque rang laissé libre de tout Rêve et portant au moins 1 Insecte devient une lanterne : pour chaque machine révélée et non annulée sur un tel rang, vous pouvez défausser 1 Insecte de ce rang pour l’annuler (inclinez son jeton). Ces annulations comptent comme celles de ce Rêve. Le chemin de lumière : si au moins une lanterne a annulé une machine, ce Rêve glisse ensuite d’1 rang vers la gauche si ce rang est libre (ses Défenseurs le suivent), au risque d’éteindre la lanterne qui s’y trouvait.",
           "face_2": null,
           "enracine": null
         },
         "decision_et_renoncement": {
           "choix": "Laisser volontairement des rangs libres de tout Rêve pour y allumer des lanternes, ou compacter les Rêves vers le Sommeil.",
-          "renoncement": "Chaque rang occupé par un Rêve éteint une lanterne ; et chaque Insecte consumé ne déviera plus de dé."
+          "renoncement": "Chaque rang occupé par un Rêve éteint une lanterne ; chaque Insecte consumé ne déviera plus de dé."
         }
       },
       "temoins": [
@@ -2889,13 +3007,22 @@
           "id": "R10_T1",
           "resume": "Mère des Lucioles défendue au rang 5 ; le rang 1, libre, porte 2 Insectes et reçoit 2 machines : 2 annulations par la lanterne, puis le Rêve glisse au rang 4.",
           "etat_attendu_verifie": {
-            "annulees_lanterne": 2,
+            "machines_annulees_lanterne": 2,
             "reve_rang": 4
+          },
+          "statut": "A_CODER"
+        },
+        {
+          "id": "R10_T2",
+          "resume": "Plancher (Tour 2, aucun Nid construit, aucun Insecte en jeu) : la Mère des Lucioles, au rang 6, est défendue ; un Bulldozer est révélé au rang 2, libre de tout Rêve. Première luciole : 1 Insecte de la réserve sur le rang 2 ; la lanterne annule le Bulldozer (Insecte défaussé), puis le Rêve glisse au rang 5.",
+          "etat_attendu_verifie": {
+            "bulldozer_annule": true,
+            "reve_rang": 5
           },
           "statut": "A_CODER"
         }
       ],
-      "heuristique_bot": "Garder au moins un des rangs 1 et 2 libre de Rêve tant que 2 Insectes ou plus peuvent y migrer ; ne défausser que pour des machines en Assaut ou En avançant.",
+      "heuristique_bot": "Garder au moins un rang libre de Rêve pour les lanternes (avec première luciole de la réserve si aucun Insecte n’est en jeu) ; ne défausser que pour des machines en Assaut ou En avançant.",
       "engine_sync_status": "DESIGNED_V6_3",
       "statut_conception": "PASSE_1_CREATIF"
     },
@@ -2914,6 +3041,13 @@
       "roles_portes": [],
       "est_twist": false,
       "vecteurs": "Insectes (I) en phorésie sur une machine → parade là où elle frappe, descente au cœur au ménage ; Duel (M) retourné par une parade aidée",
+      "entrees_plancher": [
+        "NID",
+        "INSECTE"
+      ],
+      "entrees_synergie": [
+        "DUEL"
+      ],
       "entrees": [
         "NID",
         "INSECTE",
@@ -3004,6 +3138,11 @@
       "roles_portes": [],
       "est_twist": false,
       "vecteurs": "Soldats de la termitière (I) → parade autonome à 2 Insectes ; argile → Écaille (R) au sac (matière des pontes du Téju) ou Croc posté",
+      "entrees_plancher": [
+        "NID",
+        "INSECTE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "NID",
         "INSECTE"
@@ -3099,6 +3238,13 @@
       ],
       "est_twist": true,
       "vecteurs": "Nid (I) qui lève le camp à chaque Production, guidé par la Plume de Vigie (O) ; front de raid vers la parcelle visée ; Insectes offerts au Colibri",
+      "entrees_plancher": [
+        "NID",
+        "INSECTE"
+      ],
+      "entrees_synergie": [
+        "PLUME"
+      ],
       "entrees": [
         "NID",
         "INSECTE",
@@ -3192,11 +3338,19 @@
       ],
       "est_twist": false,
       "vecteurs": "Insecte (I) consommé → bâtisseur en attente relevé sur la parcelle du Nid ou du Tambour (H)",
-      "entrees": [
-        "DEFENSEUR_ATTENTE",
-        "TAMBOUR",
+      "entrees_plancher": [
+        "NID",
         "INSECTE",
-        "NID"
+        "DEFENSEUR_ATTENTE"
+      ],
+      "entrees_synergie": [
+        "TAMBOUR"
+      ],
+      "entrees": [
+        "NID",
+        "INSECTE",
+        "DEFENSEUR_ATTENTE",
+        "TAMBOUR"
       ],
       "sorties": [
         "DEFENSEUR_REDEPLOYE",
@@ -3276,6 +3430,12 @@
       ],
       "est_twist": false,
       "vecteurs": "Clairière sanctuarisée par l’Essaim (I) : jamais de Route ici ; Insectes envoyés sur les rangs libres de la Réglette, où la Mère des Lucioles (E) en fait des lanternes",
+      "entrees_plancher": [
+        "NID",
+        "INSECTE",
+        "SOUCHE"
+      ],
+      "entrees_synergie": [],
       "entrees": [
         "NID",
         "INSECTE",

@@ -1,0 +1,3533 @@
+{
+  "_meta": {
+    "projet": "Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)",
+    "schema_version": "6.3.1",
+    "socle_verrouille": "6.2.0",
+    "cadrage_source": "docs/cadrage_tuiles_v6_3.md",
+    "etape_active": "ETAPE_2_CONCEPTION_CREATIVE",
+    "statut_global": "CONCEPTION_EN_COURS",
+    "genere_le": "2026-11-26",
+    "slots_count": 30,
+    "c02_supprime": true,
+    "panel_id": "panel_3",
+    "source_modele": "Modèle 3 — Candidat 3 (4 inchangés) + REPONSE_IA3 Lots A1/A2/A3/B (26 révisés + correctifs Red Team)",
+    "murs_porteurs_verrouilles": [
+      "M1_TEMPS_BATAILLE",
+      "M2_CONSERVATION_THERMIQUE",
+      "M3_INTEGRITE_PLATEAU_ET_ICONES",
+      "M4_AUTONOMIE_PLANCHER_SOLO"
+    ],
+    "note_retrocompatibilite": "Panel candidat panel_3 compilé en v6.3.1 (4 murs porteurs M1..M4, séparation entrees_plancher / entrees_synergie, 32 pictogrammes officiels) pour arbitrage d'auteur de l'Étape 2b."
+  },
+  "referentiel_pictogrammes": {
+    "PIC_ARBRE": {
+      "code": "PIC_ARBRE",
+      "categorie": "FORET",
+      "libelle": "Arbre debout",
+      "symbole": "🌳"
+    },
+    "PIC_SOUCHE": {
+      "code": "PIC_SOUCHE",
+      "categorie": "FORET",
+      "libelle": "Souche (retournable en Arbre)",
+      "symbole": "🪵"
+    },
+    "PIC_ROUTE": {
+      "code": "PIC_ROUTE",
+      "categorie": "FORET",
+      "libelle": "Route forestière",
+      "symbole": "🛣️"
+    },
+    "PIC_ENRACINEMENT": {
+      "code": "PIC_ENRACINEMENT",
+      "categorie": "FORET",
+      "libelle": "Enracinement volontaire",
+      "symbole": "🌱"
+    },
+    "PIC_DEFENSEUR": {
+      "code": "PIC_DEFENSEUR",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur",
+      "symbole": "🛡️"
+    },
+    "PIC_DEFENSEUR_ATTENTE": {
+      "code": "PIC_DEFENSEUR_ATTENTE",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur en attente (bâtisseur / rive / Rêve)",
+      "symbole": "♻️"
+    },
+    "PIC_PIEGE": {
+      "code": "PIC_PIEGE",
+      "categorie": "DEFENSE",
+      "libelle": "Piège autonome",
+      "symbole": "🪤"
+    },
+    "PIC_CROC": {
+      "code": "PIC_CROC",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Croc Reptile (réutilisable)",
+      "symbole": "🦷"
+    },
+    "PIC_SABOTAGE": {
+      "code": "PIC_SABOTAGE",
+      "categorie": "SAC",
+      "libelle": "Jeton Sabotage (sac opaque)",
+      "symbole": "💥"
+    },
+    "PIC_ECAILLE": {
+      "code": "PIC_ECAILLE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Sabotage Écaille (Reptiles)",
+      "symbole": "🦎"
+    },
+    "PIC_DES_PARAVENT": {
+      "code": "PIC_DES_PARAVENT",
+      "categorie": "SAC",
+      "libelle": "Dés lancés sous paravent",
+      "symbole": "🎲"
+    },
+    "PIC_ROUGE": {
+      "code": "PIC_ROUGE",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Puissance Rouge (+1)",
+      "symbole": "🔴"
+    },
+    "PIC_BLEU": {
+      "code": "PIC_BLEU",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Surchauffe Bleu (−1 tous modes)",
+      "symbole": "🔵"
+    },
+    "PIC_RECUL": {
+      "code": "PIC_RECUL",
+      "categorie": "MACHINES",
+      "libelle": "Recul de machine (−1 parcelle)",
+      "symbole": "⏪"
+    },
+    "PIC_CALE": {
+      "code": "PIC_CALE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Cale sous machine mobile (Reptiles)",
+      "symbole": "🧱"
+    },
+    "PIC_ALTERATION": {
+      "code": "PIC_ALTERATION",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Altération (Entités)",
+      "symbole": "🌀"
+    },
+    "PIC_RANG_MACHINE": {
+      "code": "PIC_RANG_MACHINE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Rang de machine sur la Réglette 1–6",
+      "symbole": "🔢"
+    },
+    "PIC_REVE": {
+      "code": "PIC_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Tuile Rêve sur la Réglette 1–6",
+      "symbole": "🌙"
+    },
+    "PIC_AVANCEE_REVE": {
+      "code": "PIC_AVANCEE_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Déplacement / avancée de Rêve",
+      "symbole": "⬅️"
+    },
+    "PIC_ANNULATION": {
+      "code": "PIC_ANNULATION",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Machine annulée (jeton incliné 90°)",
+      "symbole": "🚫"
+    },
+    "PIC_PARI_ENCOCHE": {
+      "code": "PIC_PARI_ENCOCHE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Encoche / sécurisation de pari Gardien",
+      "symbole": "⭐"
+    },
+    "PIC_RESONANCE": {
+      "code": "PIC_RESONANCE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Icône Résonance / cascade de Gardiens",
+      "symbole": "🔔"
+    },
+    "PIC_TAMBOUR": {
+      "code": "PIC_TAMBOUR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Tambour (Humains)",
+      "symbole": "🥁"
+    },
+    "PIC_CHANT": {
+      "code": "PIC_CHANT",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Chant (Humains)",
+      "symbole": "🎶"
+    },
+    "PIC_DUEL": {
+      "code": "PIC_DUEL",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Duel — Défi / Territoire tenu (Mammifères)",
+      "symbole": "⚔️"
+    },
+    "PIC_PLUME": {
+      "code": "PIC_PLUME",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Plume de Vigie — Chaud / Calme (Oiseaux)",
+      "symbole": "🪶"
+    },
+    "PIC_PERCHOIR": {
+      "code": "PIC_PERCHOIR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Perchoir de Vigie & Dé d’Envol (Oiseaux)",
+      "symbole": "🦅"
+    },
+    "PIC_INSECTE": {
+      "code": "PIC_INSECTE",
+      "categorie": "ESSAIM",
+      "libelle": "Jeton Insecte (exclusif lisières de I)",
+      "symbole": "🐜"
+    },
+    "PIC_NID": {
+      "code": "PIC_NID",
+      "categorie": "ESSAIM",
+      "libelle": "Nid de l’Essaim (exclusif lisières de I)",
+      "symbole": "🪹"
+    },
+    "PIC_MIGRATION": {
+      "code": "PIC_MIGRATION",
+      "categorie": "ESSAIM",
+      "libelle": "Migration / phorésie de l’Essaim",
+      "symbole": "➡️"
+    },
+    "PIC_LOI_PASSIVE": {
+      "code": "PIC_LOI_PASSIVE",
+      "categorie": "ACTION",
+      "libelle": "Loi passive permanente",
+      "symbole": "⚖️"
+    },
+    "PIC_TWIST": {
+      "code": "PIC_TWIST",
+      "categorie": "ACTION",
+      "libelle": "Brique-Twist 2K3",
+      "symbole": "⚡"
+    }
+  },
+  "casting_gardiens_verrouille": {
+    "G1": {
+      "alias_oriente": "M>R",
+      "nom_animal": "Le Jaguar",
+      "origine": "M",
+      "voisin": "R"
+    },
+    "G2": {
+      "alias_oriente": "R>M",
+      "nom_animal": "L’Anaconda vert",
+      "origine": "R",
+      "voisin": "M"
+    },
+    "G3": {
+      "alias_oriente": "M>O",
+      "nom_animal": "L’Atèle",
+      "origine": "M",
+      "voisin": "O"
+    },
+    "G4": {
+      "alias_oriente": "O>M",
+      "nom_animal": "L’Ara rouge",
+      "origine": "O",
+      "voisin": "M"
+    },
+    "G5": {
+      "alias_oriente": "R>O",
+      "nom_animal": "L’Iguane vert",
+      "origine": "R",
+      "voisin": "O"
+    },
+    "G6": {
+      "alias_oriente": "O>R",
+      "nom_animal": "Le Toucan toco",
+      "origine": "O",
+      "voisin": "R"
+    },
+    "G7": {
+      "alias_oriente": "M>H",
+      "nom_animal": "Le Tapir",
+      "origine": "M",
+      "voisin": "H"
+    },
+    "G8": {
+      "alias_oriente": "M>E",
+      "nom_animal": "Le Boto",
+      "origine": "M",
+      "voisin": "E"
+    },
+    "G9": {
+      "alias_oriente": "R>H",
+      "nom_animal": "Le Caïman noir",
+      "origine": "R",
+      "voisin": "H"
+    },
+    "G10": {
+      "alias_oriente": "R>E",
+      "nom_animal": "La Matamata",
+      "origine": "R",
+      "voisin": "E"
+    },
+    "G11": {
+      "alias_oriente": "O>H",
+      "nom_animal": "La Harpie féroce",
+      "origine": "O",
+      "voisin": "H"
+    },
+    "G12": {
+      "alias_oriente": "O>E",
+      "nom_animal": "L’Ibijau",
+      "origine": "O",
+      "voisin": "E"
+    },
+    "G13": {
+      "alias_oriente": "M>I",
+      "nom_animal": "Le Tamanoir",
+      "origine": "M",
+      "voisin": "I"
+    },
+    "G14": {
+      "alias_oriente": "R>I",
+      "nom_animal": "Le Téju",
+      "origine": "R",
+      "voisin": "I"
+    },
+    "G15": {
+      "alias_oriente": "O>I",
+      "nom_animal": "Le Colibri",
+      "origine": "O",
+      "voisin": "I"
+    }
+  },
+  "carte_des_roles": {
+    "statut": "PASSE_1_CREATIF_V6_3_1",
+    "roles": {
+      "catalyseurs_eveil": [
+        "G1=M>R",
+        "G4=O>M",
+        "G5=R>O",
+        "G7=M>H",
+        "G9=R>H",
+        "G10=R>E",
+        "G11=O>H",
+        "G12=O>E",
+        "G13=M>I",
+        "G14=R>I",
+        "G15=O>I"
+      ],
+      "leviers_reve": [
+        "R4=H>R",
+        "R5=H>O",
+        "R7=E>M",
+        "R8=E>R",
+        "R9=E>O",
+        "R10=E>I"
+      ],
+      "synergies_enracinement": [
+        "G3=M>O",
+        "G15=O>I",
+        "R3=H>M",
+        "M4=I>H"
+      ],
+      "lois_passives": [
+        "R2=E>H",
+        "R8=E>R",
+        "M5=I>E"
+      ],
+      "autonomie_A0": [
+        "R1=H>E",
+        "R2=E>H",
+        "R6=H>I",
+        "R10=E>I",
+        "M4=I>H",
+        "M5=I>E"
+      ],
+      "twists_2K3": [
+        "G6=O>R",
+        "G8=M>E",
+        "G9=R>H",
+        "R5=H>O",
+        "R10=E>I",
+        "M1=I>M"
+      ]
+    }
+  },
+  "rapport_audit_197": {
+    "verdict_global": "OK",
+    "c02_word_count_purged": true,
+    "assises_verifiees": 197,
+    "compositions_verifiees": 42,
+    "M1_TEMPS_BATAILLE": "OK",
+    "M2_CONSERVATION_THERMIQUE": "OK",
+    "M3_INTEGRITE_PLATEAU_ET_ICONES": "OK",
+    "M4_AUTONOMIE_PLANCHER_SOLO": "OK",
+    "C01_mem_debt": "OK",
+    "I01_cloture_elargie_197": "OK",
+    "I02_autonomie_A0": "OK",
+    "I03_divergence_lisiere": "OK",
+    "I04_couverture_eveil": {
+      "verdict": "OK",
+      "nombre": 11
+    },
+    "I05_couverture_sommeil": {
+      "verdict": "OK",
+      "lisieres_E_couvertes": [
+        "E–M",
+        "E–R",
+        "E–O",
+        "E–I"
+      ]
+    },
+    "I06_enracinement": {
+      "verdict": "OK",
+      "nombre": 4
+    },
+    "Q01_lois_passives": {
+      "verdict": "OK",
+      "nombre": 3,
+      "max_par_assise": 2
+    },
+    "Q02_twists_2K3": {
+      "verdict": "OK",
+      "nombre": 6
+    },
+    "synergies_optionnelles_couvertes": 68
+  },
+  "tuiles_ciblees": {
+    "G1": {
+      "id": "G1",
+      "alias_oriente": "M>R",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "R",
+      "couple": [
+        "M",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "DUEL_TERRITOIRE_SURCHAUFFE_CROC_GLISSEMENT_PARI_EVEIL",
+      "entrees_plancher": [
+        "DUEL",
+        "ROUGE",
+        "GARDIEN"
+      ],
+      "entrees_synergie": [
+        "DEFENSEUR_ATTENTE"
+      ],
+      "entrees": [
+        "DUEL",
+        "ROUGE",
+        "GARDIEN",
+        "DEFENSEUR_ATTENTE"
+      ],
+      "sorties": [
+        "PARI_GLISSE",
+        "BLEU",
+        "CROC",
+        "TERRITOIRE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Engager 2 Défenseurs sur G1 exige 2 Parades aux attaques (puisque G1 ne peut jamais faire glisser son propre second pari). La 1re Parade permet d'affaiblir la machine située sur la parcelle du Duel (1 Rouge → Bleu, abaissant son Seuil de Parade de 2 points en Assaut ou Ratissage), ce qui facilite la réussite de la 2nde Parade sur ce Duel : celui-ci bascule alors en Territoire tenu, fait glisser le 2nd pari de G1 dans sa seconde encoche et déclenche en Face 2 le double effet complet.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "DUEL",
+        "SURCHAUFFE_BLEUE",
+        "CROC",
+        "PARI_GLISSE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Jaguar",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_DUEL",
+          "PIC_BLEU",
+          "PIC_CROC",
+          "PIC_PARI_ENCOCHE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "1 🔴→🔵 (si 0 🔴 : 🦷) OU glisse 1 pari allié → ⭐ (repli : ♻️ → ⚔️/M)",
+          "face_2": "1 🔴→🔵 (ou 🦷) · si Territoire tenu : ET glisse 1 pari allié → ⭐",
+          "enracine": null
+        },
+        "resume_plateau": "Surchauffe féline ou pari sauvé"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Jaguar, Souverain des Berges",
+        "entite_illustree": "Le Jaguar entier bondissant sur la berge à l'orée de la forêt amazonienne",
+        "brief_illustration": "Un grand jaguar amazonien entier bondissant hors de l'ombre d'un massif de racines vers un engin surchauffé, son rugissement faisant vibrer les totems des autres Gardiens.",
+        "pitch_ambiance": "« Là où la forêt refuse de céder un pas, l'ombre tachetée bondit et réveille les anciens esprits. »",
+        "texte_regle": {
+          "face_1": "Lors d'une Parade sur la parcelle du Duel avec au moins 1 Défenseur, retournez d'abord le Duel sur Territoire tenu avant de résoudre Le Jaguar. À l'activation, choisissez l'un des deux effets :\n1. Bond Thermique : ciblez 1 machine du plateau et retournez sur elle 1 jeton Rouge existant en Bleu Surchauffe ; si cette machine ne porte aucun Rouge, posez ou déplacez le pion Croc (depuis la réserve Reptile ou le plateau) sur sa parcelle.\n2. Rugissement d'Éveil : faites glisser 1 Défenseur encore posé en pari sur un autre Gardien construit vers une encoche libre de ce Gardien (sans déclencher son pouvoir) ; si aucun autre Gardien construit ne porte de Défenseur en pari, relevez à la place 1 Défenseur couché en attente (ou déplacez 1 Défenseur d'une parcelle non ciblée) sur la parcelle du Duel ou sur une parcelle ciblée du rayon Mammifère.",
+          "face_2": "Résolvez Bond Thermique ou Rugissement d'Éveil (comme en Face 1). Si le jeton Duel est sur sa face Territoire tenu au moment de cette activation, résolvez les deux effets successivement (Bond Thermique puis Rugissement d'Éveil).",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Trancher en Face 1 (et en Face 2 tant que le Duel reste en Défi) entre neutraliser une menace physique immédiate (Rouge → Bleu ou Croc avant une attaque) et sécuriser le pari compromis d'un autre Gardien pour préserver l'Éveil de la Forêt.",
+          "renoncement": "Sauver un pari allié par Rugissement d'Éveil renonce à l'appui de terrain immédiat tant que Territoire tenu n'est pas verrouillé en Face 2."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G1_T1",
+          "resume": "Tour 4 (Acte 1, 4 joueurs), 4 Défenseurs engagés sur la Piste des Gardiens (2 sur G1 Face 2 Parade, 1 sur Piégeage, 1 sur Sabotage non déclenché à l'ouverture). Aux attaques, une Parade au rang 2 active G1 (Bond Thermique : Rouge → Bleu sur l'Abatteuse du rang 5, seuil 4 → 2). Au rang 5, la Parade sur la parcelle du Duel le bascule en Territoire tenu et déclenche la 2nde activation de G1 : pose du Croc + Rugissement d'Éveil qui fait glisser le pari du Gardien Sabotage dans son encoche libre → 0 pari perdu, Éveil.",
+          "etat_attendu_verifie": {
+            "abatteuse_seuil_reduit": 2,
+            "pari_sabotage_glisse": true,
+            "eveil_foret": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade. Utiliser Bond Thermique pour faire chuter le Seuil d'une attaque sur le Duel avant de déclencher Territoire tenu ; en Face 2, cumuler Bond Thermique et glissement de pari allié pour sécuriser l'Éveil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G2": {
+      "id": "G2",
+      "alias_oriente": "R>M",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "M",
+      "couple": [
+        "R",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "CONSTRICTION_THERMIQUE_BLEU_RECUL_ECAILLE_CROC_DUEL",
+      "entrees_plancher": [
+        "ROUGE",
+        "ECAILLE",
+        "CROC"
+      ],
+      "entrees_synergie": [
+        "DUEL",
+        "TERRITOIRE"
+      ],
+      "entrees": [
+        "ROUGE",
+        "ECAILLE",
+        "CROC",
+        "DUEL",
+        "TERRITOIRE"
+      ],
+      "sorties": [
+        "BLEU",
+        "ECAILLE",
+        "CROC",
+        "RECUL"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE"
+      ],
+      "double_ouverture": "Avec 2 Défenseurs engagés sur Piégeage et 2 Pièges déclenchés aux attaques, la 1re activation peut refroidir la machine postée sur le Duel (Rouge → Bleu) afin d'assurer sa Parade par M sur un rang intermédiaire ; une fois le Duel retourné sur Territoire tenu, la 2nde activation de G2 sur un Piège ultérieur déploie simultanément la double Constriction et Sillage d'Écaille (replaçant aussitôt le Croc sur une parcelle dont le Piège vient de céder).",
+      "tags": [
+        "SURCHAUFFE_BLEUE",
+        "ECAILLE",
+        "CROC",
+        "DUEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Anaconda vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_ROUGE",
+          "PIC_BLEU",
+          "PIC_ECAILLE",
+          "PIC_DUEL"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "1 🔴→🔵 (si 0 🔴 : ⏪ 1) OU +1 🦎 au sac + 🦷 hors ⚔️",
+          "face_2": "Rayon ⚔️ = jusqu’à 2 🔴→🔵 · si Territoire tenu = Constriction ET 🦎/🦷",
+          "enracine": null
+        },
+        "resume_plateau": "Constriction thermique et mue Reptile"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Anaconda vert, Souffle Glacé de l’Igapó",
+        "entite_illustree": "L’Anaconda vert entier enroulé dans l'eau noire d'un méandre amazonien",
+        "brief_illustration": "Un immense anaconda vert entier émergeant d'un méandre d'eau noire, ses anneaux glacés enserrant une chenille d'acier fumante tandis qu'une mue d'écailles dérive dans le courant.",
+        "pitch_ambiance": "« Sous l'eau noire du méandre, ses anneaux glacés étouffent la ferraille avant même qu'elle ne gronde. »",
+        "texte_regle": {
+          "face_1": "À l'activation, choisissez l'un des deux effets :\n1. Constriction : ciblez 1 machine du plateau et retournez sur elle 1 jeton Rouge existant en Bleu Surchauffe ; si cette machine ne porte aucun Rouge et est mobile, faites-la reculer d'1 parcelle vers la bordure (en sautant toute Route Forestière).\n2. Sillage d'Écaille : versez 1 jeton Écaille de la réserve Reptile dans le sac opaque (s'il en reste en réserve) et posez ou déplacez le pion Croc sur toute parcelle autre que celle portant le Duel.",
+          "face_2": "Résolvez Constriction ou Sillage d'Écaille (comme en Face 1), avec deux amplifications liées au Duel :\n• Si Constriction cible une machine située sur le rayon portant le Duel, retournez sur elle jusqu'à 2 jetons Rouge existants en Bleu Surchauffe (ou 1 Rouge → Bleu suivi d'un recul d'1 parcelle si elle n'avait qu'1 seul Rouge et est mobile).\n• Si le Duel est sur sa face Territoire tenu, résolvez Constriction ET Sillage d'Écaille lors de cette même activation.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Arbitrer entre le soulagement thermique immédiat d'une machine menaçante (Constriction) et l'enrichissement structurel du sac en Écailles assorti d'un Croc hors Duel (Sillage d'Écaille).",
+          "renoncement": "Laisser la parcelle du Duel libre d'être parée par les Mammifères pour débloquer Territoire tenu plutôt que d'y poser le Croc."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G2_T1",
+          "resume": "Tour 5 (Acte 2), G2 Face 2 sur Piégeage (1 pari). Sur M, le Bulldozer est paré au rang 1 (Duel → Territoire tenu) et l'Abatteuse (rang 3, 2 Rouges, seuil 4) attend. Au rang 2, un Piège sur R active G2 Face 2 : grâce à Territoire tenu, Constriction retourne les 2 Rouges de l'Abatteuse en 2 Bleus (seuil ramené au minimum 1) ET Sillage d'Écaille ajoute 1 Écaille au sac et pose le Croc en parcelle 2 de R.",
+          "etat_attendu_verifie": {
+            "rouges_retournes": 2,
+            "seuil_abatteuse": 1,
+            "ecaille_au_sac": 1
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Piégeage. Refroidir les machines chargées en Rouges sur le rayon du Duel (jusqu'à 2 Rouges → Bleus en Face 2) et cumuler avec Sillage d'Écaille dès que Territoire tenu est actif.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G3": {
+      "id": "G3",
+      "alias_oriente": "M>O",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "O",
+      "couple": [
+        "M",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "PERMUTATION_BINOME_MACHINES_RECUL_DUEL_ENRACINEMENT_CANOPEE",
+      "entrees_plancher": [
+        "ARBRE",
+        "RANG_MACHINE",
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "DUEL",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "entrees": [
+        "ARBRE",
+        "RANG_MACHINE",
+        "PLUME",
+        "DUEL",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "sorties": [
+        "RECUL",
+        "DUEL",
+        "BLEU",
+        "ARBRE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux activations permettent soit de désorganiser successivement deux rayons menacés avant leurs frappes, soit sur un même rayon de faire reculer une machine mobile puis d'échanger le binôme pour renvoyer l'Abatteuse tout au bord de la forêt.",
+      "tags": [
+        "ENRACINEMENT",
+        "PERMUTATION",
+        "DUEL",
+        "CANOPEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Atèle",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_ARBRE",
+          "PIC_RECUL",
+          "PIC_DUEL",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Rayon M / O / 🪶 : permute les 2 machines mobiles OU ⏪ -1 (+ déplace ⚔️ sous 🌳)",
+          "face_2": "Tout rayon : permute les 2 mobiles OU ⏪ -1 · Puis 🔴→🔵 (ou ⚔️ sur Territoire tenu)",
+          "enracine": "Décompte final : +1 🪵→🌳 sur une autre parcelle (M ou O) si ≥ 2 parcelles gardent 🌳"
+        },
+        "resume_plateau": "Croise les machines sous les cimes"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Atèle, Acrobate des Hautes Voûtes",
+        "entite_illustree": "L’Atèle (Ateles paniscus) entier en plein balancier au sommet de la canopée",
+        "brief_illustration": "L’Atèle (Ateles paniscus) entier en plein balancier au sommet de la canopée, suspendu par sa queue préhensile entre deux hautes couronnes tandis qu'en contrebas deux engins désorientés se croisent à contre-sens.",
+        "pitch_ambiance": "« D'un bond de trente mètres dans les houppiers, il agite les branches à contre-courant : en bas, l'abatteuse retourne vers les souches et le bulldozer perd sa trace. »",
+        "texte_regle": {
+          "face_1": "Lorsque L’Atèle s’active, ciblez le rayon Mammifères, le rayon Oiseaux ou le rayon désigné par la Plume de Vigie (si la Plume désigne un rang 1–6, ciblez le rayon d’une machine présente sur ce rang). Choisissez l’une des deux feintes : échangez les parcelles des 2 machines mobiles de ce rayon si aucune des deux n’a encore résolu son activation à ce tour, ou faites reculer d’1 parcelle vers la bordure 1 machine mobile de ce rayon (en sautant toute Route Forestière). Ensuite, si le jeton Duel est sur ce rayon ou dans la réserve Mammifères, vous pouvez le poser ou le déplacer (en conservant sa face actuelle) sur une parcelle de ce rayon portant au moins 1 Arbre debout et au moins 1 Défenseur.",
+          "face_2": "Lorsque L’Atèle s’active, ciblez n’importe quel rayon du plateau : échangez les parcelles de ses 2 machines mobiles non encore résolues à ce tour, ou faites reculer d’1 parcelle vers la bordure 1 machine mobile de ce rayon. De plus, appliquez un effet au choix sur ce rayon : retournez 1 jeton Rouge existant en Bleu Surchauffe sur l’une de ses machines, ou posez ou déplacez le jeton Duel directement sur sa face Territoire tenu auprès d’un Défenseur présent sur une parcelle de ce rayon portant au moins 1 Arbre debout.",
+          "enracine": "Au décompte final, en plus de sa régénération normale d’Enracinement sur sa parcelle (1 Souche en Face 1, ou 2 Souches en Face 2), retournez 1 Souche supplémentaire en Arbre debout sur une autre parcelle non-Route de votre rayon ou du rayon Oiseaux voisin si au moins 2 parcelles de votre rayon portent encore chacune au moins 1 Arbre debout."
+        },
+        "decision_et_renoncement": {
+          "choix": "Désynchroniser le binôme adverse en renvoyant l'Abatteuse frapper à blanc sur une clairière de Souches pendant que le Bulldozer est déporté sur une parcelle boisée, ou conserver L'Atèle jusqu'en fin de partie avant de l'enraciner pour jusqu'à 3 Arbres au décompte final.",
+          "renoncement": "Échanger les deux machines sauve une clairière de Souches contre le Bulldozer, mais rapproche ce Bulldozer du cœur du rayon pour les tours suivants s'il n'est pas contenu par le Duel."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G3_T1",
+          "resume": "Sur le rayon Oiseaux marqué par la Plume, parcelle 2 ne porte que 2 Souches sous le Bulldozer (rang 4) tandis que l'Abatteuse est en parcelle 3 (3 Arbres, rang 2). À l'ouverture sur un Sabotage, L'Atèle (Face 1) échange leurs positions : l'Abatteuse frappe parcelle 2 à blanc (0 Arbre coupé) et le Bulldozer frappe parcelle 3 boisée sans pouvoir créer de Route.",
+          "etat_attendu_verifie": {
+            "machines_permutees": true,
+            "route_evitee": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Permuter Abatteuse et Bulldozer dès qu'un Bulldozer menace une clairière de Souches ; sinon reculer la machine la plus avancée ; enraciner Face 2 en fin de partie si ≥ 2 parcelles M gardent des Arbres debout.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G4": {
+      "id": "G4",
+      "alias_oriente": "O>M",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "M",
+      "couple": [
+        "O",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "RALLIEMENT_DEFENSEURS_PLUME_CHAUD_CALME_DUEL_TENU",
+      "entrees_plancher": [
+        "PLUME",
+        "DEFENSEUR_ATTENTE"
+      ],
+      "entrees_synergie": [
+        "DUEL",
+        "ROUGE"
+      ],
+      "entrees": [
+        "PLUME",
+        "DEFENSEUR_ATTENTE",
+        "DUEL",
+        "ROUGE"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE",
+        "TERRITOIRE",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Placé sur Parade, L'Ara rouge transforme une première Parade aux rangs bas en réaction en chaîne : il relève un bâtisseur couché pour atteindre le Seuil de Parade d'un rang suivant, ce qui rallume Parade et déclenche sa seconde activation (jusqu'à 4 Défenseurs mobilisés en Face 2 sur un seul tour).",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "REDEPLOIEMENT",
+        "PLUME",
+        "DUEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Ara rouge",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_DEFENSEUR_ATTENTE",
+          "PIC_DEFENSEUR",
+          "PIC_DUEL"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "🪶 Chaud : 1 ♻️ (ou 🛡️ non ciblé) → parcelle ciblée · 🪶 Calme : 1 🛡️ → parcelle ciblée + ⚔️ Tenu (si ≥ 2 🛡️)",
+          "face_2": "Jusqu’à 2 (♻️ ou 🛡️ non ciblés) → parcelles ciblées · Sur ⚔️/🪶 : ⚔️ Tenu OU 🔴→🔵",
+          "enracine": null
+        },
+        "resume_plateau": "Rallie la garde au cri d’alerte"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ara rouge, Vigie Écarlate de la Collpa",
+        "entite_illustree": "Un couple d’Aras rouges (Ara macao) entiers prenant leur envol devant une falaise d’argile",
+        "brief_illustration": "Un couple d’Aras rouges (Ara macao) entiers prenant leur envol toutes ailes déployées devant une falaise d’argile ocre (collpa), donnant l’alerte aux mammifères rassemblés en lisière.",
+        "pitch_ambiance": "« Quand le couple écarlate décolle de la falaise d’argile, son cri porte si loin que la forêt entière a déjà refermé ses rangs avant l’arrivée des chenilles. »",
+        "texte_regle": {
+          "face_1": "Lorsque L’Ara rouge s’active, observez la face de la Plume de Vigie et ciblez le rayon qu’elle désigne, le rayon d’une machine située sur son rang, ou le rayon portant le jeton Duel (à défaut, le rayon Oiseaux ou Mammifères) :\n• Si la Plume affiche Chaud (ou n’est pas posée) : prenez 1 Défenseur couché en attente (bâtisseur en lisière ou pion couché en Furtivité, de n’importe quel joueur) — ou, s’il n’en existe aucun, 1 Défenseur debout sur une parcelle non ciblée — et placez-le debout (face Définitif) sur une parcelle ciblée de ce rayon.\n• Si la Plume affiche Calme : déplacez 1 Défenseur debout d’une parcelle non ciblée (ou relevez 1 Défenseur couché en attente) vers une parcelle ciblée de ce rayon ; si cette parcelle d’arrivée porte le jeton Duel face Défi et réunit désormais au moins 2 Défenseurs, retournez immédiatement le Duel sur Territoire tenu.",
+          "face_2": "Lorsque L’Ara rouge s’active, mobilisez en couple jusqu’à 2 Défenseurs (chacun relevé parmi les Défenseurs couchés en attente ou déplacé depuis une parcelle non ciblée) et placez-les debout sur une ou deux parcelles ciblées de n’importe quels rayons. De plus, si au moins l’un d’eux rejoint la parcelle du jeton Duel ou le rayon désigné par la Plume de Vigie, choisissez 1 bonus : retournez immédiatement le jeton Duel (s’il est accompagné d’au moins 1 Défenseur) sur Territoire tenu, ou retournez 1 jeton Rouge existant en Bleu Surchauffe sur une machine visant cette parcelle.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Orienter sous paravent la Plume sur Chaud pour recycler un bâtisseur couché lors d'un tour de construction, ou sur Calme pour verrouiller immédiatement Territoire tenu avant l'avancée des rangs 3 ou 6.",
+          "renoncement": "Engager ses Défenseurs du second déploiement en pari sur les Gardiens pour viser l'Éveil dégarnit la forêt au départ et rend la table tributaire du ralliement de L'Ara."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G4_T1",
+          "resume": "Deux alliés ont construit un Gardien à l'ouverture (2 bâtisseurs couchés) et la Plume est Chaud au pied du rayon M où parcelle 3 (Seuil 3) porte le Duel et 2 Défenseurs. Une Parade au rang 1 active L'Ara rouge Face 1 : il relève 1 bâtisseur en parcelle 3 (garde à 3). Au rang 3, la frappe est parée, le Duel passe Territoire tenu et Parade rallume la 2nde activation de L'Ara.",
+          "etat_attendu_verifie": {
+            "defenseur_releve_m3": true,
+            "territoire_tenu": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade. Relever prioritairement les bâtisseurs couchés vers la parcelle du Duel ou la parcelle au déficit de Seuil exactement égal à 1 (ou 2 en Face 2) pour chaîner les Parades.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G5": {
+      "id": "G5",
+      "alias_oriente": "R>O",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "O",
+      "couple": [
+        "R",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "RELAIS_DEFENSEUR_PLUME_PARI_GLISSE_BAIN_SOLAIRE_ECAILLE_PERCHOIR",
+      "entrees_plancher": [
+        "ROUGE",
+        "ECAILLE",
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "DEFENSEUR_ATTENTE",
+        "PERCHOIR",
+        "GARDIEN"
+      ],
+      "entrees": [
+        "ROUGE",
+        "ECAILLE",
+        "PLUME",
+        "DEFENSEUR_ATTENTE",
+        "PERCHOIR",
+        "GARDIEN"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE",
+        "PARI_GLISSE",
+        "ECAILLE",
+        "BLEU",
+        "CROC"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE",
+        "ICONE_SABOTAGE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Engager 2 Défenseurs sur G5 conserve intacts les engagements visuels de ses encoches tout en projetant des renforts : la 1re activation relève un Défenseur couché en attente (ou déplace un Défenseur d'une parcelle non ciblée) sur une parcelle menacée d'un rang ultérieur, aidant à réussir la 2nde Parade qui fait glisser le 2nd pari de G5 dans sa seconde encoche et double la production d'Écailles et de conversions Rouge → Bleu.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "PLUME",
+        "PERCHOIR",
+        "ECAILLE",
+        "SURCHAUFFE_BLEUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Iguane vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_DEFENSEUR",
+          "PIC_PLUME",
+          "PIC_ECAILLE",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "1 ♻️/🛡️ non ciblé → forêt (sur 🪶 : +1 pari allié → ⭐) + [🔴→🔵/⏪/🦷 OU +1 🦎 & révéler 🦅]",
+          "face_2": "Idem + 🪶 Chaud/Machine 🦅 = les 2 · 🪶 Calme/💥🦎 🦅 = +1 pari allié → ⭐",
+          "enracine": null
+        },
+        "resume_plateau": "Défenseur redéployé et canopée refroidie"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Iguane vert, Guetteur Solaire des Cimes",
+        "entite_illustree": "L’Iguane vert entier immobile à la cime baignée de soleil face au perchoir de vigie",
+        "brief_illustration": "Un grand iguane vert entier à la crête dorée, posté sur la plus haute branche baignée de lumière, reflétant la chaleur du métal vers un perchoir d'oiseau de vigie.",
+        "pitch_ambiance": "« Immobile à la cime baignée de soleil, il boit la fièvre de l'acier et guide le vol des sentinelles. »",
+        "texte_regle": {
+          "face_1": "À l'activation (son Défenseur en pari glissant normalement dans son encoche), résolvez successivement :\n1. Relais d'Éveil : relevez 1 Défenseur couché en attente (bâtisseur en lisière ou pion de rive couché) — ou déplacez 1 Défenseur debout depuis une parcelle non ciblée — vers une parcelle de forêt de votre choix (où il participe aux Parades restantes). S'il rejoint le rayon ou une parcelle visée par le rang marqué par la Plume de Vigie (ou si aucun Défenseur n'est disponible à redéployer), faites en outre glisser 1 Défenseur encore posé en pari sur un autre Gardien construit vers une encoche libre de ce Gardien (sans déclencher son pouvoir).\n2. Bain Solaire — choisissez l'une des deux actions :\n• Insolation : retournez 1 jeton Rouge existant en Bleu Surchauffe sur 1 machine du plateau ; si cette machine n'a aucun Rouge, reculez-la d'1 parcelle vers la bordure (si mobile) ou posez/déplacez le Croc sur sa parcelle.\n• Mue de Vigie : versez 1 jeton Écaille de la réserve Reptile dans le sac opaque (s'il n'en reste plus, posez ou déplacez le Croc sur toute parcelle) ; si le Perchoir de Vigie porte un jeton face cachée, vous pouvez le révéler sur le Perchoir (et poser/déplacer le Croc si c'est une Écaille).",
+          "face_2": "Résolvez Relais d'Éveil puis Bain Solaire (comme en Face 1), enrichis par l'état public de la Vigie d'Oiseau :\n• Si la Plume de Vigie affiche Chaud ou si une Machine est visible sur le Perchoir, résolvez les deux actions de Bain Solaire (Insolation ET Mue de Vigie).\n• Si la Plume de Vigie affiche Calme ou si un Sabotage ou une Écaille est visible sur le Perchoir, faites en outre glisser 1 Défenseur encore posé en pari sur un autre Gardien construit vers une encoche libre de ce Gardien (sans déclencher son pouvoir).",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Orienter au déploiement la Plume sur Chaud pour cumuler Insolation et Mue de Vigie, ou sur Calme pour sécuriser un pari Gardien allié ; choisir à l'activation où projeter le Défenseur relevé (colmater une parcelle critique ou suivre la Plume).",
+          "renoncement": "Sans Machine visible sur le Perchoir, la Plume ne peut pas offrir à la fois le double Bain Solaire (Chaud) et le glissement de pari bonus (Calme)."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G5_T1",
+          "resume": "Tour 3 (Acte 1), G5 Face 2 sur Parade (1 pari), Plume Calme au pied du rayon R, Machine visible sur le Perchoir (via G6), 1 bâtisseur couché en attente et 1 pari en attente sur un Gardien Rêve. Aux attaques, une Parade au rang 1 active G5 (son parieur glisse dans son encoche) : Relais d'Éveil relève le bâtisseur en parcelle 3 de R (rayon Plume), la Machine sur le Perchoir cumule Insolation (Rouge → Bleu sur l'Abatteuse de R, seuil 4 → 2) + Mue de Vigie (+1 Écaille au sac), et Plume Calme fait glisser le pari du Gardien Rêve dans son encoche libre.",
+          "etat_attendu_verifie": {
+            "defenseur_releve_r3": true,
+            "ecaille_au_sac": 1,
+            "pari_reve_glisse": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade. Relever les bâtisseurs couchés vers le rayon de la Plume pour sécuriser les Parades et glisser les paris alliés ; coordonner avec G6 pour garder une Machine sur le Perchoir tout en gardant la Plume Calme en Face 2.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G6": {
+      "id": "G6",
+      "alias_oriente": "O>R",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "R",
+      "couple": [
+        "O",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "CONTREBANDE_PERCHOIR_ECHANGE_MACHINE_PIQUE_THERMIQUE",
+      "entrees_plancher": [
+        "PERCHOIR",
+        "ROUGE",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "SABOTAGE",
+        "ECAILLE"
+      ],
+      "entrees": [
+        "PERCHOIR",
+        "ROUGE",
+        "RANG_MACHINE",
+        "SABOTAGE",
+        "ECAILLE"
+      ],
+      "sorties": [
+        "ANNULATION",
+        "BLEU",
+        "PIEGE",
+        "RECUL"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_SABOTAGE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Les deux activations en Face 2 s'enchaînent naturellement l'une dans l'autre : lors de la 1re activation, Échange de Vigie extrait un Sabotage ou une Écaille du Perchoir et y enferme une Machine active ; lors de la 2nde activation dans le même tour, puisque cette Machine occupe désormais le Perchoir, Piqué Thermique est automatiquement survolté et refroidit (Rouge → Bleu), recule ou piège 2 autres machines distinctes sur le plateau.",
+      "tags": [
+        "TWIST_2K3",
+        "PERCHOIR",
+        "ECHANGE_VIGIE",
+        "SURCHAUFFE_BLEUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Toucan toco",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_PERCHOIR",
+          "PIC_TWIST",
+          "PIC_BLEU",
+          "PIC_CROC"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Révéler 🦅 + 1 🔴→🔵 (si 0 🔴 : ⏪ 1 ou 🪤) · + 🪤 si 💥 · + 🦷 si 🦎",
+          "face_2": "Révéler 🦅 : échanger 💥/🦎 contre 1 Machine active (+ 🦷 si 🦎) OU Piqué (x2 si Machine sur 🦅)",
+          "enracine": null
+        },
+        "resume_plateau": "Échange de machine via Perchoir"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Toucan toco, Contrebandier du Kapokier",
+        "entite_illustree": "Le Toucan toco entier au sommet d'un kapokier face au Perchoir de Vigie",
+        "brief_illustration": "Un toucan toco entier au grand bec orangé perché à la cime d'un kapokier géant, escamotant un jeton d'acier dans le feuillage tandis qu'une écaille tombe vers la forêt.",
+        "pitch_ambiance": "« D'un claquement de bec au sommet du kapokier, il escamote la menace dans les feuillages avant que la piste ne s'ouvre. »",
+        "texte_regle": {
+          "face_1": "S'il y a un jeton face cachée sur le Perchoir de Vigie, révélez-le (il y reste face visible). Ciblez ensuite 1 machine du plateau : retournez sur elle 1 jeton Rouge existant en Bleu Surchauffe — ou, si cette machine ne porte aucun Rouge, au choix reculez-la d'1 parcelle vers la bordure (si mobile) ou posez 1 Piège ordinaire sur une parcelle dépourvue de Piège ordinaire de son rayon.\nBonus de Perchoir : si le jeton visible sur le Perchoir est un Sabotage, posez en plus 1 Piège ordinaire sur toute parcelle dépourvue de Piège ordinaire ; s'il s'agit d'une Écaille, posez ou déplacez en plus le pion Croc sur toute parcelle. (Si le Perchoir est vide ou montre une Machine, seul l'effet de base s'applique.)",
+          "face_2": "S'il y a un jeton face cachée sur le Perchoir de Vigie, révélez-le, puis choisissez l'un des deux modes :\n1. Échange de Vigie (uniquement si le Perchoir porte un Sabotage ou une Écaille) : échangez ce jeton avec 1 jeton Machine actif non annulé (n'ayant pas encore agi ce tour) situé devant n'importe quel rayon. Cette Machine est placée face visible sur le Perchoir : elle libère son dé de rang, n'agit pas ce tour et, si l'échange a lieu avant la Furtivité, ne compte plus dans m(r) lors de la Furtivité. Le Sabotage ou l'Écaille prend sa place devant ce rayon sans relancer de balayage Gardiens ; si c'est une Écaille, posez ou déplacez en plus le Croc sur toute parcelle.\n2. Piqué Thermique (toujours disponible, quel que soit l'état du Perchoir) : appliquez l'effet de base de la Face 1 (1 Rouge → Bleu, ou à défaut de Rouge sur la machine : Recul d'1 parcelle si mobile ou 1 Piège ordinaire sur son rayon) ; si une Machine est visible sur le Perchoir, appliquez cet effet de base sur jusqu'à 2 machines distinctes.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Inverser dès la pioche le choix habituel d'Oiseau : garder la Machine sous son paravent et cacher un Sabotage ou une Écaille sur le Perchoir pour capturer en Face 2 la pire Machine révélée sur toute la table.",
+          "renoncement": "Cacher un Sabotage ou une Écaille sur le Perchoir renonce à son déclenchement immédiat à l'ouverture au profit de l'échange ciblé."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G6_T1",
+          "resume": "Tour 3 (Acte 1), O garde sa Machine et cache 1 Écaille sur le Perchoir ; G6 Face 2 sur Sabotage (2 paris), 2 Défenseurs sur la Rive Sabotage de R. À l'ouverture, 1er Sabotage → Échange de Vigie capture la Machine de R sur le Perchoir et pose le Croc en parcelle 2 d'O ; 2nd Sabotage → Piqué Thermique survolté (x2) recule l'Abatteuse d'O et refroidit un Bulldozer. À la Furtivité, m(R)=0 gagne la Rive Sabotage.",
+          "etat_attendu_verifie": {
+            "machine_perchee": true,
+            "pique_x2": true,
+            "furtivite_r_zero": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Sabotage. En Face 2, stocker un Sabotage ou une Écaille sur le Perchoir pour escamoter la Machine la plus menaçante avant la Furtivité, puis exploiter la Machine perchée pour doubler Piqué Thermique et alimenter G5.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G7": {
+      "id": "G7",
+      "alias_oriente": "M>H",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "H",
+      "couple": [
+        "M",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "RELAIS_DUEL_TERRITOIRE_SURCHAUFFE_RECUL_ACCORD_TAMBOUR_REVE",
+      "entrees_plancher": [
+        "ROUGE",
+        "DUEL",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "POSITION_REVE"
+      ],
+      "entrees": [
+        "ROUGE",
+        "DUEL",
+        "TAMBOUR",
+        "CHANT",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "BLEU",
+        "RECUL",
+        "TERRITOIRE",
+        "RANG_REVE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Engager 2 Défenseurs sur G7 crée un effet domino naturel sur l'icône Parade : une première Parade facile en début d'attaques déclenche la 1re activation de G7, qui abaisse le Seuil d'une machine d'un rang ultérieur (Rouge → Bleu et/ou Recul) tout en relayant le Duel sur sa parcelle pour bloquer l'avancée +1 ; cette seconde parcelle réussit alors sa Parade et rallume Parade pour le 2nd pari de G7.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "DUEL",
+        "SURCHAUFFE_BLEUE",
+        "RECUL",
+        "TAMBOUR"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tapir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_BLEU",
+          "PIC_RECUL",
+          "PIC_DUEL",
+          "PIC_TAMBOUR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "1x [🔴→🔵 ou ⏪ 1] + relayer ⚔️ (🥁/🎶 : 🌙 ←1)",
+          "face_2": "2x [🔴→🔵 et/ou ⏪ 1] + relayer ⚔️ (🥁/🎶 : 2 🌙 ←1)",
+          "enracine": null
+        },
+        "resume_plateau": "Refroidir ou reculer, déplacer Duel"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tapir, Ouvreur des Sentiers Profonds",
+        "entite_illustree": "Le Tapir terrestre entier fendant les broussailles vers la lisière",
+        "brief_illustration": "Un grand tapir amazonien entier fendant les fourrés humides d'un pas massif, traçant un passage vers une clairière où résonne un tambour chamanique.",
+        "pitch_ambiance": "« Lourd comme le tonnerre sourd du tambour, il fend les broussailles pour porter le défi là où la lisière vacille. »",
+        "texte_regle": {
+          "face_1": "À l'activation de ce Gardien, sur 1 machine au choix, retournez 1 jeton Rouge existant en Bleu Surchauffe OU reculez-la d'1 parcelle vers la bordure si elle est mobile (en sautant radialement toute Route Forestière). Vous pouvez ensuite déplacer le jeton Duel (face Territoire tenu) vers une autre parcelle ayant au moins 1 Défenseur.\nAccord M>H : si le Duel se trouve alors sur le rayon du Tambour, ou si la machine ciblée est sur le rang du Chant, glissez 1 Rêve d'1 rang libre à gauche.",
+          "face_2": "À l'activation de ce Gardien, appliquez deux fois l'effet physique sur 1 ou 2 machines (retourner 1 jeton Rouge existant en Bleu Surchauffe et/ou reculer d'1 parcelle une machine mobile). Vous pouvez ensuite déplacer le jeton Duel (face Territoire tenu) vers une autre parcelle ayant au moins 1 Défenseur.\nAccord M>H : si le Duel occupe le rayon du Tambour ou si au moins une machine ciblée est sur le rang du Chant, glissez jusqu'à 2 Rêves d'1 rang libre à gauche (ou un même Rêve de 2 rangs libres à gauche).",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Refroidir (Rouge → Bleu) une machine chaude pour abaisser durablement son Seuil dans tous les modes, ou reculer une machine mobile loin d'une parcelle gravée 3 / du Ratissage ; relayer le Duel sur le rayon du Tambour pour faire glisser un Rêve.",
+          "renoncement": "Déraciner le Duel de sa parcelle initiale expose celle-ci à une seconde machine plus tardive."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G7_T1",
+          "resume": "Tour 3 (Acte 1, 4 joueurs), G7 Face 1 sur Parade (2 paris). Au rang 3, Parade sur M (Duel bloque l'avancée) → 1re activation de G7 : retourne le Rouge du Bulldozer de H (rang 6) en Bleu, relaie le Duel (Territoire tenu) en parcelle 3 de H (rayon du Tambour) et glisse un Rêve du rang 4 au rang 3. Au rang 6, seuil du Bulldozer réduit de 3 à 1 → Parade réussie, 2nde activation de G7 qui le recule en parcelle 2 et passage Face 2.",
+          "etat_attendu_verifie": {
+            "bulldozer_seuil": 1,
+            "reve_rang": 3,
+            "face_2": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade avec 2 paris. Enchaîner le refroidissement ou recul d'une cible tardive avec le relais du Duel vers le rayon du Tambour pour verrouiller la 2nde Parade et avancer un Rêve.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G8": {
+      "id": "G8",
+      "alias_oriente": "M>E",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "E",
+      "couple": [
+        "M",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "CHENAL_SOUCHES_GLISSIERE_RECUL_ALTERATION_SURCHAUFFE_DUEL",
+      "entrees_plancher": [
+        "SOUCHE",
+        "RANG_MACHINE",
+        "DUEL"
+      ],
+      "entrees_synergie": [
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "SOUCHE",
+        "RANG_MACHINE",
+        "DUEL",
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RECUL",
+        "ALTERATION",
+        "BLEU",
+        "TERRITOIRE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE",
+        "ICONE_REVE"
+      ],
+      "double_ouverture": "Lors d'une double mise gagnante (ex. 2 parades dans le tour sur Parade), Le Boto refoule et altère deux machines distinctes — ou s'acharne deux fois sur la même machine mobile : la 1re activation la renvoie en bordure et l'altère, la 2nde convertit l'un de ses jetons Rouges en Bleu Surchauffe et y verrouille le Territoire tenu.",
+      "tags": [
+        "TWIST_2K3",
+        "CHENAL_SOUCHES",
+        "RECUL",
+        "ALTERATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Boto",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_RECUL",
+          "PIC_ALTERATION",
+          "PIC_BLEU",
+          "PIC_DUEL"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Recul 1 + Chenal Souches + 🌀 / 🔴→🔵",
+          "face_2": "Toute mobile + 🌀 / 🔴→🔵 + Chenal + ⚔️ Tenu",
+          "enracine": "Standard (1 ou 2 Souches finales)"
+        },
+        "resume_plateau": "Refoule par les souches et altère"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Boto, Enchanteur des Eaux Roses",
+        "entite_illustree": "Grand dauphin rose d'Amazonie entier émergeant d'un bras d'eau noire noyant une clairière de souches",
+        "brief_illustration": "Un grand dauphin rose d'Amazonie entier émerge à mi-corps d'un bras d'eau noire noyant une clairière de souches moussues, soulevant dans son sillage des tourbillons irisés qui repoussent une abatteuse vers la lisière.",
+        "pitch_ambiance": "« Dans le brouillard du fleuve en crue, chaque souche coupée devient un tourbillon qui ramène le fer à son point de départ. »",
+        "texte_regle": {
+          "face_1": "Lorsque Le Boto s'active, choisissez 1 machine mobile située sur le rayon Mammifère, sur le rayon Entités, sur le rayon portant le jeton Duel, ou portant déjà un jeton d'Altération :\n1. Chenal des Souches : faites reculer cette machine d'1 parcelle vers la bordure de son rayon ; puis, tant que la parcelle où elle se trouve ou la parcelle suivante vers la bordure contient au moins 1 Souche, continuez de la faire glisser vers la bordure à travers toutes ces parcelles consécutives à Souches (en sautant les Routes Forestières, sans dépasser la 1re parcelle du rayon). Tout jeton d'Altération déjà présent sur elle y demeure attaché.\n2. Brume Rose : si cette machine ne porte pas encore de jeton d'Altération — et qu'elle a traversé ou rejoint au moins 1 Souche (ou le jeton Duel), ou qu'elle était déjà sur la 1re parcelle — posez sur elle 1 jeton d'Altération de la réserve Entités. Si elle portait déjà un jeton d'Altération au début de cette activation et possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe.",
+          "face_2": "Lorsque Le Boto s'active, choisissez n'importe quelle machine mobile du plateau :\n1. Si elle ne porte pas encore de jeton d'Altération, posez d'abord sur elle 1 jeton d'Altération de la réserve Entités ; si elle en portait déjà un et possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe. Faites-la ensuite reculer le long du Chenal des Souches comme en Face 1.\n2. Mirage du Détroit : vous pouvez déplacer immédiatement le jeton Duel (depuis la réserve Mammifère ou depuis sa parcelle actuelle) sur la parcelle d'arrivée de cette machine, directement tourné sur sa face Territoire tenu. Si le jeton Duel s'y trouvait déjà sur Territoire tenu, retournez 1 jeton Rouge d'une machine de ce rayon (mobile ou en Ratissage) sur sa face Bleue Surchauffe.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Exploiter une chaîne de Souches derrière le front comme toboggan de refoulement jusqu'à la bordure tout en altérant la machine ; en Face 2, verrouiller Territoire tenu sur la bordure rejointe.",
+          "renoncement": "Laisser des Souches intactes expose ces parcelles à un Bulldozer non neutralisé ; déplacer le Duel en Face 2 dégarnit le barrage précédemment tenu."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G8_T1",
+          "resume": "Tour 4, sur le rayon Entités, les parcelles 1, 2 et 3 portent chacune 1 Souche et l'Abatteuse est en parcelle 4 (1 Rouge, 0 Altération). Sur Parade, Le Boto Face 1 la recule en 3 (Souche) puis la fait glisser d'un trait à travers 2 jusqu'en parcelle 1 et pose sur elle 1 jeton d'Altération.",
+          "etat_attendu_verifie": {
+            "abatteuse_parcelle": 1,
+            "alteration_posee": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade (ou Rêve). Refouler en priorité une Abatteuse ou un Bulldozer mobile engagé loin derrière des Souches consécutives pour le ramener en parcelle 1 avec une Altération.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G9": {
+      "id": "G9",
+      "alias_oriente": "R>H",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "H",
+      "couple": [
+        "R",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "TWIST_2K3",
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": true,
+      "vecteurs": "LA_HAPPE_PIOCHE_SAC_FURTIVITE_ECAILLE_CROC_ACCORD_CHAMANE",
+      "entrees_plancher": [
+        "ECAILLE",
+        "CROC",
+        "SABOTAGE",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "ROUGE",
+        "POSITION_REVE"
+      ],
+      "entrees": [
+        "ECAILLE",
+        "CROC",
+        "SABOTAGE",
+        "TAMBOUR",
+        "CHANT",
+        "ROUGE",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "ECAILLE",
+        "CROC",
+        "MOBILISATION",
+        "BLEU",
+        "RANG_REVE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_SABOTAGE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Sur l'icône Sabotage, engager 2 Défenseurs sur G9 catalyse directement l'Éveil de la Forêt même lorsqu'un seul joueur détient un Sabotage ou une Écaille sous son paravent : la 1re activation injecte d'abord une Écaille au sac puis déclenche La Happe ; tout Sabotage ou Écaille pêché dans le sac rallume aussitôt Sabotage, faisant glisser en chaîne le 2nd pari de G9 tout en posant deux fois le Croc et en sculptant m(r) avant la Furtivité.",
+      "tags": [
+        "TWIST_2K3",
+        "CATALYSEUR_EVEIL",
+        "ECAILLE",
+        "CROC",
+        "LA_HAPPE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Caïman noir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_TWIST",
+          "PIC_ECAILLE",
+          "PIC_CROC",
+          "PIC_SABOTAGE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🦎 au sac + 🦷 + Happe 1 jeton du sac (💥/🦎=résoudre · Machine=sac ou inclinée m(r)+1)",
+          "face_2": "+1 🦎 au sac + 🦷 + Happe 2 jetons du sac + Accord 🥁/🎶 (🔴→🔵 + 🌙 ←1)",
+          "enracine": null
+        },
+        "resume_plateau": "Piocher au sac, tordre Furtivité"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Caïman noir, Maître des Eaux Noires",
+        "entite_illustree": "Le Caïman noir entier jaillissant sous le miroir d'encre du fleuve",
+        "brief_illustration": "Un immense caïman noir entier à fleur d'eau dans un bras sombre du fleuve, ses mâchoires émergeant d'un éclat d'écailles pour happer un jeton métallique avant l'assaut.",
+        "pitch_ambiance": "« Sous le miroir d'encre du fleuve, seul l'éclair d'une écaille trahit la mâchoire qui happe l'intrus avant l'assaut. »",
+        "texte_regle": {
+          "face_1": "À l'activation de ce Gardien, ajoutez 1 jeton Écaille de la réserve Reptile dans le Sac opaque (s'il en reste, max 4 en jeu) et posez ou déplacez le pion Croc sur une parcelle alliée.\nTwist 2K3 — La Happe : piochez ensuite 1 jeton au hasard dans le Sac opaque :\n• Sabotage ou Écaille : résolvez-le immédiatement comme un jeton révélé à l'ouverture (effet du Sabotage ou pose/repositionnement du Croc, allumage de l'icône Sabotage et nouveau balayage des Gardiens ; il suit ensuite le ménage normal).\n• Machine (du rayon r) : au choix, remettez-la dans le Sac opaque, OU échouez-la inclinée à 90° sans dé au pied de son rayon r (neutralisée sans rang, elle n'agit pas aux attaques, mais compte comme visible et inclinée pour +1 dans m(r) à la Furtivité avant de rentrer au sac au ménage).\nAccord R>H : si le Croc occupe le rayon du Tambour OU si le Chant occupe un rang ayant au moins 1 machine annulée ou aucune machine active, retournez 1 jeton Rouge existant en Bleu Surchauffe sur une machine (ou glissez 1 Rêve d'1 rang libre à gauche si aucun Rouge n'est présent).",
+          "face_2": "À l'activation de ce Gardien, ajoutez 1 jeton Écaille de la réserve Reptile dans le Sac opaque (s'il en reste, max 4 en jeu) et posez ou déplacez le pion Croc sur une parcelle alliée.\nDouble Happe : piochez jusqu'à 2 jetons dans le Sac opaque et appliquez à chacun d'eux (dans l'ordre de votre choix) les règles de La Happe (Sabotage ou Écaille résolu immédiatement avec allumage de Sabotage et balayage Gardiens ; Machine remise au sac ou posée inclinée à 90° sans dé au pied de son rayon pour +1 à m(r) sans action).\nAccord R>H : avec le Croc sur le rayon du Tambour ou le Chant sur un rang sans machine active restante, retournez jusqu'à 1 jeton Rouge existant en Bleu Surchauffe ET glissez 1 Rêve d'1 rang libre à gauche.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Lorsqu'une Machine surgit de La Happe, l'échouer inclinée pour monter m(r) de 1 à 2 et remporter la Rive Piège gratuitement, ou la rejeter dans le Sac opaque ; placer le Croc sur le rayon du Tambour pour déclencher l'accord chamanique.",
+          "renoncement": "Échouer une Machine compromet une éventuelle Rive Sabotage (m(r) = 0) sur ce rayon ; aligner le Croc sur le Tambour peut le détourner d'une parcelle plus critique ailleurs."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G9_T1",
+          "resume": "Tour 5 (Acte 2), G9 Face 1 sur Sabotage (2 paris), 2 Défenseurs sur Rive Piège de R, Tambour en parcelle 2 de R. Un seul Sabotage est révélé et m(R)=1 : la 1re activation de G9 ajoute 1 Écaille, pose le Croc en parcelle 2 de R (accord R>H : Rouge → Bleu) et happe une Écaille qui rallume Sabotage ! La 2nde activation happe la 2nde Machine de R et l'échoue inclinée sans dé → m(R)=2 à la Furtivité (Rive Piège gagnée) et passage Face 2.",
+          "etat_attendu_verifie": {
+            "double_happe_chainee": true,
+            "m_r_furtivite": 2,
+            "face_2": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Sabotage (en double pari dès que le sac est riche en Écailles/Sabotages). Échouer les Machines happées qui complètent une Rive Piège m(r)=2 et rejeter au sac celles qui casseraient une Rive Sabotage.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G10": {
+      "id": "G10",
+      "alias_oriente": "R>E",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "E",
+      "couple": [
+        "R",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "MUE_VASE_ECAILLE_CROC_PARCELLE_CIBLEE_ALTERATION_BLEU",
+      "entrees_plancher": [
+        "ECAILLE",
+        "CROC",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "ECAILLE",
+        "CROC",
+        "RANG_MACHINE",
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "ECAILLE",
+        "CROC",
+        "ALTERATION",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE"
+      ],
+      "double_ouverture": "Posée sur Piégeage, La Matamata excelle en double mise : dès qu'un premier Piège ou le Croc pare une attaque (le Croc regagnant aussitôt la réserve Reptile avant le balayage), sa 1re activation redéploie immédiatement le Croc sur une seconde parcelle ciblée plus tard dans l'ordre des rangs ; lorsque ce Croc pare à son tour, il rallume Piégeage et déclenche tout seul la 2nde activation de La Matamata.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "ECAILLE",
+        "CROC",
+        "ALTERATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Matamata",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_ECAILLE",
+          "PIC_CROC",
+          "PIC_ALTERATION",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🦎 sac + [🦷 ciblé & 🔴→🔵 OU 🌀]",
+          "face_2": "+1 🦎/🔴→🔵 + 🦷 ciblé ET 🌀",
+          "enracine": "Standard (1 ou 2 Souches finales)"
+        },
+        "resume_plateau": "Injecte Écaille, embusque Croc, altère"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Matamata, Guetteuse des Feuilles Mortes",
+        "entite_illustree": "Tortue matamata entière camouflée au fond d'un igarapé ouvrant sa large gueule",
+        "brief_illustration": "Indiscernable d'un amas d'écorces sombres et de feuilles mortes au fond d'un igarapé peu profond, une tortue matamata entière ouvre brusquement sa large gueule triangulaire dans un remous spectral qui fige les rouages d'un engin.",
+        "pitch_ambiance": "« On croit marcher sur un lit de feuilles mortes ; déjà le vide s'est ouvert sous l'acier et la vase glacée l'aspire. »",
+        "texte_regle": {
+          "face_1": "Lorsque La Matamata s'active :\n1. Mue de Vase : s'il reste au moins 1 jeton Écaille dans la réserve Reptile, glissez-le dans le sac opaque.\n2. Gueule Aspirante : choisissez 1 seule des deux manœuvres suivantes :\n• Happer la Proie : si le jeton Croc est dans la réserve Reptile, posez-le sur n'importe quelle parcelle ciblée (par une machine qui n'a pas encore frappé à ce tour, mobile ou en Ratissage) ; en outre, si une machine ciblant cette parcelle porte déjà un jeton d'Altération ou possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe.\n• Vase Hallucinogène : posez 1 jeton d'Altération de la réserve Entités sur une machine mobile sans Altération ; si le jeton Croc se trouve déjà sur le plateau sur une parcelle non ciblée, vous pouvez le déplacer sur une parcelle ciblée de ce rayon.",
+          "face_2": "Lorsque La Matamata s'active :\n1. S'il reste au moins 1 jeton Écaille chez les Reptiles, glissez-le dans le sac opaque ; si les 4 Écailles sont déjà sorties, retournez 1 jeton Rouge existant d'une machine du plateau sur sa face Bleue Surchauffe.\n2. Résolvez les deux effets de Gueule Aspirante dans l'ordre de votre choix : déployez (ou repositionnez depuis une parcelle non ciblée) le Croc sur une parcelle ciblée avec son retournement Rouge → Bleu, ET posez 1 jeton d'Altération sur une machine mobile sans Altération (si toutes les machines mobiles sont déjà altérées, retournez 1 jeton Rouge existant → Bleu Surchauffe sur une machine altérée).",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "En Face 1, choisir Happer la Proie pour recycler aussitôt le Croc et allumer Piégeage (en synergie avec R8), ou Vase Hallucinogène pour neutraliser le tour suivant par Altération.",
+          "renoncement": "En Face 1, les deux manœuvres s'excluent mutuellement : sécuriser le tour courant via le Croc renonce à l'Altération préventive du tour suivant."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G10_T1",
+          "resume": "Tour 3, La Matamata Face 1 sur Piégeage (2 paris). Au rang 2, le Croc pare une Abatteuse (rentre en réserve, allume Piégeage) : 1re activation → +1 Écaille au sac + Happer la Proie repose le Croc devant le Bulldozer du rang 5 (Rouge → Bleu). Au rang 5, le Croc pare et rallume Piégeage : 2nde activation (Face 2) → +1 Écaille + Vase Hallucinogène altère le Bulldozer.",
+          "etat_attendu_verifie": {
+            "double_activation_auto": true,
+            "ecailles_ajoutees": 2,
+            "face_2": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Piégeage avec 2 paris. Dès que le Croc revient en réserve, choisir Happer la Proie pour le reposer sur la prochaine parcelle ciblée afin d'auto-chaîner la 2nde activation.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G11": {
+      "id": "G11",
+      "alias_oriente": "O>H",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "H",
+      "couple": [
+        "O",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "PIEGE_SERRE_ZENITHALE_MACHINE_ISOLEE_RECUL_SURCHAUFFE",
+      "entrees_plancher": [
+        "PLUME",
+        "TAMBOUR",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "CHANT",
+        "ROUGE"
+      ],
+      "entrees": [
+        "PLUME",
+        "TAMBOUR",
+        "RANG_MACHINE",
+        "CHANT",
+        "ROUGE"
+      ],
+      "sorties": [
+        "PIEGE",
+        "RECUL",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Placée sur Piégeage, La Harpie s'auto-alimente tout en restant sur son icône : un premier Piège déclenché aux rangs bas (ou le Croc) active La Harpie, qui recule et piège une machine d'un rang supérieur ; lorsque cette seconde machine percute ce nouveau Piège plus tard aux attaques, Piégeage se rallume et déclenche la seconde activation de La Harpie.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "PIEGE",
+        "RECUL",
+        "CIBLE_ISOLEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Harpie féroce",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_PIEGE",
+          "PIC_RANG_MACHINE",
+          "PIC_RECUL",
+          "PIC_TAMBOUR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Rayon 🪶 / 🥁 / machine seule sur son rang : +1 🪤 · Si seule sur son rang (ou rang 🎶) : ⏪ -1",
+          "face_2": "Tout rayon : +1 🪤 · Puis sur 1 machine du rayon : ⏪ -1 (si mobile) ET 🔴→🔵 (si ≥ 1 🔴)",
+          "enracine": null
+        },
+        "resume_plateau": "Cloue au sol la cible isolée"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Harpie féroce, Souveraine des Grands Fromagers",
+        "entite_illustree": "La Harpie féroce (Harpia harpyja) entière plongeant depuis la cime d’un fromager géant",
+        "brief_illustration": "La Harpie féroce (Harpia harpyja) entière, double huppe dressée et serres puissantes ouvertes, plongeant depuis la cime d’un fromager géant vers un engin isolé sur une piste forestière au son lointain d’un tambour.",
+        "pitch_ambiance": "« Tant que les engins roulent en meute, l’ombre plane en silence ; dès que l’un d’eux s’isole à l’écart du convoi, les serres s’abattent du haut du fromager. »",
+        "texte_regle": {
+          "face_1": "Lorsque La Harpie féroce s’active, ciblez un rayon désigné par la Plume de Vigie, portant le Tambour, ou contenant une machine qui est la seule machine non annulée présente sur son rang 1–6 (à défaut, ciblez le rayon Oiseaux) :\n• Posez 1 Piège ordinaire de la réserve sur une parcelle dépourvue de Piège ordinaire de ce rayon.\n• Serre Zénithale : si une machine mobile de ce rayon est la seule machine non annulée sur son rang 1–6 (ou si son dé occupe le rang d’un Rêve portant le Chant), faites-la reculer d’1 parcelle vers la bordure (en sautant toute Route Forestière).",
+          "face_2": "Lorsque La Harpie féroce s’active, ciblez n’importe quel rayon du plateau :\n• Posez 1 Piège ordinaire de la réserve sur une parcelle dépourvue de Piège ordinaire de ce rayon (ou de tout autre rayon si toutes ses parcelles sont déjà piégées).\n• Choisissez 1 machine de ce rayon : si elle est mobile, faites-la reculer d’1 parcelle vers la bordure ; et si elle porte au moins 1 jeton Rouge (y compris une machine en Ratissage), retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Coordonner le Dé d'Envol ou R5 pour expédier une machine dangereuse seule sur un rang élevé afin que La Harpie la recule ET pose un Piège devant sa nouvelle cible, ou piquer directement sur le rayon du Tambour.",
+          "renoncement": "Isoler une machine sur un rang tardif (5 ou 6) pour déclencher la Serre Zénithale peut la faire passer en Assaut (Acte 1) ou en En avançant (rang 6) si le Piège est consommé avant son tour."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G11_T1",
+          "resume": "À l'ouverture, R5 utilise un dé écarté 5 pour projeter le Bulldozer de H seul sur le rang 5 (Devant, parcelle 3) et allume Rêve. La Harpie Face 1 (sur Rêve) recule ce Bulldozer en parcelle 2 et pose 1 Piège ordinaire en parcelle 3 : au rang 5, le Bulldozer frappe Devant en parcelle 3, percute le Piège et allume Piégeage.",
+          "etat_attendu_verifie": {
+            "bulldozer_recul_p2": true,
+            "piege_p3": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Piégeage (ou Rêve avec R5). Capter une machine isolée sur son rang pour cumuler recul + Piège sur sa future cible et chaîner les déclenchements Piégeage.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G12": {
+      "id": "G12",
+      "alias_oriente": "O>E",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "E",
+      "couple": [
+        "O",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "MIMETISME_SOUCHE_ALTERATION_ENDORMISSEMENT_ANNULATION",
+      "entrees_plancher": [
+        "SOUCHE",
+        "PLUME",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "SOUCHE",
+        "PLUME",
+        "RANG_MACHINE",
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "ALTERATION",
+        "ANNULATION",
+        "BLEU",
+        "RECUL",
+        "PIEGE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_REVE"
+      ],
+      "double_ouverture": "Même seul sans R9, deux activations dans le même tour (par exemple sur deux Sabotages ou via Résonance) réalisent le combo complet sur une même cible : la première pose l'Altération (+ Rouge → Bleu), la seconde endort immédiatement la machine à 90° (+ Piège en Face 2, allumant Piégeage en cascade). Avec R9 en jeu, deux activations endorment coup sur coup les deux machines altérées par l'Éclipse.",
+      "tags": [
+        "CATALYSEUR_EVEIL",
+        "ALTERATION",
+        "ANNULATION",
+        "SOUCHE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Ibijau",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_REVE",
+        "pictogrammes": [
+          "PIC_ALTERATION",
+          "PIC_SOUCHE",
+          "PIC_ANNULATION",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Mobile sur 🪵 ou 🪶 : si sans 🌀 → pose 1 🌀 (+🔴→🔵) · Si déjà 🌀 → 🚫 à ce tour (ou ⏪ -1)",
+          "face_2": "Toute mobile : +🌀 + (🔴→🔵 ou ⏪ -1), si déjà 🌀 → 🚫 + 🪤 · Ratissage : 🔴→🔵 + 🪤",
+          "enracine": null
+        },
+        "resume_plateau": "Endort les machines altérées"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ibijau, Veilleur Fantôme des Souches Grises",
+        "entite_illustree": "Le Grand Ibijau (Nyctibius grandis) entier figé à la verticale au sommet d’une souche grise",
+        "brief_illustration": "Le Grand Ibijau (Nyctibius grandis) entier figé à la verticale au sommet d’une souche grise sous le clair de lune, son plumage d’écorce indiscernable du bois mort tandis qu’une brume violette enveloppe une machine arrêtée en contrebas.",
+        "pitch_ambiance": "« Immobile sur sa souche comme un éclat d’écorce morte, il pousse à la nuit tombée une plainte si lente que l’engin déjà égaré s’endort sur place. »",
+        "texte_regle": {
+          "face_1": "Lorsque L’Ibijau s’active, ciblez 1 machine mobile occupant une parcelle qui porte au moins 1 Souche, ou appartenant au rayon ou au rang désigné par la Plume de Vigie (à défaut, une machine mobile du rayon Oiseaux ou Entités) :\n• Si elle ne porte pas de jeton d’Altération : prenez 1 jeton d’Altération de la réserve Entités et posez-le sur elle ; de plus, si elle porte au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges en Bleu Surchauffe.\n• Si elle porte déjà un jeton d’Altération : laissez ce jeton d’Altération sur elle (pour sa prochaine révélation) et, si son jeton Machine est révélé, non annulé et n’a pas encore résolu son activation à ce tour, inclinez-le à 90° (cette machine est annulée à ce tour) ; sinon, faites-la reculer d’1 parcelle vers la bordure.",
+          "face_2": "Lorsque L’Ibijau s’active, ciblez n’importe quelle machine du plateau :\n• Si elle est mobile et sans Altération : posez 1 jeton d’Altération de la réserve Entités sur elle, puis au choix retournez 1 de ses jetons Rouges existants en Bleu Surchauffe ou faites-la reculer d’1 parcelle vers la bordure.\n• Si elle est mobile et porte déjà une Altération : laissez son Altération sur elle, inclinez son jeton Machine à 90° (annulée à ce tour si elle n’a pas encore agi ; sinon recul d’1 parcelle) et posez 1 Piège ordinaire sur une parcelle dépourvue de Piège ordinaire de son rayon.\n• Si elle est en Ratissage : retournez 1 de ses jetons Rouges existants en Bleu Surchauffe et posez 1 Piège ordinaire sur sa parcelle si elle en est dépourvue.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Semer une nouvelle Altération sur une machine intacte pour préparer le tour suivant, ou frapper une machine déjà altérée (par R9 ou une première activation) pour cumuler deux tours complets de neutralisation.",
+          "renoncement": "Concentrer deux activations sur la même machine la verrouille pour deux tours, mais laisse une seconde machine active frapper librement à ce tour."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G12_T1",
+          "resume": "À l'ouverture, R9 (Éclipse de Plumes) pose 2 Altérations (dont une Abatteuse en parcelle 2 à 1 Souche) et allume Rêve. L'Ibijau Face 1 (sur Rêve) incline le jeton de l'Abatteuse à 90° : elle est annulée à ce tour ET conserve son Altération pour reculer sans frapper à sa prochaine pioche.",
+          "etat_attendu_verifie": {
+            "abatteuse_annulee": true,
+            "alteration_conservee": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Rêve (ou Sabotage). Endormir en priorité toute machine révélée déjà altérée (notamment après R9), sinon altérer et refroidir la machine mobile la plus menaçante sur Souche ou Plume.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G13": {
+      "id": "G13",
+      "alias_oriente": "M>I",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "I",
+      "couple": [
+        "M",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "ASPIRATION_LATERALE_ESSAIM_DUEL_TERRITOIRE_TENU_BLEU",
+      "entrees_plancher": [
+        "DUEL"
+      ],
+      "entrees_synergie": [
+        "INSECTE",
+        "ROUGE",
+        "GARDIEN"
+      ],
+      "entrees": [
+        "DUEL",
+        "INSECTE",
+        "ROUGE",
+        "GARDIEN"
+      ],
+      "sorties": [
+        "TERRITOIRE",
+        "INSECTE",
+        "INSECTE_RANG",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Sur une double activation (ex. posé sur Parade ou Insecte), la 1re activation arme le Duel (ou le passe de Défi à Territoire tenu), refroidit une première machine et concentre l'Essaim ; la 2nde activation renforce un second front ou empile de nouveaux Insectes sur la Réglette et les icônes de la Piste des Gardiens pour sécuriser les paris d'Éveil.",
+      "tags": [
+        "INSECTES",
+        "CATALYSEUR_EVEIL",
+        "ASPIRATION",
+        "DUEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tamanoir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_INSECTE",
+          "PIC_DUEL",
+          "PIC_MIGRATION",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🐜 (+Aspire 2 voisins & +1 Réglette/Icône) + ⚔️ Tenu & 🔴→🔵",
+          "face_2": "Toute parcelle + Déplace ⚔️ Tenu + 2 voisins & +1 Réglette/Icône",
+          "enracine": "Standard (1 ou 2 Souches finales)"
+        },
+        "resume_plateau": "Aspire l'essaim, dresse le Duel"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tamanoir, Sentinelle à Crinière des Fourmilières",
+        "entite_illustree": "Tamanoir géant entier dressé sur ses pattes arrière au milieu d'une clairière",
+        "brief_illustration": "Dressé sur ses pattes arrière au milieu d'une clairière, queue en panache ancrée dans l'humus et griffes courbes grandes ouvertes devant un engin fumant, un tamanoir géant entier rassemble autour de lui les colonnes noires de fourmis surgies des fourrés voisins.",
+        "pitch_ambiance": "« Quand le grand fourmilier se dresse debout, la forêt entière converge vers ses griffes : pas un essaim, pas un fauve ne recule d'un pouce. »",
+        "texte_regle": {
+          "face_1": "Lorsque Le Tamanoir s'active, choisissez 1 parcelle portant le jeton Duel ou au moins 1 Défenseur Mammifère (ou, à défaut, n'importe quelle parcelle du rayon Mammifère ou du rayon Insectes) :\n1. Langue Fouettante : posez 1 jeton Insecte de la réserve sur cette parcelle. En outre, s'il existe au moins 1 Insecte sur une parcelle de même numéro (1..4) d'un rayon immédiatement voisin (sans franchir de case devenue Route Forestière), vous pouvez aspirer latéralement jusqu'à 2 de ces Insectes sur la parcelle choisie ET poser 1 Insecte supplémentaire de la réserve directement sur un rang 1–6 de la Réglette ou sur une icône de la Piste des Gardiens.\n2. Posture Debout : si le jeton Duel est dans la réserve Mammifère, vous pouvez le poser sur sa face Défi sur cette parcelle ; s'il s'y trouve déjà sur Défi, retournez-le sur Territoire tenu. Enfin, sur 1 machine présente sur cette parcelle (ou ciblant cette parcelle), retournez 1 jeton Rouge existant sur sa face Bleue Surchauffe.",
+          "face_2": "Lorsque Le Tamanoir s'active, choisissez n'importe quelle parcelle de la forêt :\n1. Posez 1 Insecte de la réserve sur cette parcelle, ET posez 1 Insecte de la réserve directement sur un rang 1–6 de la Réglette ou sur une icône de la Piste des Gardiens ; vous pouvez en outre aspirer latéralement jusqu'à 2 Insectes situés sur les parcelles de même numéro (1..4) des deux rayons immédiatement voisins (sans franchir de Route Forestière).\n2. Vous pouvez déplacer le jeton Duel (depuis la réserve Mammifère ou sa parcelle actuelle) sur cette parcelle, directement tourné sur Territoire tenu, puis retourner 1 jeton Rouge existant sur sa face Bleue Surchauffe sur une machine présente sur (ou ciblant) cette parcelle.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Aspirer latéralement les Insectes des rayons voisins pour concentrer un bastion imprenable autour du Duel et projeter un Insecte supplémentaire sur la Réglette ou en Bouclier de lisière.",
+          "renoncement": "L'aspiration dégarnit les parcelles adjacentes où un allié comptait peut-être sur ces ouvrières pour une Parade."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G13_T1",
+          "resume": "Tour 3, M1 a déployé des Insectes en parcelle 2 des rayons voisins. Une Parade au rang 1 active Le Tamanoir Face 1 sur la parcelle 2 de M (1 Défenseur, Duel Défi, Bulldozer 2 Rouges seuil 4) : il pose 1 Insecte, aspire 2 Insectes voisins (1 Déf + 3 Ins = 4), pose 1 Insecte sur une icône Gardien, passe Duel sur Territoire tenu et retourne 1 Rouge en Bleu (seuil 4 → 2). Parade Insecte aisée au rang 4.",
+          "etat_attendu_verifie": {
+            "insectes_m2": 3,
+            "territoire_tenu": true,
+            "seuil_reduit": 2
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Parade (ou Insecte). Cibler la parcelle du Duel menacée par une machine à Rouge pour cumuler renfort Essaim, Territoire tenu, refroidissement et Insecte sur Réglette/icône.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G14": {
+      "id": "G14",
+      "alias_oriente": "R>I",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "I",
+      "couple": [
+        "R",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "TERRIER_SOLAIRE_ECAILLE_INSECTE_MORSURE_THERMIQUE_CROC",
+      "entrees_plancher": [
+        "ECAILLE",
+        "CROC",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "INSECTE",
+        "INSECTE_RANG",
+        "ROUGE"
+      ],
+      "entrees": [
+        "ECAILLE",
+        "CROC",
+        "RANG_MACHINE",
+        "INSECTE",
+        "INSECTE_RANG",
+        "ROUGE"
+      ],
+      "sorties": [
+        "CROC",
+        "BLEU",
+        "ECAILLE",
+        "INSECTE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE",
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": "Posé sur Piégeage ou Sabotage, Le Téju enchaîne deux injections d'Écailles, refroidit deux machines Rouges marquées par M2 et recycle le Croc entre deux attaques pour catalyser les paris de toute la Piste des Gardiens.",
+      "tags": [
+        "INSECTES",
+        "CATALYSEUR_EVEIL",
+        "ECAILLE",
+        "CROC",
+        "SURCHAUFFE_BLEUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Téju",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_ECAILLE",
+          "PIC_INSECTE",
+          "PIC_BLEU",
+          "PIC_CROC"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🦎 sac & +1 🐜 (machine/rang) + Machine avec 🐜 : 🔴→🔵 & (-1 🐜 → 🦷)",
+          "face_2": "+2 🐜, 2 machines 🔴→🔵 & 🦷 gratuit",
+          "enracine": "Standard (1 ou 2 Souches finales)"
+        },
+        "resume_plateau": "Traque machines marquées, déploie Croc"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Téju, Maraudeur Doré des Termitières",
+        "entite_illustree": "Grand lézard téju entier aux écailles noir et or jaillissant au pied d'une termitière",
+        "brief_illustration": "Baigné d'un rayon de soleil brûlant au pied d'une haute termitière d'argile rouge, un grand lézard téju entier aux écailles noir et or jaillit hors de son terrier, dardant sa langue fourchue vers une machine surchauffée envahie de termites soldats.",
+        "pitch_ambiance": "« Réveillé par la fièvre du métal et le crépitement des soldats d'argile, le téju fond droit sur la source de chaleur. »",
+        "texte_regle": {
+          "face_1": "Lorsque Le Téju s'active :\n1. Terrier Solaire : s'il reste au moins 1 jeton Écaille dans la réserve Reptile, glissez-le dans le sac opaque ; ET posez 1 jeton Insecte de la réserve soit sur la parcelle d'une machine de votre choix, soit sur un rang 1–6 de la Réglette occupé par le dé d'une machine.\n2. Morsure Thermique : choisissez ensuite 1 machine du plateau dont la parcelle ou le rang 1–6 sur la Réglette contient au moins 1 Insecte :\n• Si cette machine possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe ;\n• En outre, si le jeton Croc est dans la réserve Reptile, vous pouvez défausser 1 Insecte présent sur la parcelle ou sur le rang 1–6 de cette machine pour poser immédiatement le Croc sur n'importe quelle parcelle ciblée (par une machine non encore activée à ce tour, mobile ou en Ratissage).",
+          "face_2": "Lorsque Le Téju s'active :\n1. S'il reste au moins 1 jeton Écaille dans la réserve Reptile, glissez-le dans le sac opaque ; ET posez 2 jetons Insectes de la réserve, répartis librement sur des parcelles occupées par des machines et/ou sur des rangs 1–6 occupés par des dés de machines.\n2. Appliquez Morsure Thermique sur jusqu'à 2 machines distinctes dont la parcelle ou le rang contient au moins 1 Insecte (retournant 1 jeton Rouge existant → Bleu Surchauffe sur chacune d'elles) ; de plus, si au moins l'une d'elles est ainsi ciblée et que le Croc est dans la réserve Reptile, posez immédiatement le Croc sur une parcelle ciblée sans avoir à défausser d'Insecte.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "En Face 1, consommer un Insecte posé sur la parcelle ou le rang d'une machine Rouge (notamment celui parachuté par M2) pour déployer aussitôt le Croc et allumer Piégeage.",
+          "renoncement": "Défausser cet Insecte le retire d'une Parade Insecte ou d'une déviation ±1 au tour suivant."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G14_T1",
+          "resume": "Tour 4, à la Production, M2 a parachuté 1 Insecte sur le rang 5 d'un Bulldozer (2 Rouges). Aux attaques (rang 1), le Croc pare une Abatteuse (Piégeage) et active Le Téju Face 1 : +1 Écaille au sac, +1 Insecte sur une autre machine Rouge, puis Morsure Thermique sur le Bulldozer du rang 5 (1 Rouge → Bleu, défausse l'Insecte du rang 5 pour reposer le Croc devant ce Bulldozer).",
+          "etat_attendu_verifie": {
+            "rouge_retourne": 1,
+            "croc_repose": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Sabotage ou Piégeage. Marquer une machine chargée en Rouges puis défausser un Insecte déjà passé d'ouverture pour reposer le Croc sur une parcelle ciblée ultérieure.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G15": {
+      "id": "G15",
+      "alias_oriente": "O>I",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "I",
+      "couple": [
+        "O",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL",
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "POLLEN_DES_CIMES_NECTAR_EVEIL_PIQUE_POLLINISATION_FINALE",
+      "entrees_plancher": [
+        "DE_ENVOL",
+        "PLUME",
+        "GARDIEN"
+      ],
+      "entrees_synergie": [
+        "INSECTE",
+        "INSECTE_RANG",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "entrees": [
+        "DE_ENVOL",
+        "PLUME",
+        "GARDIEN",
+        "INSECTE",
+        "INSECTE_RANG",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "sorties": [
+        "PARI_GLISSE",
+        "INSECTE_RANG",
+        "BLEU",
+        "RECUL",
+        "ARBRE"
+      ],
+      "paiement": [
+        "P_PARI"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE",
+        "ICONE_RESONANCE"
+      ],
+      "double_ouverture": "Sur Insecte (allumé une 1re fois à l'ouverture par déviation ±1, puis une 2nde fois aux attaques par Parade Insecte), Le Colibri pose 2 Insectes aériens, refroidit ou refoule une machine et fait glisser un pari allié bloqué pour boucler l'Éveil de la Forêt.",
+      "tags": [
+        "INSECTES",
+        "CATALYSEUR_EVEIL",
+        "ENRACINEMENT",
+        "NECTAR_EVEIL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Colibri",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_INSECTE",
+        "pictogrammes": [
+          "PIC_INSECTE",
+          "PIC_PARI_ENCOCHE",
+          "PIC_BLEU",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🐜 (Dé Envol/🪶, ou Icône si Calme) + [Piqué 🔴→🔵/⏪ 1 OU -1 🐜 Icône → ⭐]",
+          "face_2": "+1 🐜 libre (dont Icône) + Les 2 effets",
+          "enracine": "Fin : +1 🪵 sur ≤ 2 parcelles avec 🐜/🪹"
+        },
+        "resume_plateau": "Pollinise pistes, valide paris, régénère"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Colibri, Joyau Émeraude des Cimes",
+        "entite_illustree": "Colibri à gorge d'émeraude entier en vol stationnaire au-dessus d'orchidées géantes",
+        "brief_illustration": "Suspendu en vol stationnaire dans un poudroiement d'or au-dessus d'orchidées géantes de la canopée, un colibri à gorge d'émeraude entier guide dans le sillage vibrant de ses ailes une nuée d'ouvrières ailées vers les cimes blessées.",
+        "pitch_ambiance": "« Cent battements d'ailes par seconde : là où le joyau vert effleure la corolle, l'essaim trouve sa route et la forêt garde mémoire de sa floraison. »",
+        "texte_regle": {
+          "face_1": "Lorsque Le Colibri s'active :\n1. Pollen des Cimes : posez 1 jeton Insecte de la réserve soit sur le rang 1–6 de la Réglette indiqué par le Dé d'Envol de l'Oiseau, soit sur l'emplacement marqué par la Plume de Vigie (sur ce rang 1–6, ou sur la 1re parcelle du rayon au pied duquel repose la Plume) — OU, si la Plume de Vigie affiche sa face Calme, directement sur l'icône de votre choix de la Piste des Gardiens.\n2. L'Appel du Colibri : choisissez 1 seul des deux effets suivants :\n• Piqué Vertigineux : sur 1 machine dont le dé occupe un rang portant au moins 1 Insecte (ou située sur le rayon marqué par la Plume de Vigie), retournez 1 jeton Rouge existant sur sa face Bleue Surchauffe ; si elle ne porte aucun jeton Rouge et est mobile, faites-la reculer d'1 parcelle vers la bordure de son rayon (en sautant les Routes Forestières, sans dépasser la 1re parcelle).\n• Nectar d'Éveil : défaussez 1 Insecte présent sur l'icône d'un Gardien de la Piste des Gardiens portant encore au moins 1 Défenseur en pari : glissez immédiatement 1 de ces Défenseurs dans une encoche latérale libre de ce Gardien (sécurisant cette mise pour la Face 2 ou l'Éveil de la Forêt, sans déclencher le pouvoir de ce Gardien).",
+          "face_2": "Lorsque Le Colibri s'active :\n1. Posez 1 jeton Insecte de la réserve sur le rang du Dé d'Envol, sur l'emplacement marqué par la Plume de Vigie, OU directement sur n'importe quelle icône de la Piste des Gardiens (quelle que soit la face de la Plume).\n2. Résolvez les deux effets de L'Appel du Colibri (Piqué Vertigineux ET Nectar d'Éveil).",
+          "enracine": "Pollinisation Suprême (Décompte final uniquement). Au décompte final (Tour 8, Sommeil ou Éveil), tant que la parcelle d'ancrage du Colibri n'est pas devenue une Route Forestière, en plus de sa régénération standard sur cette parcelle (1 Souche retournée en Arbre debout en Face 1, ou 2 en Face 2), retournez 1 Souche survivante supplémentaire en Arbre debout sur chacune d'au plus 2 autres parcelles de la forêt contenant au moins 1 Insecte ou 1 Nid (à défaut, sur d'autres parcelles du rayon Oiseau)."
+        },
+        "decision_et_renoncement": {
+          "choix": "Consommer un Insecte d'icône (via M3 ou Plume Calme) par Nectar d'Éveil pour convertir un Bouclier de lisière en vrai pari gagné, ou enraciner Le Colibri en Face 2 pour sauver jusqu'à 4 Souches au décompte final.",
+          "renoncement": "Défausser l'Insecte d'icône retire le Bouclier de lisière en cas de seconde mise non validée ; enraciner Le Colibri sacrifie son catalyseur d'Éveil actif."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G15_T1",
+          "resume": "Tour 6, M3 a projeté 1 Insecte sur Sabotage où un Gardien allié porte encore 1 pari. Aux attaques, une Parade Insecte active Le Colibri Face 2 : il pose 1 Insecte sur le rang 4 du Dé d'Envol, retourne 1 Rouge en Bleu par Piqué Vertigineux, puis défausse l'Insecte de Sabotage par Nectar d'Éveil pour glisser le dernier pari d'Éveil. Enraciné Face 2, il retourne jusqu'à 4 Souches au décompte final.",
+          "etat_attendu_verifie": {
+            "pari_allie_glisse": true,
+            "souches_finales_max": 4
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Siéger sur Insecte (ou Parade). Combiner M3 ou Plume Calme avec Nectar d'Éveil pour sécuriser les paris bloqués ; enraciner Face 2 en fin de partie lorsque l'Essaim couvre ≥ 2 parcelles à Souches.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R1": {
+      "id": "R1",
+      "alias_oriente": "H>E",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "E",
+      "couple": [
+        "H",
+        "E"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "VOILE_ALTERATION_TRANSE_TAMBOUR_TELEPORTATION_TRANSE_CHANT_A0",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "CHANT",
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE",
+        "RANG_REVE",
+        "ALTERATION",
+        "ANNULATION",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "TAMBOUR",
+        "CHANT",
+        "ALTERATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Voyage Astral",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_ALTERATION",
+          "PIC_TAMBOUR",
+          "PIC_CHANT",
+          "PIC_AVANCEE_REVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "🌀/🔴→🔵 + [Téléporte 🥁 & 🔴→🔵/🌀 OU 🎶 : annule +1 machine sinon Glisse 1G]",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Guide Tambour ou purifie Chant"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Chant du Voyage Astral",
+        "entite_illustree": "Chamane humain frappant son tambour tandis que son double lumineux traverse la canopée",
+        "brief_illustration": "Assis les yeux clos devant un feu de résine bleue, un chamane humain frappe son tambour tandis que son double lumineux traverse la canopée pour se matérialiser bras levés devant l'engin qui menace un rayon lointain.",
+        "pitch_ambiance": "« Le corps demeure près des braises, mais le battement du tambour franchit trois vallées avant que la scie n'ait touché l'écorce. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu (après avoir résolu ses éventuelles annulations de machines sur son rang) :\n1. Voile d'Altération : posez 1 jeton d'Altération de la réserve Entités sur une machine mobile qui n'en porte pas encore (ou, sur une machine mobile portant déjà une Altération et au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe).\n2. Danse du Tambour et du Chant : choisissez 1 seule des deux transes suivantes :\n• Transe du Tambour : si le pion Tambour se trouve actuellement sur une parcelle de forêt ou sur un Rêve de la Réglette, déplacez-le immédiatement vers n'importe quelle parcelle de n'importe quel rayon du plateau ; sur 1 machine présente sur (ou ciblant) cette parcelle d'arrivée, retournez 1 jeton Rouge existant en Bleu Surchauffe (ou, si elle n'a aucun Rouge, est mobile et sans Altération, posez sur elle 1 jeton d'Altération).\n• Transe du Chant : désignez le Rêve portant le pion Chant (ou ce Rêve R1 lui-même si le Chant n'occupe aucun Rêve). S'il reste au moins 1 machine active sur son rang, annulez 1 machine supplémentaire sur ce rang (inclinez son jeton à 90° ; si le pion Chant est sur ce Rêve et qu'aucune machine active n'y reste, le Chant déclenche aussitôt son glissement d'1 rang vers la gauche) ; sinon (si aucune machine active n'occupe ce rang et que ce Rêve n'a pas encore glissé à cette ouverture), faites glisser ce Rêve (avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Choisir Transe du Tambour pour corriger à livres ouverts la position du Tambour (et déclencher R2), ou Transe du Chant pour annuler une seconde machine ou faire glisser un Rêve même sur un rang vide.",
+          "renoncement": "Redéployer le Tambour renonce à l'annulation supplémentaire ou au glissement gratuit du Chant, et inversement."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R1_T1",
+          "resume": "Tour 4 (table {H, E, I}), Tambour posé au 1er déploiement en parcelle 2 de I (où la machine recule par Altération) et Chant au 2nd déploiement sur R1 au rang 5 (rang vide). R1 pose 1 Altération (Voile d'Altération) puis tranche : Transe du Tambour téléporte le Tambour en parcelle 3 de E et retourne le Rouge du Bulldozer en Bleu, OU Transe du Chant glisse R1 du rang 5 au rang 3 libre.",
+          "etat_attendu_verifie": {
+            "voile_alteration": true,
+            "transe_au_choix": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Choisir Transe du Tambour dès qu'une parcelle critique manque d'un Défenseur (surtout avec R2 en jeu), sinon choisir Transe du Chant pour nettoyer une double machine ou avancer vers le Sommeil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R2": {
+      "id": "R2",
+      "alias_oriente": "E>H",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "H",
+      "couple": [
+        "E",
+        "H"
+      ],
+      "cycle": "PASSIF_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0",
+        "LOI_PASSIVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "LOI_PASSIVE_TAMBOUR_DOUBLE_VEILLE_ALTERATION_DOUBLE_FRAPPE_BLEU_A0",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "ANNULATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "RANG_MACHINE",
+        "ANNULATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "ALTERATION",
+        "BLEU"
+      ],
+      "paiement": [],
+      "nature": "LOI_PASSIVE",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "LOI_PASSIVE",
+        "TAMBOUR",
+        "ALTERATION",
+        "SURCHAUFFE_BLEUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Doubles Chamaniques",
+        "fenetre_badge": "PERMANENT",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_LOI_PASSIVE",
+          "PIC_TAMBOUR",
+          "PIC_ALTERATION",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Passif : Défendu ou 🌙 annule (rayon 🥁/🔴) → 🌀 · Parade 🥁 → 🔴→🔵 (sinon 🌀)",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Le Tambour reflète l'altération mystique"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Pacte des Doubles Chamaniques",
+        "entite_illustree": "Guerrier porteur de tambour et entité spectrale frappant dos à dos la même membrane",
+        "brief_illustration": "Debout dos à dos au centre d'une clairière nocturne, un guerrier porteur de tambour et une entité spectrale couronnée de lucioles frappent d'un même geste la membrane tendue dont l'onde bleue fige une abatteuse en pleine charge.",
+        "pitch_ambiance": "« Chaque battement de peau tendue résonne des deux côtés du voile : là où l'homme tient bon, l'esprit retourne la fièvre du fer contre lui. »",
+        "texte_regle": {
+          "face_1": "Tant que ce Rêve occupe un rang de la Réglette (même sans Défenseur posé sur lui) :\n• Double de Veille (À l'ouverture) : lorsque ce Rêve est défendu à sa résolution d'ouverture, OU chaque fois qu'un autre Rêve défendu annule au moins 1 machine qui appartient au rayon portant le Tambour Humain ou qui possède au moins 1 jeton Rouge, posez 1 jeton d'Altération de la réserve Entités sur une machine mobile de votre choix qui n'en porte pas encore.\n• Double de Frappe (Aux attaques) : chaque fois qu'une frappe de machine est parée par des Défenseurs sur la parcelle portant le Tambour Humain : si cette machine possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe ; sinon (si elle ne porte aucun jeton Rouge), si elle est mobile et ne porte pas encore d'Altération, posez sur elle 1 jeton d'Altération de la réserve Entités.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Envoyer le Tambour dès le 1er déploiement sur le rayon le plus exposé pour maximiser à la fois Double de Veille à l'ouverture et Double de Frappe aux attaques.",
+          "renoncement": "Engager le Tambour au 1er déploiement avant l'ouverture des paravents le fige sur ce rayon si R1 n'est pas défendu pour le déplacer."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R2_T1",
+          "resume": "Tour 3 (table {H, E, I}), R2 non défendu au rang 6, autre Rêve défendu au rang 2, Tambour en parcelle 2 de H. Le Rêve du rang 2 annule l'Abatteuse de H (rayon du Tambour) → Double de Veille pose 1 Altération sur l'Abatteuse de I. Aux attaques, le Bulldozer de H (1 Rouge) est paré sur la parcelle du Tambour → Double de Frappe retourne son Rouge en Bleu.",
+          "etat_attendu_verifie": {
+            "alteration_i": true,
+            "rouge_retourne_h": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Construire R2 rapidement pour profiter de ses deux déclencheurs passifs ; placer le Tambour sur une parcelle défendue face à des machines à Rouge pour multiplier les Altérations et les Bleus.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R3": {
+      "id": "R3",
+      "alias_oriente": "H>M",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "M",
+      "couple": [
+        "H",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "PIEGE_TAMBOUR_DUEL_ECHO_THERMIQUE_REVE_ENRACINEMENT_TRIPLE",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "DUEL"
+      ],
+      "entrees_synergie": [
+        "CHANT",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "TAMBOUR",
+        "DUEL",
+        "CHANT",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "sorties": [
+        "PIEGE",
+        "BLEU",
+        "RANG_REVE",
+        "ARBRE"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "ENRACINEMENT",
+        "PIEGE",
+        "TAMBOUR",
+        "DUEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Appel du Singe Hurleur",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_PIEGE",
+          "PIC_TAMBOUR",
+          "PIC_DUEL",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🪤 (🥁/⚔️) · avec 🎶 et/ou ⚔️ : 🔴→🔵 et/ou 🌙 ←1",
+          "face_2": null,
+          "enracine": "Décompte final : régénère 2 🪵 sur H + 1 🪵 sur rayon allié 0-Route (priorité M)"
+        },
+        "resume_plateau": "Piéger les sentes, enracinement bonifié"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Appel du Singe Hurleur",
+        "entite_illustree": "Vision chamanique d'un singe hurleur dominant la canopée à l'aube",
+        "brief_illustration": "Au sommet d'un grand arbre baigné de brume dorée, la silhouette visionnaire d'un singe hurleur pousse son cri d'aube tandis que des lianes-pièges se tendent entre les rayons des chamanes et des grands fauves.",
+        "pitch_ambiance": "« Son cri d'aube court de cime en cime, scellant les frontières des grands fauves pour que la graine dorme jusqu'au renouveau. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture, lorsque ce Rêve est défendu (après le choix éventuel des machines annulées), posez 1 Piège ordinaire de la réserve sur une parcelle dépourvue de Piège ordinaire du rayon portant le Tambour ou le jeton Duel (ou du rayon de H si aucune n'est éligible).\nÉcho territorial (H>M) : vérifiez combien des conditions suivantes sont réunies (0, 1 ou 2) : (1) le Chant occupe le rang de ce Rêve ou ce Rêve vient d'annuler au moins 1 machine ; (2) le jeton Duel est en jeu en forêt alliée.\n• 1 condition : retournez 1 jeton Rouge existant en Bleu Surchauffe sur une machine de l'un de ces rayons, OU glissez 1 Rêve d'1 rang libre à gauche.\n• 2 conditions : appliquez les deux effets ci-dessus (si aucune machine de ces rayons n'a de Rouge, posez à la place 1 second Piège ordinaire sur une autre parcelle dépourvue de Piège ordinaire des rayons du Tambour ou du Duel).",
+          "face_2": null,
+          "enracine": "Si H enracine volontairement cette tuile au ménage au pied de son rayon devant une parcelle non-Route, elle perd son pouvoir actif et rend impossible le Sommeil du Contremaître ; aucune Souche n'est retournée lors de la pose ni pendant les Tours 1 à 8. Uniquement lors du décompte final (quelle que soit la fin de partie), au lieu de régénérer 1 seule Souche, retournez jusqu'à 2 Souches existantes en Arbres debout sur leurs parcelles du rayon de H (en commençant par sa parcelle d'attache), plus 1 Souche existante en Arbre debout sur un autre rayon allié sans aucune Route Forestière (en priorité celui de M s'il est sans Route, sinon un rayon portant une autre tuile Enracinée)."
+        },
+        "decision_et_renoncement": {
+          "choix": "Conserver R3 actif sur la Réglette pour tisser des Pièges protecteurs et garder ouverte la voie du Sommeil, ou l'enraciner au ménage avant qu'une Route ne condamne le rayon pour verrouiller jusqu'à 3 régénérations au décompte final.",
+          "renoncement": "Enraciner R3 ferme définitivement la victoire par Sommeil du Contremaître et éteint sa production de Pièges."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R3_T1",
+          "resume": "Tour 4, Tambour en parcelle 2 de H, Chant sur R3 au rang 3, Duel en parcelle 2 de M. À l'ouverture, R3 annule 1 machine au rang 3, pose 1 Piège en parcelle 2 de H, puis (2 conditions réunies) retourne 1 Rouge en Bleu sur M ET glisse un Rêve du rang 5 au rang 4. Enraciné au Tour 6 devant une parcelle non-Route (0 repousse immédiate), il retourne 2 Souches sur H + 1 Souche sur M sans Route au décompte final.",
+          "etat_attendu_verifie": {
+            "piege_h2": true,
+            "souches_finales": 3
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Défendre R3 avec le Chant tant que le Duel est en forêt pour cumuler Piège + Bleu + glissement de Rêve ; enraciner aux Tours 6–8 si le Sommeil est écarté et que H/M conservent des Souches sans Route.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R4": {
+      "id": "R4",
+      "alias_oriente": "H>R",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "R",
+      "couple": [
+        "H",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "ENGLOUTISSEMENT_MACHINE_INCLINEE_SAC_FURTIVITE_ECAILLE_CROC_REVE",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "ANNULATION",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "ECAILLE",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "ANNULATION",
+        "TAMBOUR",
+        "CHANT",
+        "ECAILLE",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ECAILLE",
+        "CROC",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE",
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "LEVIER_REVE",
+        "FURTIVITE",
+        "ECAILLE",
+        "CROC",
+        "CARAPACE_LIMON"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Carapace de Limon",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_ANNULATION",
+          "PIC_ECAILLE",
+          "PIC_CROC",
+          "PIC_CHANT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Machine inclinée → au Sac opaque (m(r) - 1) + 1 🦎 au sac · 🥁/🎶 : 🦷 + 🌙 ←1",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Engloutir machine annulée au sac"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Songe de la Carapace de Limon",
+        "entite_illustree": "Vision fluviale d'une carapace de limon et de feuilles noyées engloutissant le fer",
+        "brief_illustration": "Sous les eaux ambrées d'un bras mort, une immense carapace couverte de limon et de feuilles noyées s'entrouvre dans un songe silencieux pour engloutir une machine annulée loin des rives.",
+        "pitch_ambiance": "« Feuille morte parmi les feuilles noyées, sa carapace engloutit le vacarme du fer dans le silence du limon. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture, lorsque ce Rêve est défendu (après le choix éventuel des machines annulées ici), choisissez 1 jeton Machine incliné à 90° (annulé par ce Rêve ou par un Rêve précédent) et plongez-le immédiatement dans le Sac opaque en retirant son dé de la Réglette : disparu sous l'eau avant la Furtivité, ce jeton ne compte plus dans m(r) pour la Furtivité (soit m(r) − 1, tout en restant comptabilisé comme machine annulée à ce tour pour le Chant et pour allumer l'icône Rêve). (Plancher : si aucune machine n'est inclinée, retournez 1 jeton Rouge existant en Bleu Surchauffe sur une machine mobile ou glissez 1 Rêve d'1 rang libre à gauche.)\nAjoutez ensuite 1 jeton Écaille de la réserve Reptile dans le Sac opaque (s'il en reste, max 4 en jeu).\nSillage H>R : si la machine engloutie provenait du rayon du Tambour ou du rang du Chant (ou si au moins 1 Écaille est déjà sortie du sac à ce tour), posez ou déplacez le pion Croc sur une parcelle alliée et glissez 1 Rêve d'1 rang libre à gauche.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Engloutir une machine annulée d'un rayon à m(r)=1 pour le ramener à m(r)=0 et remporter la Rive Sabotage (+1 Sabotage au sac), tout en injectant 1 Écaille et en posant le Croc.",
+          "renoncement": "Engloutir cette machine renonce à m(r)=2 sur une Rive Piège et remet dès maintenant ce jeton Machine en circulation dans le Sac opaque avant une éventuelle Happe de G9."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R4_T1",
+          "resume": "Tour 4, 2 Défenseurs sur Rive Sabotage de H (vise m(H)=0), Tambour en parcelle 1 de H, Chant et 1 Défenseur sur R4 au rang 2 où tombe l'unique Machine de H. R4 annule cette machine, l'engloutit aussitôt dans le Sac opaque (m(H) retombe à 0), ajoute 1 Écaille au sac, pose le Croc et glisse un autre Rêve à gauche (Sillage H>R), puis le Chant avance R4 au rang 1. À la Furtivité, m(H)=0 gagne la Rive Sabotage.",
+          "etat_attendu_verifie": {
+            "m_h_furtivite": 0,
+            "ecaille_au_sac": 1,
+            "rive_sabotage_gagnee": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Engloutir toute machine annulée d'un rayon engagé en Rive Sabotage (ramenant m(r) de 1 à 0) tout en alimentant le sac en Écailles et en déclenchant le Sillage Croc + glissement de Rêve.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R5": {
+      "id": "R5",
+      "alias_oriente": "H>O",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "O",
+      "couple": [
+        "H",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "TWIST_2K3",
+        "LEVIER_REVE"
+      ],
+      "est_twist": true,
+      "vecteurs": "LECTURE_DE_ECARTE_TELEPORTATION_RANG_MACHINE_OU_REVE",
+      "entrees_plancher": [
+        "DES_SOUS_PARAVENT",
+        "DE_ENVOL",
+        "POSITION_REVE"
+      ],
+      "entrees_synergie": [
+        "CHANT",
+        "PLUME"
+      ],
+      "entrees": [
+        "DES_SOUS_PARAVENT",
+        "DE_ENVOL",
+        "POSITION_REVE",
+        "CHANT",
+        "PLUME"
+      ],
+      "sorties": [
+        "RANG_MACHINE",
+        "RANG_REVE"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "TWIST_2K3",
+        "LEVIER_REVE",
+        "DES_ECARTES",
+        "TELEPORTATION_RANG"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Condor des Brumes",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_TWIST",
+          "PIC_DES_PARAVENT",
+          "PIC_RANG_MACHINE",
+          "PIC_AVANCEE_REVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "⚡ Lit 1 🎲 écarté (V) : machine → rang V OU ce 🌙 → V / ⬅️ (les 2 si 🎶 ou 🪶 rang)",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "⚡ Dé écarté 🎲 → Rang V / ⬅️"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Vision du Condor des Brumes",
+        "entite_illustree": "Silhouette astrale d'un grand condor planant au-dessus d'une mer de nuages étoilés reliés au souffle d'un chamane",
+        "brief_illustration": "Silhouette astrale d'un grand condor andin-amazonien planant au-dessus d'une mer de nuages nocturnes où brillent des constellations géométriques reliées au souffle d'un chamane.",
+        "pitch_ambiance": "« Rien de ce qui roule dans l'ombre des mains humaines n'échappe à l'œil qui plane au-dessus des nuages : même le destin écarté trace encore une route. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu, choisissez 1 dé non retenu visible devant le paravent ouvert de l'Oiseau, des Humains, ou de tout joueur ayant révélé un Sabotage ou une Écaille (c'est-à-dire le Dé d'Envol non choisi, le dé standard supérieur non retenu d'un porteur de Machine, ou l'un des dés lancés à blanc sur un Sabotage/Écaille). Soit V sa valeur (de 1 à 6). Appliquez 1 présage au choix — ou les deux si ce Rêve porte le Chant ou si la Plume de Vigie est posée près d'un rang 1–6 :\n• Courant Ascendant : déplacez le dé actif d'1 machine mobile non annulée de votre choix directement sur le rang V de la Réglette (si un Rêve défendu situé strictement à droite de ce Rêve ne s'est pas encore résolu et occupe le rang V, il pourra annuler cette machine lors de son tour de résolution !).\n• Aile du Songe : si le rang V ne porte aucun autre Rêve et est situé à gauche de ce Rêve, déplacez ce Rêve (avec ses Défenseurs solidaires) directement sur le rang V ; sinon, faites glisser ce Rêve vers le premier rang libre à sa gauche (vers le rang 1).",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Sous paravent fermé, l'Oiseau fait face à un vrai casse-tête d'initié : s'il obtient min(D1,D2) = 3 et Dé d'Envol = 1, garde-t-il 1 pour adoucir sa propre machine, ou retient-il 3 afin de laisser le 1 disponible comme dé écarté pour catapulter Le Condor des Brumes directement de la case 6 à la case 1 !",
+          "renoncement": "Téléporter une machine ennemie vers un Rêve situé plus à droite neutralise cette machine mais consomme l'annulation de ce second Rêve."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R5_T1",
+          "resume": "R5 construit au rang 6 est défendu avec le Chant, tandis que l'Oiseau a révélé un Sabotage dont les dés lancés sous paravent affichent 1 et 5 : R5 lit le dé écarté 1, saute directement du rang 6 au rang 1 par Aile du Songe ET projette par Courant Ascendant un Bulldozer d'Assaut du rang 5 vers le Mode Charge au rang 1 !",
+          "etat_attendu_verifie": {
+            "nouveau_rang_r5": 1,
+            "nouveau_rang_bulldozer": 1
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Chercher parmi les dés écartés un rang occupé par un Rêve défendu situé plus à droite pour annuler gratuitement un Bulldozer actif, ou la valeur libre la plus basse (1 ou 2) pour projeter ce Rêve vers le Sommeil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R6": {
+      "id": "R6",
+      "alias_oriente": "H>I",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "I",
+      "couple": [
+        "H",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "MIEL_DE_VEILLE_INSECTES_X2_DANSE_FRETILLANTE_DEVIATION_CHANT_A0",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "RANG_MACHINE",
+        "TAMBOUR",
+        "CHANT"
+      ],
+      "entrees_synergie": [
+        "NID",
+        "INSECTE_RANG",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "RANG_MACHINE",
+        "TAMBOUR",
+        "CHANT",
+        "NID",
+        "INSECTE_RANG",
+        "ROUGE"
+      ],
+      "sorties": [
+        "INSECTE_RANG",
+        "RANG_MACHINE",
+        "BLEU",
+        "RANG_REVE"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "DEVIATION",
+        "CHANT"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Mélipones d’Or",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_INSECTE",
+          "PIC_RANG_MACHINE",
+          "PIC_BLEU",
+          "PIC_CHANT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+2 🐜 (Réglette/🥁/🪹) + Décale 1 dé ±1 (🔴→🔵 si 🐜/🌙) + 🎶 libre → Glisse 1G",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Essaime le miel, danse déviante"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Rêve des Mélipones d’Or",
+        "entite_illustree": "Chamane entourée d'un essaim doré d'abeilles mélipones autour d'un tronc creux",
+        "brief_illustration": "Autour d'un tronc creux baigné de brume dorée où chantent une chamane et son essaim d'abeilles mélipones sans dard, des spirales de pollen lumineux infléchissent la course d'un convoi de machines à travers la brume.",
+        "pitch_ambiance": "« La danse des abeilles sacrées ne se trompe jamais d'angle : un bourdonnement suffit à égarer le fer hors du sentier. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu (après avoir résolu ses éventuelles annulations de machines sur son rang) :\n1. Miel de Veille : prenez 2 jetons Insectes de la réserve et répartissez-les librement entre les rangs 1–6 de la Réglette, la parcelle portant le Tambour, et/ou une parcelle portant un Nid (si ni le Tambour ni aucun Nid ne sont en forêt, vous pouvez aussi les placer sur une parcelle du rayon Humain).\n2. Danse Frétillante : vous pouvez décaler le dé révélé d'1 machine encore active de −1 ou +1 rang sur la Réglette (entre 1 et 6) ; si ce dé rejoint un rang portant au moins 1 Insecte ou un Rêve défendu situé plus à droite (non encore résolu), et que cette machine possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe. Enfin, si un Rêve portant le pion Chant n'a pas encore glissé à cette ouverture et que son rang ne contient désormais plus aucune machine active, faites-le glisser immédiatement (avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Répartir les 2 Insectes entre un Nid (pour franchir le seuil ≥ 2 avant la Production), le Tambour ou la Réglette ; puis choisir entre dégager le rang du Chant ou faire basculer une machine Rouge d'Assaut vers Charge.",
+          "renoncement": "Alimenter un Nid ou le Tambour renonce à garnir la Réglette pour les déviations futures et le refroidissement de Danse Frétillante."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R6_T1",
+          "resume": "Tour 3 (Acte 1), R6 défendu par le Chant au rang 4 face à 2 machines (Abatteuse + Bulldozer 2 Rouges). R6 annule l'Abatteuse, pose 1 Insecte sur M4 (passe à 2 avant Production) et 1 sur le rang 3, puis décale le Bulldozer de 4 → 3 (Charge, seuil −1, 1 Rouge → Bleu) ; le rang 4 étant vidé, le Chant fait glisser R6 à gauche.",
+          "etat_attendu_verifie": {
+            "bulldozer_rang": 3,
+            "rouge_retourne": 1,
+            "r6_glisse_gauche": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Alimenter un Nid à 1 Insecte et la Réglette par Miel de Veille, puis décaler une machine Rouge d'Assaut vers un rang Insecte ou Rêve à droite tout en libérant le rang du Chant.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R7": {
+      "id": "R7",
+      "alias_oriente": "E>M",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "M",
+      "couple": [
+        "E",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "FOULEE_ONIRIQUE_DUEL_TERRITOIRE_ALTERATION_HANTISE_SOUCHES",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "DUEL",
+        "SOUCHE"
+      ],
+      "entrees_synergie": [
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "DUEL",
+        "SOUCHE",
+        "ALTERATION",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "TERRITOIRE",
+        "ALTERATION",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "LEVIER_REVE",
+        "DUEL",
+        "ALTERATION",
+        "SOUCHE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Brame des Brumes",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_AVANCEE_REVE",
+          "PIC_DUEL",
+          "PIC_ALTERATION",
+          "PIC_SOUCHE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Glisse 1G + [⚔️ Tenu & 🌀/🔴→🔵 OU 2e Glisse si 🪵/⚔️]",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Glisse un rêve, arme le Duel"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Songe du Brame des Brumes",
+        "entite_illustree": "Silhouette translucide d'un grand cerf des marais aux bois de brume violette",
+        "brief_illustration": "Au milieu d'une futaie déchirée où fument des souches noires, la silhouette translucide d'un grand cerf des marais fait face à un bulldozer figé, ses bois de brume violette traçant au sol un cercle infranchissable.",
+        "pitch_ambiance": "« Quand le brame des esprits répond au défi du fauve, la clairière blessée se referme comme un rempart invisible devant les chenilles. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu (après avoir résolu ses éventuelles annulations de machines sur son rang) :\n1. Foulée Onirique : faites glisser 1 Rêve en jeu de votre choix (ce Rêve ou un autre, avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche (vers le rang 1).\n2. Appel du Territoire Spectral : choisissez 1 seul des deux effets suivants :\n• Ancrer la Harde : si le jeton Duel est déjà en forêt sur sa face Défi, retournez-le immédiatement sur sa face Territoire tenu ; s'il est dans la réserve Mammifère, posez-le sur sa face Défi sur n'importe quelle parcelle contenant au moins 1 Défenseur ou 1 Souche. Ensuite, sur le rayon portant désormais le Duel, posez 1 jeton d'Altération sur une machine mobile sans Altération (ou retournez 1 jeton Rouge existant en Bleu Surchauffe sur une machine de ce rayon).\n• Hantise des Souches : si au moins 1 machine annulée par ce Rêve — ou au moins 1 machine mobile portant déjà un jeton d'Altération — appartient à un rayon comptant au moins 1 Souche (ou portant le Duel), faites glisser une seconde fois un Rêve en jeu (avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Choisir Ancrer la Harde pour verrouiller Territoire tenu dès l'ouverture et poser une Altération, ou Hantise des Souches pour convertir les Souches en double bond vers le Sommeil.",
+          "renoncement": "Verrouiller le Duel renonce au double glissement de Rêve ; accélérer le Sommeil renonce au verrouillage préventif du Duel."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R7_T1",
+          "resume": "Tour 3, R7 défendu au rang 5 ; Duel (face Défi) en parcelle 2 de M face à l'Abatteuse (rang 3 En avançant, 0 Altération). À l'ouverture, R7 glisse au rang 4 libre puis choisit Ancrer la Harde : le Duel passe sur Territoire tenu (bloquant l'avancée du rang 3) et l'Abatteuse reçoit 1 Altération.",
+          "etat_attendu_verifie": {
+            "reve_rang": 4,
+            "territoire_tenu": true,
+            "alteration_posee": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Défendre R7 pour garantir 1 glissement de Rêve par tour ; choisir Ancrer la Harde dès qu'un rang 3/6 menace le Duel, sinon choisir Hantise des Souches pour accélérer le Sommeil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R8": {
+      "id": "R8",
+      "alias_oriente": "E>R",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "R",
+      "couple": [
+        "E",
+        "R"
+      ],
+      "cycle": "PASSIF_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LOI_PASSIVE",
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "LOI_PASSIVE_PISTON_ECAILLE_ALTERATION_VENIN_CROC_BLEU_RECUL",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "ALTERATION",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "ECAILLE",
+        "CROC",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "ALTERATION",
+        "RANG_MACHINE",
+        "ECAILLE",
+        "CROC",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ALTERATION",
+        "BLEU",
+        "RECUL"
+      ],
+      "paiement": [],
+      "nature": "LOI_PASSIVE",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "LOI_PASSIVE",
+        "LEVIER_REVE",
+        "ECAILLE",
+        "CROC"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Mue d’Obsidienne",
+        "fenetre_badge": "PERMANENT",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_LOI_PASSIVE",
+          "PIC_ECAILLE",
+          "PIC_ALTERATION",
+          "PIC_CROC"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Passif : 🦎/Défendu → Glisse 1G & 🌀 · 🦷 pare → 🔴→🔵 (sinon ⏪ 1)",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Écailles glissent rêves · Croc refroidit"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Rêve de la Mue d’Obsidienne",
+        "entite_illustree": "Mue translucide d'obsidienne d'un grand serpent enroulée autour d'une lame givrée",
+        "brief_illustration": "Suspendue entre deux troncs noirs baignés de lueurs violettes, la mue translucide et tranchante comme du verre volcanique d'un grand serpent s'enroule autour d'une lame de scie couverte de givre bleu.",
+        "pitch_ambiance": "« Le reptile abandonne son ancienne peau aux esprits de la nuit ; quiconque y mord sent le gel remonter jusqu'au cœur du moteur. »",
+        "texte_regle": {
+          "face_1": "Tant que ce Rêve occupe un rang de la Réglette (même sans Défenseur posé sur lui) :\n• Piston d'Écaille (À l'ouverture) : chaque fois qu'un jeton Écaille est révélé à l'ouverture des paravents — ainsi que lorsque ce Rêve lui-même est défendu à sa résolution d'ouverture — faites glisser 1 Rêve en jeu de votre choix (avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche (vers le rang 1), ET posez 1 jeton d'Altération de la réserve Entités sur une machine mobile qui n'en porte pas encore.\n• Venin d'Obsidienne (Aux attaques) : chaque fois que le jeton Croc Reptile pare la frappe d'une machine (juste avant que le Croc ne regagne la réserve Reptile) : si cette machine possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe ; sinon (si elle ne porte aucun jeton Rouge) et qu'elle est mobile, faites-la reculer d'1 parcelle vers la bordure de son rayon (en sautant les Routes Forestières, sans dépasser la 1re parcelle).",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Laisser R8 sans Défenseur pour profiter passivement des Écailles et du Croc tout en économisant des poses, ou le défendre activement pour garantir un glissement et une Altération même sans Écaille tirée.",
+          "renoncement": "Défendre R8 immobilise un Défenseur sur la Réglette ; le laisser vide renonce à l'annulation sur son rang et au déclenchement garanti lors des tours sans Écaille."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R8_T1",
+          "resume": "Tour 5, R8 non défendu au rang 4, un autre Rêve au rang 3. Une Écaille révélée pose le Croc en parcelle 3 de R et déclenche Piston d'Écaille (Rêve 3 → 2 + Altération sur une Abatteuse). Aux attaques, un Bulldozer sans Rouge est paré par le Croc : Venin d'Obsidienne le recule en parcelle 2 avant le retour du Croc en réserve.",
+          "etat_attendu_verifie": {
+            "reve_glisse_rang_2": true,
+            "bulldozer_recul_p2": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Construire R8 tôt avec des Écailles au sac (via G10/M2) pour générer glissements de Rêves et Altérations sans consommer de Défenseur ; le défendre si son rang porte une menace.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R9": {
+      "id": "R9",
+      "alias_oriente": "E>O",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "O",
+      "couple": [
+        "E",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "LECTURE_PERCHOIR_PLUME_DOUBLE_GLISSEMENT_OU_ALTERATION",
+      "entrees_plancher": [
+        "PLUME",
+        "PERCHOIR",
+        "POSITION_REVE"
+      ],
+      "entrees_synergie": [
+        "ANNULATION"
+      ],
+      "entrees": [
+        "PLUME",
+        "PERCHOIR",
+        "POSITION_REVE",
+        "ANNULATION"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ALTERATION"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "LEVIER_REVE",
+        "PERCHOIR",
+        "PLUME",
+        "ECLIPSE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Éclipse de Plumes",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_PERCHOIR",
+          "PIC_AVANCEE_REVE",
+          "PIC_ALTERATION"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🌀 + 1 🌙 ⬅️ + regarde 🦅 (Chaud/Machine : +2e 🌀 · Calme/🚫 : +2e ⬅️)",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "+🌀 + 🌙 ⬅️ + bonus 🪶/🦅"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Rêve de l’Éclipse de Plumes",
+        "entite_illustree": "Couronne d'ailes nocturnes éclipsant la pleine lune au-dessus de la canopée dans une pluie de plumes violettes",
+        "brief_illustration": "Immense couronne d'ailes sombres tourbillonnant devant le disque lunaire au-dessus de la canopée, faisant pleuvoir des plumes luminescentes qui voilent les projecteurs des engins forestiers.",
+        "pitch_ambiance": "« Là où tombe la plume de vigie, la lune s'éteint pour les hommes de fer : leurs phares éclairent une forêt qui a déjà bougé. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu :\n1. Posez 1 jeton d'Altération sur 1 machine mobile qui n'en porte pas encore, ET faites glisser 1 Rêve en jeu de votre choix (ce Rêve ou un autre, avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche (vers le rang 1).\n2. Consultez secrètement le jeton posé sur le Perchoir de Vigie de l'Oiseau (s'il est face cachée, reposez-le face cachée sans le révéler au reste de la table), puis appliquez 1 bonus d'Éclipse au choix parmi ceux déverrouillés :\n• Éclipse Chaude (déverrouillée si la Plume de Vigie est face Chaud OU si le Perchoir porte un jeton Machine) : posez 1 second jeton d'Altération sur une machine mobile qui n'en porte pas encore, choisie sur le rayon ou le rang marqué par la Plume — ou directement sur la machine correspondant au jeton du Perchoir.\n• Éclipse Calme (déverrouillée si la Plume de Vigie est face Calme OU si ce Rêve a annulé au moins 1 machine à cette ouverture) : faites glisser d'1 rang libre vers la gauche un Rêve en jeu de votre choix (le même Rêve pour un double glissement, ou un second Rêve).",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Sous paravents fermés, l'Oiseau oriente silencieusement l'Éclipse par la face (Chaud vs Calme) de sa Plume et le jeton caché sur son Perchoir ; à l'ouverture, les Entités choisissent entre doubler le ralentissement physique (2 Altérations) ou doubler la compression de la Réglette vers le Sommeil (2 glissements de Rêve).",
+          "renoncement": "Pousser deux fois les Rêves vers la gauche rapproche la victoire par Sommeil mais renonce à neutraliser la prochaine ouverture d'une seconde machine mobile."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R9_T1",
+          "resume": "Dans une partie E–O–M (sans H), l'Oiseau a caché 1 Bulldozer sur son Perchoir de Vigie et posé sa Plume face Calme au pied du rayon Mammifère. R9, construit au rang 4 et défendu, consulte le Perchoir (déverrouillant Éclipse Chaude via la Machine cachée ET Éclipse Calme via la Plume Calme) : E choisit Éclipse Calme, pose 1 Altération et fait glisser deux fois R9 (de 4 en 3, puis de 3 en 2, sautant le rang 1 déjà occupé) pour assembler instantanément le bloc contigu 1..2 !",
+          "etat_attendu_verifie": {
+            "alterations_posees": 1,
+            "glissements_reve": 2,
+            "nouveau_rang_r9": 2,
+            "bloc_sommeil_1_2_forme": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Choisir Éclipse Calme dès qu'un Rêve se trouve à droite du bloc contigu 1..k afin d'accélérer le Sommeil ; choisir Éclipse Chaude si tous les Rêves sont déjà groupés à gauche pour altérer la machine cachée sur le Perchoir.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R10": {
+      "id": "R10",
+      "alias_oriente": "E>I",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "I",
+      "couple": [
+        "E",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0",
+        "TWIST_2K3",
+        "LEVIER_REVE"
+      ],
+      "est_twist": true,
+      "vecteurs": "SILLAGE_ONIRIQUE_TRANSHUMANCE_NID_GARNISON_ALTERATION_BLEU_A0",
+      "entrees_plancher": [
+        "POSITION_REVE",
+        "RANG_MACHINE"
+      ],
+      "entrees_synergie": [
+        "NID",
+        "INSECTE",
+        "ROUGE"
+      ],
+      "entrees": [
+        "POSITION_REVE",
+        "RANG_MACHINE",
+        "NID",
+        "INSECTE",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "NID_DEPLACE",
+        "ALTERATION",
+        "INSECTE",
+        "BLEU"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "TWIST_2K3",
+        "LEVIER_REVE",
+        "TRANSHUMANCE_NID"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Ruche Vagabonde",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_AVANCEE_REVE",
+          "PIC_NID",
+          "PIC_ALTERATION",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Glisse 1G + [Déplace 1 🪹 (+🐜 & 🛡️) partout & 🌀/🔴→🔵 OU +1 🐜 & +1 🌀]",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale, bloque Sommeil)"
+        },
+        "resume_plateau": "Glisse rêve, déménage une ruche"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Transe de la Ruche Vagabonde",
+        "entite_illustree": "Immense ruche d'écorce vivante flottant dans la nuit portée par des filaments de brume",
+        "brief_illustration": "Portée par des filaments de brume violette à travers la nuit amazonienne, une immense ruche d'écorce vivante flotte entre les troncs avec toute sa nuée lumineuse pour venir se greffer juste devant la lame d'un engin surpris.",
+        "pitch_ambiance": "« Guidé par le songe, le nid décroche ses racines d'écorce et traverse la nuit : quand l'acier frappe la clairière, la ruche est déjà derrière lui. »",
+        "texte_regle": {
+          "face_1": "À l'ouverture des paravents, lorsque ce Rêve est défendu (après avoir résolu ses éventuelles annulations de machines sur son rang) :\n1. Sillage Onirique : faites glisser 1 Rêve en jeu de votre choix (ce Rêve ou un autre, avec ses Défenseurs solidaires) sur le premier rang libre situé à sa gauche (vers le rang 1).\n2. Transhumance de la Ruche (Twist spatial) : choisissez 1 seul des deux effets suivants :\n• Envol de la Ruche (si au moins 1 Nid est en forêt) : déplacez 1 Nid construit — en emportant simultanément avec lui tous les Insectes et tous les Défenseurs présents sur sa parcelle — vers n'importe quelle autre parcelle dépourvue d'autre Nid sur n'importe quel rayon du plateau (y compris hors des rayons voisins des Insectes, et y compris sur une parcelle occupée par une machine). Ensuite, posez 1 jeton d'Altération de la réserve Entités sur une machine mobile sans Altération du rayon rejoint — ou, sur une machine occupant la parcelle rejointe et possédant au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe.\n• Essaim Spectral (toujours disponible, y compris si aucun Nid n'est en forêt) : posez 1 jeton Insecte de la réserve sur une parcelle du rayon Entités ou du rayon Insectes (ou sur un rang 1–6 de la Réglette), ET posez 1 jeton d'Altération de la réserve Entités sur une machine mobile qui n'en porte pas encore.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Téléporter un Nid défendu et toute sa garnison directement devant une machine lointaine pour produire sur place à la Production puis parer aux attaques, ou choisir Essaim Spectral en solo.",
+          "renoncement": "Déménager le Nid abandonne son ancien secteur et expose le Nid au renvoi en lisière si un Bulldozer transforme la parcelle rejointe en Route Forestière."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R10_T1",
+          "resume": "Tour 4 (table {H, E, I}), M5 en parcelle 1 de I (1 Défenseur, 2 Insectes) tandis qu'un Bulldozer (1 Rouge, seuil 4) menace la parcelle 4 de H. R10 glisse du rang 3 au rang 2 libre puis choisit Envol de la Ruche : M5 atterrit en H·4 avec son Défenseur et ses 2 Insectes, retourne le Rouge en Bleu (seuil 4 → 2), produit +2 Insectes à la Production et pare aisément aux attaques.",
+          "etat_attendu_verifie": {
+            "nid_deplace_h4": true,
+            "seuil_bulldozer": 2
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Glisser un Rêve chaque tour et téléporter un Nid garni directement sur la parcelle la plus menacée du plateau (en retournant un Rouge en Bleu) ; sans Nid en forêt, jouer Essaim Spectral.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M1": {
+      "id": "M1",
+      "alias_oriente": "I>M",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "M",
+      "couple": [
+        "I",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "COLONNE_RAID_LATERAL_TOPOLOGIQUE_DUEL_TENU_BLEU_RECUL",
+      "entrees_plancher": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "ROUTE"
+      ],
+      "entrees_synergie": [
+        "DUEL",
+        "ROUGE"
+      ],
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "ROUTE",
+        "DUEL",
+        "ROUGE"
+      ],
+      "sorties": [
+        "RAID_LATERAL",
+        "TERRITOIRE",
+        "BLEU",
+        "RECUL",
+        "INSECTE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "TWIST_2K3",
+        "RAID_LATERAL",
+        "DUEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Bivouac Légionnaire",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_TWIST",
+          "PIC_MIGRATION",
+          "PIC_DUEL",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Raid latéral 1–3 🐜 même profondeur (stop 🛣️) + ⚔️ Tenu/+1 🐜 + 🔴→🔵/⏪ 1",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale)"
+        },
+        "resume_plateau": "Raid latéral d'essaim entre rayons"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Bivouac des Légionnaires, Marée Noire des Sous-Bois",
+        "entite_illustree": "Sphère vivante de fourmis légionnaires lançant un pont grouillant d'une rive à l'autre",
+        "brief_illustration": "Accrochée entre les contreforts de deux kapokiers, une sphère vivante de millions de fourmis légionnaires lance un pont grouillant d'une rive forestière à l'autre tandis qu'un félin aux aguets accompagne l'avancée de la colonne vers les machines.",
+        "pitch_ambiance": "« Là où la forêt tient encore debout d'un seul tenant, la légion ignore les frontières : ses ponts vivants submergent trois vallées en une heure. »",
+        "texte_regle": {
+          "face_1": "À l'étape de Production des Nids, immédiatement après que ce Nid défendu a produit ses Insectes (+1 ou +2, avant la Migration) :\n1. Colonne de Raid Latérale (Twist topologique) : choisissez une profondeur de forêt (parcelle 1, 2, 3 ou 4) contenant au moins 1 Insecte sur le rayon de ce Nid (ou sur le rayon portant le jeton Duel). Vous pouvez déplacer latéralement de 1 à 3 Insectes présents sur cette parcelle de départ en les répartissant sur des parcelles de même numéro (1..4) le long de rayons voisins consécutifs (vers la gauche et/ou vers la droite autour du plateau), sans jamais franchir une case devenue Route Forestière. (Ces Insectes pourront ensuite migrer normalement le long de leur nouveau rayon à la Migration.)\n2. Morsure d'Avant-Garde : choisissez 1 parcelle ayant reçu au moins 1 Insecte de cette Colonne (ou la parcelle de ce Nid si aucun Insecte n'a changé de rayon) :\n• Si le jeton Duel s'y trouve sur sa face Défi, retournez-le immédiatement sur Territoire tenu et ajoutez +1 Insecte de la réserve sur cette parcelle ;\n• De plus, sur 1 machine occupant cette parcelle : si elle possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe ; sinon (si elle ne porte aucun jeton Rouge) et qu'elle est mobile, faites-la reculer d'1 parcelle vers la bordure de son rayon (en sautant les Routes Forestières, sans dépasser la 1re parcelle).",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Projeter 1 à 3 Insectes latéralement chez les voisins pour irriguer toute la table avant la Migration et activer Morsure d'Avant-Garde sur le Duel ou une machine.",
+          "renoncement": "Vider le Nid sous le seuil de 2 Insectes fait retomber sa prochaine Production à +1 ; une Route Forestière sur la profondeur choisie coupe définitivement le pont latéral."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M1_T1",
+          "resume": "Tour 4 (I, M, H, O ; parcelle 2 d'O est Route). M1 en parcelle 2 de I (2 Insectes) produit +2 (total 4), garde 2 Insectes et envoie 1 en parcelle 2 de M (Duel Défi + Abatteuse sans Rouge) et 1 en parcelle 2 de H (bloqué avant O par la Route). Morsure d'Avant-Garde sur M·2 passe le Duel sur Territoire tenu (+1 Insecte) et recule l'Abatteuse en M·1.",
+          "etat_attendu_verifie": {
+            "raid_m2_h2": true,
+            "territoire_tenu": true,
+            "abatteuse_recul_m1": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Garder au moins 2 Insectes au Nid pour la production +2 et projeter le surplus latéralement vers la parcelle du Duel ou les fronts menacés avant la Migration radiale.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M2": {
+      "id": "M2",
+      "alias_oriente": "I>R",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "R",
+      "couple": [
+        "I",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "MINERALISATION_ECAILLE_SAC_PROJECTION_INSECTE_SUR_ROUGE",
+      "entrees_plancher": [
+        "NID_ACTIVE",
+        "ROUGE"
+      ],
+      "entrees_synergie": [
+        "SABOTAGE",
+        "ECAILLE"
+      ],
+      "entrees": [
+        "NID_ACTIVE",
+        "ROUGE",
+        "SABOTAGE",
+        "ECAILLE"
+      ],
+      "sorties": [
+        "ECAILLE",
+        "INSECTE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_SABOTAGE",
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "ECAILLE",
+        "ANTI_ROUGE",
+        "TERMITIERE_CUIRASSEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Termitière Cuirassée",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_ECAILLE",
+          "PIC_INSECTE",
+          "PIC_ROUGE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "+1 🦎 Sac (ou +1 🐜 si 0 🦎 réserve) · Si 💥/🦎 ou 🔴 : +1 🐜 sur machine 🔴 ou rang 1–6",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "+🦎 Sac + 🐜 sur machine 🔴 / rang"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Termitière Cuirassée, Bastion d’Argile et d’Écailles",
+        "entite_illustree": "Dôme d'argile ferrugineuse vitrifié aux crêtes d'écailles d'où jaillissent des soldats mandibulés",
+        "brief_illustration": "Dôme d'argile ferrugineuse vitrifié par le soleil équatorial, hérissé de crêtes minérales aussi dures que l'écaille d'un caïman, d'où jaillissent des soldats mandibulés vers les engins fumants.",
+        "pitch_ambiance": "« Cuite par la chaleur même des moteurs, sa muraille secrète des plaques de pierre vive qui grippent les engrenages de toute la forêt. »",
+        "texte_regle": {
+          "face_1": "À l'étape de Production des Nids, immédiatement après que ce Nid défendu a produit ses Insectes (+1 ou +2, avant la Migration) :\n1. Carapace Minérale : s'il reste au moins 1 jeton Écaille dans la réserve Reptile, glissez-le dans le sac opaque ; sinon (si les 4 Écailles sont déjà hors de la réserve Reptile), ajoutez +1 Insecte de la réserve sur la parcelle de ce Nid.\n2. Réplique Thermique : si au moins 1 Sabotage ou Écaille a été révélé à cette ouverture OU si au moins 1 machine du plateau porte un jeton Rouge (y compris en Ratissage), prenez 1 Insecte supplémentaire de la réserve et posez-le directement soit sur la parcelle d'une machine portant au moins 1 jeton Rouge, soit sur un rang 1–6 de la Réglette occupé par le dé d'une telle machine.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Parachuter l'Insecte bonus directement sur la parcelle d'une machine en Ratissage (d'où il pourra parer sur place ou migrer immédiatement depuis la dernière parcelle vers une icône Gardien !) ou l'installer tout de suite sur un rang 1–6 pour préparer une déviation ±1 dès la prochaine ouverture.",
+          "renoncement": "Défendre M2 chaque tour vide rapidement la réserve d'Écailles Reptiles vers le sac (maximisant la dilution, mais privant temporairement un effet comme G9 d'Écaille fraîche en réserve tant qu'aucune n'a été consommée)."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M2_T1",
+          "resume": "Au Tour 3, M2 est défendu alors qu'un Bulldozer allié en parcelle 4 est déjà passé en Ratissage (+1 jeton Rouge physique). Après sa production standard, M2 glisse 1 Écaille dans le sac opaque et pose +1 Insecte de la réserve directement en parcelle 4 sur le Bulldozer en Ratissage : à la Migration qui suit immédiatement, cet Insecte peut soit rester en parcelle 4 pour préparer une Parade Insecte + la cible du Téju, soit sauter directement de la parcelle 4 vers la Piste des Gardiens !",
+          "etat_attendu_verifie": {
+            "ecailles_ajoutees_sac": 1,
+            "insecte_parachute_parcelle_4": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Défendre régulièrement pour injecter les 4 Écailles dans le sac et parachuter l'Insecte thermique sur une parcelle en Ratissage (pour parer avec Le Téju ou migrer vers les pistes centrales).",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M3": {
+      "id": "M3",
+      "alias_oriente": "I>O",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "O",
+      "couple": [
+        "I",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "PONT_DE_SOIE_AERIEN_PROJECTION_DIRECTE_REGLETTE_PISTE",
+      "entrees_plancher": [
+        "NID_ACTIVE",
+        "DE_ENVOL",
+        "PLUME"
+      ],
+      "entrees_synergie": [
+        "GARDIEN"
+      ],
+      "entrees": [
+        "NID_ACTIVE",
+        "DE_ENVOL",
+        "PLUME",
+        "GARDIEN"
+      ],
+      "sorties": [
+        "INSECTE_RANG",
+        "INSECTE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "PONT_AERIEN",
+        "REGLETTE",
+        "TISSERANDS"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Nid Tisserand",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_PERCHOIR",
+          "PIC_PLUME",
+          "PIC_INSECTE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "1 🐜 du 🪹 → rang Dé d’Envol ou 🪶 · Si 🪶 rayon/Calme : +1 🐜 réserve ou icône",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "🦅/🪶 → projection directe 🐜 sur rang 1–6"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid Tisserand des Cimes, Hamac de Soie des Hauts Vents",
+        "entite_illustree": "Sphère aérienne de feuilles cousues de soie blanche dans la canopée d'où planent des fourmis tisserandes",
+        "brief_illustration": "Sphère aérienne de feuilles vertes cousues de soie blanche tout en haut d'une branche maîtresse, sous l'œil d'un oiseau de vigie, d'où des fourmis tisserandes se laissent planer au bout de longs fils argentés.",
+        "pitch_ambiance": "« Pourquoi ramper à travers les souches quand un seul fil tendu sous l'aile de l'oiseau suffit à traverser toute la canopée ? »",
+        "texte_regle": {
+          "face_1": "À l'étape de Production des Nids, immédiatement après que ce Nid défendu a produit ses Insectes (+1 ou +2, avant la Migration) :\n1. Fil d'Envol : prenez 1 Insecte présent sur la parcelle de ce Nid (ou sur une parcelle du rayon Oiseau) et placez-le directement sur le rang 1–6 de la Réglette indiqué par le Dé d'Envol de l'Oiseau — OU, si la Plume de Vigie est posée près d'un rang 1–6, sur ce rang (sans passer par la dernière parcelle).\n2. Brise de Vigie : si la Plume de Vigie est posée au pied du rayon de ce Nid ou du rayon Oiseau, OU si elle est sur sa face Calme, choisissez 1 bonus : ajoutez +1 Insecte de la réserve sur la parcelle de ce Nid, OU projetez 1 Insecte présent sur la parcelle de ce Nid directement sur l'icône de votre choix de la Piste des Gardiens (pour préparer un Bouclier de lisière ou l'appel du Colibri).",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Même construit dès le Tour 1 en parcelle 1, M3 contourne les 3 tours de marche vers la parcelle 4 : l'Oiseau choisit sous paravent s'il utilise sa Plume pour désigner un rang libre précis à l'Essaim ou s'il la pose face Calme au pied d'un rayon pour générer +1 Insecte ou un Bouclier de lisière instantané.",
+          "renoncement": "Projeter 2 Insectes hors du Nid en un seul tour dégarnit la parcelle du Nid et risque de ramener sa production suivante de +2 à +1 si moins de 2 Insectes y restent."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M3_T1",
+          "resume": "Dès le Tour 1, M3 est construit en parcelle 3 du rayon Insectes (sans machine au départ décalé !) et défendu au Tour 2. L'Oiseau a obtenu 4 sur son Dé d'Envol et posé sa Plume face Calme près du rang 2. Après production, M3 catapulte directement 1 Insecte sur le rang 2 (Plume) et gagne +1 Insecte bonus sur le Nid (face Calme) sans avoir jamais eu besoin d'atteindre la parcelle 4 !",
+          "etat_attendu_verifie": {
+            "insecte_projete_rang": 2,
+            "insecte_bonus_nid": 1
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Construire tôt même loin de la parcelle 4 pour alimenter dès le Tour 2 la Réglette 1–6 en déviations ±1 et déclencher la double repousse du Colibri (G15).",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M4": {
+      "id": "M4",
+      "alias_oriente": "I>H",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "H",
+      "couple": [
+        "I",
+        "H"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0",
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "LIANES_FORMIQUES_PIEGE_SABOTAGE_HARMONIE_CHANT_TERRA_PRETA_A0",
+      "entrees_plancher": [
+        "NID_ACTIVE",
+        "INSECTE"
+      ],
+      "entrees_synergie": [
+        "TAMBOUR",
+        "CHANT",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "TAMBOUR",
+        "CHANT",
+        "ROUGE",
+        "SOUCHE"
+      ],
+      "sorties": [
+        "PIEGE",
+        "SABOTAGE",
+        "BLEU",
+        "INSECTE_RANG",
+        "ARBRE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "ENRACINEMENT",
+        "PIEGE",
+        "TERRA_PRETA"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Fourmis Sacrées",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_PIEGE",
+          "PIC_SABOTAGE",
+          "PIC_BLEU",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "[-1 🐜 → +1 🪤 (🪹/H/🥁) OU +1 💥 sac & 🔴→🔵] + Si 🥁/🎶 : +1 🐜 (Réglette/🪹)",
+          "face_2": null,
+          "enracine": "Fin : +1 🪵 sur ≤ 2 parcelles (rayon H ou 🪤 / ≥ 2 🐜)"
+        },
+        "resume_plateau": "Tresse pièges, fertilise la fin"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Jardin des Fourmis Sacrées, Clairière du Pacte Ancien",
+        "entite_illustree": "Clairière d'arbres Duroia entretenue par des fourmis rousses et bordée de totems humains",
+        "brief_illustration": "Au cœur d'une clairière d'arbres Duroia entretenue par des millions de petites fourmis rousses et bordée de totems humains tressés de lianes-pièges, une terre noire fertile couve les jeunes pousses sous les souches calcinées.",
+        "pitch_ambiance": "« Autour du jardin sacré, les lianes mordent d'acide ; dessous, la terre noire des ancêtres attend l'heure de relever la futaie. »",
+        "texte_regle": {
+          "face_1": "À l'étape de Production des Nids, immédiatement après que ce Nid défendu a produit ses Insectes (+1 ou +2, avant la Migration) :\n1. Lianes Formiques : choisissez 1 seule des deux options suivantes :\n• Fosse de Lianes : défaussez 1 Insecte présent sur la parcelle de ce Nid (ou sur la parcelle portant le Tambour) pour poser immédiatement 1 Piège ordinaire sur une parcelle dépourvue de Piège ordinaire appartenant au rayon de ce Nid, au rayon Humain, ou au rayon portant le Tambour.\n• Cendre de Bivouac : glissez 1 jeton Sabotage ordinaire dans le sac opaque, ET sur 1 machine située sur le rayon de ce Nid ou sur le rayon portant le Tambour qui possède au moins 1 jeton Rouge, retournez 1 de ses jetons Rouges sur sa face Bleue Surchauffe.\n2. Harmonie du Chant : si le pion Tambour occupe la parcelle de ce Nid — OU si le pion Chant occupe actuellement un Rêve sur la Réglette — posez +1 jeton Insecte de la réserve directement sur un rang 1–6 de la Réglette ou sur la parcelle de ce Nid.",
+          "face_2": null,
+          "enracine": "Terre Noire des Ancêtres (Décompte final uniquement). Au décompte final (quelle que soit l'issue qui met fin à la partie), tant que la parcelle d'ancrage de cette tuile n'est pas devenue une Route Forestière, en plus de la 1 Souche retournée en Arbre debout sur sa parcelle d'ancrage, retournez jusqu'à 2 Souches survivantes supplémentaires en Arbres debout, choisies sur des parcelles distinctes appartenant au rayon Humain et/ou contenant au moins 1 Piège ordinaire ou au moins 2 Insectes (max 1 Souche supplémentaire par parcelle ainsi choisie)."
+        },
+        "decision_et_renoncement": {
+          "choix": "Sacrifier 1 Insecte pour poser un Piège autonome par Fosse de Lianes, ou diluer le sac et refroidir une machine par Cendre de Bivouac ; enraciner M4 sans bloquer le Sommeil pour régénérer jusqu'à 3 Souches au décompte final.",
+          "renoncement": "Enraciner M4 renonce définitivement à sa fabrique de Pièges et de Sabotages ; Fosse de Lianes consomme 1 Insecte qui peut faire redescendre le Nid sous 2 Insectes."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M4_T1",
+          "resume": "Tour 6 (table {H, E, I} visant le Sommeil), M4 en parcelle 1 de I (2 Insectes, défendu), Chant sur un Rêve : produit +2 (4), dépense 1 Insecte pour 1 Piège en H·3 (Fosse de Lianes) et regagne +1 Insecte (Harmonie du Chant). Enraciné au ménage du Tour 6 sans bloquer le Sommeil, il retourne 3 Souches en Arbres debout au décompte final du Tour 7.",
+          "etat_attendu_verifie": {
+            "piege_h3": true,
+            "souches_finales": 3
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Produire des Pièges sur H/I via Fosse de Lianes quand le Chant compense l'Insecte dépensé, ou diluer le sac par Cendre de Bivouac ; enraciner M4 en fin de partie (compatible Sommeil) pour +3 Arbres finaux.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M5": {
+      "id": "M5",
+      "alias_oriente": "I>E",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "E",
+      "couple": [
+        "I",
+        "E"
+      ],
+      "cycle": "PASSIF_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0",
+        "LOI_PASSIVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "LOI_PASSIVE_SPORES_DEVIATION_REVE_ALTERATION_RECYCLAGE_FILAMENTS_A0",
+      "entrees_plancher": [
+        "NID_ACTIVE",
+        "INSECTE"
+      ],
+      "entrees_synergie": [
+        "INSECTE_RANG",
+        "POSITION_REVE"
+      ],
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "INSECTE_RANG",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "ALTERATION",
+        "INSECTE_RANG",
+        "INSECTE"
+      ],
+      "paiement": [],
+      "nature": "LOI_PASSIVE",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "LOI_PASSIVE",
+        "DEVIATION",
+        "ALTERATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Mycélium Luminescent",
+        "fenetre_badge": "PERMANENT",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_LOI_PASSIVE",
+          "PIC_REVE",
+          "PIC_ALTERATION",
+          "PIC_INSECTE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Passif : Déviation ±1 vers 🌙 → +1 🌀 & recycle 🐜 sur M5 (si <2) · Production → 1 🐜 vers Réglette OU +1 🌀",
+          "face_2": null,
+          "enracine": "Standard (1 Souche finale)"
+        },
+        "resume_plateau": "Déviations vers rêves altèrent, recyclent"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Mycélium Luminescent, Réseau Spectral des Racines Noires",
+        "entite_illustree": "Entrelacs de champignons bioluminescents bleu-vert sous un grand arbre creux",
+        "brief_illustration": "Sous l'humus sombre d'un grand arbre creux colonisé par les insectes, un entrelacs de champignons bioluminescents bleu-vert relie les galeries souterraines jusqu'aux chenilles d'un bulldozer égaré dans une brume de spores.",
+        "pitch_ambiance": "« Ce que l'insecte touche là-haut résonne aussitôt sous l'humus : un seul pas de travers dans les spores plonge la machine dans un cauchemar éveillé. »",
+        "texte_regle": {
+          "face_1": "Tant que ce Nid est en forêt (même sans Défenseur posé sur lui — et en plus de sa production standard +1 ou +2 lorsqu'il est défendu) :\n• Spores de Déviation (À l'ouverture) : chaque fois qu'un Insecte posé sur la Réglette est défaussé à l'ouverture pour décaler le dé d'une machine (±1) vers un rang portant un Rêve (défendu ou non), posez immédiatement 1 jeton d'Altération de la réserve Entités sur cette machine mobile si elle n'en porte pas encore (elle peut ensuite être annulée normalement si ce Rêve est défendu) ; de plus, si la parcelle de ce Nid contient alors strictement moins de 2 Insectes, replacez cet Insecte sur la parcelle de ce Nid au lieu de le remettre en réserve.\n• Filaments Oniriques (À la Production des Nids) : lorsque ce Nid est défendu à l'étape de Production, après sa production standard (+1 ou +2, avant la Migration), choisissez 1 effet : transférez directement 1 Insecte présent sur sa parcelle vers le rang 1–6 de votre choix de la Réglette, OU posez 1 jeton d'Altération de la réserve Entités sur une machine mobile qui n'en porte pas encore.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Expédier 1 Insecte sur la Réglette à la Production pour amorcer la boucle Spores de Déviation (en restant sous 2 Insectes pour recycler gratuitement l'ouvrière), ou poser immédiatement 1 Altération directe.",
+          "renoncement": "Rester sous 2 Insectes sur M5 maintient sa production à +1 au lieu de +2 ; dévier une machine vers un Rêve non défendu lui inflige une Altération mais ne l'annule pas à ce tour."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M5_T1",
+          "resume": "Tour 3, M5 défendu (0 Insecte) produit +1 et envoie cet Insecte sur le rang 4 via Filaments Oniriques (M5 revient à 0). À l'ouverture du Tour 4, I dévie une Abatteuse du rang 4 vers le Rêve du rang 3 : Spores de Déviation pose 1 Altération sur l'Abatteuse et replace l'Insecte sur M5 (< 2 Insectes), puis le Rêve défendu annule l'Abatteuse à ce tour.",
+          "etat_attendu_verifie": {
+            "alteration_posee": true,
+            "insecte_recycle_m5": true
+          },
+          "statut": "A_CODER"
+        }
+      ],
+      "heuristique_bot": "Maintenir un flux d'Insectes sur les rangs adjacents aux Rêves via Filaments Oniriques pour transformer chaque déviation ±1 en double neutralisation (annulation + Altération) avec recyclage gratuit sur M5.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    }
+  }
+}
