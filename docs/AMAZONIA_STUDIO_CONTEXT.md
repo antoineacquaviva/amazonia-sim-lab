@@ -15,9 +15,9 @@
 - **Architecture Source Unique de Vérité (SSOT)** :
   1. `contracts/rules_canon_v6_2.json` : contrat formel typé unique du socle (châssis unique verrouillé `P4_2233` départ décalé `Bulldozer p=1 / Abatteuse p=2`, matériel fini recto-verso, sac opaque, supports fixes, formule de Seuil, 6 icônes Gardiens, séquence du tour, 3 modules, accessoires `3 + 3`, Enracinement volontaire).
   2. `contracts/physical_and_edge_invariants.json` : registre permanent des **22 invariants** (`INV-01` à `INV-22`, catégories `MATERIEL`, `CAS_LIMITE`, `GOUVERNANCE`) avec assertions vérifiables dans le livret joueur (`data-inv="INV-XX"`).
-  3. `contracts/tiles_canon_v6_2.json` : archive de référence sanctuarisée du `Canon 0` `v6.2` (`30` emplacements, `35` témoins, maintenue transitoirement pour le rendu Explorateur jusqu'à l'Étape 5 de la `v6.3`).
-  4. `contracts/tiles_canon_v6_3.json` & `contracts/tiles_canon_v6_3.schema.json` : contrat bi-composant `v6.3` (`tuile_plateau` + `carte_joueur`, audité par `scripts/audit_197.py` sans aucune limite de mots/phrases/conditions — `I07`).
-  5. **Compilateur dérivé unique** (`scripts/build_studio_artifacts.py`) : génère sans aucune constante métier codée en dur les fichiers dérivés de `docs/data/` (`amazonia_data_v6_0.js`, `catalog_v6_0.json`, `spec_formelle_v6_0.json`) ainsi que `data/spec_bundle_v6_0.json` et `data/studio_lock.json` (avec adaptateur transparent `v6.2`/`v6.3`).
+  3. `contracts/tiles_canon_v6_2.json` : archive de référence sanctuarisée du `Canon 0` `v6.2` (`30` emplacements, `35` témoins, accessible en lecture seule via `Archive v6.2` dans l'Explorateur).
+  4. `contracts/panels/panel_{1,2,3}.json` & `contracts/tiles_canon_v6_3.{json,schema.json}` : 3 panels candidats `v6.3.1` bi-composants (`tuile_plateau` + `carte_joueur`, audités par `scripts/audit_197.py` sans aucune limite de mots/phrases/conditions — `I07`) + sauvegarde optionnelle d'auteur `contracts/panels/author_workspace_v6_3.json`.
+  5. **Compilateur dérivé unique** (`scripts/build_studio_artifacts.py`) : génère sans aucune constante métier codée en dur les fichiers dérivés de `docs/data/` (`amazonia_data_v6_0.js`, `catalog_v6_0.json`, `spec_formelle_v6_0.json`, `panels_v6_3_data.js`) ainsi que `data/spec_bundle_v6_0.json` et `data/studio_lock.json`.
 
 ---
 
@@ -67,16 +67,19 @@ scripts/
 
 docs/
 ├── index.html                         # SPA statique sans bundler (file:// & HTTPS), châssis verrouillé (0 écart)
+├── explorer_v6_3.js                   # Explorateur Bi-Composant & Atelier Draft Multi-Panels (v6.3.1)
+├── explorer_v6_3.css                  # Design system Mini-Tuile / Grande Carte / Duel / Simulateur / Atelier
 ├── AMAZONIA_STUDIO_CONTEXT.md         # Présent référentiel
 └── data/
-    ├── amazonia_data_v6_0.js          # Dérivé JS (CATALOGUE_TUILES Canon 0, CHASSIS_AXES_SPEC verrouillé, INV)
-    ├── livret_v6_0.js                 # Livret joueur (refonte modulaire prévue au Chantier 2)
+    ├── amazonia_data_v6_0.js          # Dérivé JS (CATALOGUE_TUILES Archive v6.2, CHASSIS_AXES_SPEC verrouillé, INV)
+    ├── panels_v6_3_data.js            # Dérivé JS (3 panels v6.3.1, 32 pictogrammes, casting Gardiens, workspace initial)
+    ├── livret_v6_0.js                 # Livret joueur modulaire v6.2 (data-inv="INV-01".."INV-22")
     ├── catalog_v6_0.json              # Miroir JSON dérivé v6.2
     └── spec_formelle_v6_0.json        # Contrat formel dérivé v6.2
 ```
 
 - **Bandeau configurateur** : châssis verrouillé sur le standard unique `P4_2233` départ décalé (`Placement_Initial_Machines.defaultVal = "BULLDOZER_P1_ABATTEUSE_P2"`, `0 écart` à l'ouverture comme après `resetChassisToDefault()`, axes morts neutralisés), sélecteur de cercle `3..6` Peuples, sélecteur de bilan `digests/index.json` + copie 1-tap `📋 Copier Bilan Gemini` + export contextuel `✨ Copier contexte Gemini`.
-- **4 Vues synchronisées** : `1. Livret Didactique`, `2. Explorateur (30 Profils Canon 0)`, `3. Évolutions & Arbitrages`, `4. Spec & JSON`.
+- **4 Vues synchronisées** : `1. Livret Didactique`, `2. Explorateur & Atelier v6.3` (3 sous-vues : *Explorateur & Duel P1·P2·P3*, *Simulateur de Table 3–6J*, *Tableau de bord Mon Canon* + Radar 197 assises temps réel + Passerelles Gemini/Antigravity), `3. Évolutions & Arbitrages`, `4. Spec & JSON`.
 
 ---
 

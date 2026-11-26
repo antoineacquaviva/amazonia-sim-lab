@@ -247,6 +247,7 @@
     }
   </style>
   <link rel="stylesheet" href="explorer_v6_2.css" />
+  <link rel="stylesheet" href="explorer_v6_3.css" />
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col">
 
@@ -420,7 +421,7 @@
           📖 1. Livret Didactique
         </button>
         <button onclick="switchTab('catalogue')" id="tab-btn-catalogue" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
-          🧩 2. Explorateur (30 Profils Canon 0)
+          🧩 2. Explorateur &amp; Atelier v6.3
         </button>
         <button onclick="switchTab('changelog')" id="tab-btn-changelog" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
           🔍 3. Évolutions & Arbitrages
@@ -507,15 +508,18 @@
     <!-- ONGLET 2 : EXPLORATEUR COMPLET DES 30 EMPLACEMENTS CANON 0          -->
     <!-- =================================================================== -->
     <section id="view-catalogue" class="hidden space-y-5 no-print">
-      <!-- Bandeau Fondation SSOT v6.2 -->
-      <div class="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-2">
+      <!-- Bandeau Fondation SSOT v6.2 (masqué automatiquement par l'Atelier v6.3) -->
+      <div id="v62-catalogue-banner" class="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-2">
         <div>
           <span class="font-bold">🌿 Fondation SSOT v6.2 (Canon 0 · 30 tuiles épurées · 48 faces · 197 assises auditées) :</span>
           Socle épuré (P4_2233, départ décalé Bulldozer p=1 / Abatteuse p=2, sac opaque de jetons, Réglette fixe à bandelette d’Acte, 6 icônes Gardiens avec Résonance en 6e et 2 encoches visibles), Asymétrie Hybride 3+3 et Enracinement volontaire.
         </div>
       </div>
 
-      <!-- Explorateur v6.2 (3 Modes, 197 Assises, Rayons X & Filtres multi-critères) -->
+      <!-- Explorateur Bi-Composant & Atelier Draft v6.3.1 -->
+      <div id="explorer-v6-3-toolbar"></div>
+
+      <!-- Explorateur v6.2 (repli si explorer_v6_3.js non chargé) -->
       <div id="explorer-v6-2-toolbar"></div>
 
       <!-- Barre de filtres multicritères (repli headless si explorer_v6_2.js non chargé) -->
@@ -713,6 +717,8 @@
   <script src="data/livret_v6_0.js"></script>
   <script src="tile_illustrations_v6_2.js"></script>
   <script src="explorer_v6_2.js"></script>
+  <script src="data/panels_v6_3_data.js"></script>
+  <script src="explorer_v6_3.js"></script>
   <script>
     // 5. ÉTAT RÉACTIF DE L'INSTANCE EN COURS
     // -------------------------------------------------------------------------
@@ -1859,6 +1865,10 @@
     // 11. RENDU DE L'EXPLORATEUR DES 116 PROFILS (ONGLET 2)
     // -------------------------------------------------------------------------
     function renderCatalogue() {
+      if (typeof window.AmazoniaExplorerV63 !== 'undefined' && typeof window.AmazoniaExplorerV63.render === 'function') {
+        window.AmazoniaExplorerV63.render();
+        return;
+      }
       if (typeof window.AmazoniaExplorerV62 !== 'undefined' && typeof window.AmazoniaExplorerV62.render === 'function') {
         window.AmazoniaExplorerV62.render();
         return;
@@ -2164,6 +2174,9 @@
     // 13b. EXPORT CONTEXTUEL CIBLÉ POUR GEMINI
     // -------------------------------------------------------------------------
     function getFilteredCatalogueSelection() {
+      if (typeof window.AmazoniaExplorerV63 !== 'undefined' && typeof window.AmazoniaExplorerV63.getFilteredSelection === 'function') {
+        return window.AmazoniaExplorerV63.getFilteredSelection();
+      }
       if (typeof window.AmazoniaExplorerV62 !== 'undefined' && typeof window.AmazoniaExplorerV62.getFilteredSelection === 'function') {
         return window.AmazoniaExplorerV62.getFilteredSelection();
       }

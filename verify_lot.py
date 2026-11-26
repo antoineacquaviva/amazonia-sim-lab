@@ -554,7 +554,11 @@ def verify_tiles_canon() -> None:
     if not PANELS_DIR.is_dir():
         errors.append(f"Répertoire multi-panels manquant : {PANELS_DIR}")
     else:
-        panel_jsons = sorted(p for p in PANELS_DIR.glob("*.json") if p.is_file())
+        panel_jsons = sorted(
+            p
+            for p in PANELS_DIR.glob("*.json")
+            if p.is_file() and not p.name.startswith("author_workspace")
+        )
         if panel_jsons:
             try:
                 batch = audit_panels_directory(PANELS_DIR, allow_draft=False)

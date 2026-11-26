@@ -1285,7 +1285,11 @@ def audit_panels_directory(
     if not panels_dir.is_dir():
         raise FileNotFoundError(f"Répertoire de panels introuvable : {panels_dir}")
 
-    panel_files = sorted(p for p in panels_dir.glob("*.json") if p.is_file())
+    panel_files = sorted(
+        p
+        for p in panels_dir.glob("*.json")
+        if p.is_file() and not p.name.startswith("author_workspace")
+    )
     summaries: list[dict[str, Any]] = []
     reports: dict[str, dict[str, Any]] = {}
 

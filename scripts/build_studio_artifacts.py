@@ -34,10 +34,14 @@ DATA_DIR = ROOT / "data"
 RULES_CONTRACT_PATH = CONTRACTS_DIR / "rules_canon_v6_2.json"
 INVARIANTS_CONTRACT_PATH = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_2.json"
+PANELS_DIR = CONTRACTS_DIR / "panels"
+AUTHOR_WORKSPACE_PATH = PANELS_DIR / "author_workspace_v6_3.json"
+PANEL_IDS_V6_3: tuple[str, ...] = ("panel_1", "panel_2", "panel_3")
 
 OUT_DOCS_SPEC = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
 OUT_DOCS_CATALOG = DOCS_DATA_DIR / "catalog_v6_0.json"
 OUT_DOCS_JS = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
+OUT_DOCS_PANELS_V6_3_JS = DOCS_DATA_DIR / "panels_v6_3_data.js"
 DOCS_LIVRET_JS = DOCS_DATA_DIR / "livret_v6_0.js"
 
 OUT_DATA_SPEC = DATA_DIR / "spec_formelle_v6_0.json"
@@ -400,6 +404,97 @@ def _build_amazonia_js(
     return "\n".join(sections)
 
 
+def compile_panels_v6_3_js(
+    panels_dir: Path = PANELS_DIR,
+    workspace_path: Path | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Compile `docs/data/panels_v6_3_data.js` (3 panels v6.3.1, 32 pictos, workspace initial)."""
+    from scripts.tiles_v6_3_schema import (
+        DEFAULT_REFERENTIEL_PICTOGRAMMES,
+        LOCKED_GARDIEN_CASTING_V6_3,
+        SLOTS_SPEC_30,
+    )
+
+    panels_payload: dict[str, Any] = {}
+    panel_files_used: list[Path] = []
+    referentiel_pictos: dict[str, Any] = copy.deepcopy(DEFAULT_REFERENTIEL_PICTOGRAMMES)
+
+    for pid in PANEL_IDS_V6_3:
+        pfile = panels_dir / f"{pid}.json"
+        if not pfile.is_file():
+            continue
+        raw_doc: dict[str, Any] = json.loads(pfile.read_text(encoding="utf-8"))
+        if isinstance(raw_doc.get("referentiel_pictogrammes"), dict):
+            for pcode, pentry in raw_doc["referentiel_pictogrammes"].items():
+                if pcode in referentiel_pictos and isinstance(pentry, dict):
+                    referentiel_pictos[pcode] = copy.deepcopy(pentry)
+        panels_payload[pid] = {
+            "_meta": copy.deepcopy(raw_doc.get("_meta") or {}),
+            "carte_des_roles": copy.deepcopy(raw_doc.get("carte_des_roles") or {}),
+            "rapport_audit_197": copy.deepcopy(raw_doc.get("rapport_audit_197") or {}),
+            "tuiles_ciblees": copy.deepcopy(raw_doc.get("tuiles_ciblees") or {}),
+        }
+        panel_files_used.append(pfile)
+
+    ws_file = workspace_path if workspace_path is not None else (panels_dir / "author_workspace_v6_3.json")
+    initial_workspace: dict[str, Any] | None = None
+    ws_used: Path | None = None
+    if ws_file.is_file():
+        loaded_ws = json.loads(ws_file.read_text(encoding="utf-8"))
+        if isinstance(loaded_ws, dict):
+            initial_workspace = loaded_ws
+            ws_used = ws_file
+
+    slots_spec = [
+        {
+            "id": sid,
+            "famille": fam,
+            "origine": orig,
+            "voisin": vois,
+            "alias_oriente": alias,
+        }
+        for sid, fam, orig, vois, alias in SLOTS_SPEC_30
+    ]
+
+    casting_out = {
+        sid: {
+            "alias_oriente": next(a for s, _f, _o, _v, a in SLOTS_SPEC_30 if s == sid),
+            "nom_animal": animal,
+            "origine": next(o for s, _f, o, _v, _a in SLOTS_SPEC_30 if s == sid),
+            "voisin": next(v for s, _f, _o, v, _a in SLOTS_SPEC_30 if s == sid),
+        }
+        for sid, animal in LOCKED_GARDIEN_CASTING_V6_3.items()
+    }
+
+    sections = [
+        "// =========================================================================",
+        (
+            "// data/panels_v6_3_data.js — Généré automatiquement depuis contracts/panels/ "
+            f"(Atelier v6.3.1 · {len(panels_payload)} panels · {len(referentiel_pictos)} pictogrammes)"
+        ),
+        "// NE PAS ÉDITER À LA MAIN : exécuter `uv run python scripts/build_studio_artifacts.py`.",
+        "// =========================================================================",
+        f"const REFERENTIEL_PICTOGRAMMES_V6_3 = {json.dumps(referentiel_pictos, indent=2, ensure_ascii=False)};",
+        "",
+        f"const CASTING_GARDIENS_V6_3 = {json.dumps(casting_out, indent=2, ensure_ascii=False)};",
+        "",
+        f"const SLOTS_SPEC_V6_3 = {json.dumps(slots_spec, indent=2, ensure_ascii=False)};",
+        "",
+        f"const PANELS_V6_3 = {json.dumps(panels_payload, indent=2, ensure_ascii=False)};",
+        "",
+        f"const AUTHOR_WORKSPACE_INITIAL_V6_3 = {json.dumps(initial_workspace, indent=2, ensure_ascii=False)};",
+        "",
+    ]
+    js_src = "\n".join(sections)
+    _validate_js_syntax(js_src, "docs/data/panels_v6_3_data.js")
+    return js_src, {
+        "panels_count": len(panels_payload),
+        "pictograms_count": len(referentiel_pictos),
+        "panel_files": panel_files_used,
+        "workspace_file": ws_used,
+    }
+
+
 def compile_studio_payloads(
     rules: dict[str, Any],
     invariants: dict[str, Any],
@@ -420,10 +515,12 @@ def compile_studio_payloads(
 
 
 def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, Any]:
-    """Compile l'ensemble des artefacts dérivés depuis les 3 contrats SSOT de `contracts/`.
+    """Compile l'ensemble des artefacts dérivés depuis les contrats SSOT de `contracts/`.
 
     Accepte un `tiles_contract_path` optionnel (par défaut `contracts/tiles_canon_v6_2.json`,
     compatible de manière transparente avec le schéma bi-composant `tiles_canon_v6_3.json`).
+    Compile également `docs/data/panels_v6_3_data.js` (3 panels `v6.3.1`, 32 pictogrammes et
+    éventuel `author_workspace_v6_3.json` initial) pour l'Atelier Doc Studio.
     """
     active_tiles_path = tiles_contract_path or TILES_CONTRACT_PATH
     for req in (RULES_CONTRACT_PATH, INVARIANTS_CONTRACT_PATH, active_tiles_path):
@@ -438,11 +535,13 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
     spec_formelle, catalog_doc, amazonia_js, tiles = compile_studio_payloads(
         rules, invariants, raw_tiles, existing_changelog
     )
+    panels_v6_3_js, panels_meta = compile_panels_v6_3_js(PANELS_DIR, AUTHOR_WORKSPACE_PATH)
 
     # 1. Écriture des artefacts Studio (docs/data/)
     _write_json(OUT_DOCS_SPEC, spec_formelle)
     _write_json(OUT_DOCS_CATALOG, catalog_doc)
     _write_text_lf(OUT_DOCS_JS, amazonia_js)
+    _write_text_lf(OUT_DOCS_PANELS_V6_3_JS, panels_v6_3_js)
 
     # 2. Miroirs data/ et verrou SHA-256 data/studio_lock.json
     _write_json(OUT_DATA_SPEC, spec_formelle)
@@ -453,12 +552,19 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
         "spec_formelle_v6_0.json": _file_lock_entry(OUT_DOCS_SPEC),
         "amazonia_data_v6_0.js": _file_lock_entry(OUT_DOCS_JS),
         "livret_v6_0.js": _file_lock_entry(DOCS_LIVRET_JS),
+        "panels_v6_3_data.js": _file_lock_entry(OUT_DOCS_PANELS_V6_3_JS),
     }
     contracts_sha256: dict[str, dict[str, object]] = {
         "rules_canon_v6_2.json": _file_lock_entry(RULES_CONTRACT_PATH),
         "physical_and_edge_invariants.json": _file_lock_entry(INVARIANTS_CONTRACT_PATH),
         active_tiles_path.name: _file_lock_entry(active_tiles_path),
     }
+    for pfile in panels_meta["panel_files"]:
+        rel_panel = pfile.relative_to(CONTRACTS_DIR).as_posix()
+        contracts_sha256[rel_panel] = _file_lock_entry(pfile)
+    if panels_meta["workspace_file"] is not None:
+        ws_rel = panels_meta["workspace_file"].relative_to(CONTRACTS_DIR).as_posix()
+        contracts_sha256[ws_rel] = _file_lock_entry(panels_meta["workspace_file"])
 
     lock_payload: dict[str, Any] = {
         "studio_version": "v6.2",
@@ -559,6 +665,8 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
         "slots": bundle["meta"]["total_emplacements"],
         "profiles": bundle["meta"]["total_profils"],
         "invariants": len(invariants["invariants"]),
+        "panels_v6_3": panels_meta["panels_count"],
+        "pictograms_v6_3": panels_meta["pictograms_count"],
     }
 
 
@@ -567,7 +675,8 @@ def main() -> int:
     print(
         f"build_studio_artifacts.py : OK (v{summary['schema_version']}, "
         f"{summary['slots']} slots, {summary['profiles']} profils, "
-        f"{summary['invariants']} invariants)"
+        f"{summary['invariants']} invariants, "
+        f"{summary['panels_v6_3']} panels v6.3.1, {summary['pictograms_v6_3']} pictos)"
     )
     return 0
 
