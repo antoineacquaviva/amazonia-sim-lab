@@ -1,0 +1,4179 @@
+{
+  "_meta": {
+    "projet": "Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)",
+    "schema_version": "6.3.0-candidat",
+    "socle_verrouille": "6.2.0",
+    "cadrage_source": "docs/cadrage_tuiles_v6_3.md",
+    "etape_active": "ETAPE_2_CONCEPTION_CREATIVE",
+    "statut_global": "CONCEPTION_EN_COURS",
+    "genere_le": "2026-11-25",
+    "slots_count": 30,
+    "c02_supprime": true,
+    "note_retrocompatibilite": "Panel candidat de Passe 1 sur socle 6.2.0. Témoins locaux reproductibles. Intégration au moteur et équilibre en parties à tester."
+  },
+  "referentiel_pictogrammes": {
+    "PIC_ARBRE": {
+      "code": "PIC_ARBRE",
+      "categorie": "FORET",
+      "libelle": "Arbre debout",
+      "symbole": "🌳"
+    },
+    "PIC_SOUCHE": {
+      "code": "PIC_SOUCHE",
+      "categorie": "FORET",
+      "libelle": "Souche (retournable en Arbre)",
+      "symbole": "🪵"
+    },
+    "PIC_ROUTE": {
+      "code": "PIC_ROUTE",
+      "categorie": "FORET",
+      "libelle": "Route forestière",
+      "symbole": "🛣️"
+    },
+    "PIC_ENRACINEMENT": {
+      "code": "PIC_ENRACINEMENT",
+      "categorie": "FORET",
+      "libelle": "Enracinement volontaire",
+      "symbole": "🌱"
+    },
+    "PIC_DEFENSEUR": {
+      "code": "PIC_DEFENSEUR",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur",
+      "symbole": "🛡️"
+    },
+    "PIC_DEFENSEUR_ATTENTE": {
+      "code": "PIC_DEFENSEUR_ATTENTE",
+      "categorie": "DEFENSE",
+      "libelle": "Défenseur en attente (bâtisseur / rive / Rêve)",
+      "symbole": "♻️"
+    },
+    "PIC_PIEGE": {
+      "code": "PIC_PIEGE",
+      "categorie": "DEFENSE",
+      "libelle": "Piège autonome",
+      "symbole": "🪤"
+    },
+    "PIC_CROC": {
+      "code": "PIC_CROC",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Croc Reptile (réutilisable)",
+      "symbole": "🦷"
+    },
+    "PIC_SABOTAGE": {
+      "code": "PIC_SABOTAGE",
+      "categorie": "SAC",
+      "libelle": "Jeton Sabotage (sac opaque)",
+      "symbole": "💥"
+    },
+    "PIC_ECAILLE": {
+      "code": "PIC_ECAILLE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Sabotage Écaille (Reptiles)",
+      "symbole": "🦎"
+    },
+    "PIC_DES_PARAVENT": {
+      "code": "PIC_DES_PARAVENT",
+      "categorie": "SAC",
+      "libelle": "Dés lancés sous paravent",
+      "symbole": "🎲"
+    },
+    "PIC_ROUGE": {
+      "code": "PIC_ROUGE",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Puissance Rouge (+1)",
+      "symbole": "🔴"
+    },
+    "PIC_BLEU": {
+      "code": "PIC_BLEU",
+      "categorie": "MACHINES",
+      "libelle": "Jeton Surchauffe Bleu (−1 tous modes)",
+      "symbole": "🔵"
+    },
+    "PIC_RECUL": {
+      "code": "PIC_RECUL",
+      "categorie": "MACHINES",
+      "libelle": "Recul de machine (−1 parcelle)",
+      "symbole": "⏪"
+    },
+    "PIC_CALE": {
+      "code": "PIC_CALE",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Cale sous machine mobile (Reptiles)",
+      "symbole": "🧱"
+    },
+    "PIC_ALTERATION": {
+      "code": "PIC_ALTERATION",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Altération (Entités)",
+      "symbole": "🌀"
+    },
+    "PIC_RANG_MACHINE": {
+      "code": "PIC_RANG_MACHINE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Rang de machine sur la Réglette 1–6",
+      "symbole": "🔢"
+    },
+    "PIC_REVE": {
+      "code": "PIC_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Tuile Rêve sur la Réglette 1–6",
+      "symbole": "🌙"
+    },
+    "PIC_AVANCEE_REVE": {
+      "code": "PIC_AVANCEE_REVE",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Déplacement / avancée de Rêve",
+      "symbole": "⬅️"
+    },
+    "PIC_ANNULATION": {
+      "code": "PIC_ANNULATION",
+      "categorie": "PISTE_TACTIQUES",
+      "libelle": "Machine annulée (jeton incliné 90°)",
+      "symbole": "🚫"
+    },
+    "PIC_PARI_ENCOCHE": {
+      "code": "PIC_PARI_ENCOCHE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Encoche / sécurisation de pari Gardien",
+      "symbole": "⭐"
+    },
+    "PIC_RESONANCE": {
+      "code": "PIC_RESONANCE",
+      "categorie": "PISTE_GARDIENS",
+      "libelle": "Icône Résonance / cascade de Gardiens",
+      "symbole": "🔔"
+    },
+    "PIC_TAMBOUR": {
+      "code": "PIC_TAMBOUR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Tambour (Humains)",
+      "symbole": "🥁"
+    },
+    "PIC_CHANT": {
+      "code": "PIC_CHANT",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Chamane Chant (Humains)",
+      "symbole": "🎶"
+    },
+    "PIC_DUEL": {
+      "code": "PIC_DUEL",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Jeton Duel — Défi / Territoire tenu (Mammifères)",
+      "symbole": "⚔️"
+    },
+    "PIC_PLUME": {
+      "code": "PIC_PLUME",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Plume de Vigie — Chaud / Calme (Oiseaux)",
+      "symbole": "🪶"
+    },
+    "PIC_PERCHOIR": {
+      "code": "PIC_PERCHOIR",
+      "categorie": "ACCESSOIRES",
+      "libelle": "Perchoir de Vigie & Dé d’Envol (Oiseaux)",
+      "symbole": "🦅"
+    },
+    "PIC_INSECTE": {
+      "code": "PIC_INSECTE",
+      "categorie": "ESSAIM",
+      "libelle": "Jeton Insecte (exclusif lisières de I)",
+      "symbole": "🐜"
+    },
+    "PIC_NID": {
+      "code": "PIC_NID",
+      "categorie": "ESSAIM",
+      "libelle": "Nid de l’Essaim (exclusif lisières de I)",
+      "symbole": "🪹"
+    },
+    "PIC_MIGRATION": {
+      "code": "PIC_MIGRATION",
+      "categorie": "ESSAIM",
+      "libelle": "Migration / phorésie de l’Essaim",
+      "symbole": "➡️"
+    },
+    "PIC_LOI_PASSIVE": {
+      "code": "PIC_LOI_PASSIVE",
+      "categorie": "ACTION",
+      "libelle": "Loi passive permanente",
+      "symbole": "⚖️"
+    },
+    "PIC_TWIST": {
+      "code": "PIC_TWIST",
+      "categorie": "ACTION",
+      "libelle": "Brique-Twist 2K3",
+      "symbole": "⚡"
+    }
+  },
+  "casting_gardiens_verrouille": {
+    "G1": {
+      "alias_oriente": "M>R",
+      "nom_animal": "Le Jaguar",
+      "origine": "M",
+      "voisin": "R"
+    },
+    "G2": {
+      "alias_oriente": "R>M",
+      "nom_animal": "L’Anaconda vert",
+      "origine": "R",
+      "voisin": "M"
+    },
+    "G3": {
+      "alias_oriente": "M>O",
+      "nom_animal": "L’Atèle",
+      "origine": "M",
+      "voisin": "O"
+    },
+    "G4": {
+      "alias_oriente": "O>M",
+      "nom_animal": "L’Ara rouge",
+      "origine": "O",
+      "voisin": "M"
+    },
+    "G5": {
+      "alias_oriente": "R>O",
+      "nom_animal": "L’Iguane vert",
+      "origine": "R",
+      "voisin": "O"
+    },
+    "G6": {
+      "alias_oriente": "O>R",
+      "nom_animal": "Le Toucan toco",
+      "origine": "O",
+      "voisin": "R"
+    },
+    "G7": {
+      "alias_oriente": "M>H",
+      "nom_animal": "Le Tapir",
+      "origine": "M",
+      "voisin": "H"
+    },
+    "G8": {
+      "alias_oriente": "M>E",
+      "nom_animal": "Le Boto",
+      "origine": "M",
+      "voisin": "E"
+    },
+    "G9": {
+      "alias_oriente": "R>H",
+      "nom_animal": "Le Caïman noir",
+      "origine": "R",
+      "voisin": "H"
+    },
+    "G10": {
+      "alias_oriente": "R>E",
+      "nom_animal": "La Matamata",
+      "origine": "R",
+      "voisin": "E"
+    },
+    "G11": {
+      "alias_oriente": "O>H",
+      "nom_animal": "La Harpie féroce",
+      "origine": "O",
+      "voisin": "H"
+    },
+    "G12": {
+      "alias_oriente": "O>E",
+      "nom_animal": "L’Ibijau",
+      "origine": "O",
+      "voisin": "E"
+    },
+    "G13": {
+      "alias_oriente": "M>I",
+      "nom_animal": "Le Tamanoir",
+      "origine": "M",
+      "voisin": "I"
+    },
+    "G14": {
+      "alias_oriente": "R>I",
+      "nom_animal": "Le Téju",
+      "origine": "R",
+      "voisin": "I"
+    },
+    "G15": {
+      "alias_oriente": "O>I",
+      "nom_animal": "Le Colibri",
+      "origine": "O",
+      "voisin": "I"
+    }
+  },
+  "carte_des_roles": {
+    "statut": "PASSE_1_CREATIF",
+    "roles": {
+      "catalyseurs_eveil": [
+        "G1",
+        "G2",
+        "G3",
+        "G4",
+        "G6",
+        "G7",
+        "G8",
+        "G10",
+        "G11",
+        "G12",
+        "G13",
+        "G14",
+        "G15"
+      ],
+      "leviers_reve": [
+        "R1",
+        "R7",
+        "R8",
+        "R9",
+        "R10"
+      ],
+      "synergies_enracinement": [
+        "G7",
+        "G12",
+        "R2",
+        "M4"
+      ],
+      "lois_passives": [
+        "M1",
+        "R8"
+      ],
+      "autonomie_A0": [
+        "R1",
+        "R2",
+        "R6",
+        "R10",
+        "M4",
+        "M5"
+      ],
+      "twists_2K3": [
+        "M1",
+        "G3",
+        "G15",
+        "R1",
+        "R8",
+        "G9"
+      ]
+    },
+    "triangles_orientes": [
+      [
+        "I>M",
+        "M>O",
+        "O>I"
+      ],
+      [
+        "H>E",
+        "E>R",
+        "R>H"
+      ]
+    ],
+    "lecture_des_cartes": {
+      "gouvernance": "« Vous » désigne le peuple d’origine. Chaque option est facultative et exige une cible légale, un coût disponible et la pièce annoncée. Aucun prélèvement dans le sac. Un rang libre de Rêve peut porter des dés ou des Insectes.",
+      "chronologie": "Un Rêve défendu annule d’abord une machine active de son rang par Défenseur, au choix de son propriétaire, puis résout son pouvoir, même à zéro annulation, puis émet Rêve si au moins une machine a été annulée. Un Rêve ne résout son pouvoir qu’une fois par ouverture. Si le Chant et un déplacement propre se présentent au même Rêve, constater la condition du Chant au rang de l’annulation, appliquer son pas immédiat si légal, puis le pouvoir propre depuis le rang atteint. Les pions sur un Rêve suivent chacun de ses déplacements.",
+      "gardiens": "Chaque Gardien peut occuper l’une des six icônes. Le badge conseille son placement. Une activation fait glisser normalement un parieur disponible en encoche. Les deux faces se lisent indépendamment. Les événements de Gardiens préparés par une carte ne sont émis qu’au moment de leur réalisation. Installer ou déplacer un Piège ne produit pas Piégeage. Une Production seule ne produit pas Insecte.",
+      "cibles": "Une parcelle encore ciblée est une cible réelle de frappe restant à résoudre, y compris celle du Ratissage. Pour une machine déjà engagée, employer les cibles figées au début de son activation. Pour les suivantes, lire la situation actuelle. Le Ratissage reste immobile. Un pas radial saute les Routes. Tout mouvement laisse les autres pièces sur place sauf texte explicite.",
+      "temoins": "Pour rejouer un témoin dans Python 3, affecter une copie de entree à s, exécuter transition_python, puis comparer r à attendu. Ces projections locales illustrent le choix indiqué, sans simuler une partie complète.",
+      "lecture_metadonnees": "Les entrées décrivent les états de jeu mobilisés, y compris les branches optionnelles. Les sorties décrivent les effets propres. Les opérations communes de construction, de pari, de Production, d’annulation native et d’Enracinement ordinaire relèvent du socle. Les déclencheurs amorcés incluent les événements préparés pour une résolution ultérieure."
+    }
+  },
+  "rapport_audit_197": {
+    "schema_source": "v6.3",
+    "verdict_global": "OK",
+    "c02_word_count_purged": true,
+    "allow_draft": false,
+    "draft_slots_count": 0,
+    "assises": {
+      "total": 197,
+      "par_N": {
+        "N3": 20,
+        "N4": 45,
+        "N5": 72,
+        "N6": 60
+      },
+      "compositions": 42,
+      "presence_par_emplacement": 64
+    },
+    "C01_mem_debt": {
+      "verdict": "OK",
+      "mem_debt_hits": [],
+      "step_code_hits": [],
+      "obsolete_term_hits": []
+    },
+    "I01_cloture_elargie_197": {
+      "verdict": "OK",
+      "insect_violations": [],
+      "closure_violations": [],
+      "dependances_jumelle_lisiere": [
+        {
+          "tuile": "G1",
+          "alias": "M>R",
+          "etat": "CROC",
+          "fourni_par_jumelle": "G2"
+        },
+        {
+          "tuile": "G13",
+          "alias": "M>I",
+          "etat": "INSECTE_PASSAGER",
+          "fourni_par_jumelle": "M1"
+        },
+        {
+          "tuile": "G6",
+          "alias": "O>R",
+          "etat": "BLEU",
+          "fourni_par_jumelle": "G5"
+        },
+        {
+          "tuile": "G8",
+          "alias": "M>E",
+          "etat": "ALTERATION",
+          "fourni_par_jumelle": "R7"
+        },
+        {
+          "tuile": "M2",
+          "alias": "I>R",
+          "etat": "CROC",
+          "fourni_par_jumelle": "G14"
+        },
+        {
+          "tuile": "R4",
+          "alias": "H>R",
+          "etat": "CALE",
+          "fourni_par_jumelle": "G9"
+        },
+        {
+          "tuile": "R8",
+          "alias": "E>R",
+          "etat": "CROC",
+          "fourni_par_jumelle": "G10"
+        }
+      ]
+    },
+    "I02_autonomie_A0": {
+      "verdict": "OK",
+      "tuiles": [
+        "M4",
+        "M5",
+        "R1",
+        "R10",
+        "R2",
+        "R6"
+      ],
+      "violations": []
+    },
+    "I03_divergence_lisiere": {
+      "verdict": "OK",
+      "lisieres": [
+        {
+          "lisiere": "H–E",
+          "tuiles": [
+            "R1",
+            "R2"
+          ],
+          "sortie_principale": [
+            "RANG_REVE",
+            "ALTERATION"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "E–I",
+          "tuiles": [
+            "R10",
+            "M5"
+          ],
+          "sortie_principale": [
+            "RANG_REVE",
+            "INSECTE_RANG"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "E–M",
+          "tuiles": [
+            "G8",
+            "R7"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "ALTERATION"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "E–O",
+          "tuiles": [
+            "G12",
+            "R9"
+          ],
+          "sortie_principale": [
+            "PIEGE",
+            "RANG_REVE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "E–R",
+          "tuiles": [
+            "G10",
+            "R8"
+          ],
+          "sortie_principale": [
+            "CROC",
+            "RANG_REVE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "H–I",
+          "tuiles": [
+            "R6",
+            "M4"
+          ],
+          "sortie_principale": [
+            "INSECTE_RANG",
+            "INSECTES_EN_CONVOI"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "H–M",
+          "tuiles": [
+            "G7",
+            "R3"
+          ],
+          "sortie_principale": [
+            "ARBRE",
+            "PIEGE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "H–O",
+          "tuiles": [
+            "G11",
+            "R5"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "RANG_MACHINE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "H–R",
+          "tuiles": [
+            "G9",
+            "R4"
+          ],
+          "sortie_principale": [
+            "CALE",
+            "PIEGE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "M–I",
+          "tuiles": [
+            "G13",
+            "M1"
+          ],
+          "sortie_principale": [
+            "DISPERSION_INSECTES",
+            "INSECTE_PASSAGER"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "O–I",
+          "tuiles": [
+            "G15",
+            "M3"
+          ],
+          "sortie_principale": [
+            "INSECTE_RANG",
+            "INSECTE_ICONE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "R–I",
+          "tuiles": [
+            "G14",
+            "M2"
+          ],
+          "sortie_principale": [
+            "CROC",
+            "INSECTES_TRANSPORTES"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "M–O",
+          "tuiles": [
+            "G3",
+            "G4"
+          ],
+          "sortie_principale": [
+            "DEFENSEUR_REDEPLOYE",
+            "PARI_REORIENTE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "M–R",
+          "tuiles": [
+            "G1",
+            "G2"
+          ],
+          "sortie_principale": [
+            "BLEU",
+            "CROC"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        },
+        {
+          "lisiere": "R–O",
+          "tuiles": [
+            "G5",
+            "G6"
+          ],
+          "sortie_principale": [
+            "BLEU",
+            "PIEGE"
+          ],
+          "divergent": true,
+          "boucle_a_deux_etats": false
+        }
+      ],
+      "violations": []
+    },
+    "I04_couverture_eveil": {
+      "verdict": "OK",
+      "catalyseurs": [
+        "G1",
+        "G10",
+        "G11",
+        "G12",
+        "G13",
+        "G14",
+        "G15",
+        "G2",
+        "G3",
+        "G4",
+        "G6",
+        "G7",
+        "G8"
+      ],
+      "nombre": 13,
+      "regle_i_par_animal": {
+        "M": 3,
+        "R": 2,
+        "O": 3
+      },
+      "regle_ii_lisieres_animal_animal": {
+        "M–R": true,
+        "M–O": true,
+        "R–O": true
+      },
+      "assises_A_ge_1_sans_catalyseur": [],
+      "gardiens_sans_double_ouverture": []
+    },
+    "I05_couverture_sommeil": {
+      "verdict": "OK",
+      "leviers": [
+        "R1",
+        "R10",
+        "R7",
+        "R8",
+        "R9"
+      ],
+      "lisieres_E_couvertes": [
+        "E–M",
+        "E–R",
+        "E–O",
+        "E–I"
+      ],
+      "assises_E_sans_H": 30,
+      "assises_E_sans_H_sans_levier": []
+    },
+    "I06_enracinement": {
+      "verdict": "OK",
+      "tuiles": [
+        "G12",
+        "G7",
+        "M4",
+        "R2"
+      ],
+      "nombre": 4
+    },
+    "Q01_lois_passives": {
+      "verdict": "OK",
+      "lois": [
+        "M1",
+        "R8"
+      ],
+      "nombre": 2,
+      "distribution_par_assise": {
+        "0": 91,
+        "1": 84,
+        "2": 22
+      },
+      "max_par_assise": 2
+    },
+    "Q02_twists_2K3": {
+      "verdict": "OK",
+      "twists": [
+        "G15",
+        "G3",
+        "G9",
+        "M1",
+        "R1",
+        "R8"
+      ],
+      "nombre": 6,
+      "violations": []
+    },
+    "V63_schema_et_casting": {
+      "verdict": "OK",
+      "casting_attendu": {
+        "G1": "Le Jaguar",
+        "G2": "L’Anaconda vert",
+        "G3": "L’Atèle",
+        "G4": "L’Ara rouge",
+        "G5": "L’Iguane vert",
+        "G6": "Le Toucan toco",
+        "G7": "Le Tapir",
+        "G8": "Le Boto",
+        "G9": "Le Caïman noir",
+        "G10": "La Matamata",
+        "G11": "La Harpie féroce",
+        "G12": "L’Ibijau",
+        "G13": "Le Tamanoir",
+        "G14": "Le Téju",
+        "G15": "Le Colibri"
+      },
+      "errors": []
+    },
+    "I07_zero_c02": {
+      "verdict": "OK",
+      "c02_word_count_purged": true,
+      "note": "Aucune vérification de nombre de mots, de phrases ni de conditions."
+    },
+    "errors": [],
+    "enumeration": "Adaptateur local campaigns.designs. Pour chaque sous-ensemble de 3 à 6 peuples, fixer le premier siège et identifier les deux sens de lecture. Le script audit_197.py joint est exécuté sans modification.",
+    "temoins_locaux": {
+      "reussis": 45,
+      "portee": "30 cas de combo et 15 doubles activations. Projections locales, sans simulation du noyau."
+    }
+  },
+  "tuiles_ciblees": {
+    "G1": {
+      "id": "G1",
+      "alias_oriente": "M>R",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "R",
+      "couple": [
+        "M",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "DUEL + CROC + ROUGE + RANG_MACHINE + RATISSAGE → BLEU",
+      "entrees": [
+        "DUEL",
+        "CROC",
+        "ROUGE",
+        "RANG_MACHINE",
+        "RATISSAGE"
+      ],
+      "sorties": [
+        "BLEU"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux passages peuvent épuiser deux Rouges du même assaillant ou préparer séparément les deux machines du gué.",
+      "tags": [
+        "GUET",
+        "SURCHAUFFE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Jaguar",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_DUEL",
+          "PIC_CROC",
+          "PIC_ROUGE",
+          "PIC_BLEU"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Gué marqué",
+          "face_2": "Chaleur à revers",
+          "enracine": null
+        },
+        "resume_plateau": "Gué marqué / Chaleur à revers"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Jaguar",
+        "entite_illustree": "Jaguar au gué",
+        "brief_illustration": "Jaguar entier à mi-corps dans l’eau, ses pattes visibles à travers le gué. Deux sillages convergent entre des berges d’argile.",
+        "pitch_ambiance": "Au gué, le jaguar laisse passer la première silhouette. La seconde trouve l’eau déjà troublée.",
+        "texte_regle": {
+          "face_1": "À chaque activation, choisissez une machine qui cible encore la parcelle du Duel ou du Croc. Vous pouvez retourner sur elle un Rouge en Bleu.",
+          "face_2": "À chaque activation, choisissez une machine qui cible encore la parcelle du Duel ou du Croc. Vous pouvez retourner un de ses Rouges en Bleu et le laisser sur elle, ou le déposer face Bleue sur l’autre machine de son rayon.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Où laisser la Surchauffe du gué ?",
+          "renoncement": "La transmettre au Bulldozer laisse l’Abatteuse plus difficile à parer."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G1_T1",
+          "resume": "Le Croc garde le gué. En Face 2, le Jaguar prend un Rouge à l’Abatteuse qui le vise et le donne en Bleu au Bulldozer. En Charge, son seuil gravé de 2 tombe à 1.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rouges_A": 1,
+              "bleus_B": 0,
+              "grave": 2,
+              "croc_cible_A": true
+            },
+            "transition_python": "if s['croc_cible_A'] and s['rouges_A']:\n    s['rouges_A']-=1\n    s['bleus_B']+=1\nr=[s['rouges_A'],s['bleus_B'],max(1,s['grave']-s['bleus_B'])]",
+            "attendu": [
+              0,
+              1,
+              1
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G1_T2",
+          "resume": "Deux activations F1 avant deux frappes au gué retournent chacune un Rouge. Un seuil d’Assaut gravé 3 avec deux Rouges passe de 5 à 1.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rouges": 2,
+              "bleus": 0,
+              "grave": 3,
+              "activations": 2
+            },
+            "transition_python": "seuils=[]\nfor _ in range(s['activations']):\n    if s['rouges']>0:\n        s['rouges']-=1\n        s['bleus']+=1\n    seuils.append(max(1,s['grave']+s['rouges']-s['bleus']))\nr=seuils",
+            "attendu": [
+              3,
+              1
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Transmettre si le premier assaut est déjà couvert par le Croc et si le Bleu permet une Parade sur la seconde machine.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G2": {
+      "id": "G2",
+      "alias_oriente": "R>M",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "M",
+      "couple": [
+        "R",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "DUEL + RANG_MACHINE + RATISSAGE → CROC / ECAILLE",
+      "entrees": [
+        "DUEL",
+        "RANG_MACHINE",
+        "RATISSAGE"
+      ],
+      "sorties": [
+        "CROC",
+        "ECAILLE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE"
+      ],
+      "double_ouverture": "Une première mise en place du Croc peut être suivie d’une mue ou d’une nouvelle pose après sa consommation.",
+      "tags": [
+        "MUE",
+        "DOUBLE_GUET"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Anaconda vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_ECAILLE",
+          "PIC_CROC",
+          "PIC_DUEL",
+          "PIC_PIEGE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Anse du Duel · mue",
+          "face_2": "Guet mobile · mue",
+          "enracine": null
+        },
+        "resume_plateau": "Anse du Duel · mue / Guet mobile · mue"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Anaconda vert",
+        "entite_illustree": "Anaconda dans une anse",
+        "brief_illustration": "Corps entier vu du dessus, lové dans l’ombre d’un tronc noyé, tête et extrémité lisibles.",
+        "pitch_ambiance": "Sous la lentille d’eau, l’anaconda occupe toute la largeur de l’anse. Seul le courant révèle sa place.",
+        "texte_regle": {
+          "face_1": "À chaque activation, glissez une Écaille de la réserve dans le sac, ou posez le Croc de la réserve sur une parcelle encore ciblée du rayon du Duel.",
+          "face_2": "À chaque activation, glissez une Écaille de la réserve dans le sac, ou prenez le Croc en réserve ou en forêt et posez-le sur une autre parcelle encore ciblée, même hors du rayon du Duel. Il peut couvrir un Piège ordinaire.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Grossir les chances d’une Écaille ou intercepter la prochaine frappe ?",
+          "renoncement": "Déplacer le Croc découvre son ancienne parcelle."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G2_T1",
+          "resume": "En Face 2, le Croc rejoint un Piège sur une parcelle que visent deux frappes. Le Croc pare la première et revient en réserve. Le Piège pare la seconde. Chaque frappe donne son propre Piégeage.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "croc_reserve": 1,
+              "pieges": 1,
+              "frappes": 2
+            },
+            "transition_python": "croc=s['croc_reserve']\npiege=s['pieges']\nparades=[]\nfor _ in range(s['frappes']):\n    if croc:\n        parades.append('Croc')\n        croc-=1\n    elif piege:\n        parades.append('Piège')\n        piege-=1\nr={'ordre':parades,'croc_revenu':int('Croc' in parades),'pieges_restants':piege}",
+            "attendu": {
+              "ordre": [
+                "Croc",
+                "Piège"
+              ],
+              "croc_revenu": 1,
+              "pieges_restants": 0
+            }
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G2_T2",
+          "resume": "F1 place le Croc au gué sur le premier signal. Sur le second, une Écaille rejoint le sac alors que le Croc garde sa cible.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "croc": null,
+              "guet": "M2",
+              "ecailles_reserve": 4,
+              "sac": 0,
+              "choix": [
+                "guet",
+                "mue"
+              ]
+            },
+            "transition_python": "for choix in s['choix']:\n    if choix=='guet' and s['croc'] is None:\n        s['croc']=s['guet']\n    elif choix=='mue' and s['ecailles_reserve']:\n        s['sac']+=1\n        s['ecailles_reserve']-=1\nr=[s['croc'],s['sac'],s['ecailles_reserve']]",
+            "attendu": [
+              "M2",
+              1,
+              3
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Préférer le Croc si une frappe imminente détruirait des Souches. Sinon privilégier une Écaille disponible en début de partie.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G3": {
+      "id": "G3",
+      "alias_oriente": "M>O",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "O",
+      "couple": [
+        "M",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL",
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "ARBRE + ROUTE + DEFENSEUR_REDEPLOYE + PLUME → DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "ARBRE",
+        "ROUTE",
+        "DEFENSEUR_REDEPLOYE",
+        "PLUME"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux traversées amènent les deux pions nécessaires à une Parade ou desservent deux rayons différents.",
+      "tags": [
+        "CANOPEE",
+        "TRAVERSEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Atèle",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_ARBRE",
+          "PIC_ROUTE",
+          "PIC_DEFENSEUR",
+          "PIC_PLUME"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Deux cimes · traverse",
+          "face_2": "Plume · trajet en L",
+          "enracine": null
+        },
+        "resume_plateau": "Deux cimes · traverse / Plume · trajet en L"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Atèle",
+        "entite_illustree": "Atèle dans la canopée",
+        "brief_illustration": "Atèle entier suspendu par la queue entre deux couronnes. En contrebas, une trouée coupe le chemin radial.",
+        "pitch_ambiance": "L’atèle essaie le poids d’une branche avant de lâcher la précédente. Au-dessous de lui, le chemin a disparu.",
+        "texte_regle": {
+          "face_1": "À chaque activation, vous pouvez déplacer un Défenseur en forêt entre les rayons Mammifères et Oiseaux. Il traverse leur frontière entre deux parcelles de même profondeur portant chacune un Arbre debout. Avant de traverser, il peut faire un pas radial sur son rayon, en sautant les Routes. Le Duel reste en place.",
+          "face_2": "À chaque activation, vous pouvez déplacer un Défenseur en forêt entre les rayons Mammifères et Oiseaux, ou entre le rayon portant la Plume et un de ses voisins. Traversez entre deux parcelles de même profondeur portant chacune un Arbre. Vous pouvez ajouter un pas radial avant et un après la traversée, en sautant les Routes. Le Duel reste en place.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Quelle cime peut-on dégarnir pour tenir l’autre rive ?",
+          "renoncement": "Le pion quitte réellement sa première ligne de défense."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G3_T1",
+          "resume": "En Face 2, un Défenseur quitte M1, saute la Route M2 jusqu’à M3, traverse entre les arbres M3 et O3, puis descend en O4. Il rejoint le Défenseur qui attend un Ratissage de seuil 2.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "M": [
+                2,
+                null,
+                1,
+                2
+              ],
+              "O": [
+                2,
+                2,
+                1,
+                1
+              ],
+              "depart": 1,
+              "garde_O4": 1,
+              "seuil": 2
+            },
+            "transition_python": "i=s['depart']-1\nsuivant=lambda rayon,x: next(j for j in range(x+1,len(rayon)) if rayon[j] is not None)\npassage=suivant(s['M'],i)\nassert min(s['M'][passage],s['O'][passage])>0\narrivee=suivant(s['O'],passage)\nr=[passage+1,arrivee+1,s['garde_O4']+1>=s['seuil']]",
+            "attendu": [
+              3,
+              4,
+              true
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G3_T2",
+          "resume": "Deux traversées F1 entre deux cimes de même profondeur portent deux Défenseurs de M vers une cible d’O de seuil 2.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "pions": [
+                2,
+                0
+              ],
+              "arbres": [
+                1,
+                2
+              ],
+              "seuil": 2
+            },
+            "transition_python": "for _ in range(2):\n    if min(s['arbres'])>0 and s['pions'][0]:\n        s['pions'][0]-=1\n        s['pions'][1]+=1\nr=[s['pions'],s['pions'][1]>=s['seuil']]",
+            "attendu": [
+              [
+                0,
+                2
+              ],
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Chercher une destination qui fait atteindre le seuil exact. Écarter les trajets qui feraient perdre une Parade plus coûteuse au départ.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G4": {
+      "id": "G4",
+      "alias_oriente": "O>M",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "M",
+      "couple": [
+        "O",
+        "M"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "PLUME + GARDIEN → PARI_REORIENTE / DEFENSEUR_EVACUE",
+      "entrees": [
+        "PLUME",
+        "GARDIEN"
+      ],
+      "sorties": [
+        "PARI_REORIENTE",
+        "DEFENSEUR_EVACUE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": "Deux cris transfèrent deux parieurs séparément, dans la limite des places réellement libres.",
+      "tags": [
+        "ALARME",
+        "PARI"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Ara rouge",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_RESONANCE",
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_PARI_ENCOCHE",
+          "PIC_DEFENSEUR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Cri · transfert de mise",
+          "face_2": "Cri · évacuation",
+          "enracine": null
+        },
+        "resume_plateau": "Cri · transfert de mise / Cri · évacuation"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ara rouge",
+        "entite_illustree": "Ara au-dessus d’une falaise d’argile",
+        "brief_illustration": "Ara rouge entier au premier plan, en plein virage, avec ses congénères en vol devant la falaise d’argile.",
+        "pitch_ambiance": "Une bande d’aras décolle du talus. Ceux qui ne voient pas le danger entendent les premiers oiseaux.",
+        "texte_regle": {
+          "face_1": "À chaque activation, si la Plume indique un rayon, vous pouvez déplacer un Défenseur encore posé sur un Gardien vers un autre Gardien construit. Comptez sur le Gardien d’arrivée les pions dessus et dans ses encoches. Leur total après transfert ne peut dépasser deux. Le pion arrive dessus.",
+          "face_2": "À chaque activation, où que soit posée la Plume, vous pouvez transférer un Défenseur encore posé sur un Gardien vers le dessus d’un autre Gardien construit, dans la limite de deux pions dessus et en encoches réunis. Vous pouvez aussi évacuer ce Défenseur sur une parcelle encore ciblée. Un pion en encoche reste en place.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Rallier un pari encore gagnable ou évacuer le parieur ?",
+          "renoncement": "Évacuer en forêt sacrifie sa contribution à l’Éveil."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G4_T1",
+          "resume": "Plume sur M. Deux parieurs attendent sur Rêve après le dernier Rêve. L’Ara en transfère un sur Piégeage avant que le Croc pare. Cette activation peut alors faire glisser le parieur normalement.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "source": 2,
+              "dessus": 0,
+              "encoches": 0,
+              "croc_pare": true
+            },
+            "transition_python": "if s['source'] and s['dessus']+s['encoches']<2:\n    s['source']-=1\n    s['dessus']+=1\nif s['croc_pare'] and s['dessus']:\n    s['dessus']-=1\n    s['encoches']+=1\nr=[s['source'],s['dessus'],s['encoches']]",
+            "attendu": [
+              1,
+              0,
+              1
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G4_T2",
+          "resume": "Deux alarmes transfèrent les deux parieurs d’un Gardien dont la fenêtre est passée vers deux Gardiens distincts, chacun disposant d’une place.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "source": 2,
+              "paris": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  0
+                ]
+              ]
+            },
+            "transition_python": "for pari in s['paris']:\n    if s['source'] and sum(pari)<2:\n        s['source']-=1\n        pari[0]+=1\nr=[s['source'],s['paris']]",
+            "attendu": [
+              0,
+              [
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  0
+                ]
+              ]
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Transférer vers un événement visible encore à venir, sans retirer la dernière mise utile d’un Gardien qui pourrait passer Face 2.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G5": {
+      "id": "G5",
+      "alias_oriente": "R>O",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "O",
+      "couple": [
+        "R",
+        "O"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "PLUME + ROUGE → BLEU / ECAILLE",
+      "entrees": [
+        "PLUME",
+        "ROUGE"
+      ],
+      "sorties": [
+        "BLEU",
+        "ECAILLE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_SABOTAGE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux transferts peuvent faire basculer un seuil élevé. En Face 2, mue et transfert restent deux choix indépendants.",
+      "tags": [
+        "THERMOREGULATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Iguane vert",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_ROUGE",
+          "PIC_BLEU",
+          "PIC_ECAILLE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Chaud · Calme",
+          "face_2": "Deux versants",
+          "enracine": null
+        },
+        "resume_plateau": "Chaud · Calme / Deux versants"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Iguane vert",
+        "entite_illustree": "Iguane sur une branche au soleil",
+        "brief_illustration": "Iguane entier traversant la limite nette entre soleil et ombre sur une branche au-dessus de l’eau.",
+        "pitch_ambiance": "Entre soleil et feuillage, l’iguane change de branche et le fleuve change de couleur sous lui.",
+        "texte_regle": {
+          "face_1": "À chaque activation, si la Plume montre Chaud, choisissez un rayon et prenez un Rouge sur une de ses machines. Posez-le face Bleue sur l’autre machine du même rayon. Si elle montre Calme, vous pouvez glisser une Écaille de la réserve dans le sac.",
+          "face_2": "À chaque activation, choisissez entre glisser une Écaille de la réserve dans le sac et transférer un Rouge d’une machine, face Bleue, sur l’autre de son rayon. Si la Plume indique ce rayon, le Bleu peut aussi rester sur la machine d’origine.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Quelle machine doit profiter de l’ombre ?",
+          "renoncement": "En transférant le jeton, on laisse la donneuse sans la réduction bleue."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G5_T1",
+          "resume": "Plume Chaud. Un Rouge quitte l’Abatteuse pour devenir le premier Bleu du Bulldozer. Le Toucan peut désormais installer un Piège sur une cible de ce dernier.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": "Chaud",
+              "rouges_A": 2,
+              "bleus_B": 0,
+              "cible_B": "R4"
+            },
+            "transition_python": "if s['plume']=='Chaud' and s['rouges_A']>0:\n    s['rouges_A']-=1\n    s['bleus_B']+=1\nr=[s['rouges_A'],s['bleus_B'],s['cible_B'] if s['bleus_B'] else None]",
+            "attendu": [
+              1,
+              1,
+              "R4"
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G5_T2",
+          "resume": "Plume Chaud. Deux Rouge sur la première machine deviennent deux Bleus sur sa jumelle. Un seul Défenseur tient alors son seuil gravé de 3 en Charge.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rouges": 2,
+              "bleus": 0,
+              "grave": 3,
+              "plume": "Chaud"
+            },
+            "transition_python": "for _ in range(2):\n    if s['plume']=='Chaud' and s['rouges']:\n        s['rouges']-=1\n        s['bleus']+=1\nr=[s['rouges'],s['bleus'],max(1,s['grave']-s['bleus'])]",
+            "attendu": [
+              0,
+              2,
+              1
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Éviter de retirer un Rouge ignoré en Charge si le Bleu obtenu ne change aucune Parade et si une Écaille reste disponible en Face 2.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G6": {
+      "id": "G6",
+      "alias_oriente": "O>R",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "R",
+      "couple": [
+        "O",
+        "R"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "PIEGE + BLEU + DEFENSEUR_ATTENTE + RANG_MACHINE + RATISSAGE → PIEGE / DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "PIEGE",
+        "BLEU",
+        "DEFENSEUR_ATTENTE",
+        "RANG_MACHINE",
+        "RATISSAGE"
+      ],
+      "sorties": [
+        "PIEGE",
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux transports préparent deux frappes distinctes. Le second peut récupérer un autre bâtisseur.",
+      "tags": [
+        "DISPERSION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Toucan toco",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_BLEU",
+          "PIC_PIEGE",
+          "PIC_DEFENSEUR_ATTENTE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Relais de Piège",
+          "face_2": "Perchoir vacant",
+          "enracine": null
+        },
+        "resume_plateau": "Relais de Piège / Perchoir vacant"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Toucan toco",
+        "entite_illustree": "Toucan entre deux arbres fruitiers",
+        "brief_illustration": "Toucan toco entier passant entre un figuier chargé et un arbre isolé, un fruit encore pris dans le bec.",
+        "pitch_ambiance": "Le toucan emporte un fruit et le laisse tomber loin de l’arbre qui l’a nourri.",
+        "texte_regle": {
+          "face_1": "À chaque activation, vous pouvez prendre un Piège ordinaire en forêt et le déposer sur une autre parcelle encore ciblée par une machine portant un Bleu. La destination doit être libre de Piège ordinaire.",
+          "face_2": "À chaque activation, vous pouvez transporter un Piège ordinaire en forêt vers une autre parcelle encore ciblée, libre de Piège ordinaire. Si la machine qui la cible porte un Bleu, vous pouvez relever un bâtisseur en attente et le poser sur la parcelle de départ du Piège.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Quel piège mérite de voyager ?",
+          "renoncement": "Sa parcelle de départ ne conserve qu’une défense humaine si un bâtisseur est disponible."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G6_T1",
+          "resume": "L’Iguane a bleui un Bulldozer en Ratissage. Le Toucan F2 porte un Piège jusqu’à sa cible et relève sur l’ancienne parcelle le bâtisseur couché de l’Oiseau.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "pieges": {
+                "O1": 1,
+                "R4": 0
+              },
+              "depart": "O1",
+              "cible": "R4",
+              "bleus": 1,
+              "batisseur": [
+                "O"
+              ]
+            },
+            "transition_python": "a,b=s['depart'],s['cible']\nreleve={}\nif s['pieges'][a] and not s['pieges'][b]:\n    s['pieges'][a]-=1\n    s['pieges'][b]+=1\n    if s['bleus'] and s['batisseur']:\n        releve[a]=s['batisseur'].pop()\nr=[s['pieges'],releve,s['batisseur']]",
+            "attendu": [
+              {
+                "O1": 0,
+                "R4": 1
+              },
+              {
+                "O1": "O"
+              },
+              []
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G6_T2",
+          "resume": "F2 déplace deux Pièges vers deux cibles bleues et relève un bâtisseur à chacun de leurs points de départ.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "pieges": [
+                "R1",
+                "O1"
+              ],
+              "depuis": [
+                "R1",
+                "O1"
+              ],
+              "cibles_bleues": [
+                "R3",
+                "O4"
+              ],
+              "attente": 2
+            },
+            "transition_python": "releves=[]\nfor a,b in zip(s['depuis'],s['cibles_bleues']):\n    if a in s['pieges'] and b not in s['pieges']:\n        s['pieges'].remove(a)\n        s['pieges'].append(b)\n        if s['attente']:\n            releves.append(a)\n            s['attente']-=1\nr=[s['pieges'],releves,s['attente']]",
+            "attendu": [
+              [
+                "R3",
+                "O4"
+              ],
+              [
+                "R1",
+                "O1"
+              ],
+              0
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Déplacer en priorité un Piège hors de portée des frappes et couvrir ensuite un départ encore menacé avec un bâtisseur.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G7": {
+      "id": "G7",
+      "alias_oriente": "M>H",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "H",
+      "couple": [
+        "M",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL",
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "SOUCHE + TAMBOUR + DEFENSEUR_ATTENTE + ROUTE → ARBRE / DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "SOUCHE",
+        "TAMBOUR",
+        "DEFENSEUR_ATTENTE",
+        "ROUTE"
+      ],
+      "sorties": [
+        "ARBRE",
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux semis peuvent sauver deux pions Arbre/Souche et ouvrir deux relèves distinctes.",
+      "tags": [
+        "DISPERSION",
+        "SEMIS"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tapir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PIEGEAGE",
+        "pictogrammes": [
+          "PIC_SOUCHE",
+          "PIC_ARBRE",
+          "PIC_TAMBOUR",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Semis sous garde",
+          "face_2": "Semis · relève",
+          "enracine": "Sentier voisin"
+        },
+        "resume_plateau": "Semis sous garde / Semis · relève / Sentier voisin"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tapir",
+        "entite_illustree": "Tapir sur un sentier inondable",
+        "brief_illustration": "Tapir entier au sortir d’un bourbier, jeunes pousses espacées dans ses traces et fruits mûrs sur la rive.",
+        "pitch_ambiance": "Des fruits tombés au bord de l’eau, le tapir fait des arbres le long de ses sentiers.",
+        "texte_regle": {
+          "face_1": "À chaque activation, choisissez une parcelle portant une Souche et le Tambour ou un Défenseur Mammifère. Vous pouvez y retourner une Souche en Arbre. Si c’est la dernière Souche de cette parcelle, vous pouvez aussi y relever un bâtisseur en attente.",
+          "face_2": "À chaque activation, vous pouvez retourner une Souche en Arbre sur une parcelle portant un Défenseur. Vous pouvez ensuite relever un bâtisseur en attente et le poser un pas radial plus loin, vers la bordure ou le cœur, en sautant les Routes.",
+          "enracine": "Quand vous enracinez le Tapir, vous pouvez retourner une Souche en Arbre sur la parcelle voisine vers le cœur, en sautant les Routes. La repousse finale concerne toujours la parcelle désignée par la tuile."
+        },
+        "decision_et_renoncement": {
+          "choix": "Planter sous bonne garde ou céder le Tapir à son sentier ?",
+          "renoncement": "L’Enracinement abandonne les futures relèves."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G7_T1",
+          "resume": "Le Tambour garde une Souche en H2. Le Tapir F2 la retourne puis relève un bâtisseur en H3, où il complète une Parade de seuil 2.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "souches_H2": 1,
+              "arbres_H2": 1,
+              "tambour_H2": true,
+              "attente": 1,
+              "pions_H3": 1,
+              "seuil": 2
+            },
+            "transition_python": "if s['tambour_H2'] and s['souches_H2']:\n    s['souches_H2']-=1\n    s['arbres_H2']+=1\n    if s['attente']:\n        s['attente']-=1\n        s['pions_H3']+=1\nr=[s['arbres_H2'],s['souches_H2'],s['attente'],s['pions_H3']>=s['seuil']]",
+            "attendu": [
+              2,
+              0,
+              0,
+              true
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G7_T2",
+          "resume": "F1 retourne la dernière Souche de deux parcelles, la première sous le Tambour et la seconde sous un Défenseur Mammifère. Deux bâtisseurs en attente sont relevés.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "souches": [
+                1,
+                1
+              ],
+              "garde": [
+                "Tambour",
+                "M"
+              ],
+              "attente": 2
+            },
+            "transition_python": "semis=releves=0\nfor i,garde in enumerate(s['garde']):\n    if garde in ('Tambour','M') and s['souches'][i]:\n        s['souches'][i]-=1\n        semis+=1\n        if not s['souches'][i] and s['attente']:\n            s['attente']-=1\n            releves+=1\nr=[semis,releves,s['attente']]",
+            "attendu": [
+              2,
+              2,
+              0
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Choisir un semis qui survivra à l’Abatteuse et dont le voisin manque d’un seul Défenseur.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G8": {
+      "id": "G8",
+      "alias_oriente": "M>E",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "E",
+      "couple": [
+        "M",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "DEFENSEUR_ATTENTE + RANG_MACHINE + POSITION_REVE + ALTERATION → DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "DEFENSEUR_ATTENTE",
+        "RANG_MACHINE",
+        "POSITION_REVE",
+        "ALTERATION"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux appels peuvent garnir deux Rêves ou placer deux Défenseurs sur le même front forestier.",
+      "tags": [
+        "ECHO"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Boto",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_ALTERATION",
+          "PIC_REVE",
+          "PIC_DEFENSEUR_ATTENTE",
+          "PIC_DEFENSEUR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Écho · veilleur",
+          "face_2": "Écho · plongeur",
+          "enracine": null
+        },
+        "resume_plateau": "Écho · veilleur / Écho · plongeur"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Boto",
+        "entite_illustree": "Boto entre les troncs noyés",
+        "brief_illustration": "Boto entier en virage sous la surface d’une forêt inondée, avec une seconde silhouette lointaine entre les troncs.",
+        "pitch_ambiance": "Dans l’eau trouble, le boto tourne autour d’un tronc. Un second remous lui répond au-delà des branches.",
+        "texte_regle": {
+          "face_1": "À chaque activation, vous pouvez relever un bâtisseur en attente sur une parcelle encore ciblée de M ou E. Avant la résolution du premier Rêve, vous pouvez plutôt le poser sur un Rêve au rang d’une machine mobile visible et active.",
+          "face_2": "À chaque activation, vous pouvez prendre un bâtisseur en attente ou un Défenseur en forêt et le poser sur une autre parcelle encore ciblée. Avant le premier Rêve, vous pouvez plutôt le poser sur un Rêve au rang d’une machine mobile visible et active, ou sur tout Rêve si une machine en forêt porte une Altération.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Faire entendre l’écho en forêt ou sur un Rêve ?",
+          "renoncement": "Un veilleur envoyé sur la Réglette ne compte plus au seuil de Parade en forêt."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G8_T1",
+          "resume": "Un Sabotage active le Boto avant les Rêves. Il relève un bâtisseur sur le Rêve du rang 4. Celui-ci annule la machine de rang 4 et allume Rêve.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "attente": 1,
+              "rang_reve": 4,
+              "actives": [
+                4
+              ],
+              "defenseurs": 0,
+              "avant_reves": true
+            },
+            "transition_python": "if s['avant_reves'] and s['attente'] and s['rang_reve'] in s['actives']:\n    s['attente']-=1\n    s['defenseurs']+=1\nn=min(s['defenseurs'],s['actives'].count(s['rang_reve']))\nr=[s['attente'],s['defenseurs'],n,'Rêve' if n else None]",
+            "attendu": [
+              0,
+              1,
+              1,
+              "Rêve"
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G8_T2",
+          "resume": "Deux Sabotages successifs donnent deux activations avant les Rêves. Deux bâtisseurs rejoignent le même Rêve en 4 et permettent deux annulations pour un seul événement Rêve.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "attente": 2,
+              "pions": 0,
+              "machines_au_rang": 2,
+              "sabotages": 2
+            },
+            "transition_python": "for _ in range(s['sabotages']):\n    if s['machines_au_rang'] and s['attente']:\n        s['pions']+=1\n        s['attente']-=1\nannulations=min(s['machines_au_rang'],s['pions'])\nr=[s['attente'],annulations,int(annulations>0)]",
+            "attendu": [
+              0,
+              2,
+              1
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Préférer la Réglette si une annulation y évite deux frappes. Après les Rêves, combler un seuil en forêt.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G9": {
+      "id": "G9",
+      "alias_oriente": "R>H",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "H",
+      "couple": [
+        "R",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "SABOTAGE + ECAILLE + RANG_MACHINE + ROUTE + ARBRE → CALE / ECAILLE / RECUL / SOUCHE",
+      "entrees": [
+        "SABOTAGE",
+        "ECAILLE",
+        "RANG_MACHINE",
+        "ROUTE",
+        "ARBRE"
+      ],
+      "sorties": [
+        "CALE",
+        "ECAILLE",
+        "RECUL",
+        "SOUCHE"
+      ],
+      "paiement": [
+        "P_ARBRE"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_SABOTAGE"
+      ],
+      "double_ouverture": "Une activation pose la cale, l’autre peut semer une Écaille, ou caler une seconde machine après libération de la première.",
+      "tags": [
+        "AFFUT",
+        "CALE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Caïman noir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_SABOTAGE",
+          "PIC_ECAILLE",
+          "PIC_CALE",
+          "PIC_RECUL"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Mue · avance saisie",
+          "face_2": "Mue · traction arrière",
+          "enracine": null
+        },
+        "resume_plateau": "Mue · avance saisie / Mue · traction arrière"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Caïman noir",
+        "entite_illustree": "Caïman dans un chenal de várzea",
+        "brief_illustration": "Caïman noir entier vu sous la surface, de la tête à la queue, busqué contre la berge d’un chenal.",
+        "pitch_ambiance": "À peine le caïman s’est-il enfoncé sous une berge que l’eau se tend dans l’autre sens.",
+        "texte_regle": {
+          "face_1": "À chaque activation, retournez un Arbre de H ou R en Souche pour glisser une Écaille de la réserve dans le sac, ou glissez un Sabotage ordinaire ou une Écaille révélés et déjà résolus sous une machine mobile. Une seule cale sur le plateau. Si cette machine devait effectuer l’avancée finale d’un rang 3 ou 6, retirez la cale et supprimez cette avancée. Une poussée de Route se résout normalement. Libérée, elle rejoint les jetons résolus. Au ménage, retirez toute cale avant le Ratissage et rendez-la au sac.",
+          "face_2": "À chaque activation, retournez un Arbre de H ou R en Souche pour glisser une Écaille de la réserve dans le sac, ou calez une mobile avec un Sabotage ou une Écaille révélés et résolus, dans la limite d’une cale en jeu. Si elle devait effectuer l’avancée finale d’un rang 3 ou 6, retirez la cale et annulez cette avancée. Vous pouvez alors la faire reculer d’une parcelle légale, sans frappe. Une poussée de Route reste normale. La cale libérée rejoint les jetons résolus. Au ménage, retirez toute cale avant le Ratissage et rendez-la au sac.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Épaissir le sac ou retenir une machine déjà annoncée ?",
+          "renoncement": "Une cale engagée sur un rayon laisse tous les autres libres d’avancer."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G9_T1",
+          "resume": "En Face 2, un Sabotage résolu cale une Abatteuse en parcelle 3 au rang 6. Ses deux frappes ont lieu. Sans poussée ni Territoire tenu, elle finit en 2 au lieu d’entrer en 4.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rang": 6,
+              "parcelle": 3,
+              "sabotage_resolu": 1,
+              "cale_en_jeu": false,
+              "poussee": false,
+              "territoire": false,
+              "frappes": [
+                "sur place",
+                "devant"
+              ]
+            },
+            "transition_python": "cale=bool(s['sabotage_resolu'] and not s['cale_en_jeu'])\np=s['parcelle']\nif s['rang'] in (3,6) and not (s['poussee'] or s['territoire']):\n    if cale:\n        p=max(1,p-1)\n        cale=False\n    else:\n        p+=1\nr=[len(s['frappes']),p,cale,p==4]",
+            "attendu": [
+              2,
+              2,
+              false,
+              false
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G9_T2",
+          "resume": "F1 cale une machine avec un Sabotage résolu, puis paie une mue en retournant un Arbre de R. Une seule cale se trouve en forêt.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "jetons_resolus": 1,
+              "cale": 0,
+              "arbres_R": 2,
+              "souches_R": 0,
+              "ecailles_reserve": 2,
+              "sac": 0
+            },
+            "transition_python": "for choix in ('cale','mue'):\n    if choix=='cale' and s['jetons_resolus'] and not s['cale']:\n        s['jetons_resolus']-=1\n        s['cale']+=1\n    elif choix=='mue' and s['arbres_R'] and s['ecailles_reserve']:\n        s['arbres_R']-=1\n        s['souches_R']+=1\n        s['ecailles_reserve']-=1\n        s['sac']+=1\nr=[s['cale'],s['arbres_R'],s['souches_R'],s['sac']]",
+            "attendu": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Caler une mobile menacée de Ratissage si l’avancée finale n’est pas déjà bloquée. Sinon choisir la mue.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G10": {
+      "id": "G10",
+      "alias_oriente": "R>E",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "E",
+      "couple": [
+        "R",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "SOUCHE + PIEGE + RANG_MACHINE + RATISSAGE → CROC / PIEGE",
+      "entrees": [
+        "SOUCHE",
+        "PIEGE",
+        "RANG_MACHINE",
+        "RATISSAGE"
+      ],
+      "sorties": [
+        "CROC",
+        "PIEGE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE"
+      ],
+      "double_ouverture": "Une aspiration attire le Piège, la suivante peut le remplacer par le Croc et couvrir une autre cible. Deux rayons peuvent aussi fournir deux Pièges.",
+      "tags": [
+        "MIMETISME"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Matamata",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_REVE",
+        "pictogrammes": [
+          "PIC_SOUCHE",
+          "PIC_CROC",
+          "PIC_PIEGE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Litière · aspiration",
+          "face_2": "Leurre dédoublé",
+          "enracine": null
+        },
+        "resume_plateau": "Litière · aspiration / Leurre dédoublé"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Matamata",
+        "entite_illustree": "Matamata sur un lit de feuilles",
+        "brief_illustration": "Matamata entière posée parmi les feuilles mortes d’un bras calme, sa carapace discernable au second regard.",
+        "pitch_ambiance": "Feuille entre les feuilles, la matamata attend que l’eau lui amène sa prise.",
+        "texte_regle": {
+          "face_1": "À chaque activation, choisissez une parcelle encore ciblée portant une Souche. Vous pouvez y poser le Croc de la réserve ou y attirer un Piège ordinaire d’une autre parcelle du même rayon, si la destination est libre de Piège ordinaire.",
+          "face_2": "À chaque activation, choisissez une parcelle encore ciblée. Vous pouvez y attirer un Piège ordinaire d’une autre parcelle de son rayon si elle peut le recevoir. Vous pouvez plutôt y poser le Croc de la réserve et, si vous y recouvrez un Piège ordinaire, envoyer ce Piège sur une autre parcelle encore ciblée de ce rayon, libre de Piège ordinaire.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Garder deux intercepteurs ensemble ou faire glisser le leurre ?",
+          "renoncement": "Une parcelle dégarnie de son Piège n’arrêtera plus une deuxième frappe après le Croc."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G10_T1",
+          "resume": "Deux machines d’un rayon visent des parcelles différentes. La Matamata F2 couvre la première avec le Croc et en extrait le Piège pour la seconde. Deux frappes, deux événements Piégeage.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "croc_reserve": 1,
+              "pieges": [
+                "R2"
+              ],
+              "cibles": [
+                "R2",
+                "R3"
+              ]
+            },
+            "transition_python": "a,b=s['cibles']\ncroc=None\nif s['croc_reserve']:\n    croc=a\n    if a in s['pieges'] and b not in s['pieges']:\n        s['pieges'].remove(a)\n        s['pieges'].append(b)\nr=[croc,s['pieges'],sum(p==croc or p in s['pieges'] for p in s['cibles'])]",
+            "attendu": [
+              "R2",
+              [
+                "R3"
+              ],
+              2
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G10_T2",
+          "resume": "F2 attire d’abord le Piège de R1 sur R2, puis y pose le Croc et expédie le Piège en R3. Les deux cibles restent couvertes.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "piege": "R1",
+              "cibles": [
+                "R2",
+                "R3"
+              ],
+              "croc": null
+            },
+            "transition_python": "a,b=s['cibles']\nif s['piege'][0]==a[0] and s['piege']!=a:\n    s['piege']=a\nif s['croc'] is None:\n    s['croc']=a\n    if s['piege']==a and b!=a and b[0]==a[0]:\n        s['piege']=b\nr=[s['croc'],s['piege']]",
+            "attendu": [
+              "R2",
+              "R3"
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Répartir les intercepteurs lorsque deux parcelles différentes seraient perdues, les superposer contre deux frappes destructrices au même endroit.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G11": {
+      "id": "G11",
+      "alias_oriente": "O>H",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "H",
+      "couple": [
+        "O",
+        "H"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "PLUME + TAMBOUR + DEFENSEUR_ATTENTE + RANG_MACHINE → DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "PLUME",
+        "TAMBOUR",
+        "DEFENSEUR_ATTENTE",
+        "RANG_MACHINE"
+      ],
+      "sorties": [
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux plongées peuvent couvrir séparément les deux cibles d’une machine En avançant.",
+      "tags": [
+        "PLONGEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Harpie féroce",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_REVE",
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_DEFENSEUR_ATTENTE",
+          "PIC_TAMBOUR",
+          "PIC_DEFENSEUR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Plongée signalée",
+          "face_2": "Prise et dépose",
+          "enracine": null
+        },
+        "resume_plateau": "Plongée signalée / Prise et dépose"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Harpie féroce",
+        "entite_illustree": "Harpie au-dessus de la canopée",
+        "brief_illustration": "Harpie féroce entière plongeant d’un émergent dans une trouée, avec les différents étages de forêt lisibles derrière elle.",
+        "pitch_ambiance": "Du grand arbre, la harpie distingue un mouvement dans un étage de feuillage que le sol ne voit jamais.",
+        "texte_regle": {
+          "face_1": "À chaque activation, vous pouvez prendre un bâtisseur en attente et le poser sur une parcelle encore ciblée que signale la Plume. Une Plume au pied d’un rayon en signale toutes les cibles. Une Plume sur un rang signale les cibles des machines de ce rang.",
+          "face_2": "À chaque activation, vous pouvez prendre un bâtisseur en attente ou un Défenseur en forêt et le poser sur une autre parcelle encore ciblée que signale la Plume, ou sur une parcelle encore ciblée du rayon du Tambour en forêt. La Plume signale son rayon ou les cibles des machines de son rang.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Rappeler un bâtisseur ou arracher un Défenseur à un front qui tient ?",
+          "renoncement": "Une plongée peut découvrir la parcelle d’où le Défenseur décolle."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G11_T1",
+          "resume": "Plume sur 6. La Harpie relève un bâtisseur sur la cible avant d’un Bulldozer de rang 6. Avec un pion déjà présent, le seuil gravé 3, réduit à 2, est atteint.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": 6,
+              "rang": 6,
+              "reserve_couchee": 1,
+              "pions": 1,
+              "grave": 3
+            },
+            "transition_python": "if s['plume']==s['rang'] and s['reserve_couchee']:\n    s['reserve_couchee']-=1\n    s['pions']+=1\nseuil=max(1,s['grave']-int(s['rang'] in (3,6)))\nr=[s['pions'],seuil,s['pions']>=seuil]",
+            "attendu": [
+              2,
+              2,
+              true
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G11_T2",
+          "resume": "Deux plongées F1 sur un rang 6 signalé par la Plume relèvent un bâtisseur sur chacune des deux cibles de la même Abatteuse.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "attente": 2,
+              "plume": 6,
+              "rang": 6,
+              "pions": [
+                0,
+                1
+              ]
+            },
+            "transition_python": "for i in range(len(s['pions'])):\n    if s['plume']==s['rang'] and s['attente']:\n        s['attente']-=1\n        s['pions'][i]+=1\nr=[s['pions'],s['attente']]",
+            "attendu": [
+              [
+                1,
+                2
+              ],
+              0
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Privilégier un bâtisseur couché. Prélever un défenseur en forêt seulement si le départ garde son seuil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G12": {
+      "id": "G12",
+      "alias_oriente": "O>E",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "E",
+      "couple": [
+        "O",
+        "E"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL",
+        "ENRACINEMENT"
+      ],
+      "est_twist": false,
+      "vecteurs": "PLUME + RANG_MACHINE + RATISSAGE + SOUCHE + PIEGE → PIEGE / DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "PLUME",
+        "RANG_MACHINE",
+        "RATISSAGE",
+        "SOUCHE",
+        "PIEGE"
+      ],
+      "sorties": [
+        "PIEGE",
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": "Deux affûts couvrent deux parcelles désertes. Une première pose peut aussi être renouvelée après le passage d’une machine.",
+      "tags": [
+        "CAMOUFLAGE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "L’Ibijau",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_PIEGE",
+          "PIC_SOUCHE",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Poste désert",
+          "face_2": "Relais de camouflage",
+          "enracine": "Dernier affût"
+        },
+        "resume_plateau": "Poste désert / Relais de camouflage / Dernier affût"
+      },
+      "carte_joueur": {
+        "titre_complet": "L’Ibijau",
+        "entite_illustree": "Ibijau sur un chicot",
+        "brief_illustration": "Ibijau entier, vertical sur un chicot dans une clairière grise. Sa silhouette se détache à peine de l’écorce.",
+        "pitch_ambiance": "Là où l’œil croit compter deux branches, l’ibijau attend que le jour finisse.",
+        "texte_regle": {
+          "face_1": "À chaque activation, vous pouvez poser un Piège ordinaire de la réserve sur une parcelle encore ciblée, sans Défenseur ni Piège ordinaire, du rayon portant la Plume.",
+          "face_2": "À chaque activation, vous pouvez poser un Piège ordinaire de la réserve sur une parcelle encore ciblée, sans Défenseur ni Piège ordinaire. Si elle ne porte que des Souches, vous pouvez aussi déplacer un Défenseur en forêt d’une autre parcelle de son rayon vers la parcelle voisine de la cible, côté cœur, en sautant les Routes.",
+          "enracine": "Quand vous enracinez l’Ibijau, vous pouvez transférer un Piège ordinaire de n’importe quelle parcelle vers la parcelle désignée si elle est libre de Piège ordinaire."
+        },
+        "decision_et_renoncement": {
+          "choix": "Couvrir une case vide ou y envoyer un Défenseur ?",
+          "renoncement": "Un seul Défenseur déjà sur le poste empêche d’y installer le guet."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G12_T1",
+          "resume": "Plume en E. L’Ibijau piège E3 vide de Défenseurs. Les Entités peuvent y garder ce Piège contre un Bulldozer ou le sacrifier avec le Rêve du Ciel sous l’écorce.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": "E",
+              "cible": "E3",
+              "defenseurs": [],
+              "pieges": [],
+              "rang_ciel": 4,
+              "rangs_libres": [
+                3
+              ]
+            },
+            "transition_python": "p=s['cible']\nif p[0]==s['plume'] and p not in s['defenseurs'] and p not in s['pieges']:\n    s['pieges'].append(p)\npeut_sacrifier=any(x[0]==s['plume'] for x in s['pieges']) and s['rang_ciel']-1 in s['rangs_libres']\nr=[s['pieges'],peut_sacrifier]",
+            "attendu": [
+              [
+                "E3"
+              ],
+              true
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G12_T2",
+          "resume": "Deux activations F1 sous la même Plume couvrent deux cibles vides du rayon O. Aucune icône ne s’allume à la pose.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": "O",
+              "cibles": [
+                "O1",
+                "O3"
+              ],
+              "defenseurs": [
+                "O4"
+              ],
+              "pieges": []
+            },
+            "transition_python": "for c in s['cibles']:\n    if c[0]==s['plume'] and c not in s['defenseurs'] and c not in s['pieges']:\n        s['pieges'].append(c)\nr=s['pieges']",
+            "attendu": [
+              "O1",
+              "O3"
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Privilégier une cible désertée par nécessité. Conserver le Piège si sa consommation empêcherait une Route.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G13": {
+      "id": "G13",
+      "alias_oriente": "M>I",
+      "famille": "GARDIEN",
+      "origine": "M",
+      "voisin": "I",
+      "couple": [
+        "M",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "INSECTE + INSECTE_PASSAGER + ROUTE → DISPERSION_INSECTES",
+      "entrees": [
+        "INSECTE",
+        "INSECTE_PASSAGER",
+        "ROUTE"
+      ],
+      "sorties": [
+        "DISPERSION_INSECTES"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": "Deux brèches distinctes donnent deux événements Insecte, tant qu’il reste de quoi payer et déplacer.",
+      "tags": [
+        "INSECTES",
+        "DISPERSION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tamanoir",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_PARADE",
+        "pictogrammes": [
+          "PIC_INSECTE",
+          "PIC_MIGRATION",
+          "PIC_NID"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Brèche · fuite radiale",
+          "face_2": "Passager · deux issues",
+          "enracine": null
+        },
+        "resume_plateau": "Brèche · fuite radiale / Passager · deux issues"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tamanoir",
+        "entite_illustree": "Tamanoir sur une termitière ouverte",
+        "brief_illustration": "Tamanoir entier de profil devant une termitière entamée, son long panache posé sur le sol.",
+        "pitch_ambiance": "Le tamanoir ouvre le flanc de la termitière. Dans l’ombre humide, les galeries se vident vers les racines.",
+        "texte_regle": {
+          "face_1": "À chaque activation, choisissez une parcelle portant au moins deux Insectes au sol. Défaussez-en un et déplacez-en un autre d’un pas radial dans le sens de votre choix, en sautant les Routes. Cette dispersion payée allume Insecte une fois.",
+          "face_2": "À chaque activation, choisissez une parcelle. Défaussez un Insecte au sol ou un passager de machine sur cette parcelle. Déplacez un ou deux autres Insectes au sol d’un pas radial, ensemble ou séparément, en sautant les Routes. Il faut en déplacer au moins un. Cette dispersion allume Insecte une fois.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Ouvrir la termitière pour une cascade ou garder sa masse pour la Production ?",
+          "renoncement": "Le premier Insecte est dépensé, le groupe déplacé dégarnit sa parcelle."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G13_T1",
+          "resume": "En Face 2, le Tamanoir dépense le passager arrivé avec la machine du Nid des cavalières. Deux ouvrières au sol gagnent les parcelles voisines. Un seul événement Insecte alimente le pari.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "passager": 1,
+              "sol": [
+                0,
+                2,
+                0
+              ],
+              "destinations": [
+                0,
+                2
+              ]
+            },
+            "transition_python": "paye=bool(s['passager'] and s['sol'][1])\nif paye:\n    s['passager']-=1\n    for d in s['destinations'][:min(2,s['sol'][1])]:\n        s['sol'][1]-=1\n        s['sol'][d]+=1\nr=[s['passager'],s['sol'],int(paye)]",
+            "attendu": [
+              0,
+              [
+                1,
+                0,
+                1
+              ],
+              1
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G13_T2",
+          "resume": "Quatre ouvrières sur une parcelle intérieure financent deux brèches F1, une dans chaque sens. Chacune allume Insecte.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "sol": [
+                0,
+                4,
+                0
+              ],
+              "sorties": [
+                0,
+                2
+              ]
+            },
+            "transition_python": "evenements=0\nfor d in s['sorties']:\n    if s['sol'][1]>=2:\n        s['sol'][1]-=2\n        s['sol'][d]+=1\n        evenements+=1\nr=[s['sol'],evenements]",
+            "attendu": [
+              [
+                1,
+                0,
+                1
+              ],
+              2
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Dépenser un passager si le nouveau front permet une Parade et si la dispersion valide aussi une mise sur Insecte.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G14": {
+      "id": "G14",
+      "alias_oriente": "R>I",
+      "famille": "GARDIEN",
+      "origine": "R",
+      "voisin": "I",
+      "couple": [
+        "R",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL"
+      ],
+      "est_twist": false,
+      "vecteurs": "PIEGE + INSECTE → CROC / ECAILLE / PIEGE",
+      "entrees": [
+        "PIEGE",
+        "INSECTE"
+      ],
+      "sorties": [
+        "CROC",
+        "ECAILLE",
+        "PIEGE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_SABOTAGE"
+      ],
+      "double_ouverture": "Deux caches peuvent livrer deux Écailles. En Face 2, un Piège transporté sous le couvert d’une ouvrière peut financer la seconde fouille.",
+      "tags": [
+        "INSECTES",
+        "FOUILLE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Téju",
+        "fenetre_badge": "ACTIVATION",
+        "icone_conseillee": "ICONE_INSECTE",
+        "pictogrammes": [
+          "PIC_PIEGE",
+          "PIC_CROC",
+          "PIC_ECAILLE",
+          "PIC_INSECTE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Fouille · cache",
+          "face_2": "Cache · galerie ouverte",
+          "enracine": null
+        },
+        "resume_plateau": "Fouille · cache / Cache · galerie ouverte"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Téju",
+        "entite_illustree": "Téju dans un talus de terre meuble",
+        "brief_illustration": "Téju entier creusant parmi les racines, avec les ouvrières sur le bord de la galerie.",
+        "pitch_ambiance": "Le téju fouille le talus. La terre qu’il rejette découvre une galerie que les ouvrières empruntent déjà.",
+        "texte_regle": {
+          "face_1": "À chaque activation, choisissez un Piège ordinaire sur une parcelle portant un Insecte au sol. Rendez-le à la réserve. En échange, glissez une Écaille disponible dans le sac ou posez le Croc de la réserve à la place du Piège.",
+          "face_2": "À chaque activation, choisissez un Piège ordinaire en forêt. Vous pouvez le rendre pour glisser une Écaille disponible dans le sac, ou le remplacer par le Croc de la réserve. Dans ce dernier cas, vous pouvez porter le Piège sur une autre parcelle portant un Insecte au sol et libre de Piège ordinaire. À défaut, rendez-le à la réserve.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Transformer un filet en Croc réutilisable ou le conserver là où il est ?",
+          "renoncement": "Un Croc sorti de la réserve ne sera plus disponible à un autre emplacement sans déplacement."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G14_T1",
+          "resume": "En Face 2, le Téju remplace le Piège d’I2 par le Croc et porte le Piège en R3 auprès d’une ouvrière. Le Nid des potières dispose de deux débouchés possibles sur ces rayons selon son emplacement.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "pieges": [
+                "I2"
+              ],
+              "croc_reserve": 1,
+              "insectes": [
+                "R3"
+              ],
+              "depart": "I2",
+              "destination": "R3"
+            },
+            "transition_python": "a,b=s['depart'],s['destination']\ncroc=None\nif a in s['pieges'] and s['croc_reserve']:\n    s['pieges'].remove(a)\n    croc=a\n    if b in s['insectes'] and b not in s['pieges']:\n        s['pieges'].append(b)\nr=[croc,s['pieges']]",
+            "attendu": [
+              "I2",
+              [
+                "R3"
+              ]
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G14_T2",
+          "resume": "Le Téju F2 transporte un Piège en R3 auprès d’une ouvrière et laisse le Croc en I2. Sa seconde fouille rend le Piège déplacé pour mettre une Écaille dans le sac.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "piege": "I2",
+              "destination": "R3",
+              "insectes": [
+                "R3"
+              ],
+              "croc": null,
+              "ecailles": 2,
+              "sac": 0
+            },
+            "transition_python": "if s['destination'] in s['insectes'] and s['croc'] is None:\n    s['croc']=s['piege']\n    s['piege']=s['destination']\nif s['piege'] is not None and s['ecailles']:\n    s['piege']=None\n    s['ecailles']-=1\n    s['sac']+=1\nr=[s['croc'],s['piege'],s['sac']]",
+            "attendu": [
+              "I2",
+              null,
+              1
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Si le Croc peut revenir avant la prochaine Écaille, répartir les deux protections. Garder sinon la mue comme seconde option.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "G15": {
+      "id": "G15",
+      "alias_oriente": "O>I",
+      "famille": "GARDIEN",
+      "origine": "O",
+      "voisin": "I",
+      "couple": [
+        "O",
+        "I"
+      ],
+      "cycle": "DOUBLE_FACE_UPGRADE",
+      "cablage": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "roles_portes": [
+        "CATALYSEUR_EVEIL",
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "DES_SOUS_PARAVENT + INSECTE + INSECTE_RANG + RANG_MACHINE → INSECTE_RANG / INSECTE_RAPATRIE",
+      "entrees": [
+        "DES_SOUS_PARAVENT",
+        "INSECTE",
+        "INSECTE_RANG",
+        "RANG_MACHINE"
+      ],
+      "sorties": [
+        "INSECTE_RANG",
+        "INSECTE_RAPATRIE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": "Deux vols peuvent fournir deux déviations distinctes au même rang ou évacuer deux ouvrières vers deux cibles.",
+      "tags": [
+        "INSECTES",
+        "NECTAR",
+        "DE_ECARTE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Colibri",
+        "fenetre_badge": "OUVERTURE / ACTIVATION",
+        "icone_conseillee": "ICONE_SABOTAGE",
+        "pictogrammes": [
+          "PIC_DES_PARAVENT",
+          "PIC_INSECTE",
+          "PIC_MIGRATION",
+          "PIC_RANG_MACHINE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Grand dé · nectar",
+          "face_2": "Nectar · vol retour",
+          "enracine": null
+        },
+        "resume_plateau": "Grand dé · nectar / Nectar · vol retour"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Colibri",
+        "entite_illustree": "Colibri à la lisière des fleurs",
+        "brief_illustration": "Colibri entier en vol stationnaire entre deux rangées de fleurs, leurs calices dessinant une montée dans la lumière.",
+        "pitch_ambiance": "Le colibri revient de corolle en corolle par le même chemin. Une fleur vidée change le sens de sa tournée.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, laissez visible le plus grand dé standard de l’Oiseau à sa valeur lancée, même sur Sabotage ou Écaille. En cas de double, gardez le dé inutilisé. À chaque activation, vous pouvez envoyer un Insecte au sol de O ou I directement sur le rang indiqué par ce dé. L’envoi ne dépense pas l’Insecte et ne déclenche pas de déviation à lui seul.",
+          "face_2": "À l’ouverture, conservez visible le plus grand dé standard de l’Oiseau à sa valeur lancée, même sur Sabotage ou Écaille. En cas de double, gardez le dé inutilisé. À chaque activation, vous pouvez envoyer un Insecte au sol de n’importe quel rayon directement sur ce rang, ou en ramener un de ce rang sur une parcelle encore ciblée. Un transfert seul n’allume aucune icône.",
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Stocker un vol sur la Réglette ou ramener le dernier renfort vers une frappe ?",
+          "renoncement": "Une ouvrière descendue du rang ne pourra plus y dévier une machine."
+        }
+      },
+      "temoins": [
+        {
+          "id": "G15_T1",
+          "resume": "L’Oiseau a tiré Sabotage et lancé 2 et 5. Le Colibri envoie une ouvrière sur 5 lors du balayage du Sabotage. À la fenêtre suivante, elle peut être défaussée pour dévier la machine de 5 à 4 sur un Rêve défendu.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "standard": [
+                2,
+                5
+              ],
+              "jeton": "Sabotage",
+              "insecte_sol": 1,
+              "actif": 5,
+              "rang_reve": 4
+            },
+            "transition_python": "nectar=max(s['standard'])\nrang=[nectar] if s['insecte_sol'] else []\nif s['actif'] in rang and abs(s['rang_reve']-s['actif'])==1:\n    rang.remove(s['actif'])\n    s['actif']=s['rang_reve']\nr=[nectar,rang,s['actif']]",
+            "attendu": [
+              5,
+              [],
+              4
+            ]
+          },
+          "statut": "OK"
+        },
+        {
+          "id": "G15_T2",
+          "resume": "Le grand dé standard indique 5. Deux vols montent deux ouvrières et permettent de dévier deux machines différentes du rang 5 vers le rang 4.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "des": [
+                5,
+                1
+              ],
+              "sol": 2,
+              "machines": [
+                5,
+                5
+              ],
+              "cible": 4
+            },
+            "transition_python": "nectar=max(s['des'])\nrang=0\nfor _ in range(2):\n    if s['sol']:\n        s['sol']-=1\n        rang+=1\nfor i,p in enumerate(s['machines']):\n    if rang and p==nectar and abs(p-s['cible'])==1:\n        s['machines'][i]=s['cible']\n        rang-=1\nr=[s['machines'],rang,s['sol']]",
+            "attendu": [
+              [
+                4,
+                4
+              ],
+              0,
+              0
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Envoyer au rang si la fenêtre de déviation est encore à venir et si une machine y est visible. Sinon préférer une défense immédiate en Face 2.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R1": {
+      "id": "R1",
+      "alias_oriente": "H>E",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "E",
+      "couple": [
+        "H",
+        "E"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE",
+        "TWIST_2K3",
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": true,
+      "vecteurs": "POSITION_REVE + RANG_REVE → RANG_REVE",
+      "entrees": [
+        "POSITION_REVE",
+        "RANG_REVE"
+      ],
+      "sorties": [
+        "RANG_REVE"
+      ],
+      "paiement": [
+        "P_RANG"
+      ],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "PISTON",
+        "BLOC"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Nasse à contre-courant",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_REVE",
+          "PIC_AVANCEE_REVE",
+          "PIC_CHANT",
+          "PIC_TWIST"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Reflux à droite · bloc à gauche",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Reflux à droite · bloc à gauche"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Nasse à contre-courant",
+        "entite_illustree": "Vision d’une nasse de joncs",
+        "brief_illustration": "Nasse de joncs à demi-submergée, deux barques de brume glissant contre le fil de l’eau.",
+        "pitch_ambiance": "La nasse cède d’une maille. Une brassée de rêves passe dans l’autre sens.",
+        "texte_regle": {
+          "face_1": "Au pouvoir de ce Rêve défendu, vous pouvez le reculer d’un rang libre vers la droite pour avancer d’un rang vers la gauche un bloc d’un ou deux autres Rêves contigus. Le bloc doit être entièrement à gauche du rang quitté et avoir une case libre à sa gauche. Déplacez d’abord la Nasse puis le bloc, en commençant par son Rêve le plus à gauche. Tous les Défenseurs suivent. Reprenez la lecture des Rêves à droite de la nouvelle case de la Nasse. Aucun Rêve déplacé ne se résout de nouveau.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Accepter un trou derrière le bloc pour gagner deux rangs à gauche ?",
+          "renoncement": "La Nasse recule elle-même. Il faudra encore la ramener pour obtenir le Sommeil."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R1_T1",
+          "resume": "Rêves en 3 et 4, Nasse défendue en 5, rangs 2 et 6 libres. La Nasse passe en 6, les deux Rêves passent en 2 et 3, avec leurs pions. Aucun ne se résout deux fois.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rangs": {
+                "A": 3,
+                "B": 4,
+                "N": 5
+              },
+              "pions": {
+                "A": 1,
+                "B": 0,
+                "N": 1
+              },
+              "bloc": [
+                "A",
+                "B"
+              ]
+            },
+            "transition_python": "pos=s['rangs']\nbloc=s['bloc']\nold=pos['N']\nseq=[pos[k] for k in bloc]\nif old<6 and old+1 not in pos.values() and seq==list(range(seq[0],seq[0]+len(seq))) and 1<seq[0]<=seq[-1]<old and seq[0]-1 not in pos.values():\n    pos['N']+=1\n    for k in bloc:\n        pos[k]-=1\nr=[pos,{str(pos[k]):n for k,n in s['pions'].items() if n}]",
+            "attendu": [
+              {
+                "A": 2,
+                "B": 3,
+                "N": 6
+              },
+              {
+                "2": 1,
+                "6": 1
+              }
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Reculer surtout pour avancer deux Rêves et libérer une trajectoire de Chant. Conserver sa place si le recul briserait un Sommeil déjà acquis.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R2": {
+      "id": "R2",
+      "alias_oriente": "E>H",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "H",
+      "couple": [
+        "E",
+        "H"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "ENRACINEMENT",
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "SOUCHE + TAMBOUR + RANG_MACHINE + DEFENSEUR_ATTENTE + POSITION_REVE → ALTERATION / ARBRE / DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "SOUCHE",
+        "TAMBOUR",
+        "RANG_MACHINE",
+        "DEFENSEUR_ATTENTE",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "ALTERATION",
+        "ARBRE",
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "CRUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Fleuve sous la cendre",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_SOUCHE",
+          "PIC_ALTERATION",
+          "PIC_TAMBOUR",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Lit sec · marque",
+          "face_2": null,
+          "enracine": "Gué régénéré"
+        },
+        "resume_plateau": "Lit sec · marque / Gué régénéré"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Fleuve sous la cendre",
+        "entite_illustree": "Vision d’un courant sous les Souches",
+        "brief_illustration": "Un filet d’eau lumineuse rejoint une souche sous un banc de cendre, dans un méandre asséché.",
+        "pitch_ambiance": "Sous la cendre, l’eau se souvient du lit qu’elle occupait. Le premier arbre à boire lui rend son chemin.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, vous pouvez poser une Altération de la réserve sur une mobile sans Altération dans le rayon du Tambour en forêt, ou sur une mobile d’un rayon dont une parcelle ne porte que des Souches. Vous pouvez à la place relever le Tambour en attente sur un Rêve non défendu à droite de celui-ci. Il y participera à la résolution ordinaire.",
+          "face_2": null,
+          "enracine": "Quand vous enracinez ce Rêve, vous pouvez retourner immédiatement une Souche en Arbre sur la parcelle désignée si une machine mobile y porte une Altération. Cette repousse s’ajoute à celle du décompte final. Le Sommeil devient impossible."
+        },
+        "decision_et_renoncement": {
+          "choix": "Altérer grâce au Tambour en forêt ou relever le Tambour pour défendre un second Rêve ?",
+          "renoncement": "Le Tambour appelé sur la Réglette ne protégera pas la forêt. Enraciner le Fleuve ferme la voie du Sommeil."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R2_T1",
+          "resume": "Le Tambour appelle le Fleuve en H. Une Altération posée sur le Bulldozer d’H le fera reculer à sa prochaine révélation. Son jeton révélé comptera tout de même pour la rive Piège.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "tambour": "H1",
+              "mobile": "H2",
+              "marque": false,
+              "autres_mobilisees": 1,
+              "revelation": true
+            },
+            "transition_python": "if s['tambour'][0]==s['mobile'][0] and not s['marque']:\n    s['marque']=True\nrecul=s['revelation'] and s['marque']\np=int(s['mobile'][1])-int(recul)\nr=[p,not recul,s['autres_mobilisees']+int(s['revelation'])]",
+            "attendu": [
+              1,
+              false,
+              2
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Marquer le Bulldozer le plus près du cœur si son rayon est accessible. Enraciner seulement si le gain d’arbres vaut l’abandon du Sommeil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R3": {
+      "id": "R3",
+      "alias_oriente": "H>M",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "M",
+      "couple": [
+        "H",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "DUEL + TERRITOIRE + TAMBOUR + ROUTE → PIEGE",
+      "entrees": [
+        "DUEL",
+        "TERRITOIRE",
+        "TAMBOUR",
+        "ROUTE"
+      ],
+      "sorties": [
+        "PIEGE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_PIEGEAGE",
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "EMPREINTES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Les Pas dans l’eau",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_DUEL",
+          "PIC_TAMBOUR",
+          "PIC_PIEGE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Défi devant · Tenu derrière",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Défi devant · Tenu derrière"
+      },
+      "carte_joueur": {
+        "titre_complet": "Les Pas dans l’eau",
+        "entite_illustree": "Vision de traces remplies de pluie",
+        "brief_illustration": "Des empreintes géantes se remplissent à rebours le long d’une piste entre arbres et eau noire.",
+        "pitch_ambiance": "À chaque pas du Tambour, une empreinte se remplit avant que la pluie ne tombe.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, si le Duel est en forêt, vous pouvez poser un Piège ordinaire de la réserve un pas radial vers le cœur depuis le Duel face Défi, ou vers la bordure depuis le Territoire tenu. Sautez les Routes. Si le Tambour est sur le Duel, vous choisissez le sens. Il faut une parcelle libre de Piège ordinaire.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Couvrir l’avancée ou garder l’arrière ?",
+          "renoncement": "Un Tambour engagé auprès du Duel ne défend pas un Rêve."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R3_T1",
+          "resume": "Le Duel face Défi est en M2, le Tambour aussi. Les Humains choisissent M1 derrière le Duel. Le Piège y intercepte un Bulldozer pendant que la Parade en M2 peut établir le Territoire tenu.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "duel": 2,
+              "face": "Défi",
+              "tambour": 2,
+              "direction_choisie": -1,
+              "routes": [],
+              "pieges": []
+            },
+            "transition_python": "sens=s['direction_choisie'] if s['duel']==s['tambour'] else (1 if s['face']=='Défi' else -1)\np=s['duel']+sens\nwhile p in s['routes']:\n    p+=sens\nif 1<=p<=4 and p not in s['pieges']:\n    s['pieges'].append(p)\nr=[s['pieges'],s['duel'] in s['pieges']]",
+            "attendu": [
+              [
+                1
+              ],
+              false
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Viser la frappe qui détruirait le plus de Souches sans interposer un Piège sur la parcelle même du Duel.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R4": {
+      "id": "R4",
+      "alias_oriente": "H>R",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "R",
+      "couple": [
+        "H",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "CALE + ANNULATION + PIEGE + TAMBOUR → PIEGE / DEFENSEUR_REDEPLOYE",
+      "entrees": [
+        "CALE",
+        "ANNULATION",
+        "PIEGE",
+        "TAMBOUR"
+      ],
+      "sorties": [
+        "PIEGE",
+        "DEFENSEUR_REDEPLOYE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE",
+        "ICONE_PIEGEAGE",
+        "ICONE_PARADE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "TRAVERSEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Tambour des deux berges",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_CALE",
+          "PIC_TAMBOUR",
+          "PIC_PIEGE",
+          "PIC_ANNULATION"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Berge morte · traversée",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Berge morte · traversée"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Tambour des deux berges",
+        "entite_illustree": "Vision d’un tambour-pirogue",
+        "brief_illustration": "Un tambour tendu au-dessus d’un bras mort, ses cordes reliant une clairière abandonnée à une rive vivante.",
+        "pitch_ambiance": "Un coup résonne du côté où la machine s’est tue. Sur l’autre berge, quelqu’un ramasse le filet.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, choisissez le rayon d’une machine que ce Rêve vient d’annuler ou d’une machine calée. Vous pouvez prendre un Piège ordinaire sur ce rayon et le porter sur une parcelle encore ciblée d’un autre rayon, libre de Piège ordinaire. Si le Tambour occupait la parcelle de départ, vous pouvez l’emporter avec le Piège.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Sacrifier le filet de la berge silencieuse ou le garder pour le tour suivant ?",
+          "renoncement": "Le Tambour qui accompagne le filet quitte aussi son rayon."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R4_T1",
+          "resume": "Le Caïman a calé une machine en R. Le Rêve est défendu au rang vide. Il transporte le Piège de R2 et le Tambour en H4, visée par deux frappes.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rayons_cales": [
+                "R"
+              ],
+              "annulees": [],
+              "depart": "R2",
+              "cible": "H4",
+              "pieges": [
+                "R2"
+              ],
+              "tambour": "R2"
+            },
+            "transition_python": "a,b=s['depart'],s['cible']\nif a[0] in s['rayons_cales']+s['annulees'] and a in s['pieges'] and a[0]!=b[0] and b not in s['pieges']:\n    s['pieges'].remove(a)\n    s['pieges'].append(b)\n    if s['tambour']==a:\n        s['tambour']=b\nr=[s['pieges'],s['tambour']]",
+            "attendu": [
+              [
+                "H4"
+              ],
+              "H4"
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Choisir une parcelle doublement menacée où le Tambour peut compléter le seuil après consommation du Piège.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R5": {
+      "id": "R5",
+      "alias_oriente": "H>O",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "O",
+      "couple": [
+        "H",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "PLUME + PERCHOIR + RANG_MACHINE → RANG_MACHINE",
+      "entrees": [
+        "PLUME",
+        "PERCHOIR",
+        "RANG_MACHINE"
+      ],
+      "sorties": [
+        "RANG_MACHINE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "MIROIR",
+        "TACTIQUE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Ciel à deux eaux",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_RANG_MACHINE",
+          "PIC_PERCHOIR"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Rangs miroirs · échange",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Rangs miroirs · échange"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Ciel à deux eaux",
+        "entite_illustree": "Vision d’un ciel reflété dans le fleuve",
+        "brief_illustration": "Un bras de fleuve reflète deux horizons décalés sous une même ligne de pluie.",
+        "pitch_ambiance": "Les deux rives montrent le même ciel. Une seule voit l’orage arriver.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, vous pouvez échanger les rangs de deux machines visibles encore actives, distants exactement de trois. La Plume doit indiquer l’un de ces rangs. Si le Perchoir porte un jeton face cachée, une Plume au pied du rayon d’une des deux machines convient aussi. Laissez le jeton caché sur son Perchoir. Placez leurs dés de machine aux rangs échangés, sans déplacer leurs jetons de rayon. Chacune garde sa tactique imprimée mais change de mode. Les Rêves encore à résoudre lisent les nouveaux rangs.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Quelle machine doit passer en Charge et laquelle attaquera plus tôt ?",
+          "renoncement": "Le changement de mode vaut pour les deux. Il peut renforcer la machine qu’on laisse en Assaut."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R5_T1",
+          "resume": "Acte I, Plume en 1, une Abatteuse en 1 échange avec un Bulldozer chargé de Rouges en 4. Le Bulldozer passe en Charge sur place. L’Abatteuse passe en Assaut en 4 devant un Rêve encore à résoudre.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": 1,
+              "A": 1,
+              "B": 4,
+              "reve_a_venir": 4
+            },
+            "transition_python": "if abs(s['A']-s['B'])==3 and s['plume'] in (s['A'],s['B']):\n    s['A'],s['B']=s['B'],s['A']\nr=[s['A'],s['B'],'Charge' if s['B']<=3 else 'Assaut',s['A']==s['reve_a_venir']]",
+            "attendu": [
+              4,
+              1,
+              "Charge",
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Échanger si la perte de force ou l’annulation de la machine la plus dangereuse dépasse le risque créé au rang opposé.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R6": {
+      "id": "R6",
+      "alias_oriente": "H>I",
+      "famille": "REVE",
+      "origine": "H",
+      "voisin": "I",
+      "couple": [
+        "H",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "TAMBOUR + INSECTE + RANG_MACHINE + POSITION_REVE → INSECTE_RANG",
+      "entrees": [
+        "TAMBOUR",
+        "INSECTE",
+        "RANG_MACHINE",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "INSECTE_RANG"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "RAPPEL"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Chant des chambres creuses",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_TAMBOUR",
+          "PIC_INSECTE",
+          "PIC_RANG_MACHINE",
+          "PIC_REVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Tambour en forêt · montée au rang",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Tambour en forêt · montée au rang"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Chant des chambres creuses",
+        "entite_illustree": "Vision d’une calebasse habitée",
+        "brief_illustration": "Une calebasse ouverte comme une caisse de résonance, une piste d’ouvrières courant jusqu’à son bord.",
+        "pitch_ambiance": "Le Chamane approche l’oreille de la calebasse. Des pas minuscules y battent déjà le rappel.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, si le Tambour est en forêt, vous pouvez prendre un Insecte au sol sur sa parcelle et le poser sur le rang de ce Rêve ou sur celui d’une machine visible encore active. Si cette machine menace la parcelle du Tambour, vous pouvez aussi transporter un second Insecte de cette parcelle sur le même rang. La fenêtre de déviation de cette ouverture est déjà passée.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Parier sur le prochain tirage ou garder autour du Tambour de quoi parer aujourd’hui ?",
+          "renoncement": "Les ouvrières montées au rang manquent aux frappes imminentes."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R6_T1",
+          "resume": "Le Nid des calebasses a rassemblé trois ouvrières auprès du Tambour. Au tour suivant, le Chant en envoie deux sur 3, rang d’une machine qui vise le Tambour. Elles y attendent la prochaine ouverture.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "tambour": "H4",
+              "stock": 3,
+              "rang": 3,
+              "cibles": [
+                "H4"
+              ],
+              "rang_reve": 5
+            },
+            "transition_python": "n=min(s['stock'],1+int(s['tambour'] in s['cibles']))\nr=[s['stock']-n,{str(s['rang']):n}]",
+            "attendu": [
+              1,
+              {
+                "3": 2
+              }
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Prélever les ouvrières surnuméraires après calcul du seuil autour du Tambour. Choisir un rang utile à un futur Rêve.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R7": {
+      "id": "R7",
+      "alias_oriente": "E>M",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "M",
+      "couple": [
+        "E",
+        "M"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "DUEL + RANG_MACHINE + POSITION_REVE → ALTERATION / RANG_REVE",
+      "entrees": [
+        "DUEL",
+        "RANG_MACHINE",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "ALTERATION",
+        "RANG_REVE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "AMARRAGE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Pirogue sans rameur",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_DUEL",
+          "PIC_ALTERATION",
+          "PIC_AVANCEE_REVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Remous · amarrage",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Remous · amarrage"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Pirogue sans rameur",
+        "entite_illustree": "Vision d’une pirogue menée par son reflet",
+        "brief_illustration": "Pirogue vide à la jonction de deux eaux, sa ligne de flottaison se prolongeant en sillage autour d’un gué.",
+        "pitch_ambiance": "La pirogue remonte le courant. Sous sa coque, le reflet descend vers le gué.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, vous pouvez poser une Altération de la réserve sur une machine mobile de M ou E qui n’en porte pas. Si elle se trouve sur la parcelle du Duel, vous pouvez aussi avancer ce Rêve d’un rang vers la gauche si la case est libre. Les Défenseurs embarqués suivent.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Marquer la machine la plus dangereuse ou amarrer la pirogue au Duel ?",
+          "renoncement": "Une meilleure position sur la Réglette peut coûter le recul d’une autre machine."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R7_T1",
+          "resume": "Duel et Bulldozer mobile occupent M2. La Pirogue le marque et passe de 5 à 4. À sa prochaine révélation, le Bulldozer recule sans frapper mais compte pour la Furtivité.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "duel": "M2",
+              "machine": "M2",
+              "mobile": true,
+              "rang": 5,
+              "occupes": [
+                5
+              ],
+              "alteree": false
+            },
+            "transition_python": "if s['mobile'] and not s['alteree']:\n    s['alteree']=True\n    if s['duel']==s['machine'] and s['rang']>1 and s['rang']-1 not in s['occupes']:\n        s['rang']-=1\nr=[s['rang'],s['alteree']]",
+            "attendu": [
+              4,
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Donner la priorité au glissement qui ferme un trou vers le Sommeil si le Bulldozer du Duel menace aussi des Souches.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R8": {
+      "id": "R8",
+      "alias_oriente": "E>R",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "R",
+      "couple": [
+        "E",
+        "R"
+      ],
+      "cycle": "PASSIF_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE",
+        "LOI_PASSIVE",
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "ALTERATION + RANG_MACHINE + CROC + POSITION_REVE → RANG_REVE / ALTERATION",
+      "entrees": [
+        "ALTERATION",
+        "RANG_MACHINE",
+        "CROC",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ALTERATION"
+      ],
+      "paiement": [],
+      "nature": "LOI_PASSIVE",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "MUE",
+        "ANTICIPATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "La Peau du fleuve",
+        "fenetre_badge": "RETRAIT ALTÉRATION / OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_ALTERATION",
+          "PIC_AVANCEE_REVE",
+          "PIC_CROC",
+          "PIC_LOI_PASSIVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Mue · rang révélé",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Mue · rang révélé"
+      },
+      "carte_joueur": {
+        "titre_complet": "La Peau du fleuve",
+        "entite_illustree": "Vision d’un fleuve qui sort de sa peau",
+        "brief_illustration": "Deux méandres superposés, l’un d’eau et l’autre de vase craquelée, avec une ligne d’écailles à leur jonction.",
+        "pitch_ambiance": "Le fleuve abandonne son ancienne courbe. Le lit vide garde un instant la forme de ce qui va arriver.",
+        "texte_regle": {
+          "face_1": "Sur la Réglette, même sans Défenseur, ce Rêve peut prendre le rang révélé d’une mobile dont on retire l’Altération, s’il est libre et à sa gauche. Déplacez-le avec ses Défenseurs avant les Sabotages. La machine recule et reste privée de frappe comme prévu. Pour plusieurs retraits simultanés, les Entités choisissent leur ordre. Au pouvoir de ce Rêve défendu, vous pouvez altérer une mobile sans Altération de E ou R, ou de tout rayon portant le Croc. Posez le jeton de la réserve.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Sauter vers le Sommeil ou conserver le rang d’une annulation certaine ?",
+          "renoncement": "À son arrivée, la machine qui a payé le passage est déjà neutralisée. Il faut une autre machine pour y réussir une annulation."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R8_T1",
+          "resume": "Une mobile altérée révèle 2. La Peau, défendue en 5, rejoint le 2 libre. La première machine recule. Une seconde machine de rang 2 peut alors être annulée par le Rêve.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "reve": 5,
+              "occupes": [
+                5
+              ],
+              "rang_alteree": 2,
+              "autres_actives": [
+                2
+              ],
+              "pions": 1
+            },
+            "transition_python": "cible=s['rang_alteree']\nif cible<s['reve'] and cible not in s['occupes']:\n    s['reve']=cible\nannulations=min(s['pions'],s['autres_actives'].count(s['reve']))\nr=[s['reve'],annulations,annulations>0]",
+            "attendu": [
+              2,
+              1,
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Sauter si le rang d’arrivée ferme le bloc de gauche ou contient une seconde machine plus menaçante que celle du rang quitté.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R9": {
+      "id": "R9",
+      "alias_oriente": "E>O",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "O",
+      "couple": [
+        "E",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE"
+      ],
+      "est_twist": false,
+      "vecteurs": "PLUME + PIEGE + DE_ENVOL + POSITION_REVE → RANG_REVE / ALTERATION",
+      "entrees": [
+        "PLUME",
+        "PIEGE",
+        "DE_ENVOL",
+        "POSITION_REVE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ALTERATION"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "CONSTELLATION"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Ciel sous l’écorce",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_PLUME",
+          "PIC_PIEGE",
+          "PIC_PERCHOIR",
+          "PIC_AVANCEE_REVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Poste sacrifié · étoile basse",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Poste sacrifié · étoile basse"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Ciel sous l’écorce",
+        "entite_illustree": "Vision d’une constellation d’écorce",
+        "brief_illustration": "Arbre creux ouvert sur un firmament inversé, une plume claire au pied du tronc.",
+        "pitch_ambiance": "On détache une écaille de bois. Derrière elle, une étoile attendait à hauteur de main.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, si la Plume indique un rayon, vous pouvez y défausser un Piège ordinaire pour avancer ce Rêve d’un rang libre vers la gauche. Si le Dé d’Envol montre le rang d’arrivée, vous pouvez ensuite poser une Altération de la réserve sur une mobile de ce rayon qui n’en porte pas. Les Défenseurs suivent le Rêve.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Brûler un guet de l’Ibijau pour gagner un rang ?",
+          "renoncement": "Si le Dé d’Envol ne coïncide pas, la machine de ce rayon conserve son prochain passage."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R9_T1",
+          "resume": "Plume en E, Dé d’Envol sur 3. Le Ciel en 4 sacrifie le Piège de l’Ibijau, rejoint le 3 libre et altère le Bulldozer mobile d’E.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rank": 4,
+              "envol": 3,
+              "occupes": [
+                4
+              ],
+              "pieges": [
+                "E3"
+              ],
+              "plume": "E",
+              "mobile_sans_marque": true
+            },
+            "transition_python": "g=s['rank']-1\neligible=[x for x in s['pieges'] if x[0]==s['plume']]\nmarque=False\nif eligible and g>=1 and g not in s['occupes']:\n    s['pieges'].remove(eligible[0])\n    s['rank']=g\n    marque=s['envol']==g and s['mobile_sans_marque']\nr=[s['rank'],s['pieges'],marque]",
+            "attendu": [
+              3,
+              [],
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Dépenser en priorité un Piège éloigné des cibles, surtout si le dé offre aussi une Altération.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "R10": {
+      "id": "R10",
+      "alias_oriente": "E>I",
+      "famille": "REVE",
+      "origine": "E",
+      "voisin": "I",
+      "couple": [
+        "E",
+        "I"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LEVIER_REVE",
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "INSECTE_RANG + INSECTE + POSITION_REVE + RANG_MACHINE → RANG_REVE / ALTERATION / INSECTE_IMMERGE",
+      "entrees": [
+        "INSECTE_RANG",
+        "INSECTE",
+        "POSITION_REVE",
+        "RANG_MACHINE"
+      ],
+      "sorties": [
+        "RANG_REVE",
+        "ALTERATION",
+        "INSECTE_IMMERGE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [
+        "ICONE_REVE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "PLONGEE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Les Lanternes englouties",
+        "fenetre_badge": "OUVERTURE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_INSECTE",
+          "PIC_AVANCEE_REVE",
+          "PIC_ALTERATION"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Lanterne du rang · plongée",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Lanterne du rang · plongée"
+      },
+      "carte_joueur": {
+        "titre_complet": "Les Lanternes englouties",
+        "entite_illustree": "Vision de lumières sous les racines",
+        "brief_illustration": "Traînée de petites lumières au ras de l’eau, puis sous des racines immergées comme des arches.",
+        "pitch_ambiance": "Une lumière s’éteint à la surface. Sous les racines, le cortège gagne une longueur de pirogue.",
+        "texte_regle": {
+          "face_1": "À l’ouverture, après les annulations de ce Rêve défendu, vous pouvez retirer un Insecte du rang de ce Rêve pour avancer celui-ci d’un rang libre vers la gauche avec ses Défenseurs. Posez cet Insecte au sol sur une parcelle de E ou I portant une machine mobile. S’il y rejoint un autre Insecte au sol, vous pouvez poser une Altération de la réserve sur une mobile de cette parcelle qui n’en porte pas. Le mouvement exige les deux destinations légales.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Garder l’Insecte pour dévier ou le faire plonger à l’endroit d’une future frappe ?",
+          "renoncement": "La Réglette perd son aiguilleur pour gagner un rang de Sommeil."
+        }
+      },
+      "temoins": [
+        {
+          "id": "R10_T1",
+          "resume": "Le Nid des reflets a garni le rang 4. Les Lanternes en 4 passent en 3 libre. L’ouvrière rejoint une autre en E2 et les Entités y altèrent l’Abatteuse mobile.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rang": 4,
+              "occupes": [
+                4
+              ],
+              "stock_rang": 1,
+              "sol": 1,
+              "mobile": true,
+              "marque": false
+            },
+            "transition_python": "if s['stock_rang'] and s['rang']>1 and s['rang']-1 not in s['occupes'] and s['mobile']:\n    s['stock_rang']-=1\n    s['rang']-=1\n    s['marque']=s['marque'] or s['sol']>0\n    s['sol']+=1\nr=[s['rang'],s['stock_rang'],s['sol'],s['marque']]",
+            "attendu": [
+              3,
+              0,
+              2,
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Privilégier une arrivée qui réalise à la fois l’Altération et un pas vers le bloc de Sommeil.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M1": {
+      "id": "M1",
+      "alias_oriente": "I>M",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "M",
+      "couple": [
+        "I",
+        "M"
+      ],
+      "cycle": "PASSIF_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "LOI_PASSIVE",
+        "TWIST_2K3"
+      ],
+      "est_twist": true,
+      "vecteurs": "NID_ACTIVE + INSECTE + RANG_MACHINE + DUEL + ROUTE → INSECTE_PASSAGER / TERRITOIRE",
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "RANG_MACHINE",
+        "DUEL",
+        "ROUTE"
+      ],
+      "sorties": [
+        "INSECTE_PASSAGER",
+        "TERRITOIRE"
+      ],
+      "paiement": [],
+      "nature": "LOI_PASSIVE",
+      "declencheurs_amorces": [
+        "ICONE_INSECTE"
+      ],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "PHORESIE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Nid des cavalières",
+        "fenetre_badge": "PRODUCTION / FRAPPE / MÉNAGE",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_INSECTE",
+          "PIC_MIGRATION",
+          "PIC_LOI_PASSIVE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Embarquement · frappe · descente",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Embarquement · frappe · descente"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid des cavalières",
+        "entite_illustree": "Nid tressé au ras d’une piste",
+        "brief_illustration": "Un nid tressé dans des herbes basses, une file de passagères montant sur une chenille mécanique embourbée.",
+        "pitch_ambiance": "Une colonne grimpe sur le dos qui passe. Au prochain arrêt, la piste aura changé de place.",
+        "texte_regle": {
+          "face_1": "Après la production de ce Nid défendu, vous pouvez embarquer un Insecte de sa parcelle sur une machine mobile présente ou située un pas radial plus loin dans l’un ou l’autre sens, Routes sautées. Une machine porte au plus un passager. Il voyage sur elle, hors Migration. À une frappe de sa machine, vous pouvez le défausser comme un Insecte de la parcelle ciblée pour une Parade classique. Le Duel peut ainsi devenir Territoire tenu si un Défenseur participe. Un passager restant descend au ménage sur la parcelle de la machine, ou retourne en réserve si elle n’a plus de parcelle. Si le Nid quitte la forêt, les passagers déjà embarqués descendent aussitôt sur place.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Faire voyager une ouvrière ou conserver deux ouvrières pour la prochaine Production ?",
+          "renoncement": "Le passager quitte le Nid et ne participe qu’à la défense d’une cible de sa machine."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M1_T1",
+          "resume": "Une Abatteuse embarque une ouvrière puis frappe devant elle sur le Duel. Un Défenseur de force 1 et le passager atteignent le seuil 2. L’icône Insecte s’allume et le Duel devient Territoire tenu.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "insectes_nid": 2,
+              "passager": 0,
+              "mobile_voisine": true,
+              "pions_duel": 1,
+              "seuil": 2
+            },
+            "transition_python": "if s['mobile_voisine'] and not s['passager'] and s['insectes_nid']:\n    s['passager']=1\n    s['insectes_nid']-=1\nbesoin=s['seuil']-s['pions_duel']\ndepense=0<besoin<=s['passager']\nif depense:\n    s['passager']-=besoin\nr=[s['insectes_nid'],s['passager'],'Insecte' if depense else None,depense and s['pions_duel']>0]",
+            "attendu": [
+              1,
+              0,
+              "Insecte",
+              true
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Embarquer sur une machine à deux cibles si un seul renfort peut suffire sur l’une d’elles. Conserver le deuxième Insecte au Nid quand la prochaine ponte est décisive.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M2": {
+      "id": "M2",
+      "alias_oriente": "I>R",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "R",
+      "couple": [
+        "I",
+        "R"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "NID_ACTIVE + INSECTE + CROC + PIEGE → INSECTES_TRANSPORTES",
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "CROC",
+        "PIEGE"
+      ],
+      "sorties": [
+        "INSECTES_TRANSPORTES"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "GALERIES"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Nid des potières",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_PIEGE",
+          "PIC_CROC",
+          "PIC_MIGRATION"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Conduits · sortie sous garde",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Conduits · sortie sous garde"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid des potières",
+        "entite_illustree": "Nid de loges en argile",
+        "brief_illustration": "Coupe naturelle d’un talus aux chambres d’argile reliées par un conduit suivant les racines.",
+        "pitch_ambiance": "Les loges d’argile restent fraîches. Une ouverture au bout du conduit porte l’odeur d’une racine lointaine.",
+        "texte_regle": {
+          "face_1": "Après la production de ce Nid défendu, choisissez sur son rayon une autre parcelle portant le Croc ou un Piège ordinaire. Vous pouvez y transporter un Insecte du Nid, ou deux si elle porte le Croc. Ils arrivent au sol avant la Migration normale.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Vider deux chambres vers le Croc ou conserver une ponte forte ?",
+          "renoncement": "Un tunnel mal choisi concentre l’Essaim derrière une défense déjà suffisante."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M2_T1",
+          "resume": "Le Téju vient de poser le Croc sur la dernière parcelle du rayon du Nid. Deux ouvrières l’y rejoignent. À la Migration, l’une peut gagner un rang et l’autre une icône.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "stock_nid": 4,
+              "sortie": 4,
+              "croc": 4,
+              "pieges": [],
+              "derniere": 4
+            },
+            "transition_python": "p=s['sortie']\nquota=2 if p==s['croc'] else int(p in s['pieges'])\nn=min(quota,s['stock_nid'])\ns['stock_nid']-=n\nr=[s['stock_nid'],n,n if p==s['derniere'] else 0]",
+            "attendu": [
+              2,
+              2,
+              2
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Préférer une sortie près du cœur qui donne accès aux pistes, en laissant deux ouvrières au Nid si possible.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M3": {
+      "id": "M3",
+      "alias_oriente": "I>O",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "O",
+      "couple": [
+        "I",
+        "O"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [],
+      "est_twist": false,
+      "vecteurs": "NID_ACTIVE + PLUME + INSECTE_RANG + GARDIEN + INSECTE → INSECTE_ICONE / INSECTE_RAPPELE",
+      "entrees": [
+        "NID_ACTIVE",
+        "PLUME",
+        "INSECTE_RANG",
+        "GARDIEN",
+        "INSECTE"
+      ],
+      "sorties": [
+        "INSECTE_ICONE",
+        "INSECTE_RAPPELE"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "INSECTES",
+        "TISSAGE"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Nid des feuilles cousues",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_PLUME",
+          "PIC_INSECTE",
+          "PIC_PARI_ENCOCHE"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Chaud · sentinelle / Calme · rappel",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Chaud · sentinelle / Calme · rappel"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid des feuilles cousues",
+        "entite_illustree": "Nid suspendu entre deux feuilles",
+        "brief_illustration": "Deux feuilles vivantes rapprochées par des fils, des ouvrières suspendues en chaîne sous la voûte.",
+        "pitch_ambiance": "À la couture de deux feuilles, une chaîne d’ouvrières tend ou relâche le fil.",
+        "texte_regle": {
+          "face_1": "Après la production de ce Nid défendu, si la Plume montre Chaud, vous pouvez déplacer un Insecte d’un rang de la Réglette vers l’icône d’un Gardien en piste. Si elle montre Calme, vous pouvez rappeler un Insecte d’une icône sur la parcelle du Nid. Le Bouclier de lisière reste au choix des Insectes au verdict et un pari perdu le reste même si le Bouclier maintient le Gardien.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Coudre une assurance à un Gardien ou refaire la masse du Nid ?",
+          "renoncement": "L’Insecte retiré du rang ne servira pas à une déviation."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M3_T1",
+          "resume": "Le Colibri a laissé une ouvrière sur 5. Avec Plume Chaud, le Nid la place sur l’icône d’un Gardien menacé. Au verdict, I peut la dépenser pour maintenir sa Face 2 malgré le pari perdu.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "plume": "Chaud",
+              "ouvrieres_rang": 1,
+              "ouvrieres_icone": 0,
+              "verdict": "perdu",
+              "face": 2
+            },
+            "transition_python": "if s['plume']=='Chaud' and s['ouvrieres_rang']:\n    s['ouvrieres_rang']-=1\n    s['ouvrieres_icone']+=1\nmaintien=s['verdict']=='perdu' and s['ouvrieres_icone']>0\nif maintien:\n    s['ouvrieres_icone']-=1\nr=[s['verdict'],s['face'] if maintien else 1,s['ouvrieres_rang'],s['ouvrieres_icone']]",
+            "attendu": [
+              "perdu",
+              2,
+              0,
+              0
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Utiliser Chaud pour protéger une Face 2 précieuse quand la déviation est passée. Rappeler sur Calme si le stock du Nid est sous deux.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M4": {
+      "id": "M4",
+      "alias_oriente": "I>H",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "H",
+      "couple": [
+        "I",
+        "H"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "ENRACINEMENT",
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "NID_ACTIVE + INSECTE + TAMBOUR + ROUTE → INSECTES_EN_CONVOI / INSECTE_RANG",
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "TAMBOUR",
+        "ROUTE"
+      ],
+      "sorties": [
+        "INSECTES_EN_CONVOI",
+        "INSECTE_RANG"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "CONVOI"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Nid des calebasses",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_TAMBOUR",
+          "PIC_INSECTE",
+          "PIC_ENRACINEMENT"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Convoi vers le Tambour",
+          "face_2": null,
+          "enracine": "Essaimage"
+        },
+        "resume_plateau": "Convoi vers le Tambour / Essaimage"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid des calebasses",
+        "entite_illustree": "Nid dans une courge sèche",
+        "brief_illustration": "Une calebasse sèche entre les contreforts d’un grand arbre, parcourue par une colonne jusqu’à une peau de tambour.",
+        "pitch_ambiance": "Quand le Tambour résonne, la courge vide vibre jusque dans les chambres où repose le couvain.",
+        "texte_regle": {
+          "face_1": "Après la production de ce Nid défendu, si le Tambour occupe une autre parcelle du même rayon, vous pouvez y conduire autant d’Insectes du Nid que vous le souhaitez. Le convoi suit le rayon, en sautant les Routes, avant la Migration.",
+          "face_2": null,
+          "enracine": "Quand vous enracinez ce Nid, laissez ses Insectes sur leur parcelle. Vous pouvez ensuite donner à un de ces Insectes au sol un pas radial vers le cœur, Routes sautées, ou le poser sur un rang librement choisi s’il est déjà sur la dernière parcelle."
+        },
+        "decision_et_renoncement": {
+          "choix": "Combien d’ouvrières confier au Tambour ?",
+          "renoncement": "Au-dessous de deux ouvrières restantes, la prochaine Production tombe à une."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M4_T1",
+          "resume": "Quatre ouvrières après Production en H2. Deux gagnent le Tambour en H4 en sautant la Route H3. Deux restent au Nid et permettront une nouvelle ponte de deux.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "stock_apres_ponte": 4,
+              "nid": 2,
+              "tambour": 4,
+              "routes": [
+                3
+              ],
+              "convoi": 2
+            },
+            "transition_python": "parcours=[p for p in range(s['nid']+1,s['tambour']+1) if p not in s['routes']]\nn=min(s['stock_apres_ponte'],s['convoi'])\nreste=s['stock_apres_ponte']-n\nr=[parcours,reste,n,2 if reste>=2 else 1]",
+            "attendu": [
+              [
+                4
+              ],
+              2,
+              2,
+              2
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Conserver deux ouvrières si la prochaine Production est plausible. Allonger le convoi si le Tambour protège la dernière parcelle.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    },
+    "M5": {
+      "id": "M5",
+      "alias_oriente": "I>E",
+      "famille": "CROISSANCE",
+      "origine": "I",
+      "voisin": "E",
+      "couple": [
+        "I",
+        "E"
+      ],
+      "cycle": "SIMPLE_CONTINU",
+      "cablage": null,
+      "roles_portes": [
+        "AUTONOMIE_A0"
+      ],
+      "est_twist": false,
+      "vecteurs": "NID_ACTIVE + INSECTE + RANG_MACHINE + ANNULATION → INSECTE_RANG",
+      "entrees": [
+        "NID_ACTIVE",
+        "INSECTE",
+        "RANG_MACHINE",
+        "ANNULATION"
+      ],
+      "sorties": [
+        "INSECTE_RANG"
+      ],
+      "paiement": [],
+      "nature": "ACTION",
+      "declencheurs_amorces": [],
+      "double_ouverture": null,
+      "tags": [
+        "A0",
+        "INSECTES",
+        "REFLET"
+      ],
+      "tuile_plateau": {
+        "nom_court": "Le Nid des reflets",
+        "fenetre_badge": "PRODUCTION",
+        "icone_conseillee": null,
+        "pictogrammes": [
+          "PIC_NID",
+          "PIC_RANG_MACHINE",
+          "PIC_INSECTE",
+          "PIC_ANNULATION"
+        ],
+        "mots_cles_plateau": {
+          "face_1": "Reflet droit · reflet incliné",
+          "face_2": null,
+          "enracine": null
+        },
+        "resume_plateau": "Reflet droit · reflet incliné"
+      },
+      "carte_joueur": {
+        "titre_complet": "Le Nid des reflets",
+        "entite_illustree": "Nid de papier au-dessus de l’eau noire",
+        "brief_illustration": "Nid de papier fixé sous une branche au ras d’un bras mort. Deux colonnes se séparent à la surface réfléchissante.",
+        "pitch_ambiance": "Sous le nid de papier, chaque remous porte deux images. Les ouvrières suivent celle qui tremble encore.",
+        "texte_regle": {
+          "face_1": "Après la production de ce Nid défendu, choisissez un jeton Machine révélé du rayon du Nid. Posez un Insecte du Nid sur le rang de son dé. Si le jeton est incliné par une annulation, vous pouvez choisir à la place un rang voisin de ce dé, entre 1 et 6. Gardez les jetons visibles avec leur orientation et leurs dés de machine jusqu’à cette lecture. Utilisez le rang après toute déviation. Un jeton de Ratissage sous sa machine ne donne pas de départ.",
+          "face_2": null,
+          "enracine": null
+        },
+        "decision_et_renoncement": {
+          "choix": "Lire la menace visible ou exploiter le reflet d’une machine annulée ?",
+          "renoncement": "La cohorte investie dans la Réglette ne pare plus sur la parcelle du Nid."
+        }
+      },
+      "temoins": [
+        {
+          "id": "M5_T1",
+          "resume": "Le Rêve a incliné le jeton d’une machine déviée en 5. Après Production, le Nid choisit le rang 4 voisin. Cette ouvrière pourra payer la plongée des Lanternes en 4 à une prochaine ouverture.",
+          "etat_attendu_verifie": {
+            "entree": {
+              "rang_apres_deviation": 5,
+              "incline": true,
+              "choix": 4,
+              "stock_nid": 3
+            },
+            "transition_python": "d=s['rang_apres_deviation']\naccessibles={d}\nif s['incline']:\n    accessibles.update(p for p in (d-1,d+1) if 1<=p<=6)\ntransfert=s['choix'] in accessibles and s['stock_nid']>0\nr=[s['stock_nid']-int(transfert),s['choix'] if transfert else None]",
+            "attendu": [
+              2,
+              4
+            ]
+          },
+          "statut": "OK"
+        }
+      ],
+      "heuristique_bot": "Chercher un rang qui prépare les Lanternes ou une déviation du prochain tour, tout en gardant si possible deux Insectes au Nid.",
+      "engine_sync_status": "DESIGNED_V6_3",
+      "statut_conception": "PASSE_1_CREATIF"
+    }
+  }
+}
