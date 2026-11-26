@@ -67,8 +67,8 @@ scripts/
 
 docs/
 ├── index.html                         # SPA statique sans bundler (file:// & HTTPS), châssis verrouillé (0 écart)
-├── explorer_v6_3.js                   # Explorateur Bi-Composant & Atelier Draft Multi-Panels (v6.3.1)
-├── explorer_v6_3.css                  # Design system Mini-Tuile / Grande Carte / Duel / Simulateur / Atelier
+├── explorer_v6_3.js                   # Atelier d'Arbitrage Bi-Composant Multi-Panels (v6.3.2)
+├── explorer_v6_3.css                  # Design system épuré Duel P1·P2·P3 / Tiroirs / Simulateur / Hybrideur
 ├── AMAZONIA_STUDIO_CONTEXT.md         # Présent référentiel
 └── data/
     ├── amazonia_data_v6_0.js          # Dérivé JS (CATALOGUE_TUILES Archive v6.2, CHASSIS_AXES_SPEC verrouillé, INV)
@@ -78,8 +78,8 @@ docs/
     └── spec_formelle_v6_0.json        # Contrat formel dérivé v6.2
 ```
 
-- **Bandeau configurateur** : châssis verrouillé sur le standard unique `P4_2233` départ décalé (`Placement_Initial_Machines.defaultVal = "BULLDOZER_P1_ABATTEUSE_P2"`, `0 écart` à l'ouverture comme après `resetChassisToDefault()`, axes morts neutralisés), sélecteur de cercle `3..6` Peuples, sélecteur de bilan `digests/index.json` + copie 1-tap `📋 Copier Bilan Gemini` + export contextuel `✨ Copier contexte Gemini`.
-- **4 Vues synchronisées** : `1. Livret Didactique`, `2. Explorateur & Atelier v6.3` (3 sous-vues : *Explorateur & Duel P1·P2·P3*, *Simulateur de Table 3–6J*, *Tableau de bord Mon Canon* + Radar 197 assises temps réel + Passerelles Gemini/Antigravity), `3. Évolutions & Arbitrages`, `4. Spec & JSON`.
+- **Bandeau configurateur** : châssis verrouillé sur le standard unique `P4_2233` départ décalé (`Placement_Initial_Machines.defaultVal = "BULLDOZER_P1_ABATTEUSE_P2"`, `0 écart` à l'ouverture comme après `resetChassisToDefault()`, axes morts neutralisés), repli automatique à l'ouverture de l'Atelier, sélecteur de cercle `3..6` Peuples, sélecteur de bilan `digests/index.json` + copie 1-tap `📋 Copier Bilan Gemini` + export contextuel `✨ Copier contexte Gemini`.
+- **4 Vues synchronisées** : `1. Livret Didactique`, `2. Explorateur & Atelier v6.3` (2 écrans : *Duel d'Arbitrage `P1 | P2 | P3`* par défaut + *Simulateur de Table 3–6J*, trio `★ Garder` / `🤔 À revoir` / `Note`, tiroirs à la demande *Index 30* / *Radar Santé 197 assises* / *Parcourir & Archive v6.2* + Passerelles Gemini/Antigravity), `3. Évolutions & Arbitrages`, `4. Spec & JSON`.
 
 ---
 

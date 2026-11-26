@@ -2359,6 +2359,15 @@
           btn.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white';
         }
       });
+      if (tabName === 'catalogue') {
+        applyHeaderCollapsedState(true);
+      } else {
+        let userPrefCollapsed = false;
+        try {
+          userPrefCollapsed = localStorage.getItem('amazonia_header_collapsed') === '1';
+        } catch (e) {}
+        applyHeaderCollapsedState(userPrefCollapsed);
+      }
     }
 
     function applyHeaderCollapsedState(collapsed) {

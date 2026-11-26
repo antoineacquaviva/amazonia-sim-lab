@@ -1,11 +1,12 @@
 /* ============================================================================
- * Amazonia Doc Studio — Explorateur Bi-Composant & Atelier Draft (v6.3.1)
- * Module vanilla JS pur sans bundler (100 % file://, GitHub Pages & Node vm).
+ * Amazonia Doc Studio — Atelier d'Arbitrage Bi-Composant (v6.3.2)
+ * Recentré : Duel P1|P2|P3 par défaut, trio Garder/À revoir/Note, tiroirs à la demande.
+ * 100 % vanilla JS (compatible file://, GitHub Pages & Node vm).
  * ============================================================================ */
 (function (global) {
   'use strict';
 
-  const VERSION = '6.3.1';
+  const VERSION = '6.3.2';
   const STORAGE_KEY = 'amazonia_atelier_v6_3_workspace_v1';
   const PEUPLE_ORDER = ['H', 'E', 'M', 'R', 'O', 'I'];
   const ANIMAL_PEUPLES = new Set(['M', 'R', 'O']);
@@ -23,48 +24,27 @@
     panel_1: 'P1',
     panel_2: 'P2',
     panel_3: 'P3',
-    custom: 'Hybride'
+    custom: 'Hyb'
   };
 
   const A0_SLOTS = new Set(['R1', 'R2', 'R6', 'R10', 'M4', 'M5']);
-  const I_SLOTS = new Set(['G13', 'G14', 'G15', 'R6', 'R10', 'M1', 'M2', 'M3', 'M4', 'M5']);
   const ANIMAL_ANIMAL_BORDERS = [['M', 'R'], ['M', 'O'], ['R', 'O']];
   const E_NON_H_BORDERS = [['E', 'M'], ['E', 'R'], ['E', 'O'], ['E', 'I']];
-
-  const BORDER_GROUPS = [
-    {
-      id: 'animal-animal',
-      title: 'Lisières Animal ↔ Animal',
-      subtitle: '6 Gardiens purs — couverture Éveil entre Animaux sauvages',
-      pairs: [['M', 'R'], ['M', 'O'], ['R', 'O']]
-    },
-    {
-      id: 'animal-autre',
-      title: 'Ponts Animal ↔ Autre Peuple',
-      subtitle: '9 Gardiens face à 6 Rêves & 3 Nids — ponts entre Éveil, Sommeil et Essaim',
-      pairs: [
-        ['M', 'H'], ['M', 'E'], ['M', 'I'],
-        ['R', 'H'], ['R', 'E'], ['R', 'I'],
-        ['O', 'H'], ['O', 'E'], ['O', 'I']
-      ]
-    },
-    {
-      id: 'sans-animal',
-      title: 'Lisières sans Animal (Autonomie A=0)',
-      subtitle: '4 Rêves & 2 Nids autonomes — 100 % jouables sans Piste des Gardiens',
-      pairs: [['H', 'E'], ['H', 'I'], ['E', 'I']]
-    }
+  const ALL_15_BORDERS = [
+    ['M', 'R'], ['M', 'O'], ['R', 'O'],
+    ['M', 'H'], ['M', 'E'], ['M', 'I'],
+    ['R', 'H'], ['R', 'E'], ['R', 'I'],
+    ['O', 'H'], ['O', 'E'], ['O', 'I'],
+    ['H', 'E'], ['H', 'I'], ['E', 'I']
   ];
 
-  const ALL_15_BORDERS = BORDER_GROUPS.reduce((acc, g) => acc.concat(g.pairs), []);
-
   const GUARDIAN_ICONS = [
-    { id: 'ICONE_PARADE', key: 'PARADE', label: 'Parade', icon: '🛡️', desc: 'Parade classique par Défenseurs seuls' },
-    { id: 'ICONE_PIEGEAGE', key: 'PIEGEAGE', label: 'Piégeage', icon: '🪤', desc: 'Frappe arrêtée par un Piège autonome ou le Croc' },
-    { id: 'ICONE_SABOTAGE', key: 'SABOTAGE', label: 'Sabotage', icon: '💥', desc: 'Jeton Sabotage ou Écaille révélé à l’ouverture' },
-    { id: 'ICONE_REVE', key: 'REVE', label: 'Rêve', icon: '🌙', desc: 'Rêve défendu annulant au moins une machine' },
-    { id: 'ICONE_INSECTE', key: 'INSECTE', label: 'Insecte', icon: '🐜', desc: 'Déviation ±1 ou Parade avec Insectes (actif si I joue)' },
-    { id: 'ICONE_RESONANCE', key: 'RESONANCE', label: 'Résonance', icon: '🔔', desc: '6e icône : compteur des 1res activations des autres Gardiens' }
+    { id: 'ICONE_PARADE', label: 'Parade', icon: '🛡️', desc: 'Parade classique par Défenseurs seuls' },
+    { id: 'ICONE_PIEGEAGE', label: 'Piégeage', icon: '🪤', desc: 'Frappe arrêtée par un Piège autonome ou le Croc' },
+    { id: 'ICONE_SABOTAGE', label: 'Sabotage', icon: '💥', desc: 'Jeton Sabotage ou Écaille révélé à l’ouverture' },
+    { id: 'ICONE_REVE', label: 'Rêve', icon: '🌙', desc: 'Rêve défendu annulant au moins une machine' },
+    { id: 'ICONE_INSECTE', label: 'Insecte', icon: '🐜', desc: 'Déviation ±1 ou Parade avec Insectes (si I joue)' },
+    { id: 'ICONE_RESONANCE', label: 'Résonance', icon: '🔔', desc: '6e icône : 1res activations des autres Gardiens' }
   ];
   const GUARDIAN_ICON_BY_ID = Object.fromEntries(GUARDIAN_ICONS.map(ic => [ic.id, ic]));
 
@@ -86,65 +66,40 @@
     I: { fill: '#ecfccb', stroke: '#65a30d', text: '#3f6212' }
   };
 
-  // Accessoires 3+3 (v6.2 verrouillé)
   const ACCESSORIES_3_3 = {
     H: {
-      code: 'H',
-      tier: 'T1',
-      tierLabel: 'Actif dès le Tour 1',
-      title: 'Tambour & Chant',
-      icon: '🥁',
+      code: 'H', tierLabel: 'Actif dès le Tour 1', title: 'Tambour & Chant', icon: '🥁',
       summary: 'Tambour posable sur tout rayon dès le 1er temps ; Chant glisse un Rêve d’1 rang à gauche s’il vide son rang.',
       states: ['TAMBOUR', 'CHANT', 'POSITION_REVE', 'RANG_REVE', 'ANNULATION'],
       icons: ['ICONE_PARADE', 'ICONE_REVE']
     },
     M: {
-      code: 'M',
-      tier: 'T1',
-      tierLabel: 'Actif dès le Tour 1',
-      title: 'Jeton Duel (Défi ↔ Territoire tenu)',
-      icon: '⚔️',
+      code: 'M', tierLabel: 'Actif dès le Tour 1', title: 'Jeton Duel (Défi ↔ Territoire tenu)', icon: '⚔️',
       summary: 'Posé avec un Défenseur M ; parer sur sa parcelle le retourne sur Territoire tenu (bloque l’avancée +1).',
       states: ['DUEL', 'TERRITOIRE', 'GARDIEN'],
       icons: ['ICONE_PARADE']
     },
     O: {
-      code: 'O',
-      tier: 'T1',
-      tierLabel: 'Actif dès le Tour 1',
-      title: 'Dé d’Envol · Perchoir · Plume de Vigie',
-      icon: '🪶',
-      summary: 'Servi dernier au sac (garde 1, pose 1 caché au Perchoir) ; choix min(D1,D2) ou Dé d’Envol ; Plume Chaud/Calme.',
+      code: 'O', tierLabel: 'Actif dès le Tour 1', title: 'Dé d’Envol · Perchoir · Plume de Vigie', icon: '🪶',
+      summary: 'Servi dernier au sac (garde 1, pose 1 au Perchoir) ; choix min(D1,D2) ou Dé d’Envol ; Plume Chaud/Calme.',
       states: ['DE_ENVOL', 'PERCHOIR', 'PLUME', 'RANG_MACHINE', 'GARDIEN'],
       icons: []
     },
     E: {
-      code: 'E',
-      tier: 'PROG',
-      tierLabel: 'Progressif via tuiles',
-      title: 'Jetons d’Altération',
-      icon: '🌀',
-      summary: 'Posés sur machine mobile (max 1) : à sa révélation, compte dans m(r) mais recule d’1 parcelle sans frapper.',
+      code: 'E', tierLabel: 'Progressif via tuiles', title: 'Jetons d’Altération', icon: '🌀',
+      summary: 'Posés sur machine mobile (max 1) : compte dans m(r) puis recule d’1 parcelle sans frapper.',
       states: ['ALTERATION', 'ALTEREE', 'POSITION_REVE', 'RANG_REVE', 'ANNULATION'],
       icons: ['ICONE_REVE']
     },
     R: {
-      code: 'R',
-      tier: 'PROG',
-      tierLabel: 'Progressif via tuiles',
-      title: '4 Écailles · Croc · Cales',
-      icon: '🦷',
-      summary: 'Écaille allume Sabotage et pose le Croc réutilisable (cohabite avec Piège, pare en premier) ; max 1 cale/machine.',
+      code: 'R', tierLabel: 'Progressif via tuiles', title: '4 Écailles · Croc · Cales', icon: '🦷',
+      summary: 'Écaille allume Sabotage et pose le Croc réutilisable (pare en premier) ; max 1 cale/machine mobile.',
       states: ['ECAILLE', 'CROC', 'CALE', 'SABOTAGE', 'GARDIEN'],
       icons: ['ICONE_SABOTAGE', 'ICONE_PIEGEAGE']
     },
     I: {
-      code: 'I',
-      tier: 'PROG',
-      tierLabel: 'Progressif via tuiles',
-      title: 'Essaim · Nids · Déviation ±1 · Bouclier',
-      icon: '🐜',
-      summary: 'Production des Nids (+1/+2), Migration, Déviation de dé ±1, Parade Insecte et Bouclier de lisière.',
+      code: 'I', tierLabel: 'Progressif via tuiles', title: 'Essaim · Nids · Déviation ±1 · Bouclier', icon: '🐜',
+      summary: 'Production des Nids (+1/+2), Migration, Déviation ±1, Parade Insecte et Bouclier de lisière.',
       states: ['INSECTE', 'INSECTE_RANG', 'NID', 'NID_ACTIVE'],
       icons: ['ICONE_INSECTE']
     }
@@ -165,24 +120,16 @@
     I: new Set(['INSECTE', 'INSECTE_RANG', 'NID', 'NID_ACTIVE'])
   };
 
-  const PROGRESSIVE_RESERVE_OWNER = {
-    ALTEREE: 'E',
-    ALTERATION: 'E',
-    ECAILLE: 'R',
-    CROC: 'R'
-  };
-
   const PRESET_TABLES = [
-    { key: 'N3-HEI', peuples: ['H', 'E', 'I'], label: '{H, E, I}', tag: 'A=0 · Sans Gardiens' },
+    { key: 'N3-HEI', peuples: ['H', 'E', 'I'], label: '{H, E, I}', tag: 'A=0' },
     { key: 'N3-ERO', peuples: ['E', 'R', 'O'], label: '{E, R, O}', tag: 'E sans H' },
-    { key: 'N3-ERI', peuples: ['E', 'R', 'I'], label: '{E, R, I}', tag: 'E sans H + Essaim' },
+    { key: 'N3-ERI', peuples: ['E', 'R', 'I'], label: '{E, R, I}', tag: 'E sans H + I' },
     { key: 'N3-MRO', peuples: ['M', 'R', 'O'], label: '{M, R, O}', tag: '100 % Gardiens' },
     { key: 'N3-MIR', peuples: ['M', 'I', 'R'], label: '{M, I, R}', tag: 'Triade M–I–R' },
-    { key: 'N4-HEMR', peuples: ['H', 'E', 'M', 'R'], label: '{H, E, M, R}', tag: 'Table 4J mixte' },
-    { key: 'N6-HEMROI', peuples: ['H', 'E', 'M', 'R', 'O', 'I'], label: 'Table à 6', tag: '6 Peuples · 12 tuiles' }
+    { key: 'N4-HEMR', peuples: ['H', 'E', 'M', 'R'], label: '{H, E, M, R}', tag: '4J mixte' },
+    { key: 'N6-HEMROI', peuples: ['H', 'E', 'M', 'R', 'O', 'I'], label: 'Table à 6', tag: '12 tuiles' }
   ];
 
-  // Dictionnaire humain exhaustif des ressources / états (zéro code brut exposé)
   const RESOURCE_META = {
     BLEU: { icon: '🔵', label: 'Bleu Surchauffe', kind: 'state' },
     ROUGE: { icon: '🔴', label: 'Rouge (+1)', kind: 'state' },
@@ -257,7 +204,6 @@
     MOBILISATION: { icon: '🔥', label: 'Mobilisation m(r)', kind: 'state' },
     JETON_AVALE: { icon: '💥', label: 'Jeton absorbé', kind: 'state', canon: 'SABOTAGE' },
     LANTERNE: { icon: '✨', label: 'Signal lumineux', kind: 'state', canon: 'PLUME' },
-    // Icônes Gardiens comme filtres 1-clic
     ICONE_PARADE: { icon: '🛡️', label: 'Icône Parade', kind: 'icon' },
     ICONE_PIEGEAGE: { icon: '🪤', label: 'Icône Piégeage', kind: 'icon' },
     ICONE_SABOTAGE: { icon: '💥', label: 'Icône Sabotage', kind: 'icon' },
@@ -266,14 +212,11 @@
     ICONE_RESONANCE: { icon: '🔔', label: 'Icône Résonance', kind: 'icon' }
   };
 
-  // Ressources / Icônes mises en avant dans la barre rapide 1-clic
   const QUICK_RESOURCES = [
-    'BLEU', 'ALTERATION', 'CROC', 'DUEL', 'TERRITOIRE', 'PLUME', 'PERCHOIR',
-    'INSECTE', 'PIEGE', 'SABOTAGE', 'ECAILLE', 'SOUCHE', 'POSITION_REVE',
-    'ICONE_PIEGEAGE', 'ICONE_SABOTAGE', 'ICONE_REVE', 'ICONE_INSECTE', 'ICONE_RESONANCE'
+    'BLEU', 'ALTERATION', 'CROC', 'DUEL', 'PLUME', 'INSECTE',
+    'PIEGE', 'SABOTAGE', 'SOUCHE', 'ICONE_PIEGEAGE', 'ICONE_SABOTAGE', 'ICONE_RESONANCE'
   ];
 
-  // Ponts sémantiques Sortie -> États d'entrée alimentés
   const OUTPUT_FEEDS_STATES = {
     ROUGE_RETOURNE: ['BLEU'],
     ALTEREE: ['ALTERATION', 'ALTEREE'],
@@ -324,15 +267,6 @@
     LANTERNE: ['PLUME']
   };
 
-  const DRAFT_STATUSES = [
-    { value: '', label: 'Statut : —' },
-    { value: 'RETENUE', label: '✅ Retenue' },
-    { value: 'A_HYBRIDER', label: '🧬 À hybrider' },
-    { value: 'HESITATION', label: '🤔 Hésitation' },
-    { value: 'ALTERNATIVE', label: '🔄 Alternative' },
-    { value: 'ECARTEE', label: '🚫 Écartée' }
-  ];
-
   const PICTO_CATEGORIES = [
     { id: 'FORET', label: '🌿 Forêt & Terrain' },
     { id: 'DEFENSE', label: '🛡️ Défense & Pièges' },
@@ -356,7 +290,7 @@
   };
 
   // --------------------------------------------------------------------------
-  // Utilitaires de base & Accès aux données compilées
+  // Utilitaires & Accès aux données compilées
   // --------------------------------------------------------------------------
   function esc(str) {
     return String(str == null ? '' : str)
@@ -371,38 +305,30 @@
     return obj == null ? obj : JSON.parse(JSON.stringify(obj));
   }
 
-  function normApos(s) {
-    return String(s || '').trim().replace(/'/g, '’');
-  }
-
   function getPanelsData() {
     if (typeof PANELS_V6_3 !== 'undefined' && PANELS_V6_3) return PANELS_V6_3;
-    if (global.PANELS_V6_3) return global.PANELS_V6_3;
-    return {};
+    return global.PANELS_V6_3 || {};
   }
 
   function getPictosRef() {
     if (typeof REFERENTIEL_PICTOGRAMMES_V6_3 !== 'undefined' && REFERENTIEL_PICTOGRAMMES_V6_3) {
       return REFERENTIEL_PICTOGRAMMES_V6_3;
     }
-    if (global.REFERENTIEL_PICTOGRAMMES_V6_3) return global.REFERENTIEL_PICTOGRAMMES_V6_3;
-    return {};
+    return global.REFERENTIEL_PICTOGRAMMES_V6_3 || {};
   }
 
   function getCastingRef() {
     if (typeof CASTING_GARDIENS_V6_3 !== 'undefined' && CASTING_GARDIENS_V6_3) {
       return CASTING_GARDIENS_V6_3;
     }
-    if (global.CASTING_GARDIENS_V6_3) return global.CASTING_GARDIENS_V6_3;
-    return {};
+    return global.CASTING_GARDIENS_V6_3 || {};
   }
 
   function getSlotsSpec() {
     if (typeof SLOTS_SPEC_V6_3 !== 'undefined' && Array.isArray(SLOTS_SPEC_V6_3)) {
       return SLOTS_SPEC_V6_3;
     }
-    if (Array.isArray(global.SLOTS_SPEC_V6_3)) return global.SLOTS_SPEC_V6_3;
-    return [];
+    return Array.isArray(global.SLOTS_SPEC_V6_3) ? global.SLOTS_SPEC_V6_3 : [];
   }
 
   function getSlotSpecMap() {
@@ -415,8 +341,7 @@
     if (typeof AUTHOR_WORKSPACE_INITIAL_V6_3 !== 'undefined' && AUTHOR_WORKSPACE_INITIAL_V6_3) {
       return AUTHOR_WORKSPACE_INITIAL_V6_3;
     }
-    if (global.AUTHOR_WORKSPACE_INITIAL_V6_3) return global.AUTHOR_WORKSPACE_INITIAL_V6_3;
-    return null;
+    return global.AUTHOR_WORKSPACE_INITIAL_V6_3 || null;
   }
 
   function getReptileIconHtml(size) {
@@ -481,24 +406,18 @@
   }
 
   function borderKey(a, b) {
-    const idxA = PEUPLE_ORDER.indexOf(a);
-    const idxB = PEUPLE_ORDER.indexOf(b);
-    return idxA <= idxB ? `${a}-${b}` : `${b}-${a}`;
+    return PEUPLE_ORDER.indexOf(a) <= PEUPLE_ORDER.indexOf(b) ? `${a}-${b}` : `${b}-${a}`;
   }
 
   function borderLabel(a, b) {
-    const idxA = PEUPLE_ORDER.indexOf(a);
-    const idxB = PEUPLE_ORDER.indexOf(b);
-    return idxA <= idxB ? `${a} ↔ ${b}` : `${b} ↔ ${a}`;
+    return PEUPLE_ORDER.indexOf(a) <= PEUPLE_ORDER.indexOf(b) ? `${a} ↔ ${b}` : `${b} ↔ ${a}`;
   }
 
-  // Index lisière non orientée -> [slot1, slot2] et jumelle de lisière
   const BORDER_TO_SLOTS = {};
   const TWIN_BY_SLOT = {};
   function ensureBorderMaps() {
     if (Object.keys(TWIN_BY_SLOT).length > 0) return;
-    const specs = getSlotsSpec();
-    specs.forEach(s => {
+    getSlotsSpec().forEach(s => {
       const bk = borderKey(s.origine, s.voisin);
       if (!BORDER_TO_SLOTS[bk]) BORDER_TO_SLOTS[bk] = [];
       BORDER_TO_SLOTS[bk].push(s.id);
@@ -512,7 +431,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Modèle exact des 197 Assises Canoniques (invariance diédrale)
+  // Modèle exact des 197 Assises Canoniques
   // --------------------------------------------------------------------------
   let _CACHED_197_ASSISES = null;
 
@@ -524,8 +443,7 @@
     for (let dir = 0; dir < 2; dir++) {
       const seq = dir === 0 ? arr : arr.slice().reverse();
       for (let shift = 0; shift < n; shift++) {
-        const rot = seq.slice(shift).concat(seq.slice(0, shift));
-        candidates.push(rot);
+        candidates.push(seq.slice(shift).concat(seq.slice(0, shift)));
       }
     }
     const rankStr = seq => seq.map(p => PEUPLE_ORDER.indexOf(p)).join(',');
@@ -558,10 +476,7 @@
       const rest = arr.slice(1);
       const out = [];
       function rec(idx) {
-        if (idx === rest.length) {
-          out.push([first].concat(rest));
-          return;
-        }
+        if (idx === rest.length) { out.push([first].concat(rest)); return; }
         for (let i = idx; i < rest.length; i++) {
           const tmp = rest[idx]; rest[idx] = rest[i]; rest[i] = tmp;
           rec(idx + 1);
@@ -582,12 +497,7 @@
               const bk = borderKey(c.peuples[i], c.peuples[(i + 1) % c.peuples.length]);
               (BORDER_TO_SLOTS[bk] || []).forEach(tid => tileIds.push(tid));
             }
-            seen.set(c.key, {
-              n: c.n,
-              peuples: c.peuples,
-              key: c.key,
-              tileIds
-            });
+            seen.set(c.key, { n: c.n, peuples: c.peuples, key: c.key, tileIds });
           }
         });
       });
@@ -598,21 +508,21 @@
   }
 
   // --------------------------------------------------------------------------
-  // Adaptation Lecture Seule de l'Archive v6.2 (CATALOGUE_TUILES)
+  // Archive v6.2 (lecture seule)
   // --------------------------------------------------------------------------
-  function buildArchiveV62Tiles() {
+  let _ARCHIVE_V62_CACHE = null;
+  function getArchiveV62Map() {
+    if (_ARCHIVE_V62_CACHE) return _ARCHIVE_V62_CACHE;
     const out = {};
     const cat = typeof CATALOGUE_TUILES !== 'undefined' ? CATALOGUE_TUILES : global.CATALOGUE_TUILES;
-    if (!cat) return out;
+    if (!cat) { _ARCHIVE_V62_CACHE = out; return out; }
     const specMap = getSlotSpecMap();
-
     Object.keys(specMap).forEach(sid => {
       const slot = cat[sid];
       const sp = specMap[sid];
       if (!slot || !slot.profils || !slot.profils.A) return;
       const p = slot.profils.A;
-      const rawHtml = String(p.texte || '');
-      const parts = rawHtml.split(/<br\s*\/?>/i).map(x => x.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+      const parts = String(p.texte || '').split(/<br\s*\/?>/i).map(x => x.replace(/<[^>]+>/g, '').trim()).filter(Boolean);
       let f1 = '';
       let f2 = null;
       let enr = null;
@@ -624,8 +534,8 @@
         else if (!f1) f1 = clean;
         else if (sp.famille === 'GARDIEN' && f2 === null) f2 = clean;
       });
-      const roles = [];
       const tags = (p.tags || []).map(t => String(t).toUpperCase());
+      const roles = [];
       if (tags.includes('CATALYSEUR_EVEIL')) roles.push('CATALYSEUR_EVEIL');
       if (tags.includes('LEVIER_REVE')) roles.push('LEVIER_REVE');
       if (tags.includes('ENRACINEMENT') || enr) roles.push('ENRACINEMENT');
@@ -636,8 +546,6 @@
       if (A0_SLOTS.has(sid)) roles.push('AUTONOMIE_A0');
 
       const dr = p.decision_joueur || {};
-      const decls = (p.declencheurs_amorces || []).map(x => String(x).toUpperCase()).filter(x => GUARDIAN_ICON_BY_ID[x]);
-
       out[sid] = {
         id: sid,
         alias_oriente: sp.alias_oriente,
@@ -645,30 +553,21 @@
         origine: sp.origine,
         voisin: sp.voisin,
         couple: [sp.origine, sp.voisin],
-        cycle: sp.famille === 'GARDIEN' ? 'DOUBLE_FACE_UPGRADE' : (isLoi ? 'PASSIF_CONTINU' : 'SIMPLE_CONTINU'),
-        cablage: sp.famille === 'GARDIEN' ? [1, 2, 3, 4, 5, 6] : null,
         roles_portes: roles,
         est_twist: isTwist,
-        vecteurs: p.vecteurs || '',
         entrees_plancher: (p.entrees || []).map(x => String(x).toUpperCase()),
         entrees_synergie: [],
         entrees: (p.entrees || []).map(x => String(x).toUpperCase()),
         sorties: (p.sorties || []).map(x => String(x).toUpperCase()),
-        paiement: (p.paiement || []).map(x => String(x).toUpperCase()),
         nature: isLoi ? 'LOI_PASSIVE' : 'ACTION',
-        declencheurs_amorces: decls,
+        declencheurs_amorces: (p.declencheurs_amorces || []).map(x => String(x).toUpperCase()).filter(x => GUARDIAN_ICON_BY_ID[x]),
         double_ouverture: p.double_ouverture || null,
-        tags: tags,
         tuile_plateau: {
           nom_court: slot.nomBase || p.nom || sid,
-          fenetre_badge: p.fenetre || (sp.famille === 'GARDIEN' ? 'ACTIVATION' : 'OUVERTURE'),
+          fenetre_badge: p.fenetre || 'ACTIVATION',
           icone_conseillee: p.cablage_recommande || null,
           pictogrammes: [],
-          mots_cles_plateau: {
-            face_1: 'Archive v6.2 (lecture seule)',
-            face_2: sp.famille === 'GARDIEN' ? 'Face 2 archive v6.2' : null,
-            enracine: enr ? 'Clause Enraciné dédiée' : null
-          },
+          mots_cles_plateau: { face_1: 'Archive v6.2 (lecture seule)', face_2: null, enracine: enr ? 'Clause Enraciné dédiée' : null },
           resume_plateau: p.animal_ou_theme || ''
         },
         carte_joueur: {
@@ -676,45 +575,35 @@
           entite_illustree: p.animal_ou_theme || slot.nomBase || sid,
           brief_illustration: '',
           pitch_ambiance: '',
-          texte_regle: {
-            face_1: f1,
-            face_2: f2,
-            enracine: enr
-          },
-          decision_et_renoncement: {
-            choix: dr.choix || '',
-            renoncement: dr.renoncement || ''
-          }
+          texte_regle: { face_1: f1, face_2: f2, enracine: enr },
+          decision_et_renoncement: { choix: dr.choix || '', renoncement: dr.renoncement || '' }
         },
         temoins: p.temoin ? [{ id: `${sid}_T1`, resume: p.temoin }] : [],
-        heuristique_bot: p.heuristique_bot || '',
         _isArchiveV62: true
       };
     });
+    _ARCHIVE_V62_CACHE = out;
     return out;
   }
 
   // --------------------------------------------------------------------------
-  // Gestion de l'Atelier Draft (Workspace + localStorage + Import/Export)
+  // Workspace persistant (localStorage + import/export author_workspace_v6_3.json)
   // --------------------------------------------------------------------------
+  function isSlotFlaggedReview(wsSlot) {
+    return Boolean(wsSlot && (wsSlot.status === 'HESITATION' || wsSlot.status === 'A_HYBRIDER'));
+  }
+
   function createEmptyWorkspace() {
     const slots = {};
     getSlotsSpec().forEach(sp => {
       slots[sp.id] = {
         slot_id: sp.id,
         alias_oriente: sp.alias_oriente,
-        selected_source: null, // 'panel_1' | 'panel_2' | 'panel_3' | 'custom' | null
+        selected_source: null,
         base_source: 'panel_1',
         is_modified: false,
         status: '',
-        rating: 0,
-        favorite: false,
         comment: '',
-        panel_notes: {
-          panel_1: { rating: 0, comment: '' },
-          panel_2: { rating: 0, comment: '' },
-          panel_3: { rating: 0, comment: '' }
-        },
         custom_tile: null,
         updated_at: null
       };
@@ -744,22 +633,10 @@
       }
       dst.is_modified = Boolean(src.is_modified && src.custom_tile);
       dst.status = typeof src.status === 'string' ? src.status : '';
-      dst.rating = Math.max(0, Math.min(5, Number(src.rating) || 0));
-      dst.favorite = Boolean(src.favorite);
       dst.comment = typeof src.comment === 'string' ? src.comment : '';
       dst.updated_at = typeof src.updated_at === 'string' ? src.updated_at : null;
       if (src.custom_tile && typeof src.custom_tile === 'object') {
         dst.custom_tile = deepClone(src.custom_tile);
-      }
-      if (src.panel_notes && typeof src.panel_notes === 'object') {
-        PANEL_IDS.forEach(pid => {
-          if (src.panel_notes[pid] && typeof src.panel_notes[pid] === 'object') {
-            dst.panel_notes[pid] = {
-              rating: Math.max(0, Math.min(5, Number(src.panel_notes[pid].rating) || 0)),
-              comment: typeof src.panel_notes[pid].comment === 'string' ? src.panel_notes[pid].comment : ''
-            };
-          }
-        });
       }
     });
     return base;
@@ -769,17 +646,13 @@
     try {
       if (typeof localStorage !== 'undefined' && localStorage && typeof localStorage.getItem === 'function') {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-          return normalizeWorkspace(JSON.parse(stored));
-        }
+        if (stored) return normalizeWorkspace(JSON.parse(stored));
       }
     } catch (_err) {
-      // ignore storage errors
+      // ignore
     }
     const seed = getInitialWorkspaceSeed();
-    if (seed && typeof seed === 'object') {
-      return normalizeWorkspace(seed);
-    }
+    if (seed && typeof seed === 'object') return normalizeWorkspace(seed);
     return createEmptyWorkspace();
   }
 
@@ -790,42 +663,38 @@
         localStorage.setItem(STORAGE_KEY, JSON.stringify(uiState.workspace));
       }
     } catch (_err) {
-      // ignore storage errors
+      // ignore
     }
   }
 
   // --------------------------------------------------------------------------
-  // État réactif de l'Explorateur v6.3.1
+  // État réactif (centré sur le Duel P1|P2|P3 par défaut)
   // --------------------------------------------------------------------------
   const uiState = {
     initialized: false,
-    source: 'panel_1', // 'panel_1' | 'panel_2' | 'panel_3' | 'canon' | 'archive_v6_2'
-    radarTarget: 'canon', // 'canon' | 'active_source'
-    radarDetailKey: null, // 'elected' | 'twists' | 'lois' | 'eveil' | 'sommeil' | 'enrac' | 'a0' | 'synergies' | null
-    view: 'explorer', // 'explorer' | 'simulator' | 'dashboard'
-    explorerSubView: 'cards', // 'cards' | 'duel'
-    selectedBorder: 'ALL', // 'ALL' | 'M-R' | ...
-    duelSlotId: 'G1',
+    mode: 'arbitrate', // 'arbitrate' | 'list' | 'simulator'
+    currentSlotId: 'G1',
+    listSource: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3' | 'archive_v6_2'
+    simSource: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
+    activeDrawer: null, // null | 'health' | 'index30' | 'browse'
+    indexFilter: 'ALL', // 'ALL' | 'UNELECTED' | 'REVIEW' | 'MODIFIED'
+    radarDetailKey: null,
+    radarTarget: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
     filters: {
       search: '',
       peuple: 'ALL',
       family: 'ALL',
       role: 'ALL',
-      draft: 'ALL',
+      reviewOnly: false,
       picto: null
     },
-    resourceFocus: null, // state token or ICONE_*
-    resourceFilterOnly: false,
-    // Simulateur de table
+    resourceFocus: null,
+    resourceFocusSource: null,
     simPeuples: ['M', 'R', 'O', 'H'],
     simHighlightPeuple: null,
-    // Tableau de bord
-    dashFilter: 'ALL',
-    // Modales / Tiroirs
     pictoGuideOpen: false,
-    editor: null, // { slotId, baseSource, tile }
-    exportModal: null, // { tab: 'gemini' | 'antigravity', geminiScope: 'to_arbitrate', fallbackPanel: 'panel_1' }
-    // Workspace persistant
+    editor: null,
+    exportModal: null,
     workspace: null
   };
 
@@ -848,146 +717,82 @@
       const tag = ev.target && ev.target.tagName ? String(ev.target.tagName).toUpperCase() : '';
       const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
       if (ev.key === 'Escape') {
-        if (uiState.editor) {
-          uiState.editor = null;
-          render();
-          return;
-        }
-        if (uiState.exportModal) {
-          uiState.exportModal = null;
-          render();
-          return;
-        }
-        if (uiState.pictoGuideOpen) {
-          uiState.pictoGuideOpen = false;
-          render();
-          return;
-        }
-        if (uiState.resourceFocus) {
-          uiState.resourceFocus = null;
-          uiState.resourceFilterOnly = false;
-          render();
-          return;
-        }
-        if (uiState.radarDetailKey) {
-          uiState.radarDetailKey = null;
-          render();
-          return;
-        }
+        if (uiState.editor) { uiState.editor = null; render(); return; }
+        if (uiState.exportModal) { uiState.exportModal = null; render(); return; }
+        if (uiState.pictoGuideOpen) { uiState.pictoGuideOpen = false; render(); return; }
+        if (uiState.resourceFocus) { uiState.resourceFocus = null; render(); return; }
+        if (uiState.activeDrawer) { uiState.activeDrawer = null; render(); return; }
       }
-      if (isTyping) return;
-      if (uiState.view === 'explorer' && uiState.explorerSubView === 'duel') {
-        const specs = getSlotsSpec();
-        const curIdx = specs.findIndex(s => s.id === uiState.duelSlotId);
-        if (ev.key === 'ArrowRight' && curIdx >= 0) {
-          uiState.duelSlotId = specs[(curIdx + 1) % specs.length].id;
-          render();
-        } else if (ev.key === 'ArrowLeft' && curIdx >= 0) {
-          uiState.duelSlotId = specs[(curIdx - 1 + specs.length) % specs.length].id;
-          render();
-        }
+      if (isTyping || uiState.editor || uiState.exportModal || uiState.pictoGuideOpen) return;
+      if (uiState.mode === 'arbitrate') {
+        if (ev.key === 'ArrowRight') api.stepSlot(1);
+        else if (ev.key === 'ArrowLeft') api.stepSlot(-1);
       }
     });
   }
 
   // --------------------------------------------------------------------------
-  // Résolution des Tuiles par Source (Panel 1/2/3, Mon Canon, Archive v6.2)
+  // Résolution des Tuiles
   // --------------------------------------------------------------------------
   function getPanelTile(panelId, slotId) {
-    const panels = getPanelsData();
-    const p = panels[panelId];
+    const p = getPanelsData()[panelId];
     return p && p.tuiles_ciblees ? p.tuiles_ciblees[slotId] || null : null;
   }
 
   function getCanonSlotResolved(slotId, fallbackPanelId) {
     ensureInitialized();
-    const wsSlot = uiState.workspace.slots[slotId];
-    if (wsSlot) {
-      if (wsSlot.selected_source === 'custom' && wsSlot.custom_tile) {
-        return {
-          tile: wsSlot.custom_tile,
-          sourceKey: 'custom',
-          baseSource: wsSlot.base_source || 'panel_1',
-          elected: true,
-          modified: true
-        };
+    const w = uiState.workspace.slots[slotId];
+    if (w) {
+      if (w.selected_source === 'custom' && w.custom_tile) {
+        return { tile: w.custom_tile, sourceKey: 'custom', baseSource: w.base_source || 'panel_1', elected: true, modified: true };
       }
-      if (wsSlot.selected_source && PANEL_IDS.includes(wsSlot.selected_source)) {
-        const t = getPanelTile(wsSlot.selected_source, slotId);
-        if (t) {
-          return {
-            tile: t,
-            sourceKey: wsSlot.selected_source,
-            baseSource: wsSlot.selected_source,
-            elected: true,
-            modified: false
-          };
-        }
+      if (w.selected_source && PANEL_IDS.includes(w.selected_source)) {
+        const t = getPanelTile(w.selected_source, slotId);
+        if (t) return { tile: t, sourceKey: w.selected_source, baseSource: w.selected_source, elected: true, modified: false };
       }
     }
     if (fallbackPanelId) {
-      return {
-        tile: getPanelTile(fallbackPanelId, slotId),
-        sourceKey: fallbackPanelId,
-        baseSource: fallbackPanelId,
-        elected: false,
-        modified: false
-      };
+      return { tile: getPanelTile(fallbackPanelId, slotId), sourceKey: fallbackPanelId, baseSource: fallbackPanelId, elected: false, modified: false };
     }
     return { tile: null, sourceKey: null, baseSource: null, elected: false, modified: false };
   }
 
-  let _ARCHIVE_V62_CACHE = null;
-  function getArchiveV62Map() {
-    if (!_ARCHIVE_V62_CACHE) _ARCHIVE_V62_CACHE = buildArchiveV62Tiles();
-    return _ARCHIVE_V62_CACHE;
-  }
-
-  function getActiveTilesMap(sourceOverride) {
+  function getTilesMapForSource(src) {
     ensureInitialized();
-    const src = sourceOverride || uiState.source;
-    const out = {};
-    if (src === 'archive_v6_2') {
-      return getArchiveV62Map();
-    }
+    if (src === 'archive_v6_2') return getArchiveV62Map();
     if (src === 'canon') {
+      const out = {};
       getSlotsSpec().forEach(sp => {
         const res = getCanonSlotResolved(sp.id, null);
         if (res.tile) out[sp.id] = res.tile;
       });
       return out;
     }
-    const panels = getPanelsData();
-    const p = panels[src];
+    const p = getPanelsData()[src];
     return (p && p.tuiles_ciblees) ? p.tuiles_ciblees : {};
   }
 
-  function getEffectiveTileForSlot(slotId, sourceOverride) {
-    const src = sourceOverride || uiState.source;
-    if (src === 'canon') {
-      return getCanonSlotResolved(slotId, null);
-    }
+  function getEffectiveTile(slotId, src) {
+    if (src === 'canon') return getCanonSlotResolved(slotId, null);
     if (src === 'archive_v6_2') {
-      return {
-        tile: getArchiveV62Map()[slotId] || null,
-        sourceKey: 'archive_v6_2',
-        elected: false,
-        modified: false
-      };
+      return { tile: getArchiveV62Map()[slotId] || null, sourceKey: 'archive_v6_2', elected: false, modified: false };
     }
-    const wsSlot = uiState.workspace.slots[slotId];
-    const tile = getPanelTile(src, slotId);
+    const w = uiState.workspace.slots[slotId];
     return {
-      tile,
+      tile: getPanelTile(src, slotId),
       sourceKey: src,
-      elected: Boolean(wsSlot && wsSlot.selected_source === src),
+      elected: Boolean(w && w.selected_source === src),
       modified: false
     };
   }
 
   // --------------------------------------------------------------------------
-  // Moteur Synergique (Producteurs <-> Consommateurs & Couverture /64 assises)
+  // Moteur Synergique & Radar 197 Assises
   // --------------------------------------------------------------------------
+  function normalizeStateList(arr) {
+    return Array.from(new Set((arr || []).map(x => String(x || '').trim().toUpperCase()).filter(Boolean)));
+  }
+
   function expandOutputStates(rawOutputs) {
     const set = new Set();
     (rawOutputs || []).forEach(raw => {
@@ -1002,10 +807,6 @@
     return set;
   }
 
-  function normalizeStateList(arr) {
-    return Array.from(new Set((arr || []).map(x => String(x || '').trim().toUpperCase()).filter(Boolean)));
-  }
-
   function computeSynergyCoverage64(slotId, stateToken, tilesMap) {
     const tok = String(stateToken || '').toUpperCase();
     const assises = enumerateAll197Assises();
@@ -1015,13 +816,10 @@
       if (!a.tileIds.includes(slotId)) return;
       total++;
       const avail = new Set(SOCLE_STATES);
-      a.peuples.forEach(p => {
-        (PEUPLE_NATIVE_STATES[p] || []).forEach(st => avail.add(st));
-      });
+      a.peuples.forEach(p => (PEUPLE_NATIVE_STATES[p] || []).forEach(st => avail.add(st)));
       a.tileIds.forEach(otherId => {
         const ot = tilesMap[otherId];
-        if (!ot) return;
-        expandOutputStates(ot.sorties).forEach(st => avail.add(st));
+        if (ot) expandOutputStates(ot.sorties).forEach(st => avail.add(st));
       });
       if (avail.has(tok) || (tok === 'ALTEREE' && avail.has('ALTERATION')) || (tok === 'ALTERATION' && avail.has('ALTEREE'))) {
         covered++;
@@ -1032,97 +830,57 @@
 
   function computeTileLinks(slotId, tilesMap) {
     const tile = tilesMap[slotId];
-    if (!tile) {
-      return {
-        upstreamTiles: [],
-        downstreamTiles: [],
-        nativeSources: [],
-        synergyCoverage: {}
-      };
-    }
+    if (!tile) return { upstreamTiles: [], downstreamTiles: [], synergyCoverage: {} };
     const floorIn = normalizeStateList(tile.entrees_plancher);
     const synIn = normalizeStateList(tile.entrees_synergie);
     const allIn = Array.from(new Set(floorIn.concat(synIn)));
     const myOut = expandOutputStates(tile.sorties);
-    const myIconsLit = new Set(normalizeStateList(tile.declencheurs_amorces));
+    const myLit = new Set(normalizeStateList(tile.declencheurs_amorces));
     const myRecIcon = tile.tuile_plateau && tile.tuile_plateau.icone_conseillee
       ? String(tile.tuile_plateau.icone_conseillee).toUpperCase()
       : null;
 
-    const upstreamMap = new Map();
-    const downstreamMap = new Map();
+    const upMap = new Map();
+    const downMap = new Map();
 
     Object.entries(tilesMap).forEach(([otherId, other]) => {
       if (otherId === slotId || !other) return;
       const otherOut = expandOutputStates(other.sorties);
-      const otherFloor = normalizeStateList(other.entrees_plancher);
-      const otherSyn = normalizeStateList(other.entrees_synergie);
-      const otherAllIn = new Set(otherFloor.concat(otherSyn));
+      const otherIn = new Set(normalizeStateList(other.entrees_plancher).concat(normalizeStateList(other.entrees_synergie)));
       const otherLit = new Set(normalizeStateList(other.declencheurs_amorces));
       const otherRecIcon = other.tuile_plateau && other.tuile_plateau.icone_conseillee
         ? String(other.tuile_plateau.icone_conseillee).toUpperCase()
         : null;
 
-      // Qui m'alimente ?
-      const upReasons = [];
-      allIn.forEach(st => {
-        if (otherOut.has(st)) upReasons.push(st);
-      });
-      if (myRecIcon && otherLit.has(myRecIcon)) {
-        upReasons.push(myRecIcon);
-      }
+      const upReasons = allIn.filter(st => otherOut.has(st));
+      if (myRecIcon && otherLit.has(myRecIcon)) upReasons.push(myRecIcon);
       if (upReasons.length > 0) {
-        upstreamMap.set(otherId, {
+        upMap.set(otherId, {
           id: otherId,
           nom: (other.tuile_plateau && other.tuile_plateau.nom_court) || otherId,
-          alias: other.alias_oriente,
           isTwin: TWIN_BY_SLOT[slotId] === otherId,
           reasons: Array.from(new Set(upReasons))
         });
       }
 
-      // Qui j'alimente ?
-      const downReasons = [];
-      otherAllIn.forEach(st => {
-        if (myOut.has(st)) downReasons.push(st);
-      });
-      if (otherRecIcon && myIconsLit.has(otherRecIcon)) {
-        downReasons.push(otherRecIcon);
-      }
+      const downReasons = Array.from(otherIn).filter(st => myOut.has(st));
+      if (otherRecIcon && myLit.has(otherRecIcon)) downReasons.push(otherRecIcon);
       if (downReasons.length > 0) {
-        downstreamMap.set(otherId, {
+        downMap.set(otherId, {
           id: otherId,
           nom: (other.tuile_plateau && other.tuile_plateau.nom_court) || otherId,
-          alias: other.alias_oriente,
           isTwin: TWIN_BY_SLOT[slotId] === otherId,
           reasons: Array.from(new Set(downReasons))
         });
       }
     });
 
-    // Sources natives (Socle ou Peuples de la lisière)
-    const nativeSources = [];
-    const seenNat = new Set();
-    [tile.origine, tile.voisin].forEach(pCode => {
-      const acc = ACCESSORIES_3_3[pCode];
-      if (!acc) return;
-      const matches = allIn.filter(st => acc.states.includes(st));
-      if (matches.length > 0 && !seenNat.has(pCode)) {
-        seenNat.add(pCode);
-        nativeSources.push({ code: pCode, label: acc.title, icon: acc.icon });
-      }
-    });
-
     const synergyCoverage = {};
-    synIn.forEach(st => {
-      synergyCoverage[st] = computeSynergyCoverage64(slotId, st, tilesMap);
-    });
-
-    const sortLinks = list => list.sort((a, b) => (b.isTwin ? 1 : 0) - (a.isTwin ? 1 : 0) || a.id.localeCompare(b.id));
+    synIn.forEach(st => { synergyCoverage[st] = computeSynergyCoverage64(slotId, st, tilesMap); });
+    const sortLinks = arr => arr.sort((a, b) => (b.isTwin ? 1 : 0) - (a.isTwin ? 1 : 0) || a.id.localeCompare(b.id));
     return {
-      upstreamTiles: sortLinks(Array.from(upstreamMap.values())),
-      downstreamTiles: sortLinks(Array.from(downstreamMap.values())),
-      nativeSources,
+      upstreamTiles: sortLinks(Array.from(upMap.values())),
+      downstreamTiles: sortLinks(Array.from(downMap.values())),
       synergyCoverage
     };
   }
@@ -1137,15 +895,11 @@
 
     const nativeProducers = [];
     if (!isIcon && SOCLE_STATES.has(canon)) {
-      nativeProducers.push({ code: 'SOCLE', label: 'Socle commun v6.2 (Forêt / Furtivité / Sac)', icon: '🌿' });
+      nativeProducers.push({ code: 'SOCLE', label: 'Socle commun v6.2', icon: '🌿' });
     }
     Object.values(ACCESSORIES_3_3).forEach(acc => {
-      const hit = isIcon
-        ? acc.icons.includes(key)
-        : acc.states.some(s => matchSet.has(s));
-      if (hit) {
-        nativeProducers.push({ code: acc.code, label: `${PEUPLE_META[acc.code].nom} — ${acc.title}`, icon: acc.icon });
-      }
+      const hit = isIcon ? acc.icons.includes(key) : acc.states.some(s => matchSet.has(s));
+      if (hit) nativeProducers.push({ code: acc.code, label: `${PEUPLE_META[acc.code].short} — ${acc.title}`, icon: acc.icon });
     });
 
     const producers = [];
@@ -1155,23 +909,16 @@
 
     Object.entries(tilesMap).forEach(([sid, tile]) => {
       if (!tile) return;
-      const nom = (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid;
-      const item = { id: sid, nom, alias: tile.alias_oriente, origine: tile.origine, voisin: tile.voisin };
-
+      const item = { id: sid, nom: (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid, alias: tile.alias_oriente };
       if (isIcon) {
-        const lit = normalizeStateList(tile.declencheurs_amorces);
-        if (lit.includes(key)) producers.push(item);
-        const rec = tile.tuile_plateau && tile.tuile_plateau.icone_conseillee
-          ? String(tile.tuile_plateau.icone_conseillee).toUpperCase()
-          : '';
+        if (normalizeStateList(tile.declencheurs_amorces).includes(key)) producers.push(item);
+        const rec = tile.tuile_plateau && tile.tuile_plateau.icone_conseillee ? String(tile.tuile_plateau.icone_conseillee).toUpperCase() : '';
         if (rec === key) consumersIcon.push(item);
       } else {
         const outs = expandOutputStates(tile.sorties);
         if (Array.from(matchSet).some(m => outs.has(m))) producers.push(item);
-
         const fl = normalizeStateList(tile.entrees_plancher);
         if (Array.from(matchSet).some(m => fl.includes(m))) consumersFloor.push(item);
-
         const syn = normalizeStateList(tile.entrees_synergie);
         if (Array.from(matchSet).some(m => syn.includes(m))) {
           const cov = computeSynergyCoverage64(sid, syn.find(s => matchSet.has(s)) || key, tilesMap);
@@ -1180,34 +927,13 @@
       }
     });
 
-    const allInvolvedIds = new Set(
-      producers.concat(consumersFloor, consumersSynergy, consumersIcon).map(x => x.id)
-    );
-
-    return {
-      key,
-      isIcon,
-      meta,
-      nativeProducers,
-      producers,
-      consumersFloor,
-      consumersSynergy,
-      consumersIcon,
-      allInvolvedIds
-    };
+    const allInvolvedIds = new Set(producers.concat(consumersFloor, consumersSynergy, consumersIcon).map(x => x.id));
+    return { key, isIcon, meta, nativeProducers, producers, consumersFloor, consumersSynergy, consumersIcon, allInvolvedIds };
   }
 
-  // --------------------------------------------------------------------------
-  // Radar de Santé en Temps Réel (197 assises, 2K3 géométrique, Lois, Éveil, Sommeil, Enrac, A=0)
-  // --------------------------------------------------------------------------
   function find2K3Triangles(twistTiles) {
-    // Cherche 2 cycles dirigés de longueur 3 disjoints en sommets couvrant les 6 Peuples
     const edgeByDir = {};
-    twistTiles.forEach(t => {
-      const k = `${t.origine}>${t.voisin}`;
-      edgeByDir[k] = t;
-    });
-
+    twistTiles.forEach(t => { edgeByDir[`${t.origine}>${t.voisin}`] = t; });
     const triangles = [];
     for (let i = 0; i < PEUPLE_ORDER.length; i++) {
       const a = PEUPLE_ORDER[i];
@@ -1218,23 +944,15 @@
         for (let k = 0; k < PEUPLE_ORDER.length; k++) {
           if (k === i || k === j) continue;
           const c = PEUPLE_ORDER[k];
-          if (edgeByDir[`${b}>${c}`] && edgeByDir[`${c}>${a}`]) {
-            const minIdx = Math.min(i, j, k);
-            if (i === minIdx) {
-              triangles.push({
-                nodes: [a, b, c],
-                arcs: [edgeByDir[`${a}>${b}`], edgeByDir[`${b}>${c}`], edgeByDir[`${c}>${a}`]]
-              });
-            }
+          if (edgeByDir[`${b}>${c}`] && edgeByDir[`${c}>${a}`] && i === Math.min(i, j, k)) {
+            triangles.push({ nodes: [a, b, c], arcs: [edgeByDir[`${a}>${b}`], edgeByDir[`${b}>${c}`], edgeByDir[`${c}>${a}`]] });
           }
         }
       }
     }
-
     for (let x = 0; x < triangles.length; x++) {
       for (let y = x + 1; y < triangles.length; y++) {
-        const union = new Set(triangles[x].nodes.concat(triangles[y].nodes));
-        if (union.size === 6) {
+        if (new Set(triangles[x].nodes.concat(triangles[y].nodes)).size === 6) {
           return [triangles[x], triangles[y]];
         }
       }
@@ -1242,11 +960,10 @@
     return null;
   }
 
-  function computeHealthRadar(targetMode) {
+  function computeHealthRadar(targetSource) {
     ensureInitialized();
-    const mode = targetMode || uiState.radarTarget || 'canon';
-    const isCanon = mode === 'canon';
-    const tilesMap = isCanon ? getActiveTilesMap('canon') : getActiveTilesMap(uiState.source);
+    const src = targetSource || uiState.radarTarget || 'canon';
+    const tilesMap = getTilesMapForSource(src);
     const specs = getSlotsSpec();
     const assises = enumerateAll197Assises();
 
@@ -1255,7 +972,7 @@
     const electedCount = presentIds.length;
     const isComplete = electedCount === 30;
 
-    // 1. Twists 2K3
+    // Twists 2K3
     const twistTiles = presentIds.map(id => tilesMap[id]).filter(t => Boolean(t.est_twist));
     const twistByOrig = Object.fromEntries(PEUPLE_ORDER.map(p => [p, []]));
     const twistByEdge = {};
@@ -1265,19 +982,15 @@
       if (!twistByEdge[bk]) twistByEdge[bk] = [];
       twistByEdge[bk].push(t.id);
     });
-    const missingOrigTwists = PEUPLE_ORDER.filter(p => twistByOrig[p].length === 0);
-    const doubleTwistBorders = Object.entries(twistByEdge).filter(([, ids]) => ids.length > 1);
+    const missingOrigins = PEUPLE_ORDER.filter(p => twistByOrig[p].length === 0);
+    const doubleBorders = Object.entries(twistByEdge).filter(([, ids]) => ids.length > 1);
     const triangles2K3 = find2K3Triangles(twistTiles);
     let twistsStatus = 'ok';
-    if (doubleTwistBorders.length > 0) {
-      twistsStatus = 'err';
-    } else if (twistTiles.length < 6 || missingOrigTwists.length > 0) {
-      twistsStatus = isComplete ? 'err' : 'warn';
-    } else if (!triangles2K3) {
-      twistsStatus = 'warn';
-    }
+    if (doubleBorders.length > 0) twistsStatus = 'err';
+    else if (twistTiles.length < 6 || missingOrigins.length > 0) twistsStatus = isComplete ? 'err' : 'warn';
+    else if (!triangles2K3) twistsStatus = 'warn';
 
-    // 2. Lois passives (<= 5 global et max <= 2 / assise sur 197 assises)
+    // Lois passives
     const loiIds = presentIds.filter(id => String(tilesMap[id].nature || '').toUpperCase() === 'LOI_PASSIVE');
     const loiSet = new Set(loiIds);
     let maxLoisPerAssise = 0;
@@ -1289,40 +1002,32 @@
     });
     const loisStatus = (loiIds.length > 5 || maxLoisPerAssise > 2) ? 'err' : 'ok';
 
-    // 3. Couverture Éveil (i) + (ii)
-    const catalyseurIds = presentIds.filter(id => {
-      const t = tilesMap[id];
-      return t.famille === 'GARDIEN' && Array.isArray(t.roles_portes) && t.roles_portes.includes('CATALYSEUR_EVEIL');
-    });
+    // Éveil (i) + (ii)
+    const catalyseurIds = presentIds.filter(id => tilesMap[id].famille === 'GARDIEN' && (tilesMap[id].roles_portes || []).includes('CATALYSEUR_EVEIL'));
     const catSet = new Set(catalyseurIds);
-    const eveilRegleI = {};
+    const regleI = {};
     const missingAnimalsI = [];
     ['M', 'R', 'O'].forEach(an => {
       const cnt = catalyseurIds.filter(id => tilesMap[id].origine === an && NON_ANIMAL_PEUPLES.has(tilesMap[id].voisin)).length;
-      eveilRegleI[an] = cnt;
+      regleI[an] = cnt;
       if (cnt < 2) missingAnimalsI.push(`${an} (${cnt}/2)`);
     });
-    const eveilRegleII = {};
+    const regleII = {};
     const missingBordersII = [];
     ANIMAL_ANIMAL_BORDERS.forEach(([a1, a2]) => {
       const pair = BORDER_TO_SLOTS[borderKey(a1, a2)] || [];
       const ok = pair.some(id => catSet.has(id));
-      eveilRegleII[`${a1}–${a2}`] = ok;
+      regleII[`${a1}–${a2}`] = ok;
       if (!ok) missingBordersII.push(`${a1}–${a2}`);
     });
-    const uncoveredEveilAssises = [];
-    assises.forEach(a => {
-      if (a.peuples.some(p => ANIMAL_PEUPLES.has(p)) && !a.tileIds.some(id => catSet.has(id))) {
-        uncoveredEveilAssises.push(a.key);
-      }
-    });
+    const uncoveredEveil = assises.filter(a => a.peuples.some(p => ANIMAL_PEUPLES.has(p)) && !a.tileIds.some(id => catSet.has(id))).map(a => a.key);
     let eveilStatus = 'ok';
-    if (catalyseurIds.length < 9 || missingAnimalsI.length > 0 || missingBordersII.length > 0 || uncoveredEveilAssises.length > 0) {
+    if (catalyseurIds.length < 9 || missingAnimalsI.length > 0 || missingBordersII.length > 0 || uncoveredEveil.length > 0) {
       eveilStatus = isComplete ? 'err' : 'warn';
     }
 
-    // 4. Couverture Sommeil (E sans H : >= 3/4 lisières E-{M,R,O,I} et 30/30 assises)
-    const levierIds = presentIds.filter(id => Array.isArray(tilesMap[id].roles_portes) && tilesMap[id].roles_portes.includes('LEVIER_REVE'));
+    // Sommeil E sans H
+    const levierIds = presentIds.filter(id => (tilesMap[id].roles_portes || []).includes('LEVIER_REVE'));
     const levSet = new Set(levierIds);
     const coveredEBorders = [];
     const missingEBorders = [];
@@ -1331,24 +1036,17 @@
       if (pair.some(id => levSet.has(id))) coveredEBorders.push(`${p1}–${p2}`);
       else missingEBorders.push(`${p1}–${p2}`);
     });
-    const uncoveredESansH = [];
-    assises.forEach(a => {
-      if (a.peuples.includes('E') && !a.peuples.includes('H') && !a.tileIds.some(id => levSet.has(id))) {
-        uncoveredESansH.push(a.key);
-      }
-    });
+    const uncoveredSommeil = assises.filter(a => a.peuples.includes('E') && !a.peuples.includes('H') && !a.tileIds.some(id => levSet.has(id))).map(a => a.key);
     let sommeilStatus = 'ok';
-    if (coveredEBorders.length < 3 || uncoveredESansH.length > 0) {
-      sommeilStatus = isComplete ? 'err' : 'warn';
-    }
+    if (coveredEBorders.length < 3 || uncoveredSommeil.length > 0) sommeilStatus = isComplete ? 'err' : 'warn';
 
-    // 5. Enracinements (3 à 5)
-    const enracIds = presentIds.filter(id => Array.isArray(tilesMap[id].roles_portes) && tilesMap[id].roles_portes.includes('ENRACINEMENT'));
+    // Enracinements
+    const enracIds = presentIds.filter(id => (tilesMap[id].roles_portes || []).includes('ENRACINEMENT'));
     let enracStatus = 'ok';
     if (enracIds.length > 5) enracStatus = 'err';
     else if (enracIds.length < 3) enracStatus = isComplete ? 'err' : 'warn';
 
-    // 6. Autonomie A=0 ({R1, R2, R6, R10, M4, M5})
+    // Autonomie A=0
     const gardienLexRe = /\b(?:gardiens?|éveil|encoches?|résonance)\b/i;
     const a0Violations = [];
     Array.from(A0_SLOTS).sort().forEach(sid => {
@@ -1356,8 +1054,7 @@
       if (!t) return;
       const texts = [
         t.carte_joueur && t.carte_joueur.texte_regle && t.carte_joueur.texte_regle.face_1,
-        t.carte_joueur && t.carte_joueur.texte_regle && t.carte_joueur.texte_regle.enracine,
-        t.tuile_plateau && t.tuile_plateau.mots_cles_plateau && t.tuile_plateau.mots_cles_plateau.face_1
+        t.carte_joueur && t.carte_joueur.texte_regle && t.carte_joueur.texte_regle.enracine
       ].filter(Boolean);
       const hitTxt = texts.some(txt => gardienLexRe.test(txt));
       const hitTok = normalizeStateList((t.entrees || []).concat(t.sorties || [])).some(tok => tok === 'GARDIEN' || tok === 'PARI_GLISSE');
@@ -1365,17 +1062,13 @@
       if (hitTxt || hitTok || hitRes) a0Violations.push(sid);
     });
     const a0Present = Array.from(A0_SLOTS).filter(sid => Boolean(tilesMap[sid])).length;
-    let a0Status = 'ok';
-    if (a0Violations.length > 0) a0Status = 'err';
-    else if (a0Present < 6) a0Status = 'warn';
+    const a0Status = a0Violations.length > 0 ? 'err' : (a0Present < 6 ? 'warn' : 'ok');
 
-    // 7. Synergies orphelines (0/64) & Divergence de lisière (I03)
-    const orphanSynergies = [];
+    // Synergies orphelines & Divergence
+    const orphans = [];
     presentIds.forEach(sid => {
-      const t = tilesMap[sid];
-      normalizeStateList(t.entrees_synergie).forEach(st => {
-        const cov = computeSynergyCoverage64(sid, st, tilesMap);
-        if (cov.covered === 0) orphanSynergies.push({ slotId: sid, state: st });
+      normalizeStateList(tilesMap[sid].entrees_synergie).forEach(st => {
+        if (computeSynergyCoverage64(sid, st, tilesMap).covered === 0) orphans.push({ slotId: sid, state: st });
       });
     });
     const divergenceIssues = [];
@@ -1386,76 +1079,41 @@
       if (!t1 || !t2) return;
       const o1 = (t1.sorties && t1.sorties[0]) ? String(t1.sorties[0]).toUpperCase() : '';
       const o2 = (t2.sorties && t2.sorties[0]) ? String(t2.sorties[0]).toUpperCase() : '';
-      if (o1 && o2 && o1 === o2) {
-        divergenceIssues.push(`${borderLabel(p1, p2)} : même sortie principale (${humanizeToken(o1).label})`);
-      }
+      if (o1 && o2 && o1 === o2) divergenceIssues.push(`${borderLabel(p1, p2)} : même sortie (${humanizeToken(o1).label})`);
     });
-    const synStatus = (orphanSynergies.length > 0 || divergenceIssues.length > 0) ? (isComplete ? 'err' : 'warn') : 'ok';
+    const synStatus = (orphans.length > 0 || divergenceIssues.length > 0) ? (isComplete ? 'err' : 'warn') : 'ok';
+
+    const statuses = [twistsStatus, loisStatus, eveilStatus, sommeilStatus, enracStatus, a0Status, synStatus];
+    const errorCount = statuses.filter(s => s === 'err').length;
+    const warnCount = statuses.filter(s => s === 'warn').length;
+    const overallStatus = errorCount > 0 ? 'err' : (warnCount > 0 ? 'warn' : 'ok');
 
     return {
-      scopeLabel: isCanon ? 'Mon Canon v6.3' : (PANEL_LABELS[uiState.source] || uiState.source),
+      source: src,
+      scopeLabel: PANEL_LABELS[src] || src,
       electedCount,
       unelectedIds,
       isComplete,
-      twists: {
-        status: twistsStatus,
-        ids: twistTiles.map(t => t.id),
-        count: twistTiles.length,
-        missingOrigins: missingOrigTwists,
-        doubleBorders: doubleTwistBorders,
-        triangles2K3
-      },
-      lois: {
-        status: loisStatus,
-        ids: loiIds,
-        count: loiIds.length,
-        maxPerAssise: maxLoisPerAssise,
-        offendingAssises: offendingLoiAssises
-      },
-      eveil: {
-        status: eveilStatus,
-        ids: catalyseurIds,
-        count: catalyseurIds.length,
-        regleI: eveilRegleI,
-        missingAnimalsI,
-        regleII: eveilRegleII,
-        missingBordersII,
-        uncoveredAssises: uncoveredEveilAssises
-      },
-      sommeil: {
-        status: sommeilStatus,
-        ids: levierIds,
-        count: levierIds.length,
-        coveredEBorders,
-        missingEBorders,
-        uncoveredAssises: uncoveredESansH
-      },
-      enrac: {
-        status: enracStatus,
-        ids: enracIds,
-        count: enracIds.length
-      },
-      a0: {
-        status: a0Status,
-        presentCount: a0Present,
-        violations: a0Violations
-      },
-      synergies: {
-        status: synStatus,
-        orphans: orphanSynergies,
-        divergenceIssues
-      }
+      overallStatus,
+      issuesCount: errorCount + warnCount,
+      twists: { status: twistsStatus, ids: twistTiles.map(t => t.id), count: twistTiles.length, missingOrigins, doubleBorders, triangles2K3 },
+      lois: { status: loisStatus, ids: loiIds, count: loiIds.length, maxPerAssise: maxLoisPerAssise, offendingAssises: offendingLoiAssises },
+      eveil: { status: eveilStatus, ids: catalyseurIds, count: catalyseurIds.length, regleI, missingAnimalsI, regleII, missingBordersII, uncoveredAssises: uncoveredEveil },
+      sommeil: { status: sommeilStatus, ids: levierIds, count: levierIds.length, coveredEBorders, missingEBorders, uncoveredAssises: uncoveredSommeil },
+      enrac: { status: enracStatus, ids: enracIds, count: enracIds.length },
+      a0: { status: a0Status, presentCount: a0Present, violations: a0Violations },
+      synergies: { status: synStatus, orphans, divergenceIssues }
     };
   }
 
   // --------------------------------------------------------------------------
-  // Simulateur de Table 3 à 6 Peuples (Vue 2)
+  // Simulateur de Table 3 à 6 Peuples
   // --------------------------------------------------------------------------
   function analyzeTableSimulation(peuples, sourceOverride) {
     ensureInitialized();
     const circle = Array.from(peuples || []);
     const n = circle.length;
-    const src = sourceOverride || uiState.source;
+    const src = sourceOverride || uiState.simSource || 'canon';
     const canon = canonicalizeAssise(circle);
     const borders = [];
     const tileEntries = [];
@@ -1467,11 +1125,10 @@
       const pair = BORDER_TO_SLOTS[bk] || [];
       borders.push({ p1, p2, key: bk, label: borderLabel(p1, p2), slots: pair });
       pair.forEach(sid => {
-        const res = getEffectiveTileForSlot(sid, src);
+        const res = getEffectiveTile(sid, src);
         tileEntries.push({
           slotId: sid,
           borderKey: bk,
-          borderLabel: borderLabel(p1, p2),
           tile: res.tile,
           sourceKey: res.sourceKey,
           elected: res.elected,
@@ -1481,133 +1138,65 @@
     }
 
     const activeTilesMap = {};
-    tileEntries.forEach(e => {
-      if (e.tile) activeTilesMap[e.slotId] = e.tile;
-    });
+    tileEntries.forEach(e => { if (e.tile) activeTilesMap[e.slotId] = e.tile; });
 
-    // États et icônes disponibles à cette table
-    const tableProducersByState = {}; // state -> [{type:'native'|'tile', id, label}]
-    const tableIconLighters = {}; // ICONE_* -> [{type:'native'|'tile', id, label}]
-
-    function addProducer(map, key, entry) {
-      if (!map[key]) map[key] = [];
-      if (!map[key].some(x => x.id === entry.id)) map[key].push(entry);
+    const prodByState = {};
+    const lightersByIcon = {};
+    function pushProd(map, k, item) {
+      if (!map[k]) map[k] = [];
+      if (!map[k].some(x => x.id === item.id)) map[k].push(item);
     }
 
-    SOCLE_STATES.forEach(st => {
-      addProducer(tableProducersByState, st, { type: 'native', id: 'SOCLE', label: 'Socle commun' });
-    });
+    SOCLE_STATES.forEach(st => pushProd(prodByState, st, { type: 'native', id: 'SOCLE', label: 'Socle commun' }));
     circle.forEach(p => {
       const acc = ACCESSORIES_3_3[p];
       if (!acc) return;
-      (PEUPLE_NATIVE_STATES[p] || []).forEach(st => {
-        addProducer(tableProducersByState, st, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short} (${acc.title})` });
-      });
-      acc.icons.forEach(ic => {
-        addProducer(tableIconLighters, ic, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short} (${acc.title})` });
-      });
+      (PEUPLE_NATIVE_STATES[p] || []).forEach(st => pushProd(prodByState, st, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short}` }));
+      acc.icons.forEach(ic => pushProd(lightersByIcon, ic, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short}` }));
     });
-
     Object.entries(activeTilesMap).forEach(([sid, tile]) => {
       const lbl = `${sid} · ${(tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid}`;
-      expandOutputStates(tile.sorties).forEach(st => {
-        addProducer(tableProducersByState, st, { type: 'tile', id: sid, label: lbl });
-      });
-      normalizeStateList(tile.declencheurs_amorces).forEach(ic => {
-        addProducer(tableIconLighters, ic, { type: 'tile', id: sid, label: lbl });
-      });
+      expandOutputStates(tile.sorties).forEach(st => pushProd(prodByState, st, { type: 'tile', id: sid, label: lbl }));
+      normalizeStateList(tile.declencheurs_amorces).forEach(ic => pushProd(lightersByIcon, ic, { type: 'tile', id: sid, label: lbl }));
     });
 
-    // Chaînes de moteurs complètes qui se bouclent à cette table + amplificateurs isolés
     const completeChains = [];
     const isolatedAmplifiers = [];
-
     Object.entries(activeTilesMap).forEach(([sid, tile]) => {
       const consumerLbl = `${sid} · ${(tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid}`;
-      const synIn = normalizeStateList(tile.entrees_synergie);
-      const floorIn = normalizeStateList(tile.entrees_plancher);
-      const recIcon = tile.tuile_plateau && tile.tuile_plateau.icone_conseillee
-        ? String(tile.tuile_plateau.icone_conseillee).toUpperCase()
-        : null;
-
-      // Synergies amplificatrices
-      synIn.forEach(st => {
-        const prods = (tableProducersByState[st] || []).filter(p => p.id !== sid);
-        const tileProds = prods.filter(p => p.type === 'tile');
+      normalizeStateList(tile.entrees_synergie).forEach(st => {
+        const prods = (prodByState[st] || []).filter(p => p.id !== sid);
         if (prods.length === 0) {
-          isolatedAmplifiers.push({
-            slotId: sid,
-            tileName: (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid,
-            state: st,
-            stateMeta: humanizeToken(st)
-          });
+          isolatedAmplifiers.push({ slotId: sid, tileName: (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid, state: st, stateMeta: humanizeToken(st) });
         } else {
-          const shownProds = tileProds.length > 0 ? tileProds : prods.slice(0, 2);
-          shownProds.slice(0, 3).forEach(pr => {
-            completeChains.push({
-              fromId: pr.id,
-              fromLabel: pr.label,
-              fromType: pr.type,
-              via: st,
-              viaMeta: humanizeToken(st),
-              toId: sid,
-              toLabel: consumerLbl,
-              kind: 'synergy'
-            });
+          const shown = prods.filter(p => p.type === 'tile');
+          (shown.length > 0 ? shown : prods).slice(0, 2).forEach(pr => {
+            completeChains.push({ fromId: pr.id, fromLabel: pr.label, via: st, viaMeta: humanizeToken(st), toId: sid, toLabel: consumerLbl, kind: 'synergy' });
           });
         }
       });
-
-      // Plancher alimenté par une autre tuile de la table (pont inter-tuiles concret)
-      floorIn.forEach(st => {
-        const tileProds = (tableProducersByState[st] || []).filter(p => p.type === 'tile' && p.id !== sid);
-        tileProds.slice(0, 2).forEach(pr => {
-          completeChains.push({
-            fromId: pr.id,
-            fromLabel: pr.label,
-            fromType: 'tile',
-            via: st,
-            viaMeta: humanizeToken(st),
-            toId: sid,
-            toLabel: consumerLbl,
-            kind: 'floor_boost'
-          });
-        });
-      });
-
-      // Cascades vers icône Gardien conseillée
+      const recIcon = tile.tuile_plateau && tile.tuile_plateau.icone_conseillee ? String(tile.tuile_plateau.icone_conseillee).toUpperCase() : null;
       if (recIcon) {
-        const tileLighters = (tableIconLighters[recIcon] || []).filter(p => p.type === 'tile' && p.id !== sid);
-        tileLighters.slice(0, 2).forEach(pr => {
-          completeChains.push({
-            fromId: pr.id,
-            fromLabel: pr.label,
-            fromType: 'tile',
-            via: recIcon,
-            viaMeta: humanizeToken(recIcon),
-            toId: sid,
-            toLabel: consumerLbl,
-            kind: 'guardian_icon'
-          });
+        (lightersByIcon[recIcon] || []).filter(p => p.type === 'tile' && p.id !== sid).slice(0, 2).forEach(pr => {
+          completeChains.push({ fromId: pr.id, fromLabel: pr.label, via: recIcon, viaMeta: humanizeToken(recIcon), toId: sid, toLabel: consumerLbl, kind: 'icon' });
         });
       }
     });
 
-    // Dédupliquer les chaînes
-    const seenChains = new Set();
+    const seen = new Set();
     const uniqueChains = completeChains.filter(ch => {
       const k = `${ch.fromId}->${ch.via}->${ch.toId}`;
-      if (seenChains.has(k)) return false;
-      seenChains.add(k);
+      if (seen.has(k)) return false;
+      seen.add(k);
       return true;
     });
 
-    const presentTiles = Object.values(activeTilesMap);
-    const loisCount = presentTiles.filter(t => String(t.nature || '').toUpperCase() === 'LOI_PASSIVE').length;
-    const twistsCount = presentTiles.filter(t => Boolean(t.est_twist)).length;
-    const eveilCount = presentTiles.filter(t => t.famille === 'GARDIEN' && (t.roles_portes || []).includes('CATALYSEUR_EVEIL')).length;
-    const sommeilCount = presentTiles.filter(t => (t.roles_portes || []).includes('LEVIER_REVE')).length;
-    const enracCount = presentTiles.filter(t => (t.roles_portes || []).includes('ENRACINEMENT')).length;
+    const present = Object.values(activeTilesMap);
+    const loisCount = present.filter(t => String(t.nature || '').toUpperCase() === 'LOI_PASSIVE').length;
+    const twistsCount = present.filter(t => Boolean(t.est_twist)).length;
+    const eveilCount = present.filter(t => t.famille === 'GARDIEN' && (t.roles_portes || []).includes('CATALYSEUR_EVEIL')).length;
+    const sommeilCount = present.filter(t => (t.roles_portes || []).includes('LEVIER_REVE')).length;
+    const enracCount = present.filter(t => (t.roles_portes || []).includes('ENRACINEMENT')).length;
     const missingCanonCount = tileEntries.filter(e => !e.tile).length;
 
     const hasAnimaux = circle.some(p => ANIMAL_PEUPLES.has(p));
@@ -1640,12 +1229,11 @@
   }
 
   // --------------------------------------------------------------------------
-  // Passerelles d'Export : Gemini Markdown ciblé & Antigravity JSON déterministe
+  // Exports : Gemini Markdown ciblé & Antigravity JSON déterministe
   // --------------------------------------------------------------------------
   function countWords(text) {
     const clean = String(text || '').trim();
-    if (!clean) return 0;
-    return clean.split(/\s+/).filter(Boolean).length;
+    return clean ? clean.split(/\s+/).filter(Boolean).length : 0;
   }
 
   function buildGeminiMarkdownBrief(scope) {
@@ -1657,93 +1245,80 @@
     let tileCount = 0;
 
     function formatTileBrief(sid, tile, srcLabel) {
-      const wsSlot = ws.slots[sid];
-      const tp = tile.tuile_plateau || {};
+      const w = ws.slots[sid];
       const cj = tile.carte_joueur || {};
       const tr = cj.texte_regle || {};
       const dr = cj.decision_et_renoncement || {};
-      const rolesHuman = [];
-      if (tile.nature === 'LOI_PASSIVE') rolesHuman.push('Loi passive permanente');
-      if (tile.est_twist) rolesHuman.push('Twist 2K3');
-      if ((tile.roles_portes || []).includes('CATALYSEUR_EVEIL')) rolesHuman.push('Catalyseur d’Éveil');
-      if ((tile.roles_portes || []).includes('LEVIER_REVE')) rolesHuman.push('Levier de Rêve');
-      if ((tile.roles_portes || []).includes('ENRACINEMENT')) rolesHuman.push('Synergie d’Enracinement');
-
-      const out = [];
-      out.push(`### ${sid} (${tile.alias_oriente}) — ${cj.titre_complet || tp.nom_court || sid} [${srcLabel}]`);
-      if (rolesHuman.length > 0) out.push(`- **Nature & rôles** : ${rolesHuman.join(' · ')}`);
-      if (wsSlot && (wsSlot.status || wsSlot.rating || wsSlot.favorite)) {
-        const meta = [];
-        if (wsSlot.status) meta.push(`Statut : ${wsSlot.status}`);
-        if (wsSlot.rating) meta.push(`Note : ${wsSlot.rating}/5`);
-        if (wsSlot.favorite) meta.push('Coup de cœur');
-        out.push(`- **Repère atelier** : ${meta.join(' · ')}`);
-      }
-      if (wsSlot && wsSlot.comment) out.push(`- **Note d’auteur** : ${wsSlot.comment}`);
+      const out = [`### ${sid} (${tile.alias_oriente}) — ${cj.titre_complet || (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid} [${srcLabel}]`];
+      if (w && isSlotFlaggedReview(w)) out.push('- **Marqueur** : À revoir');
+      if (w && w.comment) out.push(`- **Note d’auteur** : ${w.comment}`);
       if (tr.face_1) out.push(`- **Face 1** : ${tr.face_1}`);
       if (tr.face_2) out.push(`- **Face 2** : ${tr.face_2}`);
       if (tr.enracine) out.push(`- **Enraciné** : ${tr.enracine}`);
-      if (dr.choix || dr.renoncement) {
-        out.push(`- **Dilemme** : Choix — ${dr.choix || '—'} | Renoncement — ${dr.renoncement || '—'}`);
-      }
+      if (dr.choix || dr.renoncement) out.push(`- **Dilemme** : Choix — ${dr.choix || '—'} | Renoncement — ${dr.renoncement || '—'}`);
       return out.join('\n');
     }
 
     if (scope === 'to_arbitrate') {
-      lines.push('# Brief Atelier Amazonia v6.3 — Emplacements en hésitation ou à hybrider');
+      lines.push('# Brief Atelier Amazonia v6.3 — Emplacements marqués « À revoir »');
       lines.push('');
-      const targets = specs.filter(sp => {
-        const st = ws.slots[sp.id] && ws.slots[sp.id].status;
-        return st === 'HESITATION' || st === 'A_HYBRIDER';
-      });
+      const targets = specs.filter(sp => isSlotFlaggedReview(ws.slots[sp.id]));
       if (targets.length === 0) {
-        lines.push('_Aucun emplacement n’est actuellement marqué « Hésitation » ou « À hybrider »._');
+        lines.push('_Aucun emplacement n’est actuellement marqué « À revoir »._');
       } else {
         targets.forEach(sp => {
           tileCount++;
-          const wsSlot = ws.slots[sp.id];
-          lines.push(`## ${sp.id} (${sp.alias_oriente}) — ${wsSlot.status === 'A_HYBRIDER' ? 'À hybrider' : 'Hésitation'}`);
-          if (wsSlot.comment) lines.push(`> **Intention d’auteur** : ${wsSlot.comment}`);
+          const w = ws.slots[sp.id];
+          lines.push(`## ${sp.id} (${sp.alias_oriente})`);
+          if (w.comment) lines.push(`> **Note d’auteur** : ${w.comment}`);
           lines.push('');
-          if (wsSlot.is_modified && wsSlot.custom_tile) {
-            lines.push(formatTileBrief(sp.id, wsSlot.custom_tile, 'Version hybride/éditée'));
+          if (w.is_modified && w.custom_tile) {
+            lines.push(formatTileBrief(sp.id, w.custom_tile, 'Version hybride/éditée'));
             lines.push('');
           }
           PANEL_IDS.forEach(pid => {
             const pt = getPanelTile(pid, sp.id);
             if (!pt) return;
             const tr = (pt.carte_joueur && pt.carte_joueur.texte_regle) || {};
-            const mark = wsSlot.selected_source === pid ? ' ★ Élu' : '';
+            const mark = w.selected_source === pid ? ' ★ Gardée' : '';
             lines.push(`- **${PANEL_LABELS[pid]}${mark} — ${(pt.carte_joueur && pt.carte_joueur.titre_complet) || pt.tuile_plateau.nom_court}** : ${tr.face_1 || ''}${tr.face_2 ? ' // Face 2 : ' + tr.face_2 : ''}${tr.enracine ? ' // Enraciné : ' + tr.enracine : ''}`);
           });
           lines.push('');
         });
       }
     } else if (scope === 'active_context') {
-      if (uiState.view === 'simulator') {
-        const sim = analyzeTableSimulation(uiState.simPeuples, uiState.source);
-        lines.push(`# Brief Table simulée ${sim.canonKey} (${sim.peuples.join(' – ')}) — ${PANEL_LABELS[uiState.source] || uiState.source}`);
+      if (uiState.mode === 'simulator') {
+        const sim = analyzeTableSimulation(uiState.simPeuples, uiState.simSource);
+        lines.push(`# Brief Table ${sim.canonKey} (${sim.peuples.join(' – ')}) — ${PANEL_LABELS[uiState.simSource]}`);
         lines.push('');
-        lines.push(`- **Bilan local** : ${sim.metrics.loisCount} loi(s) passive(s), ${sim.metrics.twistsCount} twist(s), ${sim.metrics.eveilCount} catalyseur(s) d’Éveil, ${sim.metrics.sommeilCount} levier(s) de Rêve, ${sim.metrics.enracCount} Enracinement(s).`);
-        if (sim.isolatedAmplifiers.length > 0) {
-          lines.push(`- **Amplificateurs sans producteur à cette table** : ${sim.isolatedAmplifiers.map(x => `${x.slotId} (${x.stateMeta.label})`).join(', ')}.`);
-        }
-        lines.push('');
-        sim.tileEntries.forEach(entry => {
-          if (!entry.tile) return;
+        sim.tileEntries.forEach(e => {
+          if (!e.tile) return;
           tileCount++;
-          lines.push(formatTileBrief(entry.slotId, entry.tile, PANEL_LABELS[entry.sourceKey] || 'Mon Canon'));
+          lines.push(formatTileBrief(e.slotId, e.tile, PANEL_LABELS[e.sourceKey] || 'Mon Canon'));
+          lines.push('');
+        });
+      } else if (uiState.mode === 'arbitrate') {
+        const sid = uiState.currentSlotId;
+        const w = ws.slots[sid];
+        lines.push(`# Brief Duel ${sid} (${getSlotSpecMap()[sid].alias_oriente})`);
+        if (w && w.comment) lines.push(`> **Note d’auteur** : ${w.comment}`);
+        lines.push('');
+        PANEL_IDS.forEach(pid => {
+          const pt = getPanelTile(pid, sid);
+          if (!pt) return;
+          tileCount++;
+          lines.push(formatTileBrief(sid, pt, PANEL_LABELS[pid] + (w && w.selected_source === pid ? ' ★ Gardée' : '')));
           lines.push('');
         });
       } else {
         const visibleIds = getFilteredSlotIds();
-        lines.push(`# Brief Explorateur Amazonia v6.3 — ${PANEL_LABELS[uiState.source] || uiState.source} (${visibleIds.length} tuile(s))`);
+        lines.push(`# Brief Liste ${PANEL_LABELS[uiState.listSource]} (${visibleIds.length} tuile(s))`);
         lines.push('');
         visibleIds.forEach(sid => {
-          const res = getEffectiveTileForSlot(sid, uiState.source);
+          const res = getEffectiveTile(sid, uiState.listSource);
           if (!res.tile) return;
           tileCount++;
-          lines.push(formatTileBrief(sid, res.tile, res.modified ? 'Modifié par l’auteur' : (PANEL_LABELS[res.sourceKey] || uiState.source)));
+          lines.push(formatTileBrief(sid, res.tile, res.modified ? 'Hybride' : (PANEL_LABELS[res.sourceKey] || uiState.listSource)));
           lines.push('');
         });
       }
@@ -1752,7 +1327,7 @@
       lines.push('');
       const touched = specs.filter(sp => {
         const w = ws.slots[sp.id];
-        return w && (w.is_modified || (w.comment && w.comment.trim()) || w.status || w.favorite);
+        return w && (w.is_modified || (w.comment && w.comment.trim()) || isSlotFlaggedReview(w));
       });
       if (touched.length === 0) {
         lines.push('_Aucune note ni modification enregistrée pour le moment._');
@@ -1762,47 +1337,39 @@
           const res = getCanonSlotResolved(sp.id, w.base_source || 'panel_1');
           if (!res.tile) return;
           tileCount++;
-          const label = w.is_modified ? 'Modifié / Hybride' : (w.selected_source ? PANEL_LABELS[w.selected_source] : 'Non élu');
-          lines.push(formatTileBrief(sp.id, res.tile, label));
+          lines.push(formatTileBrief(sp.id, res.tile, w.is_modified ? 'Hybride / Édité' : (w.selected_source ? PANEL_LABELS[w.selected_source] : 'À trancher')));
           lines.push('');
         });
       }
     } else {
-      // canon_summary
-      lines.push(`# Synthèse Mon Canon v6.3 (${radar.electedCount}/30 emplacements élus)`);
+      lines.push(`# Synthèse Mon Canon v6.3 (${radar.electedCount}/30 emplacements gardés)`);
       lines.push('');
       lines.push(`- **Twists 2K3** : ${radar.twists.count} (${radar.twists.triangles2K3 ? '2 triangles valides' : 'géométrie en cours'})`);
       lines.push(`- **Lois passives** : ${radar.lois.count}/5 (max ${radar.lois.maxPerAssise}/assise sur 197 assises)`);
-      lines.push(`- **Couverture Éveil** : ${radar.eveil.count} catalyseurs`);
-      lines.push(`- **Sommeil E sans H** : ${radar.sommeil.coveredEBorders.length}/4 lisières de E couvertes`);
-      lines.push(`- **Enracinements** : ${radar.enrac.count} (cible 3–5)`);
+      lines.push(`- **Éveil** : ${radar.eveil.count} catalyseurs · **Sommeil E sans H** : ${radar.sommeil.coveredEBorders.length}/4 lisières · **Enracinements** : ${radar.enrac.count}`);
       lines.push('');
-      lines.push('| Slot | Lisière | Source | Titre | Rôles | Statut | Note | Commentaire |');
-      lines.push('| --- | --- | --- | --- | --- | --- | --- | --- |');
+      lines.push('| Slot | Lisière | Choix | Titre | À revoir | Note |');
+      lines.push('| --- | --- | --- | --- | --- | --- |');
       specs.forEach(sp => {
         const w = ws.slots[sp.id];
         const res = getCanonSlotResolved(sp.id, null);
         if (res.tile) tileCount++;
-        const srcTxt = w.selected_source ? (PANEL_SHORT[w.selected_source] || w.selected_source) : 'À trancher';
+        const srcTxt = w.selected_source ? (PANEL_SHORT[w.selected_source] || w.selected_source) : '—';
         const title = res.tile ? ((res.tile.carte_joueur && res.tile.carte_joueur.titre_complet) || res.tile.tuile_plateau.nom_court) : '—';
-        const tags = [];
-        if (res.tile) {
-          if (res.tile.est_twist) tags.push('⚡Twist');
-          if (res.tile.nature === 'LOI_PASSIVE') tags.push('⚖️Loi');
-          if ((res.tile.roles_portes || []).includes('CATALYSEUR_EVEIL')) tags.push('☀️Éveil');
-          if ((res.tile.roles_portes || []).includes('LEVIER_REVE')) tags.push('🌙Rêve');
-          if ((res.tile.roles_portes || []).includes('ENRACINEMENT')) tags.push('🌱Enrac');
-        }
         const safeCom = (w.comment || '').replace(/\|/g, '/').replace(/\n/g, ' ');
-        lines.push(`| ${sp.id} | ${sp.alias_oriente} | ${srcTxt} | ${title} | ${tags.join(' ')} | ${w.status || '—'} | ${w.rating ? w.rating + '★' : '—'}${w.favorite ? ' ♥' : ''} | ${safeCom || '—'} |`);
+        lines.push(`| ${sp.id} | ${sp.alias_oriente} | ${srcTxt} | ${title} | ${isSlotFlaggedReview(w) ? '🤔' : '—'} | ${safeCom || '—'} |`);
       });
     }
 
     const markdown = lines.join('\n').trim() + '\n';
     const words = countWords(markdown);
-    const chars = markdown.length;
-    const comfort = words <= 2500 ? 'green' : (words <= 6000 ? 'amber' : 'red');
-    return { markdown, words, chars, tileCount, comfort };
+    return {
+      markdown,
+      words,
+      chars: markdown.length,
+      tileCount,
+      comfort: words <= 2500 ? 'green' : (words <= 6000 ? 'amber' : 'red')
+    };
   }
 
   function buildAuthorWorkspaceExport() {
@@ -1818,19 +1385,11 @@
         base_source: w.base_source,
         is_modified: Boolean(w.is_modified && w.custom_tile),
         status: w.status || '',
-        rating: Number(w.rating) || 0,
-        favorite: Boolean(w.favorite),
         comment: w.comment || '',
-        panel_notes: {
-          panel_1: deepClone(w.panel_notes.panel_1 || { rating: 0, comment: '' }),
-          panel_2: deepClone(w.panel_notes.panel_2 || { rating: 0, comment: '' }),
-          panel_3: deepClone(w.panel_notes.panel_3 || { rating: 0, comment: '' })
-        },
         custom_tile: (w.is_modified && w.custom_tile) ? deepClone(w.custom_tile) : null,
         updated_at: w.updated_at || null
       };
     });
-
     return {
       schema_version: '6.3.1-workspace',
       projet: 'Amazonia : Dernier Rempart — Atelier Draft v6.3.1',
@@ -1859,23 +1418,19 @@
     t.origine = spec.origine;
     t.voisin = spec.voisin;
     t.couple = [spec.origine, spec.voisin];
-    t.cycle = spec.famille === 'GARDIEN'
-      ? 'DOUBLE_FACE_UPGRADE'
-      : (t.nature === 'LOI_PASSIVE' ? 'PASSIF_CONTINU' : 'SIMPLE_CONTINU');
+    t.cycle = spec.famille === 'GARDIEN' ? 'DOUBLE_FACE_UPGRADE' : (t.nature === 'LOI_PASSIVE' ? 'PASSIF_CONTINU' : 'SIMPLE_CONTINU');
     t.cablage = spec.famille === 'GARDIEN' ? [1, 2, 3, 4, 5, 6] : null;
     t.nature = t.nature === 'LOI_PASSIVE' ? 'LOI_PASSIVE' : 'ACTION';
     t.est_twist = Boolean(t.est_twist);
 
-    const rolesSet = new Set(Array.isArray(t.roles_portes) ? t.roles_portes : []);
-    if (A0_SLOTS.has(spec.id)) rolesSet.add('AUTONOMIE_A0');
-    if (t.nature === 'LOI_PASSIVE') rolesSet.add('LOI_PASSIVE');
-    else rolesSet.delete('LOI_PASSIVE');
-    if (t.est_twist) rolesSet.add('TWIST_2K3');
-    else rolesSet.delete('TWIST_2K3');
+    const roles = new Set(Array.isArray(t.roles_portes) ? t.roles_portes : []);
+    if (A0_SLOTS.has(spec.id)) roles.add('AUTONOMIE_A0');
+    if (t.nature === 'LOI_PASSIVE') roles.add('LOI_PASSIVE'); else roles.delete('LOI_PASSIVE');
+    if (t.est_twist) roles.add('TWIST_2K3'); else roles.delete('TWIST_2K3');
     if (t.carte_joueur && t.carte_joueur.texte_regle && t.carte_joueur.texte_regle.enracine && String(t.carte_joueur.texte_regle.enracine).trim()) {
-      rolesSet.add('ENRACINEMENT');
+      roles.add('ENRACINEMENT');
     }
-    t.roles_portes = Array.from(rolesSet);
+    t.roles_portes = Array.from(roles);
 
     const floorList = normalizeStateList(t.entrees_plancher);
     const floorSet = new Set(floorList);
@@ -1889,21 +1444,13 @@
     if (!Array.isArray(t.tags)) t.tags = [];
 
     if (!t.tuile_plateau) t.tuile_plateau = {};
-    if (spec.famille === 'GARDIEN' && casting[spec.id]) {
-      t.tuile_plateau.nom_court = casting[spec.id].nom_animal;
-    }
+    if (spec.famille === 'GARDIEN' && casting[spec.id]) t.tuile_plateau.nom_court = casting[spec.id].nom_animal;
     if (spec.famille !== 'GARDIEN') {
       t.tuile_plateau.icone_conseillee = null;
-      if (t.carte_joueur && t.carte_joueur.texte_regle) {
-        t.carte_joueur.texte_regle.face_2 = null;
-      }
-      if (t.tuile_plateau.mots_cles_plateau) {
-        t.tuile_plateau.mots_cles_plateau.face_2 = null;
-      }
+      if (t.carte_joueur && t.carte_joueur.texte_regle) t.carte_joueur.texte_regle.face_2 = null;
+      if (t.tuile_plateau.mots_cles_plateau) t.tuile_plateau.mots_cles_plateau.face_2 = null;
       t.double_ouverture = null;
     }
-
-    // Supprimer toute propriété privée / vestige C02
     delete t.mots_par_face;
     delete t._isArchiveV62;
     if (t.carte_joueur) delete t.carte_joueur.mots_par_face;
@@ -1919,18 +1466,13 @@
 
     specs.forEach(sp => {
       const res = getCanonSlotResolved(sp.id, fallback);
-      const tile = sanitizeTileForCanonExport(res.tile, sp);
-      tuilesOut[sp.id] = tile;
+      tuilesOut[sp.id] = sanitizeTileForCanonExport(res.tile, sp);
       provenance[sp.id] = res.elected ? res.sourceKey : `${fallback}_fallback`;
     });
 
     const rolesSummary = {
-      catalyseurs_eveil: [],
-      leviers_reve: [],
-      synergies_enracinement: [],
-      lois_passives: [],
-      autonomie_A0: [],
-      twists_2K3: []
+      catalyseurs_eveil: [], leviers_reve: [], synergies_enracinement: [],
+      lois_passives: [], autonomie_A0: [], twists_2K3: []
     };
     specs.forEach(sp => {
       const t = tuilesOut[sp.id];
@@ -1943,12 +1485,8 @@
       if (t.est_twist) rolesSummary.twists_2K3.push(tag);
     });
 
-    const twistTiles = specs.map(sp => tuilesOut[sp.id]).filter(t => t.est_twist);
-    const tris = find2K3Triangles(twistTiles);
-    const carteDesRoles = {
-      statut: 'CANDIDAT_ATELIER_V6_3_1',
-      roles: rolesSummary
-    };
+    const tris = find2K3Triangles(specs.map(sp => tuilesOut[sp.id]).filter(t => t.est_twist));
+    const carteDesRoles = { statut: 'CANDIDAT_ATELIER_V6_3_1', roles: rolesSummary };
     if (tris) {
       carteDesRoles.partition_2K3 = {
         triangle_1: tris[0].arcs.map(a => `${a.alias_oriente} (${a.id})`).join(' → '),
@@ -1956,7 +1494,6 @@
       };
     }
 
-    const today = new Date().toISOString().slice(0, 10);
     return {
       _meta: {
         projet: 'Amazonia : Dernier Rempart — Catalogue Canonique v6.3 (Bi-Composant Mini-Tuile + Grande Carte)',
@@ -1965,332 +1502,107 @@
         cadrage_source: 'docs/cadrage_tuiles_v6_3.md',
         etape_active: 'ETAPE_3_SELECTION_ET_AFFINAGE',
         statut_global: 'CANDIDAT_AUTEUR_V6_3',
-        genere_le: today,
+        genere_le: new Date().toISOString().slice(0, 10),
         slots_count: 30,
         c02_supprime: true,
         panel_id: 'canon_v6_3_candidat',
         murs_porteurs_verrouilles: [
-          'M1_TEMPS_BATAILLE',
-          'M2_CONSERVATION_THERMIQUE',
-          'M3_INTEGRITE_PLATEAU_ET_ICONES',
-          'M4_AUTONOMIE_PLANCHER_SOLO'
+          'M1_TEMPS_BATAILLE', 'M2_CONSERVATION_THERMIQUE',
+          'M3_INTEGRITE_PLATEAU_ET_ICONES', 'M4_AUTONOMIE_PLANCHER_SOLO'
         ],
         provenance_par_emplacement: provenance
       },
       referentiel_pictogrammes: deepClone(getPictosRef()),
       casting_gardiens_verrouille: deepClone(getCastingRef()),
       carte_des_roles: carteDesRoles,
-      rapport_audit_197: {
-        verdict_global: 'A_VALIDER_PAR_AUDIT_197',
-        c02_word_count_purged: true,
-        assises_verifiees: 197
-      },
+      rapport_audit_197: { verdict_global: 'A_VALIDER_PAR_AUDIT_197', c02_word_count_purged: true, assises_verifiees: 197 },
       tuiles_ciblees: tuilesOut
     };
   }
 
   // --------------------------------------------------------------------------
-  // Filtrage des emplacements (Vue 1)
+  // Filtrage (Mode Liste)
   // --------------------------------------------------------------------------
   function getFilteredSlotIds() {
     ensureInitialized();
     const specs = getSlotsSpec();
-    const tilesMap = getActiveTilesMap(uiState.source);
+    const tilesMap = getTilesMapForSource(uiState.listSource);
     const f = uiState.filters;
     const search = String(f.search || '').toLowerCase().trim();
-    const rfIndex = (uiState.resourceFocus && uiState.resourceFilterOnly)
-      ? computeResourceIndex(uiState.resourceFocus, tilesMap)
-      : null;
+    const rfIdx = uiState.resourceFocus ? computeResourceIndex(uiState.resourceFocus, tilesMap) : null;
 
     return specs.filter(sp => {
       const sid = sp.id;
-      const wsSlot = uiState.workspace.slots[sid];
+      const w = uiState.workspace.slots[sid];
       const tile = tilesMap[sid];
-
-      if (uiState.selectedBorder !== 'ALL' && borderKey(sp.origine, sp.voisin) !== uiState.selectedBorder) {
-        return false;
-      }
       if (f.peuple !== 'ALL' && sp.origine !== f.peuple && sp.voisin !== f.peuple) return false;
       if (f.family !== 'ALL' && sp.famille !== f.family) return false;
-
-      if (rfIndex && !rfIndex.allInvolvedIds.has(sid)) return false;
-
-      if (f.draft !== 'ALL' && wsSlot) {
-        if (f.draft === 'ELECTED' && !wsSlot.selected_source) return false;
-        if (f.draft === 'UNELECTED' && wsSlot.selected_source) return false;
-        if (f.draft === 'MODIFIED' && !wsSlot.is_modified) return false;
-        if (f.draft === 'COMMENTED' && !(wsSlot.comment && wsSlot.comment.trim())) return false;
-        if (f.draft === 'FAVORITE' && !wsSlot.favorite) return false;
-        if (['RETENUE', 'A_HYBRIDER', 'HESITATION', 'ALTERNATIVE', 'ECARTEE'].includes(f.draft) && wsSlot.status !== f.draft) {
-          return false;
-        }
-      }
+      if (f.reviewOnly && !isSlotFlaggedReview(w)) return false;
+      if (rfIdx && !rfIdx.allInvolvedIds.has(sid)) return false;
 
       if (f.role !== 'ALL') {
         if (!tile) return false;
         if (f.role === 'TWIST_2K3' && !tile.est_twist) return false;
         else if (f.role === 'LOI_PASSIVE' && tile.nature !== 'LOI_PASSIVE') return false;
-        else if (f.role !== 'TWIST_2K3' && f.role !== 'LOI_PASSIVE') {
-          if (!Array.isArray(tile.roles_portes) || !tile.roles_portes.includes(f.role)) return false;
-        }
+        else if (f.role !== 'TWIST_2K3' && f.role !== 'LOI_PASSIVE' && !(tile.roles_portes || []).includes(f.role)) return false;
       }
 
       if (f.picto) {
-        if (!tile || !tile.tuile_plateau || !Array.isArray(tile.tuile_plateau.pictogrammes)) return false;
-        if (!tile.tuile_plateau.pictogrammes.includes(f.picto)) return false;
+        if (!tile || !tile.tuile_plateau || !(tile.tuile_plateau.pictogrammes || []).includes(f.picto)) return false;
       }
 
       if (search) {
-        const hayParts = [sid, sp.alias_oriente, sp.famille];
+        const parts = [sid, sp.alias_oriente, w && w.comment];
         if (tile) {
           const tp = tile.tuile_plateau || {};
           const cj = tile.carte_joueur || {};
           const tr = cj.texte_regle || {};
-          const dr = cj.decision_et_renoncement || {};
-          hayParts.push(
-            tp.nom_court, tp.resume_plateau,
-            tp.mots_cles_plateau && tp.mots_cles_plateau.face_1,
-            tp.mots_cles_plateau && tp.mots_cles_plateau.face_2,
-            cj.titre_complet, cj.entite_illustree, cj.pitch_ambiance,
-            tr.face_1, tr.face_2, tr.enracine,
-            dr.choix, dr.renoncement
-          );
-          (tile.entrees_plancher || []).concat(tile.entrees_synergie || [], tile.sorties || []).forEach(st => {
-            hayParts.push(humanizeToken(st).label);
-          });
+          parts.push(tp.nom_court, cj.titre_complet, cj.pitch_ambiance, tr.face_1, tr.face_2, tr.enracine);
         }
-        if (wsSlot && wsSlot.comment) hayParts.push(wsSlot.comment);
-        if (!hayParts.filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
+        if (!parts.filter(Boolean).join(' ').toLowerCase().includes(search)) return false;
       }
-
       return true;
     }).map(sp => sp.id);
   }
 
   // --------------------------------------------------------------------------
-  // Rendus UI — Pilier A (Mini-Tuile + Grande Carte + 15s), B (Flux), C, D
+  // Rendu — Composants partagés (Badges, Pictos, Détails repliables)
   // --------------------------------------------------------------------------
   function renderPeuplePill(code, withName) {
     const meta = PEUPLE_META[code] || { code, short: code };
-    return (
-      `<span class="x3-peuple-badge x3-peuple-${esc(code)}">` +
-      `${getPeupleIconHtml(code, 13)}` +
-      `<span>${esc(withName ? meta.short : code)}</span>` +
-      `</span>`
-    );
+    return `<span class="x3-peuple-badge x3-peuple-${esc(code)}">${getPeupleIconHtml(code, 13)}<span>${esc(withName ? meta.short : code)}</span></span>`;
   }
 
   function renderOrientedEdgeBadge(orig, vois) {
     return (
       `<span class="x3-edge-badge" title="${esc(PEUPLE_META[orig].nom)} vers ${esc(PEUPLE_META[vois].nom)}">` +
-      `${renderPeuplePill(orig, false)}` +
-      `<span class="x3-edge-arrow">›</span>` +
-      `${renderPeuplePill(vois, false)}` +
-      `</span>`
+      `${renderPeuplePill(orig, false)}<span class="text-slate-400">›</span>${renderPeuplePill(vois, false)}</span>`
     );
   }
 
   function renderPictoToken(picCode) {
-    const ref = getPictosRef();
-    const entry = ref[picCode];
+    const entry = getPictosRef()[picCode];
     if (!entry) return '';
-    return (
-      `<span class="x3-picto-token" data-picto-symbol="true" title="${esc(entry.libelle)}" aria-label="${esc(entry.libelle)}">` +
-      `${esc(entry.symbole)}` +
-      `</span>`
-    );
+    return `<span class="x3-picto-token" data-picto-symbol="true" title="${esc(entry.libelle)}" aria-label="${esc(entry.libelle)}">${esc(entry.symbole)}</span>`;
   }
 
-  function renderMiniTuile(tile, compact) {
-    const tp = tile.tuile_plateau || {};
-    const mcp = tp.mots_cles_plateau || {};
-    const recIcon = tp.icone_conseillee ? GUARDIAN_ICON_BY_ID[String(tp.icone_conseillee).toUpperCase()] : null;
-    const windowHtml = recIcon
-      ? `<span class="x3-mini-window" title="Icône Gardien conseillée : ${esc(recIcon.desc)}">${recIcon.icon} ${esc(recIcon.label)}</span>`
-      : `<span class="x3-mini-window">⏱ ${esc(formatFenetreLabel(tp.fenetre_badge))}</span>`;
-
-    const pictos = Array.isArray(tp.pictogrammes) ? tp.pictogrammes : [];
-    const pictosHtml = pictos.length > 0
-      ? `<div class="x3-mini-pictos" aria-label="Pictogrammes plateau">${pictos.map(renderPictoToken).join('')}</div>`
-      : '';
-
-    const kwLines = [];
-    if (mcp.face_1) {
-      kwLines.push(
-        `<div class="x3-mini-kw-line"><span class="x3-mini-kw-tag">${tile.nature === 'LOI_PASSIVE' ? 'Loi' : 'Face 1'}</span>${esc(mcp.face_1)}</div>`
-      );
-    }
-    if (mcp.face_2) {
-      kwLines.push(
-        `<div class="x3-mini-kw-line is-f2"><span class="x3-mini-kw-tag">Face 2</span>${esc(mcp.face_2)}</div>`
-      );
-    }
-    if (mcp.enracine) {
-      kwLines.push(
-        `<div class="x3-mini-kw-line is-enrac"><span class="x3-mini-kw-tag">🌱 Enraciné</span>${esc(mcp.enracine)}</div>`
-      );
-    }
-
-    const medallion = getTileMedallionHtml(tile.id, tile.famille);
-
-    return (
-      `<div class="x3-mini-tuile-wrap">` +
-      `<div class="x3-component-kicker"><span>Mini-Tuile Plateau · 360°</span><span>${tile.famille === 'GARDIEN' ? '2 encoches pari' : (tile.famille === 'REVE' ? 'Réglette 1–6' : 'Parcelle Forêt')}</span></div>` +
-      `<div class="x3-mini-tuile fam-${esc(tile.famille)}" data-component="mini-tuile" data-slot-id="${esc(tile.id)}">` +
-      `<div class="x3-mini-top">` +
-      `<span class="x3-mini-id">${esc(tile.id)}</span>` +
-      `${renderOrientedEdgeBadge(tile.origine, tile.voisin)}` +
-      `</div>` +
-      `<div class="x3-mini-identity">` +
-      `${medallion}` +
-      `<div class="x3-mini-name">${esc(tp.nom_court || tile.id)}</div>` +
-      `</div>` +
-      `${windowHtml}` +
-      `${pictosHtml}` +
-      (kwLines.length > 0 ? `<div class="x3-mini-keywords">${kwLines.join('')}</div>` : '') +
-      (tp.resume_plateau ? `<div class="x3-mini-resume">${esc(tp.resume_plateau)}</div>` : '') +
-      `</div>` +
-      (!compact
-        ? `<button type="button" class="x3-picto-guide-link" onclick="AmazoniaExplorerV63.openPictoGuide()">📖 Guide des 32 pictogrammes</button>`
-        : '') +
-      `</div>`
-    );
-  }
-
-  function renderGrandeCarte(tile) {
-    const cj = tile.carte_joueur || {};
-    const tr = cj.texte_regle || {};
-    const isLoi = tile.nature === 'LOI_PASSIVE';
-    const isGardien = tile.famille === 'GARDIEN';
-
-    const enracHtml = tr.enracine
-      ? `<div class="x3-rule-block is-enracine" data-enracine-clause="true"><div class="x3-rule-label">🌱 Clause Enraciné dédiée</div><div>${esc(tr.enracine)}</div></div>`
-      : `<div class="x3-enrac-standard-note">🌱 <strong>Enracinement standard :</strong> au décompte final, retourne ${isGardien ? '1 Souche (Face 1) ou 2 Souches (Face 2)' : '1 Souche'} en Arbre debout${tile.famille === 'REVE' ? ' · un Rêve enraciné rend le Sommeil impossible' : ''}.</div>`;
-
-    return (
-      `<div class="x3-grande-carte" data-component="grande-carte" data-slot-id="${esc(tile.id)}">` +
-      `<div class="x3-gc-immersive">` +
-      `<div class="x3-component-kicker"><span>Grande Carte Joueur</span><span>Gouvernance : ${esc(PEUPLE_META[tile.origine].nom)}</span></div>` +
-      `<h3 class="x3-gc-title">${esc(cj.titre_complet || (tile.tuile_plateau && tile.tuile_plateau.nom_court) || tile.id)}</h3>` +
-      (cj.entite_illustree ? `<div class="x3-gc-entity">${esc(cj.entite_illustree)}</div>` : '') +
-      (cj.pitch_ambiance ? `<blockquote class="x3-gc-pitch">${esc(cj.pitch_ambiance)}</blockquote>` : '') +
-      (cj.brief_illustration
-        ? `<details class="x3-gc-brief"><summary>🎨 Brief d’illustration</summary><p>${esc(cj.brief_illustration)}</p></details>`
-        : '') +
-      `</div>` +
-      `<div class="x3-gc-rules">` +
-      `<div class="x3-rule-block ${isLoi ? 'is-loi-rule' : ''}">` +
-      `<div class="x3-rule-label">${isLoi ? '⚖️ Loi passive permanente' : (isGardien ? 'Face 1' : 'Effet de la tuile')}</div>` +
-      `<div>${esc(tr.face_1 || '—')}</div>` +
-      `</div>` +
-      (tr.face_2
-        ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">✨ Face 2 — Éveillée (autonome)</div><div>${esc(tr.face_2)}</div></div>`
-        : '') +
-      `${enracHtml}` +
-      `</div>` +
-      `</div>`
-    );
-  }
-
-  function renderSilhouetteStrip(tile, sourceInfo) {
-    const isLoi = tile.nature === 'LOI_PASSIVE';
-    const isTwist = Boolean(tile.est_twist);
+  function renderRoleBadges(tile, isModified) {
     const roles = Array.isArray(tile.roles_portes) ? tile.roles_portes : [];
     const pills = [];
-
-    if (isLoi) {
-      pills.push('<span class="x3-nature-pill x3-nature-loi" title="Modifie le cœur du jeu en continu tant que la tuile est active">⚖️ Loi passive permanente</span>');
-    } else {
-      pills.push('<span class="x3-nature-pill x3-nature-action">✦ Action</span>');
-    }
-    if (isTwist) {
-      pills.push('<span class="x3-nature-pill x3-nature-twist" title="Tord une règle familière du socle dans la géométrie 2K3">⚡ Twist 2K3</span>');
-    }
-    if (roles.includes('CATALYSEUR_EVEIL')) {
-      pills.push('<span class="x3-role-pill x3-role-eveil">☀️ Catalyseur d’Éveil</span>');
-    }
-    if (roles.includes('LEVIER_REVE')) {
-      pills.push('<span class="x3-role-pill x3-role-reve">🌙 Levier de Rêve</span>');
-    }
-    if (roles.includes('ENRACINEMENT')) {
-      pills.push('<span class="x3-role-pill x3-role-enrac">🌱 Synergie d’Enracinement</span>');
-    }
-    if (roles.includes('AUTONOMIE_A0')) {
-      pills.push('<span class="x3-role-pill x3-role-a0" title="Fonctionne 100 % sans Piste des Gardiens sur la table {H, E, I}">🔓 Autonomie A=0</span>');
-    }
-    if (sourceInfo && sourceInfo.modified) {
-      pills.push('<span class="x3-modified-badge">✏️ Modifié par l’auteur</span>');
-    }
-
-    const srcBadge = sourceInfo && sourceInfo.sourceKey
-      ? `<span class="x3-source-tag">${esc(sourceInfo.sourceKey === 'custom' ? 'Hybride / Édité' : (PANEL_LABELS[sourceInfo.sourceKey] || sourceInfo.sourceKey))}</span>`
-      : '';
-
-    return (
-      `<div class="x3-silhouette-strip">` +
-      `<div class="x3-silhouette-left">${pills.join('')}</div>` +
-      `<div class="flex items-center gap-2">${srcBadge}</div>` +
-      `</div>`
-    );
+    if (tile.nature === 'LOI_PASSIVE') pills.push('<span class="x3-role-pill x3-role-loi" title="Modifie le cœur en continu">⚖️ Loi passive</span>');
+    if (tile.est_twist) pills.push('<span class="x3-role-pill x3-role-twist" title="Tord une règle familière (géométrie 2K3)">⚡ Twist 2K3</span>');
+    if (roles.includes('CATALYSEUR_EVEIL')) pills.push('<span class="x3-role-pill x3-role-eveil">☀️ Éveil</span>');
+    if (roles.includes('LEVIER_REVE')) pills.push('<span class="x3-role-pill x3-role-reve">🌙 Levier Rêve</span>');
+    if (roles.includes('ENRACINEMENT')) pills.push('<span class="x3-role-pill x3-role-enrac">🌱 Enracinement</span>');
+    if (roles.includes('AUTONOMIE_A0')) pills.push('<span class="x3-role-pill x3-role-a0" title="Autonome sur table {H, E, I} sans Gardiens">🔓 A=0</span>');
+    if (isModified) pills.push('<span class="x3-role-pill x3-role-mod">✏️ Modifié</span>');
+    return pills.join('');
   }
 
-  function renderDepthSection(tile) {
+  function renderCollapsibleDetails(tile, tilesMap, sourceHint) {
     const cj = tile.carte_joueur || {};
     const dr = cj.decision_et_renoncement || {};
     const temoins = Array.isArray(tile.temoins) ? tile.temoins : [];
-    const hasDilemma = Boolean(dr.choix || dr.renoncement);
-    const hasDouble = Boolean(tile.famille === 'GARDIEN' && tile.double_ouverture);
-
-    if (!hasDilemma && !hasDouble && temoins.length === 0) return '';
-
-    const scenesHtml = temoins.length > 0
-      ? `<div class="x3-section-label">🎬 Scènes témoins</div>` +
-        `<div class="x3-scenes-list">` +
-        temoins.map((tm, idx) => (
-          `<div class="x3-scene-card">` +
-          `<div class="x3-scene-head">Scène ${idx + 1}</div>` +
-          `<div>${esc(tm.resume || '')}</div>` +
-          `</div>`
-        )).join('') +
-        `</div>`
-      : '';
-
-    return (
-      `<div class="x3-depth-zone">` +
-      `<div class="x3-dilemma-box">` +
-      `<div class="x3-section-label">🧭 Intention &amp; Dilemme</div>` +
-      (hasDilemma
-        ? `<div class="x3-dilemma-cols">` +
-          `<div class="x3-dilemma-col is-choice"><div class="x3-dilemma-col-head">🎯 Pourquoi la jouer</div><div>${esc(dr.choix || '—')}</div></div>` +
-          `<div class="x3-dilemma-col is-cost"><div class="x3-dilemma-col-head">⚖️ Ce qu’elle coûte vraiment</div><div>${esc(dr.renoncement || '—')}</div></div>` +
-          `</div>`
-        : '') +
-      (hasDouble
-        ? `<div class="x3-double-open"><strong>⚡ Montée en puissance / Double activation :</strong> ${esc(tile.double_ouverture)}</div>`
-        : '') +
-      `${scenesHtml}` +
-      `</div>` +
-      `</div>`
-    );
-  }
-
-  function renderResourceChipBtn(tok, extraClass, coverage) {
-    const m = humanizeToken(tok);
-    const activeCls = uiState.resourceFocus === tok ? ' is-active' : '';
-    const covHtml = coverage
-      ? `<span class="x3-cov-tag ${coverage.covered === 0 ? 'is-zero' : ''}" title="Présent sur ${coverage.covered} des ${coverage.total} assises de cette tuile">${coverage.covered}/${coverage.total}</span>`
-      : '';
-    return (
-      `<button type="button" class="x3-res-pill ${extraClass || ''}${activeCls}" ` +
-      `data-resource-chip="${esc(tok)}" ` +
-      `onclick="AmazoniaExplorerV63.focusResource('${esc(tok)}')" ` +
-      `title="Cliquer pour voir Producteurs et Consommateurs de ${esc(m.label)}">` +
-      `<span>${m.icon}</span><span>${esc(m.label)}</span>${covHtml}` +
-      `</button>`
-    );
-  }
-
-  function renderSynergyStrip(tile, tilesMap) {
     const links = computeTileLinks(tile.id, tilesMap);
     const floorIn = normalizeStateList(tile.entrees_plancher);
     const synIn = normalizeStateList(tile.entrees_synergie);
@@ -2298,818 +1610,579 @@
     const litIcons = normalizeStateList(tile.declencheurs_amorces);
     const twinId = TWIN_BY_SLOT[tile.id];
     const twinTile = twinId ? tilesMap[twinId] : null;
+    const srcArg = sourceHint ? `, '${esc(sourceHint)}'` : '';
 
-    const floorHtml = floorIn.length > 0
-      ? floorIn.map(st => renderResourceChipBtn(st, 'is-floor')).join('')
-      : '<span class="text-xs text-slate-400">Autonome sans prérequis</span>';
+    const floorChips = floorIn.map(st => `<button type="button" class="x3-res-pill is-floor" onclick="AmazoniaExplorerV63.focusResource('${esc(st)}'${srcArg})">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}</button>`).join('');
+    const synChips = synIn.map(st => {
+      const cov = links.synergyCoverage[st];
+      return `<button type="button" class="x3-res-pill is-synergy" onclick="AmazoniaExplorerV63.focusResource('${esc(st)}'${srcArg})">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}${cov ? ` <span class="font-mono text-[10px]">${cov.covered}/${cov.total}</span>` : ''}</button>`;
+    }).join('');
+    const outChips = outs.map(st => `<button type="button" class="x3-res-pill is-output" onclick="AmazoniaExplorerV63.focusResource('${esc(st)}'${srcArg})">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}</button>`).concat(
+      litIcons.map(ic => `<button type="button" class="x3-res-pill is-icon" onclick="AmazoniaExplorerV63.focusResource('${esc(ic)}'${srcArg})">${humanizeToken(ic).icon} ${esc(humanizeToken(ic).label)}</button>`)
+    ).join('');
 
-    const synHtml = synIn.length > 0
-      ? synIn.map(st => renderResourceChipBtn(st, 'is-synergy', links.synergyCoverage[st])).join('')
-      : '<span class="text-xs text-slate-400">Aucun amplificateur conditionnel déclaré</span>';
-
-    const outChips = outs.map(st => renderResourceChipBtn(st, 'is-output')).concat(
-      litIcons.map(ic => renderResourceChipBtn(ic, 'is-icon'))
-    );
-
-    const upHtml = links.upstreamTiles.length > 0
-      ? links.upstreamTiles.slice(0, 8).map(lk => (
-          `<button type="button" class="x3-tile-link-chip is-upstream" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(lk.id)}')" title="Alimente via ${esc(lk.reasons.map(r => humanizeToken(r).label).join(', '))}">` +
-          `${lk.isTwin ? '🔗 ' : ''}<strong>${esc(lk.id)}</strong> ${esc(lk.nom)}</button>`
-        )).join('') + (links.upstreamTiles.length > 8 ? `<span class="text-[11px] text-slate-500">+${links.upstreamTiles.length - 8}</span>` : '')
-      : '<span class="text-xs text-slate-400">Tourne déjà sur socle &amp; accessoires natifs</span>';
-
-    const downHtml = links.downstreamTiles.length > 0
-      ? links.downstreamTiles.slice(0, 8).map(lk => (
-          `<button type="button" class="x3-tile-link-chip is-downstream" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(lk.id)}')" title="Alimenté via ${esc(lk.reasons.map(r => humanizeToken(r).label).join(', '))}">` +
-          `${lk.isTwin ? '🔗 ' : ''}<strong>${esc(lk.id)}</strong> ${esc(lk.nom)}</button>`
-        )).join('') + (links.downstreamTiles.length > 8 ? `<span class="text-[11px] text-slate-500">+${links.downstreamTiles.length - 8}</span>` : '')
-      : '<span class="text-xs text-slate-400">Effet terminal direct sur le plateau</span>';
-
-    const twinBar = twinId
-      ? `<div class="x3-twin-bar">` +
-        `<div>🔗 <strong>Jumelle de lisière (100 % co-présente) :</strong> ` +
-        (twinTile
-          ? `<strong>${esc(twinId)} · ${esc((twinTile.tuile_plateau && twinTile.tuile_plateau.nom_court) || twinId)}</strong> (${esc(twinTile.alias_oriente)}) — ${esc((twinTile.tuile_plateau && twinTile.tuile_plateau.resume_plateau) || (twinTile.carte_joueur && twinTile.carte_joueur.titre_complet) || '')}`
-          : `<strong>${esc(twinId)}</strong> (non encore élue dans Mon Canon)`) +
-        `</div>` +
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(twinId)}')">Voir ${esc(twinId)} →</button>` +
-        `</div>`
-      : '';
+    const upChips = links.upstreamTiles.slice(0, 6).map(lk => `<button type="button" class="x3-tile-link-chip is-up" onclick="AmazoniaExplorerV63.goToSlot('${esc(lk.id)}')">${lk.isTwin ? '🔗 ' : ''}${esc(lk.id)} ${esc(lk.nom)}</button>`).join('');
+    const downChips = links.downstreamTiles.slice(0, 6).map(lk => `<button type="button" class="x3-tile-link-chip is-down" onclick="AmazoniaExplorerV63.goToSlot('${esc(lk.id)}')">${lk.isTwin ? '🔗 ' : ''}${esc(lk.id)} ${esc(lk.nom)}</button>`).join('');
 
     return (
-      `<div class="x3-synergy-strip" data-synergy-strip="${esc(tile.id)}">` +
-      `<div class="x3-section-label">🔄 Flux Synergique (En amont → ${esc(tile.id)} → En aval)</div>` +
-      `<div class="x3-synergy-flow">` +
-      `<div class="x3-syn-box">` +
-      `<div class="x3-syn-sub">✅ Tourne seule dès le Tour 1 (Plancher)</div>` +
-      `<div class="x3-syn-chips">${floorHtml}</div>` +
-      `<div class="x3-syn-sub" style="margin-top:0.25rem">✨ Amplifiée avec les alliés (Synergies · /64 assises)</div>` +
-      `<div class="x3-syn-chips">${synHtml}</div>` +
-      `<div class="x3-syn-sub" style="margin-top:0.25rem">⬅️ Qui m’alimente ?</div>` +
-      `<div class="x3-syn-chips">${upHtml}</div>` +
+      `<details class="x3-details-fold" data-details-fold="${esc(tile.id)}">` +
+      `<summary><span>▾ Dilemme, Scènes &amp; Synergies</span><span class="text-[11px] font-normal text-slate-500">${temoins.length} scène(s) · ${links.upstreamTiles.length + links.downstreamTiles.length} lien(s)</span></summary>` +
+      `<div class="x3-details-body">` +
+      (dr.choix || dr.renoncement
+        ? `<div class="space-y-1">` +
+          `<div><strong>🎯 Pourquoi la jouer :</strong> ${esc(dr.choix || '—')}</div>` +
+          `<div><strong>⚖️ Ce qu’elle coûte :</strong> ${esc(dr.renoncement || '—')}</div>` +
+          `</div>`
+        : '') +
+      (tile.famille === 'GARDIEN' && tile.double_ouverture
+        ? `<div class="p-2 rounded bg-amber-50 border border-amber-200 text-amber-950 text-xs"><strong>⚡ Double activation :</strong> ${esc(tile.double_ouverture)}</div>`
+        : '') +
+      (temoins.length > 0
+        ? `<div class="space-y-1.5"><div class="x3-section-label">🎬 Scènes témoins</div>` +
+          temoins.map((tm, i) => `<div class="p-2 rounded bg-slate-50 border-l-2 border-slate-400 text-xs"><strong>Scène ${i + 1} :</strong> ${esc(tm.resume || '')}</div>`).join('') +
+          `</div>`
+        : '') +
+      `<div class="space-y-1.5 pt-1 border-t border-slate-100">` +
+      `<div class="x3-section-label">🔄 Synergies (clic sur une ressource = Producteurs ⇄ Consommateurs)</div>` +
+      `<div class="flex flex-wrap gap-1 items-center"><span class="text-[11px] font-semibold text-slate-500">Plancher solo :</span>${floorChips || '<span class="text-xs text-slate-400">Autonome</span>'}</div>` +
+      (synChips ? `<div class="flex flex-wrap gap-1 items-center"><span class="text-[11px] font-semibold text-slate-500">Amplificateurs :</span>${synChips}</div>` : '') +
+      (outChips ? `<div class="flex flex-wrap gap-1 items-center"><span class="text-[11px] font-semibold text-slate-500">Produit :</span>${outChips}</div>` : '') +
+      (upChips ? `<div class="flex flex-wrap gap-1 items-center"><span class="text-[11px] font-semibold text-emerald-700">⬅️ Alimentée par :</span>${upChips}</div>` : '') +
+      (downChips ? `<div class="flex flex-wrap gap-1 items-center"><span class="text-[11px] font-semibold text-amber-800">➡️ Alimente :</span>${downChips}</div>` : '') +
+      (twinId ? `<div class="text-xs text-slate-600">🔗 <strong>Jumelle (${esc(twinId)}) :</strong> ${twinTile ? esc((twinTile.tuile_plateau && twinTile.tuile_plateau.nom_court) || twinId) : 'non encore gardée'} <button type="button" class="underline font-semibold ml-1" onclick="AmazoniaExplorerV63.goToSlot('${esc(twinId)}')">Voir →</button></div>` : '') +
       `</div>` +
-      `<div class="x3-synergy-center-arrow"><span>→</span><span style="font-size:0.7rem">${esc(tile.id)}</span><span>→</span></div>` +
-      `<div class="x3-syn-box">` +
-      `<div class="x3-syn-sub">🎯 États produits &amp; Icônes allumées</div>` +
-      `<div class="x3-syn-chips">${outChips.length > 0 ? outChips.join('') : '<span class="text-xs text-slate-400">Effet de contrôle direct</span>'}</div>` +
-      `<div class="x3-syn-sub" style="margin-top:0.25rem">➡️ Qui j’alimente ?</div>` +
-      `<div class="x3-syn-chips">${downHtml}</div>` +
+      (cj.brief_illustration ? `<div class="text-xs text-slate-500 pt-1 border-t border-slate-100"><strong>🎨 Brief illustration :</strong> ${esc(cj.brief_illustration)}</div>` : '') +
       `</div>` +
-      `</div>` +
-      `${twinBar}` +
-      `</div>`
-    );
-  }
-
-  function renderDraftAnnotationBar(slotId, activeSourceKey) {
-    if (activeSourceKey === 'archive_v6_2') {
-      return (
-        `<div class="x3-draft-bar">` +
-        `<span class="text-slate-500 font-medium">📦 Archive v6.2 en lecture seule — basculez sur Panel 1 / 2 / 3 ou Mon Canon pour éditer et élire.</span>` +
-        `</div>`
-      );
-    }
-    const w = uiState.workspace.slots[slotId];
-    const isThisElected = activeSourceKey === 'canon'
-      ? Boolean(w.selected_source)
-      : (w.selected_source === activeSourceKey);
-    const electTarget = activeSourceKey === 'canon' ? (w.selected_source || 'panel_1') : activeSourceKey;
-    const electLabel = isThisElected
-      ? `✓ Élue dans Mon Canon (${w.selected_source === 'custom' ? 'Hybride' : PANEL_SHORT[w.selected_source]})`
-      : `★ Élire ${PANEL_SHORT[electTarget] || ''} dans Mon Canon`;
-
-    const starsHtml = [1, 2, 3, 4, 5].map(n => (
-      `<button type="button" class="x3-star-btn ${w.rating >= n ? 'is-on' : ''}" ` +
-      `onclick="AmazoniaExplorerV63.setSlotRating('${esc(slotId)}', ${n})" ` +
-      `title="Noter ${n}/5" aria-label="Noter ${n} sur 5">★</button>`
-    )).join('');
-
-    const statusOptions = DRAFT_STATUSES.map(st => (
-      `<option value="${esc(st.value)}" ${w.status === st.value ? 'selected' : ''}>${esc(st.label)}</option>`
-    )).join('');
-
-    return (
-      `<div class="x3-draft-bar" data-draft-bar="${esc(slotId)}">` +
-      `<button type="button" class="x3-btn x3-btn-elect ${isThisElected ? 'is-elected' : ''}" ` +
-      `onclick="AmazoniaExplorerV63.electSlot('${esc(slotId)}', '${esc(electTarget)}')">${esc(electLabel)}</button>` +
-      `<select class="x3-select" aria-label="Statut Draft ${esc(slotId)}" onchange="AmazoniaExplorerV63.setSlotStatus('${esc(slotId)}', this.value)">${statusOptions}</select>` +
-      `<div class="x3-stars" role="group" aria-label="Appréciation ${esc(slotId)}">${starsHtml}</div>` +
-      `<button type="button" class="x3-fav-btn ${w.favorite ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleSlotFavorite('${esc(slotId)}')" title="Coup de cœur">${w.favorite ? '♥' : '♡'}</button>` +
-      `<input type="text" class="x3-comment-input" data-comment-slot="${esc(slotId)}" ` +
-      `value="${esc(w.comment || '')}" placeholder="Note / intention d’auteur (sauvegarde instantanée)…" ` +
-      `oninput="AmazoniaExplorerV63.setSlotCommentLive('${esc(slotId)}', this.value)" />` +
-      `<span class="x3-saved-hint" id="x3-saved-${esc(slotId)}">✓ Enregistré</span>` +
-      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${esc(slotId)}', '${esc(activeSourceKey === 'canon' ? (w.selected_source === 'custom' ? 'custom' : (w.selected_source || 'panel_1')) : activeSourceKey)}')">✏️ Modifier / Hybrider</button>` +
-      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openDuelForSlot('${esc(slotId)}')">⚔️ Duel P1·P2·P3</button>` +
-      `</div>`
-    );
-  }
-
-  function renderBiComponentCard(slotId, tile, sourceInfo, tilesMap) {
-    if (!tile) {
-      const sp = getSlotSpecMap()[slotId];
-      return (
-        `<article class="x3-tile-card" data-slot-id="${esc(slotId)}" data-unelected="true">` +
-        `<div class="x3-silhouette-strip">` +
-        `<div class="x3-silhouette-left"><strong>${esc(slotId)}</strong> ${renderOrientedEdgeBadge(sp.origine, sp.voisin)} <span class="x3-role-pill">À trancher dans Mon Canon</span></div>` +
-        `<div class="flex items-center gap-1.5">` +
-        PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.electSlot('${esc(slotId)}', '${pid}')">Élire ${PANEL_SHORT[pid]}</button>`).join('') +
-        `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.openDuelForSlot('${esc(slotId)}')">⚔️ Comparer P1·P2·P3</button>` +
-        `</div>` +
-        `</div>` +
-        `<div class="p-5 text-sm text-slate-500">Aucune proposition n’est encore élue sur <strong>${esc(slotId)} (${esc(sp.alias_oriente)})</strong>. Ouvrez le Duel comparatif ou cliquez sur P1 / P2 / P3 ci-dessus pour l’élire.</div>` +
-        `</article>`
-      );
-    }
-
-    const classes = ['x3-tile-card'];
-    if (tile.nature === 'LOI_PASSIVE') classes.push('is-loi');
-    if (tile.est_twist) classes.push('is-twist');
-    if (sourceInfo && sourceInfo.elected && uiState.source !== 'canon') classes.push('is-elected-card');
-
-    const digestFooter = (uiState.source === 'archive_v6_2' && typeof global.renderSlotDigestFooter === 'function')
-      ? `<div class="px-5 pb-4">${global.renderSlotDigestFooter(tile.id, ['A'])}</div>`
-      : '';
-
-    return (
-      `<article class="${classes.join(' ')}" data-slot-id="${esc(tile.id)}" data-nature="${esc(tile.nature)}" data-twist="${tile.est_twist ? 'true' : 'false'}">` +
-      `${renderSilhouetteStrip(tile, sourceInfo)}` +
-      `<div class="x3-duo-grid">` +
-      `${renderMiniTuile(tile, false)}` +
-      `${renderGrandeCarte(tile)}` +
-      `</div>` +
-      `${renderDepthSection(tile)}` +
-      `${renderSynergyStrip(tile, tilesMap)}` +
-      `${digestFooter}` +
-      `${renderDraftAnnotationBar(tile.id, uiState.source)}` +
-      `</article>`
+      `</details>`
     );
   }
 
   // --------------------------------------------------------------------------
-  // Rendu du Bandeau Supérieur Permanent + Radar de Santé
+  // 1. Bandeau Supérieur Unique + Tiroirs à la demande
   // --------------------------------------------------------------------------
-  function renderTopBarAndRadar() {
+  function renderTopBar() {
     const canonRadar = computeHealthRadar('canon');
-    const activeRadar = uiState.radarTarget === 'canon' ? canonRadar : computeHealthRadar('active_source');
+    const healthRadar = uiState.radarTarget === 'canon' ? canonRadar : computeHealthRadar(uiState.radarTarget);
+    const reviewCount = getSlotsSpec().filter(sp => isSlotFlaggedReview(uiState.workspace.slots[sp.id])).length;
 
-    const sourceButtons = [
-      { id: 'panel_1', label: 'Panel 1', cls: '' },
-      { id: 'panel_2', label: 'Panel 2', cls: '' },
-      { id: 'panel_3', label: 'Panel 3', cls: '' },
-      { id: 'canon', label: `★ Mon Canon v6.3`, count: `${canonRadar.electedCount}/30`, cls: 'is-canon' },
-      { id: 'archive_v6_2', label: '📦 Archive v6.2', cls: 'is-archive' }
-    ].map(btn => (
-      `<button type="button" class="x3-source-btn ${btn.cls} ${uiState.source === btn.id ? 'is-active' : ''}" ` +
-      `data-source-btn="${btn.id}" onclick="AmazoniaExplorerV63.setSource('${btn.id}')">` +
-      `<span>${esc(btn.label)}</span>` +
-      (btn.count ? `<span class="x3-count-pill">${esc(btn.count)}</span>` : '') +
-      `</button>`
-    )).join('');
+    const healthLabel = canonRadar.overallStatus === 'ok'
+      ? '✅ Équilibre OK'
+      : (canonRadar.electedCount < 30
+        ? `🩺 Santé (${canonRadar.issuesCount} point${canonRadar.issuesCount > 1 ? 's' : ''})`
+        : `⚠️ ${canonRadar.issuesCount} point${canonRadar.issuesCount > 1 ? 's' : ''} à vérifier`);
 
-    const radarPills = [
-      {
-        key: 'elected',
-        status: activeRadar.electedCount === 30 ? 'ok' : 'warn',
-        text: `Élues ${activeRadar.electedCount}/30`
-      },
-      {
-        key: 'twists',
-        status: activeRadar.twists.status,
-        text: `⚡ Twists 2K3 : ${activeRadar.twists.count}${activeRadar.twists.triangles2K3 ? ' · 2△ OK' : ''}`
-      },
-      {
-        key: 'lois',
-        status: activeRadar.lois.status,
-        text: `⚖️ Lois : ${activeRadar.lois.count}/5 (max ${activeRadar.lois.maxPerAssise}/assise)`
-      },
-      {
-        key: 'eveil',
-        status: activeRadar.eveil.status,
-        text: `☀️ Éveil (i)+(ii) : ${activeRadar.eveil.count}`
-      },
-      {
-        key: 'sommeil',
-        status: activeRadar.sommeil.status,
-        text: `🌙 Sommeil E sans H : ${activeRadar.sommeil.coveredEBorders.length}/4`
-      },
-      {
-        key: 'enrac',
-        status: activeRadar.enrac.status,
-        text: `🌱 Enracinements : ${activeRadar.enrac.count} (3–5)`
-      },
-      {
-        key: 'a0',
-        status: activeRadar.a0.status,
-        text: `🔓 Autonomie A=0 : ${activeRadar.a0.violations.length === 0 ? activeRadar.a0.presentCount + '/6' : activeRadar.a0.violations.length + ' alerte(s)'}`
-      },
-      {
-        key: 'synergies',
-        status: activeRadar.synergies.status,
-        text: `🔄 Clôture : ${activeRadar.synergies.orphans.length === 0 && activeRadar.synergies.divergenceIssues.length === 0 ? 'OK' : (activeRadar.synergies.orphans.length + activeRadar.synergies.divergenceIssues.length) + ' point(s)'}`
-      }
+    let drawerHtml = '';
+    if (uiState.activeDrawer === 'health') {
+      drawerHtml = renderHealthDrawer(healthRadar);
+    } else if (uiState.activeDrawer === 'index30') {
+      drawerHtml = renderIndex30Drawer(canonRadar, reviewCount);
+    } else if (uiState.activeDrawer === 'browse') {
+      drawerHtml = renderBrowseDrawer();
+    }
+
+    return (
+      `<div class="x3-topbar" data-explorer-version="${VERSION}">` +
+      `<div class="x3-topbar-row">` +
+      `<div class="x3-mode-group" role="tablist" aria-label="Modes de l’Atelier">` +
+      `<button type="button" class="x3-mode-btn ${uiState.mode === 'arbitrate' || uiState.mode === 'list' ? 'is-active' : ''}" data-mode-btn="arbitrate" onclick="AmazoniaExplorerV63.setMode('arbitrate')">⚔️ Arbitrer (30)</button>` +
+      `<button type="button" class="x3-mode-btn ${uiState.mode === 'simulator' ? 'is-active' : ''}" data-mode-btn="simulator" onclick="AmazoniaExplorerV63.setMode('simulator')">🎡 Tester une Table</button>` +
+      `</div>` +
+      `<div class="x3-status-group">` +
+      `<button type="button" class="x3-progress-pill ${uiState.activeDrawer === 'index30' ? 'is-open' : ''}" data-progress-pill="true" onclick="AmazoniaExplorerV63.toggleDrawer('index30')" title="Ouvrir l’index des 30 emplacements">` +
+      `<span>★ Mon Canon : ${canonRadar.electedCount}/30</span>` +
+      (reviewCount > 0 ? `<span>· 🤔 ${reviewCount}</span>` : '') +
+      `</button>` +
+      `<button type="button" class="x3-health-pill is-${canonRadar.overallStatus} ${uiState.activeDrawer === 'health' ? 'is-open' : ''}" data-health-pill="true" data-health-status="${canonRadar.overallStatus}" onclick="AmazoniaExplorerV63.toggleDrawer('health')" title="Déplier le bilan des invariants sur les 197 assises">${esc(healthLabel)}</button>` +
+      `</div>` +
+      `<div class="x3-tools-group">` +
+      `<button type="button" class="x3-tool-btn ${uiState.activeDrawer === 'browse' || uiState.mode === 'list' ? 'is-active' : ''}" data-browse-btn="true" onclick="AmazoniaExplorerV63.toggleDrawer('browse')">🔍 Parcourir / Filtrer</button>` +
+      `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.openPictoGuide()">📖 Pictos</button>` +
+      `<button type="button" class="x3-tool-btn x3-tool-btn-accent" onclick="AmazoniaExplorerV63.openExportModal('gemini')">📤 Exporter</button>` +
+      `</div>` +
+      `</div>` +
+      `${drawerHtml}` +
+      `</div>`
+    );
+  }
+
+  function renderHealthDrawer(radar) {
+    const pills = [
+      { key: 'twists', status: radar.twists.status, text: `⚡ Twists 2K3 : ${radar.twists.count}${radar.twists.triangles2K3 ? ' · 2△ OK' : ''}` },
+      { key: 'lois', status: radar.lois.status, text: `⚖️ Lois : ${radar.lois.count}/5 (max ${radar.lois.maxPerAssise}/assise)` },
+      { key: 'eveil', status: radar.eveil.status, text: `☀️ Éveil (i)+(ii) : ${radar.eveil.count}` },
+      { key: 'sommeil', status: radar.sommeil.status, text: `🌙 Sommeil E sans H : ${radar.sommeil.coveredEBorders.length}/4` },
+      { key: 'enrac', status: radar.enrac.status, text: `🌱 Enracinements : ${radar.enrac.count} (3–5)` },
+      { key: 'a0', status: radar.a0.status, text: `🔓 A=0 : ${radar.a0.violations.length === 0 ? radar.a0.presentCount + '/6' : radar.a0.violations.length + ' alerte(s)'}` },
+      { key: 'synergies', status: radar.synergies.status, text: `🔄 Clôture : ${radar.synergies.orphans.length + radar.synergies.divergenceIssues.length === 0 ? 'OK' : (radar.synergies.orphans.length + radar.synergies.divergenceIssues.length) + ' point(s)'}` }
     ].map(p => (
       `<button type="button" class="x3-radar-pill is-${p.status} ${uiState.radarDetailKey === p.key ? 'is-selected' : ''}" ` +
       `data-radar-pill="${p.key}" data-radar-status="${p.status}" onclick="AmazoniaExplorerV63.toggleRadarDetail('${p.key}')">${esc(p.text)}</button>`
     )).join('');
 
-    const radarDetailHtml = uiState.radarDetailKey ? renderRadarDetail(activeRadar, uiState.radarDetailKey) : '';
-
-    const viewTabs = [
-      { id: 'explorer', icon: '🧩', label: '1. Explorateur & Duel P1·P2·P3', sub: 'Étudier & Choisir' },
-      { id: 'simulator', icon: '🎡', label: '2. Simulateur de Table 3–6J', sub: 'Éprouver les synergies' },
-      { id: 'dashboard', icon: '📋', label: '3. Tableau de bord Mon Canon', sub: `${canonRadar.electedCount}/30 · Piloter` }
-    ].map(v => (
-      `<button type="button" class="x3-view-tab ${uiState.view === v.id ? 'is-active' : ''}" ` +
-      `data-view-tab="${v.id}" onclick="AmazoniaExplorerV63.setView('${v.id}')">` +
-      `<span>${v.icon} ${esc(v.label)}</span><span class="x3-view-sub">${esc(v.sub)}</span>` +
-      `</button>`
-    )).join('');
-
-    const subViewSwitch = uiState.view === 'explorer'
-      ? `<div class="x3-subview-switch">` +
-        `<button type="button" class="x3-subview-btn ${uiState.explorerSubView === 'cards' ? 'is-active' : ''}" data-subview="cards" onclick="AmazoniaExplorerV63.setExplorerSubView('cards')">📄 Fiches &amp; Duos de Lisière</button>` +
-        `<button type="button" class="x3-subview-btn ${uiState.explorerSubView === 'duel' ? 'is-active' : ''}" data-subview="duel" onclick="AmazoniaExplorerV63.setExplorerSubView('duel')">⚔️ Duel Panel 1 | 2 | 3</button>` +
-        `</div>`
-      : '';
-
-    const radarToggleBtn = uiState.source !== 'canon' && uiState.source !== 'archive_v6_2'
-      ? `<button type="button" class="x3-radar-scope-toggle" onclick="AmazoniaExplorerV63.toggleRadarTarget()" title="Basculer le radar entre Mon Canon v6.3 et le panel affiché">Cible : ${esc(activeRadar.scopeLabel)} ⇄</button>`
-      : '';
-
-    return (
-      `<div class="x3-topbar" data-explorer-version="${VERSION}">` +
-      `<div class="x3-topbar-primary">` +
-      `<div class="x3-source-group" role="tablist" aria-label="Source du catalogue">${sourceButtons}</div>` +
-      `<div class="x3-topbar-tools">` +
-      `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.openPictoGuide()">📖 Guide 32 pictos</button>` +
-      `<button type="button" class="x3-tool-btn x3-tool-btn-accent" onclick="AmazoniaExplorerV63.openExportModal('gemini')">📤 Passerelles Gemini &amp; Antigravity</button>` +
-      `</div>` +
-      `</div>` +
-      `<div class="x3-radar-strip" data-radar-scope="${esc(uiState.radarTarget)}">` +
-      `<span class="x3-radar-title">🩺 Radar ${esc(activeRadar.scopeLabel)} :</span>` +
-      `${radarToggleBtn}` +
-      `${radarPills}` +
-      `</div>` +
-      `${radarDetailHtml}` +
-      `<div class="x3-views-bar">` +
-      `<div class="x3-view-tabs">${viewTabs}</div>` +
-      `${subViewSwitch}` +
-      `</div>` +
-      `</div>`
-    );
-  }
-
-  function renderRadarDetail(radar, key) {
-    let title = '';
-    let body = '';
-    const actions = [];
-
-    if (key === 'elected') {
-      title = `Progression de ${radar.scopeLabel} : ${radar.electedCount} / 30 emplacements élus`;
-      body = radar.unelectedIds.length === 0
-        ? 'Tous les 30 emplacements sont pourvus !'
-        : `Emplacements restant à élire (${radar.unelectedIds.length}) : ${radar.unelectedIds.join(', ')}.`;
-      if (radar.unelectedIds.length > 0) {
-        actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'draft\', \'UNELECTED\')">Filtrer les slots à trancher</button>');
-        actions.push('<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setView(\'dashboard\')">Ouvrir Tableau de bord</button>');
-      }
-    } else if (key === 'twists') {
-      title = `Twists 2K3 : ${radar.twists.count} tuile(s)`;
-      const parts = [];
-      if (radar.twists.triangles2K3) {
-        const t1 = radar.twists.triangles2K3[0].arcs.map(a => `${a.alias_oriente} (${a.id})`).join(' → ');
-        const t2 = radar.twists.triangles2K3[1].arcs.map(a => `${a.alias_oriente} (${a.id})`).join(' → ');
-        parts.push(`✅ Géométrie 2K3 valide — <strong>Triangle 1 :</strong> ${esc(t1)} · <strong>Triangle 2 :</strong> ${esc(t2)}.`);
-      } else {
-        parts.push(`⚠️ Les twists actuels (${esc(radar.twists.ids.join(', ') || 'aucun')}) ne bouclent pas encore 2 triangles orientés disjoints sur les 6 Peuples.`);
-      }
-      if (radar.twists.missingOrigins.length > 0) {
-        parts.push(`Peuples d’origine sans Twist : <strong>${esc(radar.twists.missingOrigins.join(', '))}</strong>.`);
-      }
-      if (radar.twists.doubleBorders.length > 0) {
-        parts.push(`❌ Lisières portant > 1 Twist : ${radar.twists.doubleBorders.map(([bk, ids]) => `${esc(bk)} (${esc(ids.join(', '))})`).join(', ')}.`);
-      }
-      body = parts.join('<br>');
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'TWIST_2K3\')">Filtrer les Twists</button>');
-    } else if (key === 'lois') {
-      title = `Lois passives permanentes : ${radar.lois.count} / 5 (max ${radar.lois.maxPerAssise} / assise sur 197 assises)`;
-      const parts = [`Lois présentes : ${radar.lois.ids.length > 0 ? esc(radar.lois.ids.join(', ')) : 'aucune'}.`];
-      if (radar.lois.offendingAssises.length > 0) {
-        parts.push(`❌ ${radar.lois.offendingAssises.length} assise(s) dépassent 2 lois : ${radar.lois.offendingAssises.slice(0, 6).map(x => `${esc(x.key)} (${x.count})`).join(', ')}.`);
-      } else {
-        parts.push('✅ Aucune des 197 assises ne dépasse 2 lois passives simultanées.');
-      }
-      body = parts.join('<br>');
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'LOI_PASSIVE\')">Filtrer les Lois passives</button>');
-    } else if (key === 'eveil') {
-      title = `Couverture Éveil (i)+(ii) : ${radar.eveil.count} catalyseurs (seuil ≥ 9)`;
-      const parts = [
-        `Règle (i) vers {H, E, I} : M=${radar.eveil.regleI.M}/2 · R=${radar.eveil.regleI.R}/2 · O=${radar.eveil.regleI.O}/2.`,
-        `Règle (ii) lisières Animal–Animal : ${Object.entries(radar.eveil.regleII).map(([b, ok]) => `${b} ${ok ? '✓' : '✗'}`).join(' · ')}.`
-      ];
-      if (radar.eveil.uncoveredAssises.length > 0) {
-        parts.push(`⚠️ ${radar.eveil.uncoveredAssises.length} assise(s) A≥1 sans catalyseur (ex. ${esc(radar.eveil.uncoveredAssises.slice(0, 5).join(', '))}).`);
-      } else {
-        parts.push('✅ 100 % des 196 assises avec Animaux sauvages disposent d’au moins un catalyseur d’Éveil.');
-      }
-      body = parts.join('<br>');
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'CATALYSEUR_EVEIL\')">Filtrer les Catalyseurs</button>');
-    } else if (key === 'sommeil') {
-      title = `Couverture Sommeil (E sans H) : ${radar.sommeil.coveredEBorders.length}/4 lisières E–{M,R,O,I}`;
-      body =
-        `Lisières couvertes : ${esc(radar.sommeil.coveredEBorders.join(', ') || 'aucune')}. ` +
-        (radar.sommeil.missingEBorders.length > 0 ? `Non couvertes : ${esc(radar.sommeil.missingEBorders.join(', '))}. ` : '') +
-        (radar.sommeil.uncoveredAssises.length > 0
-          ? `<br>⚠️ ${radar.sommeil.uncoveredAssises.length}/30 assises (E sans H) sans levier de Rêve (ex. ${esc(radar.sommeil.uncoveredAssises.slice(0, 5).join(', '))}).`
-          : '<br>✅ 30/30 assises (E sans H) disposent d’un levier de Rêve.');
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'LEVIER_REVE\')">Filtrer les Leviers de Rêve</button>');
-    } else if (key === 'enrac') {
-      title = `Synergies d’Enracinement : ${radar.enrac.count} (plage cible 3 à 5)`;
-      body = `Tuiles dédiées : ${esc(radar.enrac.ids.join(', ') || 'aucune')}.`;
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'ENRACINEMENT\')">Filtrer les Enracinements</button>');
-    } else if (key === 'a0') {
-      title = `Autonomie A=0 ({H, E, I} : R1, R2, R6, R10, M4, M5)`;
-      body = radar.a0.violations.length === 0
-        ? `✅ Aucune dépendance Gardien détectée (${radar.a0.presentCount}/6 tuiles A=0 présentes).`
-        : `❌ Dépendance Gardien détectée sur : ${esc(radar.a0.violations.join(', '))}.`;
-      actions.push('<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.applyRadarFilter(\'role\', \'AUTONOMIE_A0\')">Filtrer les 6 tuiles A=0</button>');
-    } else if (key === 'synergies') {
-      title = 'Clôture des synergies & Divergence de lisière';
-      const parts = [];
-      if (radar.synergies.orphans.length > 0) {
-        parts.push(`⚠️ Synergies optionnelles à 0/64 assises (aucun producteur) : ${radar.synergies.orphans.map(o => `${esc(o.slotId)} (${esc(humanizeToken(o.state).label)})`).join(', ')}.`);
-      } else {
-        parts.push('✅ 0 synergie orpheline : chaque amplificateur a un producteur sur les 197 assises.');
-      }
-      if (radar.synergies.divergenceIssues.length > 0) {
-        parts.push(`⚠️ Divergence de lisière : ${radar.synergies.divergenceIssues.map(esc).join(' · ')}.`);
-      } else {
-        parts.push('✅ Toutes les lisières complètes divergent sur leur sortie principale.');
-      }
-      body = parts.join('<br>');
+    const k = uiState.radarDetailKey || 'twists';
+    let detailHtml = '';
+    if (k === 'twists') {
+      detailHtml = radar.twists.triangles2K3
+        ? `✅ <strong>2 triangles orientés 2K3 valides :</strong> ${esc(radar.twists.triangles2K3[0].arcs.map(a => `${a.alias_oriente}(${a.id})`).join(' → '))} · ${esc(radar.twists.triangles2K3[1].arcs.map(a => `${a.alias_oriente}(${a.id})`).join(' → '))}`
+        : `⚠️ Géométrie 2K3 en cours (${radar.twists.count} twists : ${esc(radar.twists.ids.join(', ') || 'aucun')}).${radar.twists.missingOrigins.length > 0 ? ' Manquent en origine : <strong>' + esc(radar.twists.missingOrigins.join(', ')) + '</strong>.' : ''}${radar.twists.doubleBorders.length > 0 ? ' ❌ Doublon sur lisière : ' + esc(radar.twists.doubleBorders.map(([b]) => b).join(', ')) + '.' : ''}`;
+    } else if (k === 'lois') {
+      detailHtml = `Lois passives (${radar.lois.count}/5) : ${esc(radar.lois.ids.join(', ') || 'aucune')}. ${radar.lois.offendingAssises.length > 0 ? '❌ > 2 lois sur ' + radar.lois.offendingAssises.length + ' assise(s).' : '✅ Max ' + radar.lois.maxPerAssise + ' loi(s)/assise sur les 197 assises.'}`;
+    } else if (k === 'eveil') {
+      detailHtml = `Catalyseurs : ${radar.eveil.count} (cible ≥ 9) · Règle (i) M=${radar.eveil.regleI.M}/2, R=${radar.eveil.regleI.R}/2, O=${radar.eveil.regleI.O}/2 · Règle (ii) ${Object.entries(radar.eveil.regleII).map(([b, ok]) => `${b} ${ok ? '✓' : '✗'}`).join(', ')}.`;
+    } else if (k === 'sommeil') {
+      detailHtml = `Lisières E–{M,R,O,I} couvertes : ${esc(radar.sommeil.coveredEBorders.join(', ') || 'aucune')} (${radar.sommeil.coveredEBorders.length}/4). ${radar.sommeil.uncoveredAssises.length > 0 ? '⚠️ ' + radar.sommeil.uncoveredAssises.length + '/30 assises (E sans H) sans levier.' : '✅ 30/30 assises couvertes.'}`;
+    } else if (k === 'enrac') {
+      detailHtml = `Synergies d’Enracinement (${radar.enrac.count}, cible 3–5) : ${esc(radar.enrac.ids.join(', ') || 'aucune')}.`;
+    } else if (k === 'a0') {
+      detailHtml = radar.a0.violations.length === 0 ? `✅ Autonomie A=0 intacte (${radar.a0.presentCount}/6 tuiles présentes).` : `❌ Mention Gardien sur : ${esc(radar.a0.violations.join(', '))}.`;
+    } else {
+      detailHtml = radar.synergies.orphans.length === 0 && radar.synergies.divergenceIssues.length === 0
+        ? '✅ 0 synergie orpheline et 100 % des lisières divergent sur leur sortie principale.'
+        : `${radar.synergies.orphans.map(o => `⚠️ ${esc(o.slotId)} (${esc(humanizeToken(o.state).label)}) 0/64`).join(' · ')} ${radar.synergies.divergenceIssues.map(esc).join(' · ')}`;
     }
 
-    actions.push('<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleRadarDetail(null)">✕ Fermer</button>');
-
     return (
-      `<div class="x3-radar-detail" data-radar-detail="${esc(key)}">` +
-      `<div class="x3-radar-detail-body"><strong>${esc(title)}</strong><div>${body}</div></div>` +
-      `<div class="x3-radar-detail-actions">${actions.join('')}</div>` +
-      `</div>`
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // Panneau Focus Ressource / Icône (Producteurs <-> Consommateurs)
-  // --------------------------------------------------------------------------
-  function renderResourceFocusPanel(tilesMap) {
-    if (!uiState.resourceFocus) return '';
-    const idx = computeResourceIndex(uiState.resourceFocus, tilesMap);
-
-    const natHtml = idx.nativeProducers.map(n => (
-      `<span class="x3-res-pill is-floor">${n.icon} ${esc(n.label)}</span>`
-    )).join('');
-
-    const prodTilesHtml = idx.producers.length > 0
-      ? idx.producers.map(p => (
-          `<button type="button" class="x3-tile-link-chip is-upstream" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(p.id)}')">` +
-          `<strong>${esc(p.id)}</strong> ${esc(p.nom)} <span class="opacity-70">(${esc(p.alias)})</span></button>`
-        )).join('')
-      : '<span class="text-xs text-slate-400">Aucune tuile productrice dans cette source</span>';
-
-    const consFloorHtml = idx.consumersFloor.map(c => (
-      `<button type="button" class="x3-tile-link-chip" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(c.id)}')">` +
-      `✅ <strong>${esc(c.id)}</strong> ${esc(c.nom)}</button>`
-    )).join('');
-
-    const consSynHtml = idx.consumersSynergy.map(c => (
-      `<button type="button" class="x3-tile-link-chip is-downstream" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(c.id)}')">` +
-      `✨ <strong>${esc(c.id)}</strong> ${esc(c.nom)} <span class="x3-cov-tag">${c.coverage.covered}/${c.coverage.total}</span></button>`
-    )).join('');
-
-    const consIconHtml = idx.consumersIcon.map(c => (
-      `<button type="button" class="x3-tile-link-chip is-downstream" onclick="AmazoniaExplorerV63.jumpToSlot('${esc(c.id)}')">` +
-      `🗿 <strong>${esc(c.id)}</strong> ${esc(c.nom)}</button>`
-    )).join('');
-
-    const anyConsumer = idx.consumersFloor.length + idx.consumersSynergy.length + idx.consumersIcon.length > 0;
-
-    return (
-      `<div class="x3-resource-focus" data-resource-focus="${esc(idx.key)}">` +
-      `<div class="x3-rf-header">` +
+      `<div class="x3-drawer" data-drawer="health">` +
+      `<div class="flex flex-wrap items-center justify-between gap-2">` +
       `<div class="flex items-center gap-2 flex-wrap">` +
-      `<span class="text-lg">${idx.meta.icon}</span>` +
-      `<strong class="text-base">${esc(idx.meta.label)}</strong>` +
-      `<span class="text-xs text-slate-500">(${idx.allInvolvedIds.size} tuile(s) impliquée(s) dans ${esc(PANEL_LABELS[uiState.source] || uiState.source)})</span>` +
+      `<span class="x3-section-label">🩺 Radar sur les 197 assises — ${esc(radar.scopeLabel)} (${radar.electedCount}/30)</span>` +
+      `<select class="x3-select text-xs" aria-label="Cible du Radar" onchange="AmazoniaExplorerV63.setRadarTarget(this.value)">` +
+      `<option value="canon" ${uiState.radarTarget === 'canon' ? 'selected' : ''}>Mon Canon v6.3</option>` +
+      `<option value="panel_1" ${uiState.radarTarget === 'panel_1' ? 'selected' : ''}>Panel 1</option>` +
+      `<option value="panel_2" ${uiState.radarTarget === 'panel_2' ? 'selected' : ''}>Panel 2</option>` +
+      `<option value="panel_3" ${uiState.radarTarget === 'panel_3' ? 'selected' : ''}>Panel 3</option>` +
+      `</select>` +
       `</div>` +
-      `<div class="flex items-center gap-2">` +
-      `<button type="button" class="x3-btn x3-btn-sm ${uiState.resourceFilterOnly ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.toggleResourceFilterOnly()">${uiState.resourceFilterOnly ? '✓ Liste filtrée sur cette ressource' : 'Filtrer la liste sur ces tuiles'}</button>` +
-      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.clearResourceFocus()">✕ Fermer</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleDrawer(null)">✕ Fermer</button>` +
       `</div>` +
-      `</div>` +
-      `<div class="x3-rf-cols">` +
-      `<div class="x3-rf-col">` +
-      `<div class="x3-rf-col-title">⬅️ Producteurs &amp; Déclencheurs (${idx.producers.length} tuile(s))</div>` +
-      (natHtml ? `<div class="x3-syn-chips">${natHtml}</div>` : '') +
-      `<div class="x3-syn-chips">${prodTilesHtml}</div>` +
-      `</div>` +
-      `<div class="x3-rf-col">` +
-      `<div class="x3-rf-col-title">➡️ Consommateurs &amp; Bénéficiaires (${idx.consumersFloor.length + idx.consumersSynergy.length + idx.consumersIcon.length} tuile(s))</div>` +
-      (idx.isIcon
-        ? `<div class="x3-syn-chips">${consIconHtml || '<span class="text-xs text-slate-400">Aucun Gardien conseillé sur cette icône</span>'}</div>`
-        : (anyConsumer
-          ? (consFloorHtml ? `<div class="x3-syn-sub">Plancher solo</div><div class="x3-syn-chips">${consFloorHtml}</div>` : '') +
-            (consSynHtml ? `<div class="x3-syn-sub">Amplificateurs Synergie</div><div class="x3-syn-chips">${consSynHtml}</div>` : '')
-          : '<span class="text-xs text-slate-400">Aucune tuile consommatrice dans cette source</span>')) +
-      `</div>` +
-      `</div>` +
+      `<div class="x3-radar-pills-row">${pills}</div>` +
+      `<div class="x3-radar-detail-box"><div>${detailHtml}</div></div>` +
       `</div>`
     );
   }
 
-  // --------------------------------------------------------------------------
-  // VUE 1 — Explorateur & Duel P1 | P2 | P3
-  // --------------------------------------------------------------------------
-  function renderExplorerControls(visibleCount) {
-    const f = uiState.filters;
+  function renderIndex30Drawer(radar, reviewCount) {
+    const specs = getSlotsSpec();
     const ws = uiState.workspace;
-    const borderChips = [
-      `<button type="button" class="x3-border-chip ${uiState.selectedBorder === 'ALL' ? 'is-active' : ''}" onclick="AmazoniaExplorerV63.selectBorder('ALL')">Toutes les 15 lisières</button>`
-    ].concat(ALL_15_BORDERS.map(([p1, p2]) => {
-      const bk = borderKey(p1, p2);
-      const pair = BORDER_TO_SLOTS[bk] || [];
-      const dots = pair.map(sid => {
-        const w = ws.slots[sid];
-        const cls = w && w.is_modified ? 'is-modified' : (w && w.selected_source ? 'is-elected' : (w && (w.status === 'HESITATION' || w.status === 'A_HYBRIDER') ? 'is-warn' : ''));
-        return `<span class="x3-slot-dot ${cls}" title="${esc(sid)}"></span>`;
-      }).join('');
+    const filtered = specs.filter(sp => {
+      const w = ws.slots[sp.id];
+      if (uiState.indexFilter === 'UNELECTED') return !w.selected_source;
+      if (uiState.indexFilter === 'REVIEW') return isSlotFlaggedReview(w);
+      if (uiState.indexFilter === 'MODIFIED') return Boolean(w.is_modified);
+      return true;
+    });
+
+    const cells = filtered.map(sp => {
+      const w = ws.slots[sp.id];
+      const res = getCanonSlotResolved(sp.id, null);
+      const nom = res.tile ? ((res.tile.tuile_plateau && res.tile.tuile_plateau.nom_court) || sp.id) : (getCastingRef()[sp.id] ? getCastingRef()[sp.id].nom_animal : sp.alias_oriente);
+      const isRev = isSlotFlaggedReview(w);
+      const cls = ['x3-index-cell'];
+      if (uiState.currentSlotId === sp.id) cls.push('is-current');
+      if (isRev) cls.push('is-review');
+      else if (w.selected_source) cls.push('is-elected');
+      const srcCls = w.selected_source === 'custom' ? 'is-custom' : (w.selected_source ? 'is-set' : '');
+      const srcTxt = w.selected_source ? PANEL_SHORT[w.selected_source] : '—';
+
       return (
-        `<button type="button" class="x3-border-chip ${uiState.selectedBorder === bk ? 'is-active' : ''}" ` +
-        `data-border-chip="${esc(bk)}" onclick="AmazoniaExplorerV63.selectBorder('${esc(bk)}')">` +
-        `<span>${esc(p1)}↔${esc(p2)}</span>${dots}</button>`
+        `<button type="button" class="${cls.join(' ')}" data-index-slot="${esc(sp.id)}" onclick="AmazoniaExplorerV63.goToSlot('${esc(sp.id)}')">` +
+        `<span class="truncate"><strong class="font-mono">${esc(sp.id)}</strong> <span class="text-slate-500">${esc(sp.alias_oriente)}</span> · ${esc(nom)}</span>` +
+        `<span class="flex items-center gap-1">${isRev ? '<span title="À revoir">🤔</span>' : ''}${w.comment ? '<span title="Note">💬</span>' : ''}<span class="x3-index-src ${srcCls}">${esc(srcTxt)}</span></span>` +
+        `</button>`
       );
-    })).join('');
-
-    const pictoTag = f.picto && getPictosRef()[f.picto]
-      ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setPictoFilter(null)">Pictogramme : ${esc(getPictosRef()[f.picto].symbole)} ${esc(getPictosRef()[f.picto].libelle)} ✕</button>`
-      : '';
-
-    const hasActiveFilter = Boolean(
-      f.search || f.peuple !== 'ALL' || f.family !== 'ALL' || f.role !== 'ALL' ||
-      f.draft !== 'ALL' || f.picto || uiState.selectedBorder !== 'ALL' || uiState.resourceFilterOnly
-    );
-
-    const quickResHtml = QUICK_RESOURCES.map(tok => {
-      const cls = tok.startsWith('ICONE_') ? 'is-icon' : '';
-      return renderResourceChipBtn(tok, cls);
     }).join('');
 
     return (
-      `<div class="x3-controls-card">` +
-      `<div class="x3-filter-row">` +
-      `<input type="text" id="x3-search-input" class="x3-search-input" value="${esc(f.search)}" ` +
-      `placeholder="Rechercher un animal, une règle, un dilemme, une note…" ` +
-      `oninput="AmazoniaExplorerV63.setFilter('search', this.value)" />` +
-      `<select class="x3-select" aria-label="Filtrer par Peuple" onchange="AmazoniaExplorerV63.setFilter('peuple', this.value)">` +
+      `<div class="x3-drawer" data-drawer="index30">` +
+      `<div class="flex flex-wrap items-center justify-between gap-2">` +
+      `<div class="flex flex-wrap items-center gap-1.5">` +
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'ALL' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('ALL')">Tous (30)</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'UNELECTED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('UNELECTED')">À trancher (${radar.unelectedIds.length})</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'REVIEW' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('REVIEW')">🤔 À revoir (${reviewCount})</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'MODIFIED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('MODIFIED')">✏️ Hybrides</button>` +
+      `</div>` +
+      `<div class="flex flex-wrap items-center gap-1.5">` +
+      `<span class="text-xs text-slate-500">Pré-remplir les non tranchés :</span>` +
+      PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.fillUnelectedFrom('${pid}')">${PANEL_SHORT[pid]}</button>`).join('') +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleDrawer(null)">✕</button>` +
+      `</div>` +
+      `</div>` +
+      `<div class="x3-index-grid">${cells || '<div class="text-xs text-slate-500">Aucun emplacement dans ce filtre.</div>'}</div>` +
+      `</div>`
+    );
+  }
+
+  function renderBrowseDrawer() {
+    const f = uiState.filters;
+    const sources = [
+      { id: 'canon', label: '★ Mon Canon' },
+      { id: 'panel_1', label: 'Panel 1' },
+      { id: 'panel_2', label: 'Panel 2' },
+      { id: 'panel_3', label: 'Panel 3' },
+      { id: 'archive_v6_2', label: '📦 Archive v6.2' }
+    ].map(s => (
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.mode === 'list' && uiState.listSource === s.id ? 'x3-btn-primary' : ''}" ` +
+      `data-list-source="${s.id}" onclick="AmazoniaExplorerV63.openListView('${s.id}')">${esc(s.label)}</button>`
+    )).join('');
+
+    const quickRes = QUICK_RESOURCES.map(tok => {
+      const m = humanizeToken(tok);
+      const cls = tok.startsWith('ICONE_') ? 'is-icon' : '';
+      return `<button type="button" class="x3-res-pill ${cls} ${uiState.resourceFocus === tok ? 'is-active' : ''}" onclick="AmazoniaExplorerV63.focusResource('${esc(tok)}')">${m.icon} ${esc(m.label)}</button>`;
+    }).join('');
+
+    return (
+      `<div class="x3-drawer" data-drawer="browse">` +
+      `<div class="flex flex-wrap items-center justify-between gap-2">` +
+      `<div class="flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-slate-600">Vue Liste complète :</span>${sources}</div>` +
+      `<div class="flex items-center gap-1.5">` +
+      (uiState.mode === 'list' ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setMode('arbitrate')">↩ Retour au Duel P1·P2·P3</button>` : '') +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleDrawer(null)">✕ Fermer</button>` +
+      `</div>` +
+      `</div>` +
+      `<div class="flex flex-wrap items-center gap-2">` +
+      `<input type="text" id="x3-search-input" class="x3-input flex-1" style="min-width:12rem" value="${esc(f.search)}" placeholder="Rechercher un animal, une règle, une note…" oninput="AmazoniaExplorerV63.setFilter('search', this.value)" />` +
+      `<select class="x3-select" onchange="AmazoniaExplorerV63.setFilter('peuple', this.value)">` +
       `<option value="ALL" ${f.peuple === 'ALL' ? 'selected' : ''}>Tous Peuples</option>` +
       PEUPLE_ORDER.map(p => `<option value="${p}" ${f.peuple === p ? 'selected' : ''}>${p} · ${esc(PEUPLE_META[p].nom)}</option>`).join('') +
       `</select>` +
-      `<select class="x3-select" aria-label="Filtrer par Famille" onchange="AmazoniaExplorerV63.setFilter('family', this.value)">` +
+      `<select class="x3-select" onchange="AmazoniaExplorerV63.setFilter('family', this.value)">` +
       `<option value="ALL" ${f.family === 'ALL' ? 'selected' : ''}>Toutes Familles</option>` +
-      `<option value="GARDIEN" ${f.family === 'GARDIEN' ? 'selected' : ''}>Gardiens (G1–G15)</option>` +
-      `<option value="REVE" ${f.family === 'REVE' ? 'selected' : ''}>Rêves (R1–R10)</option>` +
-      `<option value="CROISSANCE" ${f.family === 'CROISSANCE' ? 'selected' : ''}>Nids (M1–M5)</option>` +
+      `<option value="GARDIEN" ${f.family === 'GARDIEN' ? 'selected' : ''}>Gardiens</option>` +
+      `<option value="REVE" ${f.family === 'REVE' ? 'selected' : ''}>Rêves</option>` +
+      `<option value="CROISSANCE" ${f.family === 'CROISSANCE' ? 'selected' : ''}>Nids</option>` +
       `</select>` +
-      `<select class="x3-select" aria-label="Filtrer par Rôle" onchange="AmazoniaExplorerV63.setFilter('role', this.value)">` +
-      `<option value="ALL" ${f.role === 'ALL' ? 'selected' : ''}>Tous Rôles &amp; Natures</option>` +
+      `<select class="x3-select" onchange="AmazoniaExplorerV63.setFilter('role', this.value)">` +
+      `<option value="ALL" ${f.role === 'ALL' ? 'selected' : ''}>Tous Rôles</option>` +
       `<option value="TWIST_2K3" ${f.role === 'TWIST_2K3' ? 'selected' : ''}>⚡ Twists 2K3</option>` +
       `<option value="LOI_PASSIVE" ${f.role === 'LOI_PASSIVE' ? 'selected' : ''}>⚖️ Lois passives</option>` +
-      `<option value="CATALYSEUR_EVEIL" ${f.role === 'CATALYSEUR_EVEIL' ? 'selected' : ''}>☀️ Catalyseurs d’Éveil</option>` +
-      `<option value="LEVIER_REVE" ${f.role === 'LEVIER_REVE' ? 'selected' : ''}>🌙 Leviers de Rêve</option>` +
-      `<option value="ENRACINEMENT" ${f.role === 'ENRACINEMENT' ? 'selected' : ''}>🌱 Synergies d’Enracinement</option>` +
-      `<option value="AUTONOMIE_A0" ${f.role === 'AUTONOMIE_A0' ? 'selected' : ''}>🔓 Autonomie A=0</option>` +
+      `<option value="CATALYSEUR_EVEIL" ${f.role === 'CATALYSEUR_EVEIL' ? 'selected' : ''}>☀️ Catalyseurs Éveil</option>` +
+      `<option value="LEVIER_REVE" ${f.role === 'LEVIER_REVE' ? 'selected' : ''}>🌙 Leviers Rêve</option>` +
+      `<option value="ENRACINEMENT" ${f.role === 'ENRACINEMENT' ? 'selected' : ''}>🌱 Enracinements</option>` +
+      `<option value="AUTONOMIE_A0" ${f.role === 'AUTONOMIE_A0' ? 'selected' : ''}>🔓 A=0</option>` +
       `</select>` +
-      `<select class="x3-select" aria-label="Filtrer par Statut Draft" onchange="AmazoniaExplorerV63.setFilter('draft', this.value)">` +
-      `<option value="ALL" ${f.draft === 'ALL' ? 'selected' : ''}>Tous Statuts Draft</option>` +
-      `<option value="ELECTED" ${f.draft === 'ELECTED' ? 'selected' : ''}>★ Élues dans Mon Canon</option>` +
-      `<option value="UNELECTED" ${f.draft === 'UNELECTED' ? 'selected' : ''}>○ À trancher</option>` +
-      `<option value="HESITATION" ${f.draft === 'HESITATION' ? 'selected' : ''}>🤔 Hésitation</option>` +
-      `<option value="A_HYBRIDER" ${f.draft === 'A_HYBRIDER' ? 'selected' : ''}>🧬 À hybrider</option>` +
-      `<option value="RETENUE" ${f.draft === 'RETENUE' ? 'selected' : ''}>✅ Retenue</option>` +
-      `<option value="ALTERNATIVE" ${f.draft === 'ALTERNATIVE' ? 'selected' : ''}>🔄 Alternative</option>` +
-      `<option value="ECARTEE" ${f.draft === 'ECARTEE' ? 'selected' : ''}>🚫 Écartée</option>` +
-      `<option value="MODIFIED" ${f.draft === 'MODIFIED' ? 'selected' : ''}>✏️ Modifiées / Hybrides</option>` +
-      `<option value="COMMENTED" ${f.draft === 'COMMENTED' ? 'selected' : ''}>💬 Avec commentaire</option>` +
-      `<option value="FAVORITE" ${f.draft === 'FAVORITE' ? 'selected' : ''}>♥ Coups de cœur</option>` +
-      `</select>` +
-      `${pictoTag}` +
-      (hasActiveFilter ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.resetFilters()">↺ Réinitialiser</button>` : '') +
-      `<span class="text-xs font-mono font-semibold text-slate-600 ml-auto">${visibleCount} / 30 emplacements</span>` +
+      `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${f.reviewOnly ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleFilterReviewOnly()">🤔 À revoir</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.resetFilters()">↺</button>` +
       `</div>` +
-      `<div class="x3-borders-rail" aria-label="Navigation par lisières">${borderChips}</div>` +
-      `<div class="x3-quick-resources" aria-label="Filtre Ressource ou Icône en 1 clic">` +
-      `<span class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1">Ressource / Icône :</span>` +
-      `${quickResHtml}` +
+      `<div class="flex flex-wrap items-center gap-1.5"><span class="text-[11px] font-bold text-slate-500">Producteurs ⇄ Consommateurs :</span>${quickRes}</div>` +
+      `</div>`
+    );
+  }
+
+  function renderResourceFocusPanel(tilesMap) {
+    if (!uiState.resourceFocus) return '';
+    const idx = computeResourceIndex(uiState.resourceFocus, tilesMap);
+    const natHtml = idx.nativeProducers.map(n => `<span class="x3-res-pill is-floor">${n.icon} ${esc(n.label)}</span>`).join('');
+    const prodHtml = idx.producers.map(p => `<button type="button" class="x3-tile-link-chip is-up" onclick="AmazoniaExplorerV63.goToSlot('${esc(p.id)}')"><strong>${esc(p.id)}</strong> ${esc(p.nom)}</button>`).join('');
+    const consList = idx.isIcon
+      ? idx.consumersIcon.map(c => `<button type="button" class="x3-tile-link-chip is-down" onclick="AmazoniaExplorerV63.goToSlot('${esc(c.id)}')">🗿 <strong>${esc(c.id)}</strong> ${esc(c.nom)}</button>`).join('')
+      : idx.consumersFloor.map(c => `<button type="button" class="x3-tile-link-chip" onclick="AmazoniaExplorerV63.goToSlot('${esc(c.id)}')">✅ <strong>${esc(c.id)}</strong> ${esc(c.nom)}</button>`).concat(
+          idx.consumersSynergy.map(c => `<button type="button" class="x3-tile-link-chip is-down" onclick="AmazoniaExplorerV63.goToSlot('${esc(c.id)}')">✨ <strong>${esc(c.id)}</strong> ${esc(c.nom)} (${c.coverage.covered}/${c.coverage.total})</button>`)
+        ).join('');
+
+    return (
+      `<div class="x3-resource-focus" data-resource-focus="${esc(idx.key)}">` +
+      `<div class="flex items-center justify-between gap-2 flex-wrap">` +
+      `<div class="font-bold text-sm">${idx.meta.icon} ${esc(idx.meta.label)} — Producteurs ⇄ Consommateurs</div>` +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.clearResourceFocus()">✕ Fermer</button>` +
+      `</div>` +
+      `<div class="x3-two-cols">` +
+      `<div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5"><div class="x3-section-label">⬅️ Producteurs &amp; Déclencheurs</div><div class="flex flex-wrap gap-1">${natHtml}${prodHtml || '<span class="text-xs text-slate-400">Aucune tuile</span>'}</div></div>` +
+      `<div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-1.5"><div class="x3-section-label">➡️ Consommateurs &amp; Bénéficiaires</div><div class="flex flex-wrap gap-1">${consList || '<span class="text-xs text-slate-400">Aucune tuile</span>'}</div></div>` +
       `</div>` +
       `</div>`
     );
   }
 
-  function renderExplorerCardsView() {
-    const visibleIds = getFilteredSlotIds();
-    const visibleSet = new Set(visibleIds);
-    const tilesMap = getActiveTilesMap(uiState.source);
-    const sections = [];
-
-    if (uiState.source === 'archive_v6_2') {
-      sections.push(
-        `<div class="x3-archive-banner">` +
-        `<div><strong>📦 Archive v6.2 (Canon 0 sanctuarisé · lecture seule)</strong> — Référence historique conservée pour comparaison.</div>` +
-        `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setSource('panel_1')">Revenir aux Panels v6.3.1</button>` +
-        `</div>`
-      );
-    }
-
-    sections.push(renderExplorerControls(visibleIds.length));
-    if (uiState.resourceFocus) sections.push(renderResourceFocusPanel(tilesMap));
-
-    if (visibleIds.length === 0) {
-      sections.push('<div class="x3-empty-state">Aucun emplacement ne correspond aux filtres actifs. <button type="button" class="x3-btn x3-btn-sm ml-2" onclick="AmazoniaExplorerV63.resetFilters()">Réinitialiser les filtres</button></div>');
-      return sections.join('');
-    }
-
-    ALL_15_BORDERS.forEach(([p1, p2]) => {
-      const bk = borderKey(p1, p2);
-      const pair = (BORDER_TO_SLOTS[bk] || []).filter(sid => visibleSet.has(sid));
-      if (pair.length === 0) return;
-
-      const cardsHtml = pair.map(sid => {
-        const res = getEffectiveTileForSlot(sid, uiState.source);
-        return renderBiComponentCard(sid, res.tile, res, tilesMap);
-      }).join('');
-
-      sections.push(
-        `<section class="x3-border-section" data-border-section="${esc(bk)}">` +
-        `<div class="x3-border-banner">` +
-        `<div class="x3-border-banner-left">` +
-        `${renderPeuplePill(p1, true)} <span>↔</span> ${renderPeuplePill(p2, true)}` +
-        `<span class="x3-border-banner-title">Lisière ${esc(p1)} ↔ ${esc(p2)}</span>` +
-        `<span class="x3-border-meta-pill">Jumelles co-présentes à 100 % : ${(BORDER_TO_SLOTS[bk] || []).join(' & ')}</span>` +
-        `</div>` +
-        `<div class="flex items-center gap-1.5">` +
-        (BORDER_TO_SLOTS[bk] || []).map(sid => (
-          `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openDuelForSlot('${esc(sid)}')">⚔️ Duel ${esc(sid)}</button>`
-        )).join('') +
-        `</div>` +
-        `</div>` +
-        `${cardsHtml}` +
-        `</section>`
-      );
-    });
-
-    return sections.join('');
-  }
-
-  function renderDuelView() {
+  // --------------------------------------------------------------------------
+  // 2. ÉCRAN PRINCIPAL — Duel Arbitrage P1 | P2 | P3 (1 emplacement à la fois)
+  // --------------------------------------------------------------------------
+  function renderArbitrateDuelView() {
     const specs = getSlotsSpec();
     const specMap = getSlotSpecMap();
-    const slotId = specMap[uiState.duelSlotId] ? uiState.duelSlotId : 'G1';
+    const slotId = specMap[uiState.currentSlotId] ? uiState.currentSlotId : 'G1';
     const sp = specMap[slotId];
     const curIdx = specs.findIndex(s => s.id === slotId);
-    const prevId = specs[(curIdx - 1 + specs.length) % specs.length].id;
-    const nextId = specs[(curIdx + 1) % specs.length].id;
     const twinId = TWIN_BY_SLOT[slotId];
-    const wsSlot = uiState.workspace.slots[slotId];
+    const w = uiState.workspace.slots[slotId];
+    const isRev = isSlotFlaggedReview(w);
 
-    const slotBtns = specs.map(s => {
-      const w = uiState.workspace.slots[s.id];
-      const dotCls = w && w.is_modified ? 'is-modified' : (w && w.selected_source ? 'is-elected' : (w && (w.status === 'HESITATION' || w.status === 'A_HYBRIDER') ? 'is-warn' : ''));
-      return (
-        `<button type="button" class="x3-duel-slot-btn ${s.id === slotId ? 'is-active' : ''}" ` +
-        `data-duel-slot-btn="${esc(s.id)}" onclick="AmazoniaExplorerV63.setDuelSlot('${esc(s.id)}')">` +
-        `<span class="x3-slot-dot ${dotCls}"></span>${esc(s.id)}</button>`
-      );
-    }).join('');
+    const animalTitle = sp.famille === 'GARDIEN' && getCastingRef()[slotId]
+      ? getCastingRef()[slotId].nom_animal
+      : (sp.famille === 'REVE' ? `Rêve ${sp.alias_oriente}` : `Nid ${sp.alias_oriente}`);
 
     const colsHtml = PANEL_IDS.map(pid => {
       const tile = getPanelTile(pid, slotId);
       if (!tile) return '';
       const tp = tile.tuile_plateau || {};
+      const mcp = tp.mots_cles_plateau || {};
       const cj = tile.carte_joueur || {};
       const tr = cj.texte_regle || {};
-      const dr = cj.decision_et_renoncement || {};
-      const isElected = wsSlot.selected_source === pid;
+      const isKept = w.selected_source === pid;
       const isLoi = tile.nature === 'LOI_PASSIVE';
       const isTwist = Boolean(tile.est_twist);
-      const colClasses = ['x3-duel-col'];
-      if (isElected) colClasses.push('is-elected');
-      if (isLoi) colClasses.push('is-loi');
-      if (isTwist) colClasses.push('is-twist');
-
-      const badges = [];
-      if (isLoi) badges.push('<span class="x3-role-pill" style="background:#1e293b;color:#fff">⚖️ Loi passive</span>');
-      if (isTwist) badges.push('<span class="x3-role-pill" style="background:#ea580c;color:#fff">⚡ Twist 2K3</span>');
-      if ((tile.roles_portes || []).includes('CATALYSEUR_EVEIL')) badges.push('<span class="x3-role-pill x3-role-eveil">☀️ Éveil</span>');
-      if ((tile.roles_portes || []).includes('LEVIER_REVE')) badges.push('<span class="x3-role-pill x3-role-reve">🌙 Levier Rêve</span>');
-      if ((tile.roles_portes || []).includes('ENRACINEMENT')) badges.push('<span class="x3-role-pill x3-role-enrac">🌱 Enracinement</span>');
+      const colCls = ['x3-duel-col'];
+      if (isKept) colCls.push('is-kept');
+      if (isLoi) colCls.push('is-loi');
+      if (isTwist) colCls.push('is-twist');
 
       const recIcon = tp.icone_conseillee ? GUARDIAN_ICON_BY_ID[String(tp.icone_conseillee).toUpperCase()] : null;
       const pictos = (tp.pictogrammes || []).map(renderPictoToken).join('');
-      const mcp = tp.mots_cles_plateau || {};
-      const miniKwBits = [];
-      if (mcp.face_1) miniKwBits.push(`<div><strong>F1 :</strong> ${esc(mcp.face_1)}</div>`);
-      if (mcp.face_2) miniKwBits.push(`<div><strong>F2 :</strong> ${esc(mcp.face_2)}</div>`);
-      if (mcp.enracine) miniKwBits.push(`<div class="text-emerald-800"><strong>🌱 :</strong> ${esc(mcp.enracine)}</div>`);
-      const floorChips = normalizeStateList(tile.entrees_plancher).map(st => `<span class="x3-res-pill is-floor">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}</span>`).join('');
-      const synChips = normalizeStateList(tile.entrees_synergie).map(st => `<span class="x3-res-pill is-synergy">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}</span>`).join('');
+      const kwHtml = [
+        mcp.face_1 ? `<div class="x3-mini-kw-line"><strong>F1 :</strong> ${esc(mcp.face_1)}</div>` : '',
+        mcp.face_2 ? `<div class="x3-mini-kw-line"><strong>F2 :</strong> ${esc(mcp.face_2)}</div>` : '',
+        mcp.enracine ? `<div class="x3-mini-kw-line text-emerald-800"><strong>🌱 :</strong> ${esc(mcp.enracine)}</div>` : ''
+      ].filter(Boolean).join('');
+
+      const panelMap = getTilesMapForSource(pid);
 
       return (
-        `<div class="${colClasses.join(' ')}" data-duel-col="${pid}">` +
+        `<article class="${colCls.join(' ')}" data-duel-col="${pid}" data-nature="${esc(tile.nature)}" data-twist="${isTwist ? 'true' : 'false'}">` +
         `<div class="x3-duel-col-head">` +
         `<div class="flex items-center justify-between gap-2">` +
-        `<strong class="text-sm">${esc(PANEL_LABELS[pid])}</strong>` +
-        `<button type="button" class="x3-btn x3-btn-sm x3-btn-elect ${isElected ? 'is-elected' : ''}" ` +
-        `data-elect-btn="${pid}" onclick="AmazoniaExplorerV63.electSlot('${esc(slotId)}', '${pid}')">` +
-        `${isElected ? '✓ Élue dans Mon Canon' : '★ Élire dans Mon Canon'}</button>` +
+        `<span class="text-xs font-bold uppercase tracking-wider text-slate-500">${esc(PANEL_LABELS[pid])}</span>` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${isKept ? 'is-kept' : ''}" data-keep-btn="${pid}" onclick="AmazoniaExplorerV63.keepSlot('${esc(slotId)}', '${pid}')">${isKept ? '✓ Gardée' : '★ Garder'}</button>` +
         `</div>` +
-        `<div class="font-serif font-bold text-base text-slate-900">${esc(cj.titre_complet || tp.nom_court || slotId)}</div>` +
-        `<div class="flex flex-wrap gap-1">${badges.join('')}</div>` +
+        `<h3 class="x3-duel-title">${esc(cj.titre_complet || tp.nom_court || slotId)}</h3>` +
+        `<div class="flex flex-wrap gap-1">${renderRoleBadges(tile, false)}</div>` +
+        `<div class="x3-duel-mini-strip" data-component="mini-tuile">` +
         `<div class="flex items-center justify-between gap-2 flex-wrap">` +
         `<span class="x3-mini-window">${recIcon ? recIcon.icon + ' ' + esc(recIcon.label) : '⏱ ' + esc(formatFenetreLabel(tp.fenetre_badge))}</span>` +
         `<div class="flex gap-1">${pictos}</div>` +
         `</div>` +
-        (miniKwBits.length > 0 ? `<div class="text-[11px] bg-white/90 rounded-lg px-2 py-1.5 border border-slate-200 space-y-0.5 text-slate-700">${miniKwBits.join('')}</div>` : '') +
+        `${kwHtml}` +
         `</div>` +
-        `<div class="x3-duel-col-body">` +
-        (cj.pitch_ambiance ? `<div class="italic text-xs text-slate-600 border-l-2 border-emerald-400 pl-2">${esc(cj.pitch_ambiance)}</div>` : '') +
-        `<div class="x3-rule-block ${isLoi ? 'is-loi-rule' : ''}"><div class="x3-rule-label">${isLoi ? '⚖️ Loi permanente' : 'Face 1'}</div><div>${esc(tr.face_1 || '—')}</div></div>` +
-        (tr.face_2 ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">✨ Face 2</div><div>${esc(tr.face_2)}</div></div>` : '') +
+        `</div>` +
+        `<div class="x3-duel-col-body" data-component="grande-carte">` +
+        (cj.pitch_ambiance ? `<p class="x3-pitch">${esc(cj.pitch_ambiance)}</p>` : '') +
+        `<div class="x3-rule-block ${isLoi ? 'is-loi-rule' : ''}"><div class="x3-rule-label">${isLoi ? '⚖️ Loi passive permanente' : (sp.famille === 'GARDIEN' ? 'Face 1' : 'Effet')}</div><div>${esc(tr.face_1 || '—')}</div></div>` +
+        (tr.face_2 ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">✨ Face 2 — Éveillée</div><div>${esc(tr.face_2)}</div></div>` : '') +
         (tr.enracine ? `<div class="x3-rule-block is-enracine"><div class="x3-rule-label">🌱 Enraciné</div><div>${esc(tr.enracine)}</div></div>` : '') +
-        `<div class="text-xs bg-slate-50 rounded-lg p-2.5 border border-slate-200 space-y-1">` +
-        `<div><strong>🎯 Choix :</strong> ${esc(dr.choix || '—')}</div>` +
-        `<div><strong>⚖️ Renoncement :</strong> ${esc(dr.renoncement || '—')}</div>` +
-        `</div>` +
-        `<div class="space-y-1">` +
-        `<div class="x3-syn-sub">Plancher solo :</div><div class="x3-syn-chips">${floorChips || '<span class="text-xs text-slate-400">Autonome</span>'}</div>` +
-        `<div class="x3-syn-sub">Synergies :</div><div class="x3-syn-chips">${synChips || '<span class="text-xs text-slate-400">—</span>'}</div>` +
-        `</div>` +
+        `${renderCollapsibleDetails(tile, panelMap, pid)}` +
         `</div>` +
         `<div class="x3-duel-col-foot">` +
         `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${esc(slotId)}', '${pid}')">✏️ Hybrider depuis ${PANEL_SHORT[pid]}</button>` +
-        `<button type="button" class="x3-btn x3-btn-sm x3-btn-elect ${isElected ? 'is-elected' : ''}" onclick="AmazoniaExplorerV63.electSlot('${esc(slotId)}', '${pid}')">${isElected ? '✓ Élue' : '★ Élire ' + PANEL_SHORT[pid]}</button>` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${isKept ? 'is-kept' : ''}" onclick="AmazoniaExplorerV63.keepSlot('${esc(slotId)}', '${pid}')">${isKept ? '✓ Gardée' : '★ Garder'}</button>` +
         `</div>` +
-        `</div>`
+        `</article>`
       );
     }).join('');
 
-    const customBanner = wsSlot.is_modified && wsSlot.custom_tile
-      ? `<div class="rounded-xl bg-amber-50 border border-amber-300 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-2">` +
-        `<div><strong>✏️ Version hybride / modifiée enregistrée dans Mon Canon :</strong> ${esc((wsSlot.custom_tile.carte_joueur && wsSlot.custom_tile.carte_joueur.titre_complet) || slotId)}</div>` +
-        `<div class="flex gap-2">` +
-        `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.openEditor('${esc(slotId)}', 'custom')">✏️ Rouvrir l’éditeur</button>` +
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.electSlot('${esc(slotId)}', 'custom')">${wsSlot.selected_source === 'custom' ? '✓ Élue' : '★ Élire ma version'}</button>` +
+    const customBanner = w.is_modified && w.custom_tile
+      ? `<div class="rounded-xl bg-amber-50 border border-amber-300 px-4 py-2.5 text-xs flex flex-wrap items-center justify-between gap-2" data-custom-banner="true">` +
+        `<div><strong>✏️ Version hybride / modifiée :</strong> ${esc((w.custom_tile.carte_joueur && w.custom_tile.carte_joueur.titre_complet) || slotId)}</div>` +
+        `<div class="flex flex-wrap gap-1.5">` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${w.selected_source === 'custom' ? 'is-kept' : ''}" onclick="AmazoniaExplorerV63.keepSlot('${esc(slotId)}', 'custom')">${w.selected_source === 'custom' ? '✓ Gardée' : '★ Garder ma version'}</button>` +
+        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${esc(slotId)}', 'custom')">✏️ Modifier</button>` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-danger" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(slotId)}')">↺ Restaurer</button>` +
         `</div></div>`
       : '';
 
+    const rfSrc = uiState.resourceFocusSource || 'panel_1';
+    const rfPanel = uiState.resourceFocus ? renderResourceFocusPanel(getTilesMapForSource(rfSrc)) : '';
+    const medallion = getTileMedallionHtml(slotId, sp.famille);
+
     return (
-      `<div class="x3-duel-shell" data-duel-slot="${esc(slotId)}">` +
-      `<div class="x3-duel-slot-nav">` +
-      `<div class="flex flex-wrap items-center justify-between gap-2">` +
-      `<div class="flex items-center gap-2 flex-wrap">` +
-      `<span class="x3-mini-id">${esc(slotId)}</span>` +
+      `<div class="space-y-3" data-arbitrate-slot="${esc(slotId)}">` +
+      `<div class="x3-stepper-bar">` +
+      `<div class="flex items-center gap-2.5 flex-wrap">` +
+      `${medallion}` +
+      `<span class="x3-slot-id-pill">${esc(slotId)}</span>` +
       `${renderOrientedEdgeBadge(sp.origine, sp.voisin)}` +
-      `<strong class="text-sm">${esc(sp.famille === 'GARDIEN' ? (getCastingRef()[slotId] ? getCastingRef()[slotId].nom_animal : slotId) : `${sp.famille} ${sp.alias_oriente}`)}</strong>` +
-      (twinId ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setDuelSlot('${esc(twinId)}')">🔗 Voir jumelle ${esc(twinId)}</button>` : '') +
+      `<h2 class="x3-slot-heading">${esc(animalTitle)}</h2>` +
+      (twinId ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.goToSlot('${esc(twinId)}')">🔗 Jumelle ${esc(twinId)}</button>` : '') +
       `</div>` +
-      `<div class="flex items-center gap-1.5">` +
-      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setDuelSlot('${esc(prevId)}')">← ${esc(prevId)}</button>` +
-      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setDuelSlot('${esc(nextId)}')">${esc(nextId)} →</button>` +
+      `<div class="flex items-center gap-1.5 flex-wrap">` +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.stepSlot(-1)" title="Flèche gauche">◀ Précédent</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm font-mono" onclick="AmazoniaExplorerV63.toggleDrawer('index30')" title="Voir les 30 emplacements">${curIdx + 1} / ${specs.length}</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.stepSlot(1)" title="Flèche droite">Suivant ▶</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.goToNextPending()">⏭ Prochain à trancher</button>` +
       `</div>` +
       `</div>` +
-      `<div class="x3-duel-slots-grid">${slotBtns}</div>` +
-      `</div>` +
+      `${rfPanel}` +
       `${customBanner}` +
       `<div class="x3-duel-grid">${colsHtml}</div>` +
-      `<div class="x3-tile-card">${renderDraftAnnotationBar(slotId, 'canon')}</div>` +
+      `<div class="x3-trio-bar" data-trio-bar="${esc(slotId)}">` +
+      `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${isRev ? 'is-on' : ''}" data-review-btn="true" onclick="AmazoniaExplorerV63.toggleSlotReview('${esc(slotId)}')">${isRev ? '🤔 Marqué À revoir' : '🤔 À revoir'}</button>` +
+      `<input type="text" class="x3-note-input" data-note-slot="${esc(slotId)}" value="${esc(w.comment || '')}" placeholder="Note personnelle sur ${esc(slotId)} (sauvegarde instantanée)…" oninput="AmazoniaExplorerV63.setSlotCommentLive('${esc(slotId)}', this.value)" />` +
+      `<span class="x3-saved-hint" id="x3-saved-${esc(slotId)}">✓ Enregistré</span>` +
+      `</div>` +
       `</div>`
     );
   }
 
   // --------------------------------------------------------------------------
-  // VUE 2 — Simulateur de Table 3 à 6 Peuples
+  // 3. Vue Liste Bi-Composant (Mon Canon / Panel 1..3 / Archive v6.2)
+  // --------------------------------------------------------------------------
+  function renderBiComponentCard(slotId, tile, sourceInfo, tilesMap, allowEdit) {
+    if (!tile) {
+      const sp = getSlotSpecMap()[slotId];
+      return (
+        `<article class="x3-tile-card" data-slot-id="${esc(slotId)}">` +
+        `<div class="x3-card-top">` +
+        `<div class="flex items-center gap-2"><strong>${esc(slotId)}</strong> ${renderOrientedEdgeBadge(sp.origine, sp.voisin)} <span class="text-xs text-slate-500">À trancher</span></div>` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.goToSlot('${esc(slotId)}')">⚔️ Arbitrer P1·P2·P3</button>` +
+        `</div></article>`
+      );
+    }
+
+    const tp = tile.tuile_plateau || {};
+    const mcp = tp.mots_cles_plateau || {};
+    const cj = tile.carte_joueur || {};
+    const tr = cj.texte_regle || {};
+    const w = uiState.workspace.slots[slotId];
+    const isRev = isSlotFlaggedReview(w);
+    const isLoi = tile.nature === 'LOI_PASSIVE';
+    const isTwist = Boolean(tile.est_twist);
+    const cls = ['x3-tile-card'];
+    if (isLoi) cls.push('is-loi');
+    if (isTwist) cls.push('is-twist');
+    if (sourceInfo && sourceInfo.elected) cls.push('is-kept');
+
+    const recIcon = tp.icone_conseillee ? GUARDIAN_ICON_BY_ID[String(tp.icone_conseillee).toUpperCase()] : null;
+    const pictos = (tp.pictogrammes || []).map(renderPictoToken).join('');
+    const medallion = getTileMedallionHtml(tile.id, tile.famille);
+
+    const kwLines = [
+      mcp.face_1 ? `<div class="x3-mini-kw-line"><strong>F1 :</strong> ${esc(mcp.face_1)}</div>` : '',
+      mcp.face_2 ? `<div class="x3-mini-kw-line"><strong>F2 :</strong> ${esc(mcp.face_2)}</div>` : '',
+      mcp.enracine ? `<div class="x3-mini-kw-line text-emerald-800"><strong>🌱 :</strong> ${esc(mcp.enracine)}</div>` : ''
+    ].filter(Boolean).join('');
+
+    const digestFooter = (sourceInfo && sourceInfo.sourceKey === 'archive_v6_2' && typeof global.renderSlotDigestFooter === 'function')
+      ? `<div class="px-4 pb-3">${global.renderSlotDigestFooter(tile.id, ['A'])}</div>`
+      : '';
+
+    const keepTarget = (sourceInfo && PANEL_IDS.includes(sourceInfo.sourceKey)) ? sourceInfo.sourceKey : (w && w.selected_source) || 'panel_1';
+    const isKept = Boolean(w && (sourceInfo.sourceKey === 'canon' ? w.selected_source : w.selected_source === sourceInfo.sourceKey));
+
+    return (
+      `<article class="${cls.join(' ')}" data-slot-id="${esc(tile.id)}" data-nature="${esc(tile.nature)}" data-twist="${isTwist ? 'true' : 'false'}">` +
+      `<div class="x3-card-top">` +
+      `<div class="flex items-center gap-1.5 flex-wrap">` +
+      `<span class="x3-slot-id-pill">${esc(tile.id)}</span>` +
+      `${renderOrientedEdgeBadge(tile.origine, tile.voisin)}` +
+      `${renderRoleBadges(tile, sourceInfo && sourceInfo.modified)}` +
+      `</div>` +
+      `<div class="flex items-center gap-1.5">` +
+      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${isKept ? 'is-kept' : ''}" onclick="AmazoniaExplorerV63.keepSlot('${esc(tile.id)}', '${esc(keepTarget)}')">${isKept ? '✓ Gardée' : '★ Garder'}</button>` : '') +
+      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${isRev ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleSlotReview('${esc(tile.id)}')">🤔</button>` : '') +
+      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${esc(tile.id)}', '${esc(sourceInfo.sourceKey === 'canon' ? (w.selected_source || 'panel_1') : sourceInfo.sourceKey)}')">✏️</button>` : '') +
+      `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.goToSlot('${esc(tile.id)}')">⚔️ Duel</button>` +
+      `</div>` +
+      `</div>` +
+      `<div class="x3-duo-grid">` +
+      `<div class="x3-mini-tuile fam-${esc(tile.famille)}" data-component="mini-tuile">` +
+      `<div class="flex items-center gap-2">${medallion}<div class="x3-mini-name">${esc(tp.nom_court || tile.id)}</div></div>` +
+      `<span class="x3-mini-window">${recIcon ? recIcon.icon + ' ' + esc(recIcon.label) : '⏱ ' + esc(formatFenetreLabel(tp.fenetre_badge))}</span>` +
+      (pictos ? `<div class="flex flex-wrap gap-1">${pictos}</div>` : '') +
+      `${kwLines}` +
+      `</div>` +
+      `<div class="x3-grande-carte" data-component="grande-carte">` +
+      `<h3 class="x3-duel-title">${esc(cj.titre_complet || tp.nom_court || tile.id)}</h3>` +
+      (cj.pitch_ambiance ? `<p class="x3-pitch">${esc(cj.pitch_ambiance)}</p>` : '') +
+      `<div class="x3-rule-block ${isLoi ? 'is-loi-rule' : ''}"><div class="x3-rule-label">${isLoi ? '⚖️ Loi passive permanente' : (tile.famille === 'GARDIEN' ? 'Face 1' : 'Effet')}</div><div>${esc(tr.face_1 || '—')}</div></div>` +
+      (tr.face_2 ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">✨ Face 2 — Éveillée</div><div>${esc(tr.face_2)}</div></div>` : '') +
+      (tr.enracine ? `<div class="x3-rule-block is-enracine"><div class="x3-rule-label">🌱 Enraciné</div><div>${esc(tr.enracine)}</div></div>` : '') +
+      `${renderCollapsibleDetails(tile, tilesMap)}` +
+      `</div>` +
+      `</div>` +
+      `${digestFooter}` +
+      `</article>`
+    );
+  }
+
+  function renderListView() {
+    const visibleIds = getFilteredSlotIds();
+    const tilesMap = getTilesMapForSource(uiState.listSource);
+    const isArchive = uiState.listSource === 'archive_v6_2';
+    const headerBanner =
+      `<div class="x3-stepper-bar">` +
+      `<div class="text-sm font-bold">${esc(PANEL_LABELS[uiState.listSource] || uiState.listSource)} · ${visibleIds.length} / 30 emplacements${isArchive ? ' (lecture seule)' : ''}</div>` +
+      `<div class="flex items-center gap-1.5">` +
+      `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setMode('arbitrate')">↩ Retour au Duel P1·P2·P3</button>` +
+      `</div></div>`;
+
+    const cards = visibleIds.map(sid => {
+      const res = getEffectiveTile(sid, uiState.listSource);
+      return renderBiComponentCard(sid, res.tile, res, tilesMap, !isArchive);
+    }).join('');
+
+    return (
+      `<div class="space-y-3" data-list-view="${esc(uiState.listSource)}">` +
+      `${headerBanner}` +
+      (uiState.resourceFocus ? renderResourceFocusPanel(tilesMap) : '') +
+      `${cards || '<div class="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300 text-sm text-slate-500">Aucun emplacement ne correspond aux filtres.</div>'}` +
+      `</div>`
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // 4. ÉCRAN SECONDAIRE — Simulateur de Table 3 à 6 Peuples
   // --------------------------------------------------------------------------
   function renderTableWheelSvg(sim) {
-    const cx = 130;
-    const cy = 122;
-    const r = 82;
-    const n = sim.n;
+    const cx = 125; const cy = 115; const r = 76; const n = sim.n;
     const coords = sim.peuples.map((p, i) => {
       const ang = -Math.PI / 2 + (2 * Math.PI * i) / n;
       return { p, x: cx + r * Math.cos(ang), y: cy + r * Math.sin(ang) };
     });
-
-    const edgesSvg = coords.map((c, i) => {
-      const next = coords[(i + 1) % n];
-      const mx = (c.x + next.x) / 2;
-      const my = (c.y + next.y) / 2;
-      const b = sim.borders[i];
+    const edges = coords.map((c, i) => {
+      const nxt = coords[(i + 1) % n];
+      const mx = (c.x + nxt.x) / 2; const my = (c.y + nxt.y) / 2;
       return (
-        `<line x1="${c.x.toFixed(1)}" y1="${c.y.toFixed(1)}" x2="${next.x.toFixed(1)}" y2="${next.y.toFixed(1)}" stroke="#357054" stroke-width="2.5" stroke-opacity="0.65" />` +
-        `<rect x="${(mx - 22).toFixed(1)}" y="${(my - 9).toFixed(1)}" width="44" height="18" rx="9" fill="#ffffff" stroke="#b8d5c4" stroke-width="1" />` +
-        `<text x="${mx.toFixed(1)}" y="${(my + 3.5).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#1a3529">${esc(b.slots.join('·'))}</text>`
+        `<line x1="${c.x.toFixed(1)}" y1="${c.y.toFixed(1)}" x2="${nxt.x.toFixed(1)}" y2="${nxt.y.toFixed(1)}" stroke="#357054" stroke-width="2.2" stroke-opacity="0.65" />` +
+        `<rect x="${(mx - 20).toFixed(1)}" y="${(my - 8).toFixed(1)}" width="40" height="16" rx="8" fill="#ffffff" stroke="#b8d5c4" />` +
+        `<text x="${mx.toFixed(1)}" y="${(my + 3).toFixed(1)}" text-anchor="middle" font-size="8.5" font-weight="700" fill="#1a3529">${esc(sim.borders[i].slots.join('·'))}</text>`
       );
     }).join('');
-
-    const nodesSvg = coords.map(c => {
+    const nodes = coords.map(c => {
       const col = PEUPLE_SVG_COLORS[c.p] || { fill: '#f1f5f9', stroke: '#64748b', text: '#0f172a' };
-      const isHl = uiState.simHighlightPeuple === c.p;
+      const hl = uiState.simHighlightPeuple === c.p;
       return (
         `<g style="cursor:pointer" onclick="AmazoniaExplorerV63.toggleSimHighlight('${c.p}')">` +
-        `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${isHl ? 24 : 21}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="${isHl ? 3.5 : 2}" />` +
-        `<text x="${c.x.toFixed(1)}" y="${(c.y + 4).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="800" fill="${col.text}">${esc(c.p)}</text>` +
+        `<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="${hl ? 22 : 19}" fill="${col.fill}" stroke="${col.stroke}" stroke-width="${hl ? 3 : 2}" />` +
+        `<text x="${c.x.toFixed(1)}" y="${(c.y + 4).toFixed(1)}" text-anchor="middle" font-size="12" font-weight="800" fill="${col.text}">${esc(c.p)}</text>` +
         `</g>`
       );
     }).join('');
-
     return (
-      `<svg class="x3-wheel-svg" viewBox="0 0 260 244" width="244" height="230" role="img" aria-label="Roue de la table ${esc(sim.canonKey)}">` +
-      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#dbe7df" stroke-dasharray="4 4" stroke-width="1.2" />` +
-      `${edgesSvg}` +
-      `${nodesSvg}` +
-      `<text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="11" font-weight="800" fill="#1a3529">${esc(sim.canonKey)}</text>` +
-      `<text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="9.5" font-weight="600" fill="#475569">${sim.n} Peuples · ${sim.n * 2} tuiles</text>` +
+      `<svg class="x3-wheel-svg" viewBox="0 0 250 230" width="230" height="212" role="img" aria-label="Roue ${esc(sim.canonKey)}">` +
+      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#dbe7df" stroke-dasharray="4 4" />` +
+      `${edges}${nodes}` +
+      `<text x="${cx}" y="${cy - 3}" text-anchor="middle" font-size="10.5" font-weight="800" fill="#1a3529">${esc(sim.canonKey)}</text>` +
+      `<text x="${cx}" y="${cy + 11}" text-anchor="middle" font-size="9" font-weight="600" fill="#475569">${sim.n}J · ${sim.n * 2} tuiles</text>` +
       `</svg>`
     );
   }
 
   function renderSimulatorView() {
-    const sim = analyzeTableSimulation(uiState.simPeuples, uiState.source);
-    const activeTilesMap = {};
-    sim.tileEntries.forEach(e => { if (e.tile) activeTilesMap[e.slotId] = e.tile; });
+    const sim = analyzeTableSimulation(uiState.simPeuples, uiState.simSource);
+    const activeMap = {};
+    sim.tileEntries.forEach(e => { if (e.tile) activeMap[e.slotId] = e.tile; });
 
-    const presetsHtml = PRESET_TABLES.map(pr => {
-      const isAct = canonicalizeAssise(pr.peuples).key === sim.canonKey;
-      return (
-        `<button type="button" class="x3-btn x3-btn-sm ${isAct ? 'x3-btn-primary' : ''}" ` +
-        `data-sim-preset="${esc(pr.key)}" onclick="AmazoniaExplorerV63.setSimPreset('${esc(pr.key)}')" ` +
-        `title="${esc(pr.tag)}">${esc(pr.label)} <span class="opacity-75 font-normal">· ${esc(pr.tag)}</span></button>`
-      );
+    const presets = PRESET_TABLES.map(pr => {
+      const act = canonicalizeAssise(pr.peuples).key === sim.canonKey;
+      return `<button type="button" class="x3-btn x3-btn-sm ${act ? 'x3-btn-primary' : ''}" data-sim-preset="${esc(pr.key)}" onclick="AmazoniaExplorerV63.setSimPreset('${esc(pr.key)}')">${esc(pr.label)} <span class="opacity-70 font-normal">${esc(pr.tag)}</span></button>`;
     }).join('');
 
-    const activeSeatsHtml = sim.peuples.map((p, idx) => (
-      `<span class="x3-seat-pill x3-peuple-${p}">` +
-      `<span>#${idx + 1}</span>${getPeupleIconHtml(p, 13)}<span>${esc(PEUPLE_META[p].short)}</span>` +
-      (idx > 0 ? `<button type="button" class="x3-seat-move" title="Décaler à gauche" onclick="AmazoniaExplorerV63.moveSimPeuple('${p}', -1)">◀</button>` : '') +
-      (idx < sim.n - 1 ? `<button type="button" class="x3-seat-move" title="Décaler à droite" onclick="AmazoniaExplorerV63.moveSimPeuple('${p}', 1)">▶</button>` : '') +
-      `<button type="button" class="x3-seat-move" title="Retirer de la table" onclick="AmazoniaExplorerV63.toggleSimPeuple('${p}')">✕</button>` +
-      `</span>`
-    )).join('');
-
-    const absentPeuples = PEUPLE_ORDER.filter(p => !sim.peuples.includes(p));
-    const absentHtml = absentPeuples.map(p => (
-      `<button type="button" class="x3-seat-pill is-inactive" onclick="AmazoniaExplorerV63.toggleSimPeuple('${p}')">` +
-      `+ ${getPeupleIconHtml(p, 13)} ${esc(PEUPLE_META[p].short)}</button>`
-    )).join('');
-
-    const accHtml = sim.accessories.map(acc => (
-      `<div class="p-2.5 rounded-lg border border-slate-200 bg-slate-50/80 text-xs">` +
-      `<div class="flex items-center justify-between gap-1 mb-1">` +
-      `<span class="font-bold">${renderPeuplePill(acc.code, true)}</span>` +
-      `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white border border-slate-200">${esc(acc.tierLabel)}</span>` +
-      `</div>` +
-      `<div class="font-semibold text-slate-800">${acc.icon} ${esc(acc.title)}</div>` +
-      `<div class="text-[11px] text-slate-600 mt-0.5">${esc(acc.summary)}</div>` +
-      `</div>`
-    )).join('');
-
-    const modulesHtml = [
-      { key: 'gardiens', label: '🗿 Gardiens & Éveil', on: sim.modules.gardiens },
-      { key: 'reves', label: '🌙 Rêves & Sommeil', on: sim.modules.reves },
-      { key: 'essaim', label: '🐜 Module Essaim', on: sim.modules.essaim }
-    ].map(m => (
-      `<span class="x3-radar-pill ${m.on ? 'is-ok' : ''}" data-sim-module="${m.key}" data-active="${m.on ? 'true' : 'false'}">${m.label} : ${m.on ? 'Actif' : 'Inactif'}</span>`
+    const seats = sim.peuples.map((p, i) => (
+      `<span class="x3-seat-pill x3-peuple-${p}">#${i + 1} ${getPeupleIconHtml(p, 13)} ${esc(PEUPLE_META[p].short)}` +
+      (i > 0 ? `<button type="button" class="x3-seat-move" onclick="AmazoniaExplorerV63.moveSimPeuple('${p}', -1)">◀</button>` : '') +
+      (i < sim.n - 1 ? `<button type="button" class="x3-seat-move" onclick="AmazoniaExplorerV63.moveSimPeuple('${p}', 1)">▶</button>` : '') +
+      `<button type="button" class="x3-seat-move" onclick="AmazoniaExplorerV63.toggleSimPeuple('${p}')">✕</button></span>`
+    )).join('') + PEUPLE_ORDER.filter(p => !sim.peuples.includes(p)).map(p => (
+      `<button type="button" class="x3-seat-pill is-inactive" onclick="AmazoniaExplorerV63.toggleSimPeuple('${p}')">+ ${getPeupleIconHtml(p, 13)} ${esc(PEUPLE_META[p].short)}</button>`
     )).join('');
 
     const chainsHtml = sim.completeChains.length > 0
-      ? sim.completeChains.slice(0, 14).map(ch => (
-          `<div class="x3-chain-item">` +
-          `<span class="font-semibold text-emerald-800">${esc(ch.fromLabel)}</span>` +
-          `<span>→</span>` +
-          `<span class="x3-res-pill ${ch.kind === 'guardian_icon' ? 'is-icon' : 'is-synergy'}" onclick="AmazoniaExplorerV63.focusResource('${esc(ch.via)}')">${ch.viaMeta.icon} ${esc(ch.viaMeta.label)}</span>` +
-          `<span>→</span>` +
-          `<span class="font-semibold text-amber-900">${esc(ch.toLabel)}</span>` +
-          `</div>`
-        )).join('')
-      : '<div class="text-xs text-slate-500">Aucune chaîne inter-tuiles détectée (les tuiles tournent sur leurs planchers solo et accessoires).</div>';
+      ? sim.completeChains.slice(0, 12).map(ch => `<div class="text-xs p-2 rounded bg-slate-50 border border-slate-200"><strong class="text-emerald-800">${esc(ch.fromLabel)}</strong> → <span class="font-semibold">${ch.viaMeta.icon} ${esc(ch.viaMeta.label)}</span> → <strong class="text-amber-900">${esc(ch.toLabel)}</strong></div>`).join('')
+      : '<div class="text-xs text-slate-500">Toutes les tuiles tournent sur leurs planchers solo et accessoires.</div>';
 
     const isolatedHtml = sim.isolatedAmplifiers.length > 0
-      ? sim.isolatedAmplifiers.map(iso => (
-          `<div class="x3-isolated-item" data-isolated-amplifier="${esc(iso.slotId)}">` +
-          `⚠️ <strong>${esc(iso.slotId)} · ${esc(iso.tileName)}</strong> : son amplificateur <strong>${iso.stateMeta.icon} ${esc(iso.stateMeta.label)}</strong> n’a aucun producteur autour de cette table <span class="opacity-80">(plancher solo actif)</span>.` +
-          `</div>`
-        )).join('')
-      : '<div class="p-2.5 rounded-lg bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">✅ Tous les amplificateurs synergiques présents autour de cette table ont un producteur actif !</div>';
+      ? sim.isolatedAmplifiers.map(iso => `<div class="text-xs p-2 rounded bg-amber-50 border border-amber-200 text-amber-950">⚠️ <strong>${esc(iso.slotId)} · ${esc(iso.tileName)}</strong> : amplificateur ${iso.stateMeta.icon} ${esc(iso.stateMeta.label)} sans producteur sur cette table.</div>`).join('')
+      : '<div class="text-xs p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-900">✅ Aucun amplificateur isolé sur cette table.</div>';
+
+    const accHtml = sim.accessories.map(acc => `<div class="text-xs p-2 rounded bg-slate-50 border border-slate-200"><strong>${renderPeuplePill(acc.code, true)}</strong> · ${acc.icon} <strong>${esc(acc.title)}</strong> — ${esc(acc.summary)}</div>`).join('');
 
     const visibleEntries = uiState.simHighlightPeuple
       ? sim.tileEntries.filter(e => {
@@ -3118,231 +2191,115 @@
         })
       : sim.tileEntries;
 
-    const cardsHtml = visibleEntries.map(e => renderBiComponentCard(e.slotId, e.tile, e, activeTilesMap)).join('');
-
-    const missingBanner = sim.metrics.missingCanonCount > 0
-      ? `<div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">` +
-        `<span>ℹ️ <strong>${sim.metrics.missingCanonCount}</strong> emplacement(s) de cette table ne sont pas encore élu(s) dans <strong>Mon Canon v6.3</strong> — vous pouvez les élire directement ci-dessous ou basculer sur un panel candidat.</span>` +
-        `<div class="flex gap-1.5">${PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSource('${pid}')">${PANEL_LABELS[pid]}</button>`).join('')}</div>` +
-        `</div>`
-      : '';
+    const cards = visibleEntries.map(e => renderBiComponentCard(e.slotId, e.tile, e, activeMap, true)).join('');
 
     return (
-      `<div class="space-y-4" data-simulator-assise="${esc(sim.canonKey)}">` +
+      `<div class="space-y-3" data-simulator-assise="${esc(sim.canonKey)}">` +
       `<div class="x3-sim-panel">` +
       `<div class="flex flex-wrap items-center justify-between gap-2">` +
-      `<div><h2 class="font-serif text-xl font-bold text-slate-900">🎡 Simulateur de Table — ${esc(sim.canonKey)} (${sim.n} joueurs · ${sim.n * 2} tuiles actives)</h2>` +
-      `<p class="text-xs text-slate-500">Source active : <strong>${esc(PANEL_LABELS[uiState.source] || uiState.source)}</strong> · Composez l’ordre exact autour de la roue pour éprouver les synergies réelles.</p></div>` +
-      `<div class="flex flex-wrap gap-1.5">${modulesHtml}</div>` +
+      `<h2 class="font-serif text-xl font-bold text-slate-900">🎡 Tester une Table — ${esc(sim.canonKey)} (${sim.n} joueurs · ${sim.n * 2} tuiles)</h2>` +
+      `<div class="flex items-center gap-1.5 text-xs"><span class="font-semibold text-slate-500">Source :</span>` +
+      `<select class="x3-select" onchange="AmazoniaExplorerV63.setSimSource(this.value)">` +
+      `<option value="canon" ${uiState.simSource === 'canon' ? 'selected' : ''}>★ Mon Canon v6.3</option>` +
+      `<option value="panel_1" ${uiState.simSource === 'panel_1' ? 'selected' : ''}>Panel 1</option>` +
+      `<option value="panel_2" ${uiState.simSource === 'panel_2' ? 'selected' : ''}>Panel 2</option>` +
+      `<option value="panel_3" ${uiState.simSource === 'panel_3' ? 'selected' : ''}>Panel 3</option>` +
+      `</select></div>` +
       `</div>` +
-      `${missingBanner}` +
-      `<div class="flex flex-wrap gap-1.5 items-center"><span class="text-xs font-bold text-slate-600 mr-1">Tables témoins :</span>${presetsHtml}</div>` +
+      `<div class="flex flex-wrap gap-1.5">${presets}</div>` +
+      (uiState.simSource === 'canon' && sim.metrics.missingCanonCount > 0
+        ? `<div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">` +
+          `<span>💡 <strong>${sim.metrics.missingCanonCount}</strong> tuile(s) de cette table ne sont pas encore gardées dans <strong>Mon Canon</strong>.</span>` +
+          `<span class="flex gap-1.5"><button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_1')">Tester Panel 1</button>` +
+          `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_2')">Panel 2</button>` +
+          `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_3')">Panel 3</button></span></div>`
+        : '') +
       `<div class="x3-sim-grid">` +
-      `<div class="x3-sim-wheel-box">` +
-      `${renderTableWheelSvg(sim)}` +
-      `<div class="text-[11px] text-slate-500 text-center">Cliquez un Peuple sur la roue pour isoler ses lisières${uiState.simHighlightPeuple ? ` · <button type="button" class="underline font-semibold" onclick="AmazoniaExplorerV63.toggleSimHighlight(null)">Tout afficher</button>` : ''}</div>` +
-      `</div>` +
+      `<div class="x3-sim-wheel-box">${renderTableWheelSvg(sim)}<div class="text-[11px] text-slate-500">Clic Peuple = isoler ses lisières</div></div>` +
       `<div class="space-y-3">` +
-      `<div><div class="x3-section-label mb-1.5">Ordre autour de la table (3 à 6 Peuples)</div>` +
-      `<div class="x3-sim-seats-row">${activeSeatsHtml}${absentHtml}</div></div>` +
+      `<div class="flex flex-wrap gap-1.5">${seats}</div>` +
       `<div class="x3-sim-metrics">` +
       `<div class="x3-metric-card ${sim.metrics.loisAlert ? 'is-err' : 'is-ok'}"><div class="x3-metric-val">${sim.metrics.loisCount} / 2</div><div class="x3-metric-lbl">⚖️ Lois passives</div></div>` +
       `<div class="x3-metric-card"><div class="x3-metric-val">${sim.metrics.twistsCount}</div><div class="x3-metric-lbl">⚡ Twists 2K3</div></div>` +
-      `<div class="x3-metric-card ${sim.metrics.eveilAlert ? 'is-err' : (sim.modules.gardiens ? 'is-ok' : '')}"><div class="x3-metric-val">${sim.modules.gardiens ? sim.metrics.eveilCount : '—'}</div><div class="x3-metric-lbl">☀️ Catalyseurs Éveil</div></div>` +
-      `<div class="x3-metric-card ${sim.metrics.sommeilAlert ? 'is-err' : (sim.modules.reves ? 'is-ok' : '')}"><div class="x3-metric-val">${sim.modules.reves ? sim.metrics.sommeilCount : '—'}</div><div class="x3-metric-lbl">🌙 Leviers Sommeil</div></div>` +
+      `<div class="x3-metric-card ${sim.metrics.eveilAlert ? 'is-err' : (sim.modules.gardiens ? 'is-ok' : '')}"><div class="x3-metric-val">${sim.modules.gardiens ? sim.metrics.eveilCount : '—'}</div><div class="x3-metric-lbl">☀️ Éveil</div></div>` +
+      `<div class="x3-metric-card ${sim.metrics.sommeilAlert ? 'is-err' : (sim.modules.reves ? 'is-ok' : '')}"><div class="x3-metric-val">${sim.modules.reves ? sim.metrics.sommeilCount : '—'}</div><div class="x3-metric-lbl">🌙 Sommeil</div></div>` +
       `<div class="x3-metric-card"><div class="x3-metric-val">${sim.metrics.enracCount}</div><div class="x3-metric-lbl">🌱 Enracinements</div></div>` +
       `</div>` +
-      `<div><div class="x3-section-label mb-1.5">✨ Accessoires 3+3 présents à cette table (${sim.accessories.length})</div>` +
-      `<div class="grid grid-cols-1 md:grid-cols-2 gap-2">${accHtml}</div></div>` +
+      `<details class="x3-details-fold"><summary><span>▾ Accessoires 3+3 présents (${sim.accessories.length}) &amp; Chaînes de moteurs (${sim.completeChains.length})</span><span class="text-[11px] text-slate-500">${sim.isolatedAmplifiers.length} isolé(s)</span></summary>` +
+      `<div class="x3-details-body"><div class="space-y-1">${accHtml}</div><div class="x3-two-cols"><div class="space-y-1"><div class="x3-section-label">🔗 Chaînes bouclées</div>${chainsHtml}</div><div class="space-y-1"><div class="x3-section-label">🔍 Amplificateurs isolés</div>${isolatedHtml}</div></div></div></details>` +
       `</div>` +
       `</div>` +
-      `<div class="x3-chains-box">` +
-      `<div class="space-y-1.5"><div class="x3-section-label">🔗 Chaînes de moteurs bouclées à cette table (${sim.completeChains.length})</div><div class="space-y-1.5">${chainsHtml}</div></div>` +
-      `<div class="space-y-1.5"><div class="x3-section-label">🔍 Contrôle des amplificateurs isolés (${sim.isolatedAmplifiers.length})</div><div class="space-y-1.5">${isolatedHtml}</div></div>` +
       `</div>` +
-      `</div>` +
-      (uiState.resourceFocus ? renderResourceFocusPanel(activeTilesMap) : '') +
-      `<div class="space-y-4">${cardsHtml}</div>` +
+      `<div class="space-y-3">${cards}</div>` +
       `</div>`
     );
   }
 
   // --------------------------------------------------------------------------
-  // VUE 3 — Tableau de bord Atelier Mon Canon (30 slots)
-  // --------------------------------------------------------------------------
-  function renderDashboardView() {
-    const specs = getSlotsSpec();
-    const ws = uiState.workspace;
-    const radar = computeHealthRadar('canon');
-
-    let modifiedCount = 0;
-    let toArbitrateCount = 0;
-    let commentedCount = 0;
-    specs.forEach(sp => {
-      const w = ws.slots[sp.id];
-      if (w.is_modified) modifiedCount++;
-      if (!w.selected_source || w.status === 'HESITATION' || w.status === 'A_HYBRIDER') toArbitrateCount++;
-      if (w.comment && w.comment.trim()) commentedCount++;
-    });
-
-    const dashFilters = [
-      { id: 'ALL', label: `Tous (30)` },
-      { id: 'TO_ARBITRATE', label: `Points à arbitrer (${toArbitrateCount})` },
-      { id: 'UNELECTED', label: `À trancher (${radar.unelectedIds.length})` },
-      { id: 'HESITATION_HYBRID', label: `Hésitation / À hybrider` },
-      { id: 'MODIFIED', label: `Hybride / Édité (${modifiedCount})` },
-      { id: 'COMMENTED', label: `Avec notes (${commentedCount})` },
-      { id: 'FAVORITE', label: `♥ Coups de cœur` }
-    ].map(df => (
-      `<button type="button" class="x3-btn x3-btn-sm ${uiState.dashFilter === df.id ? 'x3-btn-primary' : ''}" ` +
-      `onclick="AmazoniaExplorerV63.setDashFilter('${df.id}')">${esc(df.label)}</button>`
-    )).join('');
-
-    const rowsHtml = specs.filter(sp => {
-      const w = ws.slots[sp.id];
-      if (uiState.dashFilter === 'TO_ARBITRATE') return !w.selected_source || w.status === 'HESITATION' || w.status === 'A_HYBRIDER';
-      if (uiState.dashFilter === 'UNELECTED') return !w.selected_source;
-      if (uiState.dashFilter === 'HESITATION_HYBRID') return w.status === 'HESITATION' || w.status === 'A_HYBRIDER';
-      if (uiState.dashFilter === 'MODIFIED') return Boolean(w.is_modified);
-      if (uiState.dashFilter === 'COMMENTED') return Boolean(w.comment && w.comment.trim());
-      if (uiState.dashFilter === 'FAVORITE') return Boolean(w.favorite);
-      return true;
-    }).map(sp => {
-      const sid = sp.id;
-      const w = ws.slots[sid];
-      const res = getCanonSlotResolved(sid, null);
-      const tile = res.tile;
-      const title = tile ? ((tile.carte_joueur && tile.carte_joueur.titre_complet) || (tile.tuile_plateau && tile.tuile_plateau.nom_court) || sid) : '— À trancher —';
-      const roleTags = [];
-      if (tile) {
-        if (tile.est_twist) roleTags.push('<span class="x3-role-pill" style="background:#ea580c;color:#fff">⚡</span>');
-        if (tile.nature === 'LOI_PASSIVE') roleTags.push('<span class="x3-role-pill" style="background:#334155;color:#fff">⚖️</span>');
-        if ((tile.roles_portes || []).includes('CATALYSEUR_EVEIL')) roleTags.push('<span class="x3-role-pill x3-role-eveil">☀️</span>');
-        if ((tile.roles_portes || []).includes('LEVIER_REVE')) roleTags.push('<span class="x3-role-pill x3-role-reve">🌙</span>');
-        if ((tile.roles_portes || []).includes('ENRACINEMENT')) roleTags.push('<span class="x3-role-pill x3-role-enrac">🌱</span>');
-      }
-
-      const srcPills = PANEL_IDS.map(pid => (
-        `<button type="button" class="x3-src-mini ${w.selected_source === pid ? 'is-active' : ''}" ` +
-        `onclick="AmazoniaExplorerV63.electSlot('${sid}', '${pid}')">${PANEL_SHORT[pid]}</button>`
-      )).join('') +
-        (w.is_modified ? `<button type="button" class="x3-src-mini is-custom ${w.selected_source === 'custom' ? 'is-active' : ''}" onclick="AmazoniaExplorerV63.electSlot('${sid}', 'custom')">Hyb</button>` : '') +
-        (w.selected_source ? `<button type="button" class="x3-src-mini" title="Remettre À trancher" onclick="AmazoniaExplorerV63.clearSlotElection('${sid}')">○</button>` : '');
-
-      const statusOptions = DRAFT_STATUSES.map(st => (
-        `<option value="${esc(st.value)}" ${w.status === st.value ? 'selected' : ''}>${esc(st.label)}</option>`
-      )).join('');
-
-      const stars = [1, 2, 3, 4, 5].map(n => (
-        `<button type="button" class="x3-star-btn ${w.rating >= n ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.setSlotRating('${sid}', ${n})">★</button>`
-      )).join('');
-
-      return (
-        `<tr data-dash-slot="${esc(sid)}">` +
-        `<td><div class="flex items-center gap-1.5"><strong class="font-mono">${esc(sid)}</strong>${renderOrientedEdgeBadge(sp.origine, sp.voisin)}</div></td>` +
-        `<td><div class="x3-dash-src-pills">${srcPills}</div></td>` +
-        `<td><div class="font-semibold text-slate-900">${esc(title)}</div><div class="flex gap-1 mt-0.5">${roleTags.join('')}</div></td>` +
-        `<td><select class="x3-select text-xs" onchange="AmazoniaExplorerV63.setSlotStatus('${sid}', this.value)">${statusOptions}</select></td>` +
-        `<td><div class="flex items-center gap-1"><div class="x3-stars">${stars}</div><button type="button" class="x3-fav-btn ${w.favorite ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleSlotFavorite('${sid}')">${w.favorite ? '♥' : '♡'}</button></div></td>` +
-        `<td><input type="text" class="x3-comment-input" style="min-width:10rem" value="${esc(w.comment || '')}" placeholder="Note…" oninput="AmazoniaExplorerV63.setSlotCommentLive('${sid}', this.value)" /></td>` +
-        `<td><div class="flex items-center gap-1">` +
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openDuelForSlot('${sid}')" title="Duel P1/P2/P3">⚔️</button>` +
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.jumpToSlot('${sid}')" title="Ouvrir la fiche">👁️</button>` +
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${sid}', '${w.selected_source || 'panel_1'}')" title="Modifier / Hybrider">✏️</button>` +
-        `</div></td>` +
-        `</tr>`
-      );
-    }).join('');
-
-    const pendingArbitrage = specs.filter(sp => {
-      const w = ws.slots[sp.id];
-      return !w.selected_source || w.status === 'HESITATION' || w.status === 'A_HYBRIDER';
-    });
-    const arbitrageStrip = pendingArbitrage.length > 0
-      ? `<div class="p-3 rounded-xl bg-amber-50/90 border border-amber-200 space-y-2" data-arbitrage-list="true">` +
-        `<div class="text-xs font-bold text-amber-950">🎯 Points restant à arbitrer (${pendingArbitrage.length}) — cliquez pour ouvrir le Duel :</div>` +
-        `<div class="flex flex-wrap gap-1.5">` +
-        pendingArbitrage.map(sp => {
-          const w = ws.slots[sp.id];
-          const badge = !w.selected_source ? 'À trancher' : (w.status === 'A_HYBRIDER' ? 'À hybrider' : 'Hésitation');
-          return `<button type="button" class="x3-tile-link-chip is-downstream" onclick="AmazoniaExplorerV63.openDuelForSlot('${esc(sp.id)}')"><strong>${esc(sp.id)}</strong> (${esc(sp.alias_oriente)}) · ${esc(badge)}</button>`;
-        }).join('') +
-        `</div></div>`
-      : `<div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-900">✅ Tous les 30 emplacements sont arbitrés ! Vous pouvez exporter votre Canon candidat vers Antigravity.</div>`;
-
-    return (
-      `<div class="x3-dash-card" data-view="dashboard">` +
-      `<div class="flex flex-wrap items-center justify-between gap-3">` +
-      `<div><h2 class="font-serif text-xl font-bold text-slate-900">📋 Tableau de bord Atelier — Mon Canon v6.3 (${radar.electedCount}/30 élues)</h2>` +
-      `<p class="text-xs text-slate-500">Pilotez vos 30 emplacements, vos hybridations et vos arbitrages restants. Tout est sauvegardé automatiquement dans votre navigateur.</p></div>` +
-      `<div class="flex flex-wrap items-center gap-1.5">` +
-      `<span class="text-xs text-slate-500">Pré-remplir les non tranchés :</span>` +
-      PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.fillUnelectedFrom('${pid}')">Depuis ${PANEL_SHORT[pid]}</button>`).join('') +
-      `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.openExportModal('antigravity')">💾 Exporter / Importer</button>` +
-      `</div>` +
-      `</div>` +
-      `${arbitrageStrip}` +
-      `<div class="flex flex-wrap items-center gap-1.5">${dashFilters}</div>` +
-      `<div class="x3-dash-table-wrap">` +
-      `<table class="x3-dash-table">` +
-      `<thead><tr><th>Emplacement</th><th>Source élue</th><th>Tuile &amp; Rôles</th><th>Statut</th><th>Note</th><th>Commentaire d’auteur</th><th>Actions</th></tr></thead>` +
-      `<tbody>${rowsHtml || '<tr><td colspan="7" class="text-center py-6 text-slate-400">Aucun emplacement dans ce filtre.</td></tr>'}</tbody>` +
-      `</table>` +
-      `</div>` +
-      `</div>`
-    );
-  }
-
-  // --------------------------------------------------------------------------
-  // MODALE 1 — Guide des 32 Pictogrammes
+  // 5. Modales : Guide 32 Pictos, Éditeur/Hybrideur, Exports
   // --------------------------------------------------------------------------
   function renderPictoGuideModal() {
     if (!uiState.pictoGuideOpen) return '';
     const ref = getPictosRef();
     const byCat = {};
-    Object.values(ref).forEach(entry => {
-      const cat = entry.categorie || 'ACTION';
-      if (!byCat[cat]) byCat[cat] = [];
-      byCat[cat].push(entry);
+    Object.values(ref).forEach(it => {
+      const c = it.categorie || 'ACTION';
+      if (!byCat[c]) byCat[c] = [];
+      byCat[c].push(it);
     });
-
-    const catsHtml = PICTO_CATEGORIES.map(cat => {
+    const cats = PICTO_CATEGORIES.map(cat => {
       const items = byCat[cat.id] || [];
-      if (items.length === 0) return '';
+      if (!items.length) return '';
       return (
-        `<div class="space-y-2">` +
-        `<div class="x3-section-label">${esc(cat.label)} (${items.length})</div>` +
+        `<div class="space-y-1.5"><div class="x3-section-label">${esc(cat.label)} (${items.length})</div>` +
         `<div class="x3-picto-cat-grid">` +
-        items.map(it => (
-          `<button type="button" class="x3-picto-guide-card" onclick="AmazoniaExplorerV63.setPictoFilter('${esc(it.code)}')">` +
-          `<span class="x3-picto-guide-sym">${esc(it.symbole)}</span>` +
-          `<span class="text-xs font-semibold text-slate-800">${esc(it.libelle)}</span>` +
-          `</button>`
-        )).join('') +
-        `</div>` +
-        `</div>`
+        items.map(it => `<button type="button" class="x3-picto-guide-card" onclick="AmazoniaExplorerV63.setPictoFilter('${esc(it.code)}')"><span class="x3-picto-guide-sym">${esc(it.symbole)}</span><span class="text-xs font-semibold text-slate-800">${esc(it.libelle)}</span></button>`).join('') +
+        `</div></div>`
       );
     }).join('');
-
     return (
-      `<div class="x3-modal-backdrop" id="x3-picto-guide-modal" role="dialog" aria-modal="true" aria-label="Guide des 32 pictogrammes" onclick="if(event.target===this) AmazoniaExplorerV63.closePictoGuide()">` +
+      `<div class="x3-modal-backdrop" id="x3-picto-guide-modal" role="dialog" aria-modal="true" onclick="if(event.target===this) AmazoniaExplorerV63.closePictoGuide()">` +
       `<div class="x3-modal-panel">` +
-      `<div class="x3-modal-head">` +
-      `<h3 class="x3-modal-title">📖 Guide visuel des ${Object.keys(ref).length} pictogrammes officiels (Mini-Tuiles Plateau)</h3>` +
-      `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closePictoGuide()">✕ Fermer</button>` +
+      `<div class="x3-modal-head"><h3 class="x3-modal-title">📖 Guide des ${Object.keys(ref).length} pictogrammes officiels</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closePictoGuide()">✕ Fermer</button></div>` +
+      `<div class="x3-modal-body">${cats}</div>` +
+      `</div></div>`
+    );
+  }
+
+  function renderEditorMiniTuileHint(tile) {
+    const tp = tile.tuile_plateau || {};
+    const mcp = tp.mots_cles_plateau || {};
+    const hasPunct = [mcp.face_1, mcp.face_2, mcp.enracine, tp.resume_plateau].some(s => typeof s === 'string' && /[.!?]/.test(s));
+    return hasPunct ? '<div class="p-2 rounded bg-amber-50 border border-amber-200 text-[11px] text-amber-900">💡 Astuce Mini-Tuile : évitez <code>. ! ?</code> sur les mots-clés plateau.</div>' : '';
+  }
+
+  function renderEditorPreviewHtml(tile) {
+    const tp = tile.tuile_plateau || {};
+    const mcp = tp.mots_cles_plateau || {};
+    const cj = tile.carte_joueur || {};
+    const tr = cj.texte_regle || {};
+    const pictos = (tp.pictogrammes || []).map(renderPictoToken).join('');
+    return (
+      `<div class="x3-section-label">👁️ Prévisualisation en direct</div>` +
+      `${renderEditorMiniTuileHint(tile)}` +
+      `<div class="x3-mini-tuile fam-${esc(tile.famille)}">` +
+      `<div class="x3-mini-name">${esc(tp.nom_court || tile.id)}</div>` +
+      `<div class="flex flex-wrap gap-1">${pictos}</div>` +
+      (mcp.face_1 ? `<div class="x3-mini-kw-line"><strong>F1 :</strong> ${esc(mcp.face_1)}</div>` : '') +
+      (mcp.face_2 ? `<div class="x3-mini-kw-line"><strong>F2 :</strong> ${esc(mcp.face_2)}</div>` : '') +
+      (mcp.enracine ? `<div class="x3-mini-kw-line text-emerald-800"><strong>🌱 :</strong> ${esc(mcp.enracine)}</div>` : '') +
       `</div>` +
-      `<div class="x3-modal-body">` +
-      `<p class="text-xs text-slate-600">Cliquez sur n’importe quel pictogramme pour filtrer l’Explorateur sur les tuiles qui l’affichent sur leur Mini-Tuile Plateau.</p>` +
-      `${catsHtml}` +
-      `</div>` +
-      `</div>` +
+      `<div class="p-3 rounded-xl border border-slate-200 bg-white space-y-2">` +
+      `<div class="x3-duel-title">${esc(cj.titre_complet || tp.nom_court || tile.id)}</div>` +
+      `<div class="flex flex-wrap gap-1">${renderRoleBadges(tile, true)}</div>` +
+      (cj.pitch_ambiance ? `<p class="x3-pitch">${esc(cj.pitch_ambiance)}</p>` : '') +
+      `<div class="x3-rule-block"><div class="x3-rule-label">Face 1</div><div>${esc(tr.face_1 || '—')}</div></div>` +
+      (tr.face_2 ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">Face 2</div><div>${esc(tr.face_2)}</div></div>` : '') +
+      (tr.enracine ? `<div class="x3-rule-block is-enracine"><div class="x3-rule-label">🌱 Enraciné</div><div>${esc(tr.enracine)}</div></div>` : '') +
       `</div>`
     );
   }
 
-  // --------------------------------------------------------------------------
-  // MODALE 2 — Tiroir d'Édition & d'Hybridation à la demande
-  // --------------------------------------------------------------------------
   function renderEditorModal() {
     if (!uiState.editor) return '';
     const ed = uiState.editor;
@@ -3353,204 +2310,121 @@
     const tr = cj.texte_regle || {};
     const dr = cj.decision_et_renoncement || {};
     const isGardien = t.famille === 'GARDIEN';
-    const isA0 = A0_SLOTS.has(ed.slotId);
-    const wsSlot = uiState.workspace.slots[ed.slotId];
-    const refPictos = getPictosRef();
+    const w = uiState.workspace.slots[ed.slotId];
     const selPictos = Array.isArray(tp.pictogrammes) ? tp.pictogrammes : [];
     const roles = Array.isArray(t.roles_portes) ? t.roles_portes : [];
 
-    const pictoPicker = Object.values(refPictos).map(it => {
-      const on = selPictos.includes(it.code);
-      return (
-        `<button type="button" class="x3-picto-pick-btn ${on ? 'is-selected' : ''}" ` +
-        `title="${esc(it.libelle)}" onclick="AmazoniaExplorerV63.toggleEditorPicto('${esc(it.code)}')">` +
-        `${esc(it.symbole)} <span class="text-[11px]">${esc(it.libelle.split('(')[0].trim())}</span></button>`
-      );
-    }).join('');
-
-    const iconSelect = isGardien
-      ? `<div class="x3-field"><label>Icône Gardien conseillée</label>` +
-        `<select onchange="AmazoniaExplorerV63.updateEditorField('tuile_plateau.icone_conseillee', this.value)">` +
-        GUARDIAN_ICONS.map(ic => `<option value="${ic.id}" ${tp.icone_conseillee === ic.id ? 'selected' : ''}>${ic.icon} ${esc(ic.label)}</option>`).join('') +
-        `</select></div>`
-      : '';
-
-    const hybridRow = (label, section) => (
-      `<div class="flex flex-wrap items-center gap-1 text-xs">` +
-      `<span class="font-semibold text-slate-600">${esc(label)} :</span>` +
-      PANEL_IDS.map(pid => (
-        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.importEditorFromPanel('${pid}', '${section}')">${PANEL_SHORT[pid]}</button>`
-      )).join('') +
-      `</div>`
+    const hybridRow = (lbl, sec) => (
+      `<span class="inline-flex items-center gap-1 text-xs"><strong>${esc(lbl)} :</strong>` +
+      PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.importEditorFromPanel('${pid}', '${sec}')">${PANEL_SHORT[pid]}</button>`).join('') +
+      `</span>`
     );
 
+    const pictoPicker = Object.values(getPictosRef()).map(it => (
+      `<button type="button" class="x3-picto-pick-btn ${selPictos.includes(it.code) ? 'is-selected' : ''}" title="${esc(it.libelle)}" onclick="AmazoniaExplorerV63.toggleEditorPicto('${esc(it.code)}')">${esc(it.symbole)}</button>`
+    )).join('');
+
     return (
-      `<div class="x3-modal-backdrop" id="x3-editor-modal" role="dialog" aria-modal="true" aria-label="Éditer et hybrider ${esc(ed.slotId)}" onclick="if(event.target===this) AmazoniaExplorerV63.closeEditor()">` +
-      `<div class="x3-modal-panel" style="width:min(1220px, 100%)">` +
-      `<div class="x3-modal-head">` +
-      `<h3 class="x3-modal-title">✏️ Atelier d’Édition &amp; Hybridation — ${esc(ed.slotId)} (${esc(t.alias_oriente)})</h3>` +
-      `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeEditor()">✕ Fermer</button>` +
-      `</div>` +
+      `<div class="x3-modal-backdrop" id="x3-editor-modal" role="dialog" aria-modal="true" onclick="if(event.target===this) AmazoniaExplorerV63.closeEditor()">` +
+      `<div class="x3-modal-panel" style="width:min(1180px,100%)">` +
+      `<div class="x3-modal-head"><h3 class="x3-modal-title">✏️ Modifier / Hybrider — ${esc(ed.slotId)} (${esc(t.alias_oriente)})</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeEditor()">✕ Fermer</button></div>` +
       `<div class="x3-modal-body">` +
-      `<div class="p-3 rounded-xl bg-amber-50 border border-amber-200 flex flex-wrap items-center gap-3">` +
-      `<span class="text-xs font-bold text-amber-900">🧬 Raccourcis d’hybridation 1-clic :</span>` +
-      `${hybridRow('Tout charger', 'all')}` +
-      `${hybridRow('Face 1', 'face_1')}` +
-      (isGardien ? hybridRow('Face 2', 'face_2') : '') +
-      `${hybridRow('Enraciné', 'enracine')}` +
-      `${hybridRow('Pitch', 'pitch')}` +
-      `${hybridRow('Dilemme', 'dilemma')}` +
+      `<div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex flex-wrap items-center gap-3">` +
+      `<span class="text-xs font-bold text-amber-900">🧬 Importer depuis un panel :</span>` +
+      `${hybridRow('Tout', 'all')}${hybridRow('Face 1', 'face_1')}${isGardien ? hybridRow('Face 2', 'face_2') : ''}${hybridRow('Enraciné', 'enracine')}${hybridRow('Pitch', 'pitch')}${hybridRow('Dilemme', 'dilemma')}` +
       `</div>` +
       `<div class="x3-editor-layout">` +
       `<div class="space-y-3">` +
       `<div class="x3-form-section">` +
-      `<div class="x3-section-label">1. Identité, Nature &amp; Rôles</div>` +
-      `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">` +
-      `<div class="x3-field"><label>Nom court Mini-Tuile ${isGardien ? '🔒 (Animal verrouillé)' : ''}</label>` +
-      `<input type="text" value="${esc(tp.nom_court || '')}" ${isGardien ? 'disabled' : ''} oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.nom_court', this.value)" /></div>` +
-      `<div class="x3-field"><label>Titre complet Grande Carte</label>` +
-      `<input type="text" value="${esc(cj.titre_complet || '')}" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.titre_complet', this.value)" /></div>` +
+      `<div class="x3-two-cols">` +
+      `<div class="x3-field"><label>Nom court ${isGardien ? '🔒' : ''}</label><input type="text" value="${esc(tp.nom_court || '')}" ${isGardien ? 'disabled' : ''} oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.nom_court', this.value)" /></div>` +
+      `<div class="x3-field"><label>Titre complet</label><input type="text" value="${esc(cj.titre_complet || '')}" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.titre_complet', this.value)" /></div>` +
       `</div>` +
-      `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">` +
-      `<div class="x3-field"><label>Nature</label>` +
-      `<select onchange="AmazoniaExplorerV63.updateEditorField('nature', this.value)">` +
-      `<option value="ACTION" ${t.nature !== 'LOI_PASSIVE' ? 'selected' : ''}>✦ Action</option>` +
-      `<option value="LOI_PASSIVE" ${t.nature === 'LOI_PASSIVE' ? 'selected' : ''}>⚖️ Loi passive permanente</option>` +
-      `</select></div>` +
-      `${iconSelect}` +
+      `<div class="flex flex-wrap gap-3 items-center text-xs">` +
+      `<select class="x3-select" onchange="AmazoniaExplorerV63.updateEditorField('nature', this.value)"><option value="ACTION" ${t.nature !== 'LOI_PASSIVE' ? 'selected' : ''}>✦ Action</option><option value="LOI_PASSIVE" ${t.nature === 'LOI_PASSIVE' ? 'selected' : ''}>⚖️ Loi passive</option></select>` +
+      (isGardien ? `<select class="x3-select" onchange="AmazoniaExplorerV63.updateEditorField('tuile_plateau.icone_conseillee', this.value)">${GUARDIAN_ICONS.map(ic => `<option value="${ic.id}" ${tp.icone_conseillee === ic.id ? 'selected' : ''}>${ic.icon} ${esc(ic.label)}</option>`).join('')}</select>` : '') +
+      `<label class="inline-flex items-center gap-1 font-semibold"><input type="checkbox" ${t.est_twist ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('TWIST_2K3', this.checked)" /> ⚡ Twist 2K3</label>` +
+      (isGardien ? `<label class="inline-flex items-center gap-1 font-semibold"><input type="checkbox" ${roles.includes('CATALYSEUR_EVEIL') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('CATALYSEUR_EVEIL', this.checked)" /> ☀️ Éveil</label>` : '') +
+      `<label class="inline-flex items-center gap-1 font-semibold"><input type="checkbox" ${roles.includes('LEVIER_REVE') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('LEVIER_REVE', this.checked)" /> 🌙 Rêve</label>` +
+      `<label class="inline-flex items-center gap-1 font-semibold"><input type="checkbox" ${roles.includes('ENRACINEMENT') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('ENRACINEMENT', this.checked)" /> 🌱 Enrac.</label>` +
       `</div>` +
-      `<div class="flex flex-wrap gap-3 text-xs pt-1">` +
-      `<label class="inline-flex items-center gap-1.5 font-semibold"><input type="checkbox" ${t.est_twist ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('TWIST_2K3', this.checked)" /> ⚡ Twist 2K3</label>` +
-      (isGardien ? `<label class="inline-flex items-center gap-1.5 font-semibold"><input type="checkbox" ${roles.includes('CATALYSEUR_EVEIL') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('CATALYSEUR_EVEIL', this.checked)" /> ☀️ Catalyseur d’Éveil</label>` : '') +
-      `<label class="inline-flex items-center gap-1.5 font-semibold"><input type="checkbox" ${roles.includes('LEVIER_REVE') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('LEVIER_REVE', this.checked)" /> 🌙 Levier de Rêve</label>` +
-      `<label class="inline-flex items-center gap-1.5 font-semibold"><input type="checkbox" ${roles.includes('ENRACINEMENT') ? 'checked' : ''} onchange="AmazoniaExplorerV63.toggleEditorRole('ENRACINEMENT', this.checked)" /> 🌱 Synergie d’Enracinement</label>` +
-      (isA0 ? `<span class="text-sky-800 font-semibold">🔓 Autonomie A=0 (verrouillée)</span>` : '') +
-      `</div>` +
-      `</div>` +
-      `<div class="x3-form-section">` +
-      `<div class="x3-section-label">2. Mini-Tuile Plateau (2 à 4 pictos · zéro phrase)</div>` +
-      `<div class="text-[11px] text-slate-600">Pictogrammes sélectionnés (${selPictos.length}/4) :</div>` +
-      `<div class="x3-picto-picker">${pictoPicker}</div>` +
-      `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">` +
+      `<div class="x3-field"><label>Pictogrammes Mini-Tuile (${selPictos.length}/4)</label><div class="x3-picto-picker">${pictoPicker}</div></div>` +
+      `<div class="x3-two-cols">` +
       `<div class="x3-field"><label>Mots-clés Face 1</label><input type="text" value="${esc(mcp.face_1 || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.mots_cles_plateau.face_1', this.value)" /></div>` +
-      (isGardien ? `<div class="x3-field"><label>Mots-clés Face 2</label><input type="text" value="${esc(mcp.face_2 || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.mots_cles_plateau.face_2', this.value)" /></div>` : '') +
-      `<div class="x3-field"><label>Mots-clés Enraciné (optionnel)</label><input type="text" value="${esc(mcp.enracine || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.mots_cles_plateau.enracine', this.value)" /></div>` +
-      `<div class="x3-field"><label>Résumé plateau</label><input type="text" value="${esc(tp.resume_plateau || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.resume_plateau', this.value)" /></div>` +
+      (isGardien ? `<div class="x3-field"><label>Mots-clés Face 2</label><input type="text" value="${esc(mcp.face_2 || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.mots_cles_plateau.face_2', this.value)" /></div>` : `<div class="x3-field"><label>Mots-clés Enraciné</label><input type="text" value="${esc(mcp.enracine || '')}" oninput="AmazoniaExplorerV63.updateEditorField('tuile_plateau.mots_cles_plateau.enracine', this.value)" /></div>`) +
       `</div>` +
       `</div>` +
       `<div class="x3-form-section">` +
-      `<div class="x3-section-label">3. Grande Carte Joueur &amp; Dilemme</div>` +
       `<div class="x3-field"><label>Pitch d’ambiance</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.pitch_ambiance', this.value)">${esc(cj.pitch_ambiance || '')}</textarea></div>` +
       `<div class="x3-field"><label>Texte Face 1</label><textarea rows="4" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.texte_regle.face_1', this.value)">${esc(tr.face_1 || '')}</textarea></div>` +
       (isGardien ? `<div class="x3-field"><label>Texte Face 2 (autonome)</label><textarea rows="4" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.texte_regle.face_2', this.value)">${esc(tr.face_2 || '')}</textarea></div>` : '') +
-      `<div class="x3-field"><label>Clause Enraciné dédiée (laisser vide = ancrage standard)</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.texte_regle.enracine', this.value)">${esc(tr.enracine || '')}</textarea></div>` +
-      `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">` +
-      `<div class="x3-field"><label>🎯 Pourquoi la jouer (Choix)</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.decision_et_renoncement.choix', this.value)">${esc(dr.choix || '')}</textarea></div>` +
-      `<div class="x3-field"><label>⚖️ Ce qu’elle coûte (Renoncement)</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.decision_et_renoncement.renoncement', this.value)">${esc(dr.renoncement || '')}</textarea></div>` +
+      `<div class="x3-field"><label>Clause Enraciné (optionnelle)</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.texte_regle.enracine', this.value)">${esc(tr.enracine || '')}</textarea></div>` +
+      `<div class="x3-two-cols">` +
+      `<div class="x3-field"><label>🎯 Choix</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.decision_et_renoncement.choix', this.value)">${esc(dr.choix || '')}</textarea></div>` +
+      `<div class="x3-field"><label>⚖️ Renoncement</label><textarea rows="2" oninput="AmazoniaExplorerV63.updateEditorField('carte_joueur.decision_et_renoncement.renoncement', this.value)">${esc(dr.renoncement || '')}</textarea></div>` +
       `</div>` +
       `</div>` +
       `</div>` +
-      `<div class="space-y-3" id="x3-editor-live-preview">` +
-      `<div class="x3-section-label">👁️ Prévisualisation en direct</div>` +
-      `${renderMiniTuile(t, true)}` +
-      `${renderGrandeCarte(t)}` +
-      `</div>` +
+      `<div class="space-y-3" id="x3-editor-live-preview">${renderEditorPreviewHtml(t)}</div>` +
       `</div>` +
       `</div>` +
       `<div class="x3-modal-foot">` +
-      `<div class="flex items-center gap-2">` +
-      (wsSlot && wsSlot.is_modified ? `<button type="button" class="x3-btn x3-btn-danger" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(ed.slotId)}')">↺ Restaurer l’original</button>` : '') +
-      `</div>` +
-      `<div class="flex items-center gap-2">` +
-      `<button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.closeEditor()">Annuler</button>` +
-      `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.saveEditorToCanon()">💾 Enregistrer &amp; Élire dans Mon Canon</button>` +
-      `</div>` +
-      `</div>` +
-      `</div>` +
-      `</div>`
+      `<div>${w && w.is_modified ? `<button type="button" class="x3-btn x3-btn-danger" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(ed.slotId)}')">↺ Restaurer l’original</button>` : ''}</div>` +
+      `<div class="flex gap-2"><button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.closeEditor()">Annuler</button><button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.saveEditorToCanon()">💾 Enregistrer &amp; Garder</button></div>` +
+      `</div></div></div>`
     );
   }
 
-  // --------------------------------------------------------------------------
-  // MODALE 3 — Passerelles d'Export Gemini & Antigravity + Import Workspace
-  // --------------------------------------------------------------------------
   function renderExportModal() {
     if (!uiState.exportModal) return '';
     const em = uiState.exportModal;
     const radar = computeHealthRadar('canon');
-    const geminiBrief = buildGeminiMarkdownBrief(em.geminiScope || 'to_arbitrate');
-    const comfortBadge = geminiBrief.comfort === 'green'
-      ? 'is-ok'
-      : (geminiBrief.comfort === 'amber' ? 'is-warn' : 'is-err');
+    const brief = buildGeminiMarkdownBrief(em.geminiScope || 'to_arbitrate');
+    const comfortCls = brief.comfort === 'green' ? 'is-ok' : (brief.comfort === 'amber' ? 'is-warn' : 'is-err');
 
     const scopes = [
-      { id: 'to_arbitrate', label: '🤔 Hésitation & À hybrider' },
-      { id: 'active_context', label: uiState.view === 'simulator' ? '🎡 Table active' : '🔍 Lisière / Filtre actif' },
-      { id: 'notes_and_edits', label: '✏️ Mes notes & textes modifiés' },
-      { id: 'canon_summary', label: '📋 Synthèse légère Mon Canon' }
-    ].map(sc => (
-      `<button type="button" class="x3-btn x3-btn-sm ${em.geminiScope === sc.id ? 'x3-btn-primary' : ''}" ` +
-      `onclick="AmazoniaExplorerV63.setExportGeminiScope('${sc.id}')">${esc(sc.label)}</button>`
-    )).join('');
-
-    const hasSeed = Boolean(getInitialWorkspaceSeed());
+      { id: 'to_arbitrate', label: '🤔 À revoir' },
+      { id: 'active_context', label: uiState.mode === 'simulator' ? '🎡 Table active' : '⚔️ Emplacement actif' },
+      { id: 'notes_and_edits', label: '✏️ Notes & Hybrides' },
+      { id: 'canon_summary', label: '📋 Synthèse Mon Canon' }
+    ].map(sc => `<button type="button" class="x3-btn x3-btn-sm ${em.geminiScope === sc.id ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setExportGeminiScope('${sc.id}')">${esc(sc.label)}</button>`).join('');
 
     return (
-      `<div class="x3-modal-backdrop" id="x3-export-modal" role="dialog" aria-modal="true" aria-label="Passerelles Gemini et Antigravity" onclick="if(event.target===this) AmazoniaExplorerV63.closeExportModal()">` +
+      `<div class="x3-modal-backdrop" id="x3-export-modal" role="dialog" aria-modal="true" onclick="if(event.target===this) AmazoniaExplorerV63.closeExportModal()">` +
       `<div class="x3-modal-panel">` +
-      `<div class="x3-modal-head">` +
-      `<h3 class="x3-modal-title">📤 Passerelles d’Export « Zéro Saturation » &amp; Sauvegarde Atelier</h3>` +
-      `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeExportModal()">✕ Fermer</button>` +
-      `</div>` +
+      `<div class="x3-modal-head"><h3 class="x3-modal-title">📤 Passerelles Gemini &amp; Antigravity</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeExportModal()">✕ Fermer</button></div>` +
       `<div class="x3-modal-body">` +
-      `<div class="x3-subview-switch" style="width:fit-content">` +
-      `<button type="button" class="x3-subview-btn ${em.tab === 'gemini' ? 'is-active' : ''}" onclick="AmazoniaExplorerV63.setExportTab('gemini')">✨ Vers Gemini (Brief Markdown ciblé)</button>` +
-      `<button type="button" class="x3-subview-btn ${em.tab === 'antigravity' ? 'is-active' : ''}" onclick="AmazoniaExplorerV63.setExportTab('antigravity')">🚀 Vers Antigravity &amp; Sauvegarde JSON</button>` +
+      `<div class="flex gap-2">` +
+      `<button type="button" class="x3-btn x3-btn-sm ${em.tab === 'gemini' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setExportTab('gemini')">✨ Vers Gemini (Markdown)</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm ${em.tab === 'antigravity' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setExportTab('antigravity')">🚀 Vers Antigravity &amp; Sauvegarde JSON</button>` +
       `</div>` +
       (em.tab === 'gemini'
-        ? `<div class="space-y-3">` +
-          `<div class="flex flex-wrap items-center justify-between gap-2">` +
-          `<div class="flex flex-wrap gap-1.5">${scopes}</div>` +
-          `<span class="x3-radar-pill ${comfortBadge}" data-gemini-word-count="${geminiBrief.words}">~${geminiBrief.words} mots · ${geminiBrief.tileCount} tuile(s)</span>` +
-          `</div>` +
-          `<pre class="x3-export-preview" id="x3-gemini-md-preview">${esc(geminiBrief.markdown)}</pre>` +
-          `<div class="flex items-center justify-between gap-2 flex-wrap">` +
-          `<span class="text-xs text-slate-500">Markdown propre sans bruit technique, calibré pour un échange fluide dans Gemini web.</span>` +
-          `<button type="button" id="x3-btn-copy-md" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.copyGeminiBrief()">📋 Copier le Brief Markdown (~${geminiBrief.words} mots)</button>` +
-          `</div>` +
+        ? `<div class="space-y-2.5">` +
+          `<div class="flex flex-wrap items-center justify-between gap-2"><div class="flex flex-wrap gap-1.5">${scopes}</div><span class="x3-radar-pill ${comfortCls}" data-gemini-word-count="${brief.words}">~${brief.words} mots · ${brief.tileCount} tuile(s)</span></div>` +
+          `<pre class="x3-export-preview">${esc(brief.markdown)}</pre>` +
+          `<div class="flex justify-end"><button type="button" id="x3-btn-copy-md" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.copyGeminiBrief()">📋 Copier le Brief Markdown (~${brief.words} mots)</button></div>` +
           `</div>`
-        : `<div class="space-y-4">` +
-          `<div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5">` +
-          `<div class="x3-section-label">1. Sauvegarde complète de l’Atelier (prête pour contracts/panels/author_workspace_v6_3.json)</div>` +
-          `<p class="text-xs text-slate-600">Contient votre sélection par emplacement (${radar.electedCount}/30), toutes vos surcharges hybrides au format v6.3.1, vos statuts, notes et commentaires d’auteur.</p>` +
+        : `<div class="space-y-3">` +
+          `<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">` +
+          `<div class="x3-section-label">1. Sauvegarde complète (contracts/panels/author_workspace_v6_3.json)</div>` +
           `<div class="flex flex-wrap gap-2">` +
           `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadWorkspaceJson()">💾 Télécharger author_workspace_v6_3.json</button>` +
           `<input type="file" id="x3-workspace-import-input" accept=".json,application/json" class="hidden" onchange="AmazoniaExplorerV63.handleWorkspaceImport(event)" />` +
           `<button type="button" class="x3-btn" onclick="document.getElementById('x3-workspace-import-input').click()">📂 Importer author_workspace_v6_3.json</button>` +
-          (hasSeed ? `<button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.reloadSeedWorkspace()">↺ Recharger l’état du dépôt</button>` : '') +
-          `</div>` +
-          `</div>` +
-          `<div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2.5">` +
-          `<div class="x3-section-label">2. Exporter un contrat candidat tiles_canon_v6_3.json (Étape 3)</div>` +
-          `<p class="text-xs text-emerald-950">Génère un catalogue 30 tuiles conforme au schéma v6.3.1 (avec <code>referentiel_pictogrammes</code>, <code>casting_gardiens_verrouille</code> et <code>carte_des_roles</code> recalculée).</p>` +
+          `</div></div>` +
+          `<div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">` +
+          `<div class="x3-section-label">2. Exporter tiles_canon_v6_3.json candidat (${radar.electedCount}/30 gardées)</div>` +
           (radar.electedCount < 30
-            ? `<div class="flex flex-wrap items-center gap-2 text-xs text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">` +
-              `<span>⚠️ ${30 - radar.electedCount} emplacement(s) non encore élu(s) — compléter les manquants depuis :</span>` +
-              `<select class="x3-select" onchange="AmazoniaExplorerV63.setExportFallbackPanel(this.value)">` +
-              PANEL_IDS.map(pid => `<option value="${pid}" ${em.fallbackPanel === pid ? 'selected' : ''}>${PANEL_LABELS[pid]}</option>`).join('') +
-              `</select></div>`
-            : `<div class="text-xs text-emerald-800 font-semibold">✅ 30/30 emplacements élus — export 100 % issu de Mon Canon v6.3.</div>`) +
+            ? `<div class="flex items-center gap-2 text-xs"><span>Compléter les ${30 - radar.electedCount} non tranchées depuis :</span><select class="x3-select" onchange="AmazoniaExplorerV63.setExportFallbackPanel(this.value)">${PANEL_IDS.map(p => `<option value="${p}" ${em.fallbackPanel === p ? 'selected' : ''}>${PANEL_LABELS[p]}</option>`).join('')}</select></div>`
+            : `<div class="text-xs text-emerald-800 font-semibold">✅ 30/30 emplacements gardés dans Mon Canon.</div>`) +
           `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadCandidateCanonJson()">🏆 Exporter tiles_canon_v6_3.json candidat</button>` +
-          `</div>` +
-          `</div>`) +
-      `</div>` +
-      `</div>` +
-      `</div>`
+          `</div></div>`) +
+      `</div></div></div>`
     );
   }
 
   // --------------------------------------------------------------------------
-  // Rendu Principal & Gestion de l'Intégration dans docs/index.html
+  // Rendu Principal & Helpers IO
   // --------------------------------------------------------------------------
   function render() {
     ensureInitialized();
@@ -3558,7 +2432,6 @@
     const gridEl = document.getElementById('catalogue-grid');
     if (!toolbarEl || !gridEl) return;
 
-    // Masquer les éléments hérités v6.2 pour un espace de travail épuré
     const legacyFilters = document.getElementById('legacy-catalogue-filters');
     if (legacyFilters && legacyFilters.classList) legacyFilters.classList.add('hidden');
     const v62Banner = document.getElementById('v62-catalogue-banner');
@@ -3567,30 +2440,20 @@
     if (oldToolbar && oldToolbar !== toolbarEl && oldToolbar.classList) oldToolbar.classList.add('hidden');
 
     let bodyHtml = '';
-    if (uiState.view === 'simulator') {
-      bodyHtml = renderSimulatorView();
-    } else if (uiState.view === 'dashboard') {
-      bodyHtml = renderDashboardView();
-    } else {
-      bodyHtml = uiState.explorerSubView === 'duel' ? renderDuelView() : renderExplorerCardsView();
-    }
+    if (uiState.mode === 'simulator') bodyHtml = renderSimulatorView();
+    else if (uiState.mode === 'list') bodyHtml = renderListView();
+    else bodyHtml = renderArbitrateDuelView();
 
     const modalsHtml = renderPictoGuideModal() + renderEditorModal() + renderExportModal();
-
-    toolbarEl.innerHTML = `<div class="x3-shell">${renderTopBarAndRadar()}</div>`;
+    toolbarEl.innerHTML = `<div class="x3-shell">${renderTopBar()}</div>`;
     gridEl.innerHTML = `<div class="x3-shell">${bodyHtml}</div>${modalsHtml}`;
   }
 
-  // --------------------------------------------------------------------------
-  // Actions Interactives (API publique window.AmazoniaExplorerV63)
-  // --------------------------------------------------------------------------
   function copyTextRobust(text) {
     if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       try {
         const p = navigator.clipboard.writeText(text);
-        if (p && typeof p.catch === 'function') {
-          p.catch(() => fallbackCopySync(text));
-        }
+        if (p && typeof p.catch === 'function') p.catch(() => fallbackCopySync(text));
         return true;
       } catch (_err) {
         return fallbackCopySync(text);
@@ -3607,20 +2470,14 @@
     if (document.body && document.body.appendChild) document.body.appendChild(ta);
     if (ta.select) ta.select();
     let ok = false;
-    try {
-      if (typeof document.execCommand === 'function') ok = document.execCommand('copy');
-    } catch (_err) {
-      ok = false;
-    }
+    try { if (typeof document.execCommand === 'function') ok = document.execCommand('copy'); } catch (_err) { ok = false; }
     if (document.body && document.body.removeChild) document.body.removeChild(ta);
     return ok;
   }
 
   function downloadJsonFile(filename, payloadObj) {
     const jsonText = JSON.stringify(payloadObj, null, 2) + '\n';
-    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') {
-      return jsonText;
-    }
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return jsonText;
     const blob = new Blob([jsonText], { type: 'application/json;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3633,28 +2490,9 @@
     return jsonText;
   }
 
-  function renderEditorMiniTuileHint(tile) {
-    const tp = tile.tuile_plateau || {};
-    const mcp = tp.mots_cles_plateau || {};
-    const hasPunct = [mcp.face_1, mcp.face_2, mcp.enracine, tp.resume_plateau].some(
-      s => typeof s === 'string' && /[.!?]/.test(s)
-    );
-    if (!hasPunct) return '';
-    return '<div class="p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-900">💡 <strong>Astuce Mini-Tuile :</strong> évitez la ponctuation de phrase (<code>. ! ?</code>) sur les mots-clés plateau (utilisez <code>·</code> ou <code>→</code>).</div>';
-  }
-
-  function updateEditorPreviewOnly() {
-    if (!uiState.editor) return;
-    const prev = document.getElementById('x3-editor-live-preview');
-    if (prev) {
-      prev.innerHTML =
-        `<div class="x3-section-label">👁️ Prévisualisation en direct</div>` +
-        `${renderEditorMiniTuileHint(uiState.editor.tile)}` +
-        `${renderMiniTuile(uiState.editor.tile, true)}` +
-        `${renderGrandeCarte(uiState.editor.tile)}`;
-    }
-  }
-
+  // --------------------------------------------------------------------------
+  // API Publique
+  // --------------------------------------------------------------------------
   const api = {
     VERSION,
     render,
@@ -3671,189 +2509,115 @@
     buildCandidateCanonV63,
     getFilteredSlotIds,
 
-    setSource(src) {
+    setMode(m) {
       ensureInitialized();
-      uiState.source = src;
-      if (src === 'canon') uiState.radarTarget = 'canon';
+      uiState.mode = m;
+      if (m !== 'list') uiState.activeDrawer = null;
       render();
     },
 
-    toggleRadarTarget() {
+    openListView(src) {
       ensureInitialized();
-      uiState.radarTarget = uiState.radarTarget === 'canon' ? 'active_source' : 'canon';
+      uiState.mode = 'list';
+      uiState.listSource = src || 'canon';
       render();
     },
 
-    toggleRadarDetail(key) {
+    toggleDrawer(name) {
       ensureInitialized();
-      uiState.radarDetailKey = (uiState.radarDetailKey === key || !key) ? null : key;
+      uiState.activeDrawer = (uiState.activeDrawer === name || !name) ? null : name;
       render();
     },
 
-    applyRadarFilter(filterKind, value) {
+    setRadarTarget(src) {
       ensureInitialized();
-      uiState.view = 'explorer';
-      uiState.explorerSubView = 'cards';
-      uiState.selectedBorder = 'ALL';
-      uiState.filters = { search: '', peuple: 'ALL', family: 'ALL', role: 'ALL', draft: 'ALL', picto: null };
-      uiState.filters[filterKind] = value;
-      uiState.radarDetailKey = null;
+      uiState.radarTarget = src;
       render();
     },
 
-    setView(v) {
+    toggleRadarDetail(k) {
       ensureInitialized();
-      uiState.view = v;
+      uiState.radarDetailKey = uiState.radarDetailKey === k ? null : k;
       render();
     },
 
-    setExplorerSubView(sv) {
+    setIndexFilter(f) {
       ensureInitialized();
-      uiState.view = 'explorer';
-      uiState.explorerSubView = sv;
+      uiState.indexFilter = f;
       render();
     },
 
-    selectBorder(bk) {
+    goToSlot(slotId) {
       ensureInitialized();
-      uiState.selectedBorder = bk;
+      if (!getSlotSpecMap()[slotId]) return;
+      uiState.currentSlotId = slotId;
+      uiState.mode = 'arbitrate';
+      uiState.activeDrawer = null;
       render();
     },
 
-    setFilter(key, value) {
+    stepSlot(delta) {
       ensureInitialized();
-      uiState.filters[key] = value;
+      const specs = getSlotsSpec();
+      const idx = specs.findIndex(s => s.id === uiState.currentSlotId);
+      const next = (idx + delta + specs.length) % specs.length;
+      uiState.currentSlotId = specs[next].id;
       render();
-      if (key === 'search') {
-        const inp = document.getElementById('x3-search-input');
-        if (inp && typeof inp.focus === 'function') {
-          inp.focus();
-          if (typeof inp.setSelectionRange === 'function') {
-            const len = String(value || '').length;
-            inp.setSelectionRange(len, len);
-          }
+    },
+
+    goToNextPending() {
+      ensureInitialized();
+      const specs = getSlotsSpec();
+      const curIdx = specs.findIndex(s => s.id === uiState.currentSlotId);
+      for (let off = 1; off <= specs.length; off++) {
+        const cand = specs[(curIdx + off) % specs.length];
+        const w = uiState.workspace.slots[cand.id];
+        if (!w.selected_source || isSlotFlaggedReview(w)) {
+          uiState.currentSlotId = cand.id;
+          uiState.mode = 'arbitrate';
+          render();
+          return cand.id;
         }
       }
+      return uiState.currentSlotId;
     },
 
-    setPictoFilter(picCode) {
+    // Trio d'annotation : Garder · À revoir · Note
+    keepSlot(slotId, sourceKey) {
       ensureInitialized();
-      uiState.filters.picto = picCode || null;
-      uiState.pictoGuideOpen = false;
-      uiState.view = 'explorer';
-      uiState.explorerSubView = 'cards';
+      const w = uiState.workspace.slots[slotId];
+      if (!w) return;
+      if (sourceKey === 'custom' && !w.custom_tile) return;
+      w.selected_source = w.selected_source === sourceKey ? null : sourceKey;
+      if (PANEL_IDS.includes(sourceKey)) w.base_source = sourceKey;
+      w.updated_at = new Date().toISOString();
+      saveWorkspaceToStorage();
       render();
     },
 
-    resetFilters() {
+    toggleSlotReview(slotId) {
       ensureInitialized();
-      uiState.selectedBorder = 'ALL';
-      uiState.filters = { search: '', peuple: 'ALL', family: 'ALL', role: 'ALL', draft: 'ALL', picto: null };
-      uiState.resourceFilterOnly = false;
+      const w = uiState.workspace.slots[slotId];
+      if (!w) return;
+      w.status = isSlotFlaggedReview(w) ? '' : 'HESITATION';
+      w.updated_at = new Date().toISOString();
+      saveWorkspaceToStorage();
       render();
     },
 
-    focusResource(tok) {
+    setSlotCommentLive(slotId, text) {
       ensureInitialized();
-      if (uiState.resourceFocus === tok) {
-        uiState.resourceFocus = null;
-        uiState.resourceFilterOnly = false;
-      } else {
-        uiState.resourceFocus = tok;
+      const w = uiState.workspace.slots[slotId];
+      if (!w) return;
+      w.comment = String(text || '');
+      w.updated_at = new Date().toISOString();
+      saveWorkspaceToStorage();
+      const hint = document.getElementById(`x3-saved-${slotId}`);
+      if (hint && hint.classList) {
+        hint.classList.add('is-visible');
+        clearTimeout(hint._timer);
+        hint._timer = setTimeout(() => hint.classList.remove('is-visible'), 1300);
       }
-      render();
-    },
-
-    toggleResourceFilterOnly() {
-      ensureInitialized();
-      uiState.resourceFilterOnly = !uiState.resourceFilterOnly;
-      render();
-    },
-
-    clearResourceFocus() {
-      ensureInitialized();
-      uiState.resourceFocus = null;
-      uiState.resourceFilterOnly = false;
-      render();
-    },
-
-    jumpToSlot(slotId) {
-      ensureInitialized();
-      const sp = getSlotSpecMap()[slotId];
-      if (!sp) return;
-      uiState.view = 'explorer';
-      uiState.explorerSubView = 'cards';
-      uiState.selectedBorder = borderKey(sp.origine, sp.voisin);
-      uiState.filters = { search: '', peuple: 'ALL', family: 'ALL', role: 'ALL', draft: 'ALL', picto: null };
-      uiState.resourceFilterOnly = false;
-      render();
-      if (typeof document !== 'undefined' && typeof document.querySelector === 'function') {
-        const el = document.querySelector(`[data-slot-id="${slotId}"]`);
-        if (el && typeof el.scrollIntoView === 'function') {
-          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }
-    },
-
-    openDuelForSlot(slotId) {
-      ensureInitialized();
-      uiState.view = 'explorer';
-      uiState.explorerSubView = 'duel';
-      uiState.duelSlotId = slotId;
-      render();
-    },
-
-    setDuelSlot(slotId) {
-      ensureInitialized();
-      uiState.duelSlotId = slotId;
-      render();
-    },
-
-    // Simulateur de table
-    setSimPreset(presetKey) {
-      ensureInitialized();
-      const pr = PRESET_TABLES.find(p => p.key === presetKey);
-      if (!pr) return;
-      uiState.simPeuples = pr.peuples.slice();
-      uiState.simHighlightPeuple = null;
-      render();
-    },
-
-    toggleSimPeuple(code) {
-      ensureInitialized();
-      const idx = uiState.simPeuples.indexOf(code);
-      if (idx >= 0) {
-        if (uiState.simPeuples.length <= 3) return;
-        uiState.simPeuples.splice(idx, 1);
-      } else {
-        uiState.simPeuples.push(code);
-      }
-      uiState.simHighlightPeuple = null;
-      render();
-    },
-
-    moveSimPeuple(code, delta) {
-      ensureInitialized();
-      const idx = uiState.simPeuples.indexOf(code);
-      const next = idx + delta;
-      if (idx < 0 || next < 0 || next >= uiState.simPeuples.length) return;
-      const tmp = uiState.simPeuples[next];
-      uiState.simPeuples[next] = code;
-      uiState.simPeuples[idx] = tmp;
-      render();
-    },
-
-    toggleSimHighlight(code) {
-      ensureInitialized();
-      uiState.simHighlightPeuple = uiState.simHighlightPeuple === code ? null : code;
-      render();
-    },
-
-    // Tableau de bord
-    setDashFilter(df) {
-      ensureInitialized();
-      uiState.dashFilter = df;
-      render();
     },
 
     fillUnelectedFrom(panelId) {
@@ -3871,148 +2635,135 @@
       render();
     },
 
-    // Annotations Draft
-    electSlot(slotId, sourceKey) {
+    // Filtres & Ressources
+    setFilter(key, val) {
       ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      if (sourceKey === 'custom' && !w.custom_tile) return;
-      w.selected_source = (w.selected_source === sourceKey && uiState.view !== 'dashboard') ? null : sourceKey;
-      if (PANEL_IDS.includes(sourceKey)) w.base_source = sourceKey;
-      if (w.selected_source && !w.status) w.status = 'RETENUE';
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
+      uiState.filters[key] = val;
+      if (uiState.mode !== 'list') uiState.mode = 'list';
+      if (uiState.listSource === 'canon' && computeHealthRadar('canon').electedCount === 0) {
+        uiState.listSource = 'panel_1';
+      }
       render();
-    },
-
-    clearSlotElection(slotId) {
-      ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      w.selected_source = null;
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
-      render();
-    },
-
-    setSlotStatus(slotId, statusVal) {
-      ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      w.status = statusVal;
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
-      render();
-    },
-
-    setSlotRating(slotId, stars) {
-      ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      w.rating = w.rating === stars ? 0 : stars;
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
-      render();
-    },
-
-    toggleSlotFavorite(slotId) {
-      ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      w.favorite = !w.favorite;
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
-      render();
-    },
-
-    // Sauvegarde instantanée au fil de la frappe SANS détruire le focus du champ
-    setSlotCommentLive(slotId, text) {
-      ensureInitialized();
-      const w = uiState.workspace.slots[slotId];
-      if (!w) return;
-      w.comment = String(text || '');
-      w.updated_at = new Date().toISOString();
-      saveWorkspaceToStorage();
-      const hint = document.getElementById(`x3-saved-${slotId}`);
-      if (hint && hint.classList) {
-        hint.classList.add('is-visible');
-        clearTimeout(hint._timer);
-        hint._timer = setTimeout(() => hint.classList.remove('is-visible'), 1400);
+      if (key === 'search') {
+        const inp = document.getElementById('x3-search-input');
+        if (inp && typeof inp.focus === 'function') {
+          inp.focus();
+          if (typeof inp.setSelectionRange === 'function') {
+            const len = String(val || '').length;
+            inp.setSelectionRange(len, len);
+          }
+        }
       }
     },
 
-    // Guide 32 Pictogrammes
-    openPictoGuide() {
+    toggleFilterReviewOnly() {
       ensureInitialized();
-      uiState.pictoGuideOpen = true;
+      uiState.filters.reviewOnly = !uiState.filters.reviewOnly;
+      uiState.mode = 'list';
       render();
     },
 
-    closePictoGuide() {
+    setPictoFilter(picCode) {
       ensureInitialized();
+      uiState.filters.picto = picCode || null;
       uiState.pictoGuideOpen = false;
+      uiState.mode = 'list';
+      if (uiState.listSource === 'canon' && computeHealthRadar('canon').electedCount === 0) {
+        uiState.listSource = 'panel_1';
+      }
       render();
     },
 
-    // Éditeur & Hybrideur
+    resetFilters() {
+      ensureInitialized();
+      uiState.filters = { search: '', peuple: 'ALL', family: 'ALL', role: 'ALL', reviewOnly: false, picto: null };
+      uiState.resourceFocus = null;
+      uiState.resourceFocusSource = null;
+      render();
+    },
+
+    focusResource(tok, sourceHint) {
+      ensureInitialized();
+      if (uiState.resourceFocus === tok && (!sourceHint || uiState.resourceFocusSource === sourceHint)) {
+        uiState.resourceFocus = null;
+        uiState.resourceFocusSource = null;
+      } else {
+        uiState.resourceFocus = tok;
+        uiState.resourceFocusSource = sourceHint || (uiState.mode === 'list' ? uiState.listSource : 'panel_1');
+      }
+      render();
+    },
+
+    clearResourceFocus() {
+      ensureInitialized();
+      uiState.resourceFocus = null;
+      uiState.resourceFocusSource = null;
+      render();
+    },
+
+    // Simulateur de Table
+    setSimSource(src) { ensureInitialized(); uiState.simSource = src; render(); },
+    setSimPreset(presetKey) {
+      ensureInitialized();
+      const pr = PRESET_TABLES.find(p => p.key === presetKey);
+      if (!pr) return;
+      uiState.simPeuples = pr.peuples.slice();
+      uiState.simHighlightPeuple = null;
+      render();
+    },
+    toggleSimPeuple(code) {
+      ensureInitialized();
+      const idx = uiState.simPeuples.indexOf(code);
+      if (idx >= 0) { if (uiState.simPeuples.length <= 3) return; uiState.simPeuples.splice(idx, 1); }
+      else uiState.simPeuples.push(code);
+      uiState.simHighlightPeuple = null;
+      render();
+    },
+    moveSimPeuple(code, delta) {
+      ensureInitialized();
+      const idx = uiState.simPeuples.indexOf(code);
+      const nxt = idx + delta;
+      if (idx < 0 || nxt < 0 || nxt >= uiState.simPeuples.length) return;
+      const tmp = uiState.simPeuples[nxt]; uiState.simPeuples[nxt] = code; uiState.simPeuples[idx] = tmp;
+      render();
+    },
+    toggleSimHighlight(code) {
+      ensureInitialized();
+      uiState.simHighlightPeuple = uiState.simHighlightPeuple === code ? null : code;
+      render();
+    },
+
+    // Guide Pictos
+    openPictoGuide() { ensureInitialized(); uiState.pictoGuideOpen = true; render(); },
+    closePictoGuide() { ensureInitialized(); uiState.pictoGuideOpen = false; render(); },
+
+    // Éditeur / Hybrideur
     openEditor(slotId, sourceHint) {
       ensureInitialized();
       const w = uiState.workspace.slots[slotId];
-      let baseTile = null;
-      let baseSource = PANEL_IDS.includes(sourceHint) ? sourceHint : (w.base_source || 'panel_1');
-      if (sourceHint === 'custom' && w.custom_tile) {
-        baseTile = deepClone(w.custom_tile);
-      } else if (PANEL_IDS.includes(sourceHint)) {
-        baseTile = deepClone(getPanelTile(sourceHint, slotId));
-      } else if (w.is_modified && w.custom_tile) {
-        baseTile = deepClone(w.custom_tile);
-      } else {
-        baseTile = deepClone(getPanelTile(baseSource, slotId));
-      }
+      const baseSource = PANEL_IDS.includes(sourceHint) ? sourceHint : (w.base_source || 'panel_1');
+      const baseTile = (sourceHint === 'custom' && w.custom_tile)
+        ? deepClone(w.custom_tile)
+        : deepClone(getPanelTile(baseSource, slotId));
       if (!baseTile) return;
       uiState.editor = { slotId, baseSource, tile: baseTile };
       render();
     },
-
-    closeEditor() {
-      ensureInitialized();
-      uiState.editor = null;
-      render();
-    },
-
+    closeEditor() { ensureInitialized(); uiState.editor = null; render(); },
     importEditorFromPanel(panelId, section) {
       ensureInitialized();
       if (!uiState.editor) return;
-      const srcTile = getPanelTile(panelId, uiState.editor.slotId);
-      if (!srcTile) return;
+      const src = getPanelTile(panelId, uiState.editor.slotId);
+      if (!src) return;
       const t = uiState.editor.tile;
-      if (section === 'all') {
-        uiState.editor.tile = deepClone(srcTile);
-        uiState.editor.baseSource = panelId;
-      } else if (section === 'face_1') {
-        t.carte_joueur.texte_regle.face_1 = srcTile.carte_joueur.texte_regle.face_1;
-        t.tuile_plateau.mots_cles_plateau.face_1 = srcTile.tuile_plateau.mots_cles_plateau.face_1;
-      } else if (section === 'face_2') {
-        t.carte_joueur.texte_regle.face_2 = srcTile.carte_joueur.texte_regle.face_2;
-        t.tuile_plateau.mots_cles_plateau.face_2 = srcTile.tuile_plateau.mots_cles_plateau.face_2;
-      } else if (section === 'enracine') {
-        t.carte_joueur.texte_regle.enracine = srcTile.carte_joueur.texte_regle.enracine;
-        t.tuile_plateau.mots_cles_plateau.enracine = srcTile.tuile_plateau.mots_cles_plateau.enracine;
-        const hasEnr = Boolean(t.carte_joueur.texte_regle.enracine && String(t.carte_joueur.texte_regle.enracine).trim());
-        const r = new Set(t.roles_portes || []);
-        if (hasEnr) r.add('ENRACINEMENT');
-        t.roles_portes = Array.from(r);
-      } else if (section === 'pitch') {
-        t.carte_joueur.titre_complet = srcTile.carte_joueur.titre_complet;
-        t.carte_joueur.entite_illustree = srcTile.carte_joueur.entite_illustree;
-        t.carte_joueur.pitch_ambiance = srcTile.carte_joueur.pitch_ambiance;
-        t.carte_joueur.brief_illustration = srcTile.carte_joueur.brief_illustration;
-      } else if (section === 'dilemma') {
-        t.carte_joueur.decision_et_renoncement = deepClone(srcTile.carte_joueur.decision_et_renoncement);
-      }
+      if (section === 'all') { uiState.editor.tile = deepClone(src); uiState.editor.baseSource = panelId; }
+      else if (section === 'face_1') { t.carte_joueur.texte_regle.face_1 = src.carte_joueur.texte_regle.face_1; t.tuile_plateau.mots_cles_plateau.face_1 = src.tuile_plateau.mots_cles_plateau.face_1; }
+      else if (section === 'face_2') { t.carte_joueur.texte_regle.face_2 = src.carte_joueur.texte_regle.face_2; t.tuile_plateau.mots_cles_plateau.face_2 = src.tuile_plateau.mots_cles_plateau.face_2; }
+      else if (section === 'enracine') { t.carte_joueur.texte_regle.enracine = src.carte_joueur.texte_regle.enracine; t.tuile_plateau.mots_cles_plateau.enracine = src.tuile_plateau.mots_cles_plateau.enracine; }
+      else if (section === 'pitch') { t.carte_joueur.titre_complet = src.carte_joueur.titre_complet; t.carte_joueur.pitch_ambiance = src.carte_joueur.pitch_ambiance; }
+      else if (section === 'dilemma') { t.carte_joueur.decision_et_renoncement = deepClone(src.carte_joueur.decision_et_renoncement); }
       render();
     },
-
     updateEditorField(path, val) {
       ensureInitialized();
       if (!uiState.editor) return;
@@ -4023,75 +2774,57 @@
         cur = cur[parts[i]];
       }
       const last = parts[parts.length - 1];
-      if (last === 'enracine') {
-        cur[last] = String(val || '').trim() ? val : null;
-      } else {
-        cur[last] = val;
-      }
+      cur[last] = last === 'enracine' ? (String(val || '').trim() ? val : null) : val;
       if (path === 'nature') {
-        const roles = new Set(uiState.editor.tile.roles_portes || []);
-        if (val === 'LOI_PASSIVE') roles.add('LOI_PASSIVE');
-        else roles.delete('LOI_PASSIVE');
-        uiState.editor.tile.roles_portes = Array.from(roles);
+        const r = new Set(uiState.editor.tile.roles_portes || []);
+        if (val === 'LOI_PASSIVE') r.add('LOI_PASSIVE'); else r.delete('LOI_PASSIVE');
+        uiState.editor.tile.roles_portes = Array.from(r);
       }
-      updateEditorPreviewOnly();
+      const prev = document.getElementById('x3-editor-live-preview');
+      if (prev) prev.innerHTML = renderEditorPreviewHtml(uiState.editor.tile);
     },
-
     toggleEditorRole(roleCode, checked) {
       ensureInitialized();
       if (!uiState.editor) return;
       const t = uiState.editor.tile;
-      const roles = new Set(t.roles_portes || []);
-      if (checked) roles.add(roleCode);
-      else roles.delete(roleCode);
+      const r = new Set(t.roles_portes || []);
+      if (checked) r.add(roleCode); else r.delete(roleCode);
       if (roleCode === 'TWIST_2K3') t.est_twist = Boolean(checked);
-      t.roles_portes = Array.from(roles);
-      updateEditorPreviewOnly();
+      t.roles_portes = Array.from(r);
+      const prev = document.getElementById('x3-editor-live-preview');
+      if (prev) prev.innerHTML = renderEditorPreviewHtml(t);
     },
-
     toggleEditorPicto(picCode) {
       ensureInitialized();
       if (!uiState.editor) return;
-      const tp = uiState.editor.tile.tuile_plateau;
-      const list = Array.isArray(tp.pictogrammes) ? tp.pictogrammes.slice() : [];
+      const list = (uiState.editor.tile.tuile_plateau.pictogrammes || []).slice();
       const idx = list.indexOf(picCode);
-      if (idx >= 0) {
-        list.splice(idx, 1);
-      } else {
-        if (list.length >= 4) list.shift();
-        list.push(picCode);
-      }
-      tp.pictogrammes = list;
+      if (idx >= 0) list.splice(idx, 1);
+      else { if (list.length >= 4) list.shift(); list.push(picCode); }
+      uiState.editor.tile.tuile_plateau.pictogrammes = list;
       render();
     },
-
     saveEditorToCanon() {
       ensureInitialized();
       if (!uiState.editor) return;
       const { slotId, baseSource, tile } = uiState.editor;
-      const sp = getSlotSpecMap()[slotId];
-      const cleaned = sanitizeTileForCanonExport(tile, sp);
       const w = uiState.workspace.slots[slotId];
-      w.custom_tile = cleaned;
+      w.custom_tile = sanitizeTileForCanonExport(tile, getSlotSpecMap()[slotId]);
       w.is_modified = true;
       w.selected_source = 'custom';
       w.base_source = baseSource;
-      if (!w.status) w.status = 'RETENUE';
       w.updated_at = new Date().toISOString();
       uiState.editor = null;
       saveWorkspaceToStorage();
       render();
     },
-
     restoreOriginalSlot(slotId) {
       ensureInitialized();
       const w = uiState.workspace.slots[slotId];
       if (!w) return;
       w.custom_tile = null;
       w.is_modified = false;
-      if (w.selected_source === 'custom') {
-        w.selected_source = w.base_source || 'panel_1';
-      }
+      if (w.selected_source === 'custom') w.selected_source = w.base_source || 'panel_1';
       w.updated_at = new Date().toISOString();
       uiState.editor = null;
       saveWorkspaceToStorage();
@@ -4101,67 +2834,27 @@
     // Exports & Imports
     openExportModal(tab) {
       ensureInitialized();
-      uiState.exportModal = {
-        tab: tab === 'antigravity' ? 'antigravity' : 'gemini',
-        geminiScope: 'to_arbitrate',
-        fallbackPanel: 'panel_1'
-      };
+      uiState.exportModal = { tab: tab === 'antigravity' ? 'antigravity' : 'gemini', geminiScope: 'to_arbitrate', fallbackPanel: 'panel_1' };
       render();
     },
-
-    closeExportModal() {
-      ensureInitialized();
-      uiState.exportModal = null;
-      render();
-    },
-
-    setExportTab(tab) {
-      ensureInitialized();
-      if (!uiState.exportModal) return;
-      uiState.exportModal.tab = tab;
-      render();
-    },
-
-    setExportGeminiScope(scope) {
-      ensureInitialized();
-      if (!uiState.exportModal) return;
-      uiState.exportModal.geminiScope = scope;
-      render();
-    },
-
-    setExportFallbackPanel(pid) {
-      ensureInitialized();
-      if (!uiState.exportModal) return;
-      uiState.exportModal.fallbackPanel = pid;
-      render();
-    },
-
+    closeExportModal() { ensureInitialized(); uiState.exportModal = null; render(); },
+    setExportTab(t) { if (uiState.exportModal) { uiState.exportModal.tab = t; render(); } },
+    setExportGeminiScope(sc) { if (uiState.exportModal) { uiState.exportModal.geminiScope = sc; render(); } },
+    setExportFallbackPanel(p) { if (uiState.exportModal) { uiState.exportModal.fallbackPanel = p; render(); } },
     copyGeminiBrief() {
       ensureInitialized();
       const scope = (uiState.exportModal && uiState.exportModal.geminiScope) || 'to_arbitrate';
-      const brief = buildGeminiMarkdownBrief(scope);
-      copyTextRobust(brief.markdown);
+      const b = buildGeminiMarkdownBrief(scope);
+      copyTextRobust(b.markdown);
       const btn = document.getElementById('x3-btn-copy-md');
       if (btn) {
-        btn.textContent = `✅ Brief copié (~${brief.words} mots)`;
-        setTimeout(() => {
-          btn.textContent = `📋 Copier le Brief Markdown (~${brief.words} mots)`;
-        }, 2000);
+        btn.textContent = `✅ Brief copié (~${b.words} mots)`;
+        setTimeout(() => { btn.textContent = `📋 Copier le Brief Markdown (~${b.words} mots)`; }, 2000);
       }
-      return brief;
+      return b;
     },
-
-    downloadWorkspaceJson() {
-      const obj = buildAuthorWorkspaceExport();
-      return downloadJsonFile('author_workspace_v6_3.json', obj);
-    },
-
-    downloadCandidateCanonJson() {
-      const fb = (uiState.exportModal && uiState.exportModal.fallbackPanel) || 'panel_1';
-      const obj = buildCandidateCanonV63(fb);
-      return downloadJsonFile('tiles_canon_v6_3.json', obj);
-    },
-
+    downloadWorkspaceJson() { return downloadJsonFile('author_workspace_v6_3.json', buildAuthorWorkspaceExport()); },
+    downloadCandidateCanonJson() { return downloadJsonFile('tiles_canon_v6_3.json', buildCandidateCanonV63((uiState.exportModal && uiState.exportModal.fallbackPanel) || 'panel_1')); },
     importWorkspaceObject(rawObj) {
       ensureInitialized();
       uiState.workspace = normalizeWorkspace(rawObj);
@@ -4169,49 +2862,35 @@
       render();
       return uiState.workspace;
     },
-
     handleWorkspaceImport(event) {
       const file = event && event.target && event.target.files ? event.target.files[0] : null;
       if (!file) return;
       const reader = new FileReader();
       reader.onload = function (e) {
         try {
-          const parsed = JSON.parse(String(e.target.result || ''));
-          api.importWorkspaceObject(parsed);
-          if (typeof global.showToast === 'function') {
-            global.showToast('Atelier importé', `Le fichier ${file.name} a bien été chargé dans Mon Canon v6.3.`);
-          }
+          api.importWorkspaceObject(JSON.parse(String(e.target.result || '')));
+          if (typeof global.showToast === 'function') global.showToast('Atelier importé', `${file.name} chargé dans Mon Canon v6.3.`);
         } catch (err) {
-          if (typeof global.showToast === 'function') {
-            global.showToast('Import invalide', `Impossible de lire ${file.name} : ${err.message}`);
-          }
-        } finally {
-          event.target.value = '';
-        }
+          if (typeof global.showToast === 'function') global.showToast('Import invalide', err.message);
+        } finally { event.target.value = ''; }
       };
       reader.readAsText(file, 'utf-8');
     },
 
-    reloadSeedWorkspace() {
-      const seed = getInitialWorkspaceSeed();
-      if (!seed) return;
-      api.importWorkspaceObject(seed);
-    },
-
-    // Compatibilité douce avec le bouton global "Copier contexte Gemini" de docs/index.html
     getFilteredSelection() {
       ensureInitialized();
-      const visibleIds = getFilteredSlotIds();
-      const tilesMap = getActiveTilesMap(uiState.source);
+      const sid = uiState.currentSlotId;
       const selected = {};
-      visibleIds.forEach(sid => {
-        if (tilesMap[sid]) selected[sid] = tilesMap[sid];
-      });
-      return {
-        isUnfiltered: visibleIds.length === 30 && uiState.source === 'archive_v6_2',
-        profileCount: Object.keys(selected).length,
-        selected
-      };
+      if (uiState.mode === 'list') {
+        const tm = getTilesMapForSource(uiState.listSource);
+        getFilteredSlotIds().forEach(id => { if (tm[id]) selected[id] = tm[id]; });
+      } else {
+        PANEL_IDS.forEach(pid => {
+          const t = getPanelTile(pid, sid);
+          if (t) selected[`${sid}_${pid}`] = t;
+        });
+      }
+      return { isUnfiltered: false, profileCount: Object.keys(selected).length, selected };
     }
   };
 

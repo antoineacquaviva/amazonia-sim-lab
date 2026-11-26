@@ -1,20 +1,22 @@
-"""Tests headless Node vm & pont Python dédiés à l'Explorateur Bi-Composant & Atelier Draft v6.3.1.
+"""Tests headless Node vm & pont Python dédiés à l'Atelier d'Arbitrage Bi-Composant v6.3.2.
 
 Vérifie sans dépendance npm :
 1. Encodage UTF-8 sans BOM, fins LF, compilation `docs/data/panels_v6_3_data.js` (y compris
    embarquement optionnel de `author_workspace_v6_3.json` & filtrage dans `audit_panels_directory`),
    et validation syntaxique stricte via `new vm.Script()`.
-2. Pilier A : rendu Bi-Composant (Mini-Tuile + Grande Carte), silhouettes Action / Loi passive / Twist 2K3,
-   Guide des 32 pictogrammes, absence totale de plomberie technique (`PIC_*`, `ICONE_*`,
-   `engine_sync_status`, `A_CODER`, `transition_python`) et zéro compteur C02 en lecture primaire.
-3. Pilier B : Flux Synergique (Plancher solo vs Amplificateurs /64, Jumelle Y>X, Qui m'alimente /
-   Qui j'alimente) et filtre 1-clic Ressource / Icône (Producteurs <-> Consommateurs).
-4. Pilier C : Bandeau permanent (`Panel 1|2|3`, `Mon Canon`, `Archive v6.2`), Radar de santé
-   temps réel sur les 197 assises (géométrie 2 triangles orientés `2K3`, Lois ≤ 5 & ≤ 2/assise,
-   Éveil (i)+(ii), Sommeil E sans H, Enracinements 3–5, Autonomie A=0), Vue 1 Duel `P1|P2|P3`,
-   Vue 2 Simulateur de Table `3..6` Peuples et Vue 3 Tableau de bord Atelier.
-5. Pilier D : Annotations Draft (`localStorage` + réimport), tiroir Édition/Hybridation (raccourcis
-   inter-panels + restauration), Brief Markdown Gemini ciblé (4 périmètres + compteur de mots)
+2. Ergonomie recentrée v6.3.2 :
+   - Entrée par défaut en Duel `P1 | P2 | P3` sur 1 emplacement (`G1`), tous tiroirs fermés et
+     détails (`<details class="x3-details-fold">`) repliés par défaut ;
+   - Repli automatique du bandeau global Studio au clic sur l'onglet Catalogue (`switchTab('catalogue')`)
+     et restauration de la préférence utilisateur sur les autres onglets ;
+   - Trio d'annotation léger (`★ Garder`, `🤔 À revoir`, `Note` temps réel), navigation clavier
+     `ArrowRight`/`ArrowLeft`/`Escape` et saut `Prochain à trancher` ;
+   - Tiroirs à la demande : Index compact 30 emplacements, Radar Santé consolidé (197 assises + `2K3`)
+     et Parcourir / Filtrer (Listes `Panel 1|2|3`, `Mon Canon`, `Archive v6.2`).
+3. Rendu Bi-Composant (Mini-Tuile + Grande Carte), Guide des 32 pictogrammes, focus 1-clic
+   Ressource/Icône (`Producteurs ⇄ Consommateurs`), absence totale de plomberie technique
+   (`PIC_*`, `ICONE_*`, `engine_sync_status`, `A_CODER`, `transition_python`) et zéro compteur `C02`.
+4. Simulateur de Table `3..6` Peuples, Éditeur/Hybrideur, Briefs Markdown Gemini ciblés (4 périmètres)
    et exports Antigravity (`author_workspace_v6_3.json` + `tiles_canon_v6_3.json` candidat validé
    en strict par `validate_tiles_canon_v6_3` et `audit_tiles_catalog_197`).
 """
@@ -184,7 +186,57 @@ function stripTags(htmlStr) {
 
 sandbox.refreshAllUI();
 
-// 1. Vérification 197 assises & Radar sur les 3 panels
+// 0. État initial v6.3.2 : Duel P1|P2|P3 par défaut sur G1, tiroirs fermés, repli bandeau auto
+const initTb = getEl('explorer-v6-3-toolbar').innerHTML;
+const initGd = getEl('catalogue-grid').innerHTML;
+const initState = exp.getState();
+const initCheck = {
+  version: exp.VERSION,
+  mode: initState.mode,
+  slot: initState.currentSlotId,
+  activeDrawer: initState.activeDrawer,
+  hasSingleHealthPill: initTb.includes('data-health-pill="true"'),
+  hasProgressPill: initTb.includes('data-progress-pill="true"'),
+  hasArbitrateSlotG1: initGd.includes('data-arbitrate-slot="G1"'),
+  duelCols: Array.from(initGd.matchAll(/data-duel-col="([^"]+)"/g)).map(m => m[1]),
+  detailsFoldClosed: initGd.includes('<details class="x3-details-fold"') && !initGd.includes('<details class="x3-details-fold" open'),
+  hasTrioBar: initGd.includes('data-trio-bar="G1"') && initGd.includes('data-review-btn="true"'),
+  hasBad: badTokenRe.test(initTb + '\n' + initGd),
+  hasSnake: (initTb + initGd).includes('\u{1F40D}'),
+};
+
+// Repli automatique du bandeau global Studio sur switchTab('catalogue') puis restauration sur 'livret'
+sandbox.switchTab('catalogue');
+const headerCollapsedOnCatalogue = getEl('header-collapsible-body').classList.contains('hidden');
+const headerBtnOnCatalogue = getEl('btn-toggle-header').textContent;
+sandbox.switchTab('livret');
+const headerRestoredOnLivret = !getEl('header-collapsible-body').classList.contains('hidden');
+sandbox.switchTab('catalogue');
+
+// Navigation clavier : ArrowRight -> G2, ArrowLeft -> G1, Escape ferme tiroir
+if (typeof docListeners.keydown === 'function') {
+  docListeners.keydown({ key: 'ArrowRight', target: { tagName: 'BODY' } });
+}
+const afterArrowRightSlot = exp.getState().currentSlotId;
+if (typeof docListeners.keydown === 'function') {
+  docListeners.keydown({ key: 'ArrowLeft', target: { tagName: 'BODY' } });
+}
+const afterArrowLeftSlot = exp.getState().currentSlotId;
+
+// Tiroir Santé consolidé (dépliable) + 197 assises
+exp.toggleDrawer('health');
+const healthDrawerHtml = getEl('explorer-v6-3-toolbar').innerHTML;
+const healthDrawerCheck = {
+  opened: healthDrawerHtml.includes('data-drawer="health"'),
+  radarPillsCount: (healthDrawerHtml.match(/data-radar-pill="/g) || []).length,
+  hasBad: badTokenRe.test(healthDrawerHtml),
+};
+if (typeof docListeners.keydown === 'function') {
+  docListeners.keydown({ key: 'Escape', target: { tagName: 'BODY' } });
+}
+const drawerClosedByEscape = exp.getState().activeDrawer === null;
+
+// 1. Modèle 197 assises & Rendu Bi-Composant + Zéro plomberie sur les 3 panels en Vue Liste
 const all197 = exp.enumerateAll197Assises();
 const countsByN = { 3: 0, 4: 0, 5: 0, 6: 0 };
 for (const a of all197) countsByN[a.n]++;
@@ -192,13 +244,14 @@ for (const a of all197) countsByN[a.n]++;
 const panelRadars = {};
 const panelRenders = {};
 for (const pid of ['panel_1', 'panel_2', 'panel_3']) {
-  exp.setSource(pid);
-  const r = exp.computeHealthRadar('active_source');
+  const r = exp.computeHealthRadar(pid);
+  exp.openListView(pid);
   const tb = getEl('explorer-v6-3-toolbar').innerHTML;
   const gd = getEl('catalogue-grid').innerHTML;
   const visibleProse = stripTags(tb + '\n' + gd);
   panelRadars[pid] = {
     elected: r.electedCount,
+    overallStatus: r.overallStatus,
     twistsCount: r.twists.count,
     twists2K3: Boolean(r.twists.triangles2K3),
     twistsStatus: r.twists.status,
@@ -217,7 +270,6 @@ for (const pid of ['panel_1', 'panel_2', 'panel_3']) {
   panelRenders[pid] = {
     miniCount: (gd.match(/data-component="mini-tuile"/g) || []).length,
     grandeCount: (gd.match(/data-component="grande-carte"/g) || []).length,
-    synergyStripCount: (gd.match(/data-synergy-strip="/g) || []).length,
     loiCards: (gd.match(/data-nature="LOI_PASSIVE"/g) || []).length,
     twistCards: (gd.match(/data-twist="true"/g) || []).length,
     hasBad: badTokenRe.test(tb + '\n' + gd),
@@ -228,8 +280,8 @@ for (const pid of ['panel_1', 'panel_2', 'panel_3']) {
   };
 }
 
-// 2. Guide des 32 pictogrammes
-exp.setSource('panel_1');
+// 2. Guide des 32 pictogrammes + filtre picto
+exp.openListView('panel_1');
 exp.openPictoGuide();
 const guideHtml = getEl('catalogue-grid').innerHTML;
 const guideCardsCount = (guideHtml.match(/class="x3-picto-guide-card"/g) || []).length;
@@ -241,22 +293,17 @@ exp.resetFilters();
 const panelsV63 = vm.runInContext('PANELS_V6_3', sandbox);
 
 // 3. Filtre Ressource / Icône 1 clic (Producteurs <-> Consommateurs)
-exp.focusResource('BLEU');
+exp.focusResource('BLEU', 'panel_1');
 const bleuIndex = exp.computeResourceIndex('BLEU', panelsV63.panel_1.tuiles_ciblees);
 const bleuHtml = getEl('catalogue-grid').innerHTML;
 const bleuHasPanel = bleuHtml.includes('data-resource-focus="BLEU"') && bleuHtml.includes('Producteurs') && bleuHtml.includes('Consommateurs');
-exp.focusResource('ICONE_PIEGEAGE');
+exp.focusResource('ICONE_PIEGEAGE', 'panel_1');
 const piegIndex = exp.computeResourceIndex('ICONE_PIEGEAGE', panelsV63.panel_1.tuiles_ciblees);
 exp.clearResourceFocus();
 
-// 4. Vue 1b — Duel Panel 1 | Panel 2 | Panel 3
-exp.openDuelForSlot('G1');
-const duelHtml = getEl('catalogue-grid').innerHTML;
-const duelCols = Array.from(duelHtml.matchAll(/data-duel-col="([^"]+)"/g)).map(m => m[1]);
-const duelHasBad = badTokenRe.test(duelHtml);
-
-// 5. Vue 2 — Simulateur de Table 3 à 6 Peuples
-exp.setView('simulator');
+// 4. Écran 2 — Simulateur de Table 3 à 6 Peuples
+exp.setMode('simulator');
+exp.setSimSource('panel_1');
 const simResults = {};
 for (const preset of ['N3-HEI', 'N3-ERO', 'N3-MRO', 'N6-HEMROI']) {
   exp.setSimPreset(preset);
@@ -275,28 +322,31 @@ for (const preset of ['N3-HEI', 'N3-ERO', 'N3-MRO', 'N6-HEMROI']) {
   };
 }
 
-// 6. Pilier D — Élection, Annotations, Hybridation, Persistance, Archive v6.2, Exports Gemini & Antigravity
-exp.setView('dashboard');
+// 5. Trio d'annotation, Index 30 emplacements, Radar mixte, Hybridation, Archive v6.2 & Exports
+exp.setMode('arbitrate');
+exp.goToSlot('G1');
+exp.keepSlot('G1', 'panel_1');
+const nextPendingAfterG1 = exp.goToNextPending();
+exp.goToSlot('G1');
+
+// Ouvrir Index compact 30 emplacements et pré-remplir le reste depuis panel_1
+exp.toggleDrawer('index30');
+const indexDrawerHtml = getEl('explorer-v6-3-toolbar').innerHTML;
+const indexDrawerSlotsCount = (indexDrawerHtml.match(/data-index-slot="/g) || []).length;
 exp.fillUnelectedFrom('panel_1');
 const canonRadarFullP1 = exp.computeHealthRadar('canon');
 
 // Remplacer G2 par panel_2 pour tester détection 2K3 cassée quand on mixe deux panels
-exp.electSlot('G2', 'panel_2');
+exp.keepSlot('G2', 'panel_2');
 const canonRadarMixedTwist = exp.computeHealthRadar('canon');
 // Revenir à panel_1 sur G2
-exp.electSlot('G2', 'panel_1');
+exp.keepSlot('G2', 'panel_1');
 
-// Annotations sur G1 & R4
-exp.setSlotStatus('G1', 'A_HYBRIDER');
-exp.setSlotRating('G1', 5);
-exp.toggleSlotFavorite('G1');
+// Trio d'annotation : À revoir + Note sur G1 & R4
+exp.toggleSlotReview('G1');
 exp.setSlotCommentLive('G1', 'Combiner Face 1 de P1 avec Face 2 de P2');
-exp.setSlotStatus('R4', 'HESITATION');
+exp.toggleSlotReview('R4');
 exp.setSlotCommentLive('R4', 'Arbitrer le Twist H>R entre P1 et P3');
-
-const dashHtml = getEl('catalogue-grid').innerHTML;
-const dashHasArbitrage = dashHtml.includes('data-arbitrage-list="true"') && dashHtml.includes('G1') && dashHtml.includes('R4');
-const dashHasBad = badTokenRe.test(dashHtml);
 
 // Éditeur & Hybridation sur G1 : importer Face 2 depuis panel_2 et sauver
 exp.openEditor('G1', 'panel_1');
@@ -304,17 +354,15 @@ exp.importEditorFromPanel('panel_2', 'face_2');
 exp.updateEditorField('carte_joueur.titre_complet', 'Le Jaguar hybride des rives');
 exp.saveEditorToCanon();
 
-exp.setSource('canon');
-exp.setView('explorer');
-exp.setExplorerSubView('cards');
-const canonGridHtml = getEl('catalogue-grid').innerHTML;
-const canonShowsModifiedBadge = canonGridHtml.includes('Modifié par l’auteur') && canonGridHtml.includes('Le Jaguar hybride des rives');
+exp.openListView('canon');
+const canonListHtml = getEl('catalogue-grid').innerHTML;
+const canonShowsModifiedBadge = canonListHtml.includes('Modifié') && canonListHtml.includes('Le Jaguar hybride des rives');
 
 // Archive v6.2 en lecture seule
-exp.setSource('archive_v6_2');
+exp.openListView('archive_v6_2');
 const archiveHtml = getEl('catalogue-grid').innerHTML;
 const archiveOk = archiveHtml.includes('Archive v6.2') && !badTokenRe.test(archiveHtml) && (archiveHtml.match(/data-component="grande-carte"/g) || []).length === 30;
-exp.setSource('canon');
+exp.setMode('arbitrate');
 
 // Exports Gemini Markdown (4 périmètres)
 const geminiBriefs = {};
@@ -344,6 +392,20 @@ const reimportedG1Title = exp.getWorkspace().slots.G1.custom_tile.carte_joueur.t
 
 console.log(JSON.stringify({
   ok: true,
+  init_check: initCheck,
+  header_auto_collapse: {
+    collapsed_on_catalogue: headerCollapsedOnCatalogue,
+    btn_on_catalogue: headerBtnOnCatalogue,
+    restored_on_livret: headerRestoredOnLivret,
+  },
+  keyboard: {
+    after_arrow_right: afterArrowRightSlot,
+    after_arrow_left: afterArrowLeftSlot,
+    drawer_closed_by_escape: drawerClosedByEscape,
+  },
+  health_drawer: healthDrawerCheck,
+  index_drawer_slots_count: indexDrawerSlotsCount,
+  next_pending_after_g1: nextPendingAfterG1,
   total_assises: all197.length,
   counts_by_n: countsByN,
   panel_radars: panelRadars,
@@ -359,17 +421,10 @@ console.log(JSON.stringify({
     piegeage_producers: piegIndex.producers.length,
     piegeage_guardians: piegIndex.consumersIcon.length,
   },
-  duel: {
-    cols: duelCols,
-    has_bad: duelHasBad,
-  },
   simulator: simResults,
-  dashboard: {
-    has_arbitrage: dashHasArbitrage,
-    has_bad: dashHasBad,
-  },
   canon_radar_full_p1: {
     elected: canonRadarFullP1.electedCount,
+    overallStatus: canonRadarFullP1.overallStatus,
     twists2K3: Boolean(canonRadarFullP1.twists.triangles2K3),
     loisMax: canonRadarFullP1.lois.maxPerAssise,
     eveil: canonRadarFullP1.eveil.status,
@@ -410,7 +465,7 @@ def _run_v63_harness() -> dict[str, Any]:
         check=False,
     )
     assert proc.returncode == 0, (
-        f"Échec du harnais Node vm Explorateur v6.3.1 :\n"
+        f"Échec du harnais Node vm Explorateur v6.3.2 :\n"
         f"STDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
     )
     lines = [line for line in proc.stdout.strip().splitlines() if line.strip()]
@@ -464,19 +519,52 @@ def test_compile_panels_embeds_initial_workspace_and_audit_ignores_it(tmp_path: 
     assert batch["all_ok"] is True
 
 
-def test_explorer_v63_bicomponent_radar_simulator_draft_and_strict_candidate_export() -> None:
-    """Valide les 4 piliers UX/UI v6.3.1 et la conformité Python stricte du Canon candidat exporté."""
+def test_explorer_v63_streamlined_atelier_radar_simulator_and_strict_export() -> None:
+    """Valide l'Atelier épuré v6.3.2, le Radar 197 assises et la conformité Python stricte du Canon candidat."""
     payload = _run_v63_harness()
     assert payload["ok"] is True
+
+    # 0. Entrée par défaut = Duel P1|P2|P3 sur G1, tiroirs fermés, repli bandeau auto
+    ic = payload["init_check"]
+    assert ic["version"] == "6.3.2"
+    assert ic["mode"] == "arbitrate"
+    assert ic["slot"] == "G1"
+    assert ic["activeDrawer"] is None
+    assert ic["hasSingleHealthPill"] is True
+    assert ic["hasProgressPill"] is True
+    assert ic["hasArbitrateSlotG1"] is True
+    assert ic["duelCols"] == ["panel_1", "panel_2", "panel_3"]
+    assert ic["detailsFoldClosed"] is True
+    assert ic["hasTrioBar"] is True
+    assert ic["hasBad"] is False
+    assert ic["hasSnake"] is False
+
+    hac = payload["header_auto_collapse"]
+    assert hac["collapsed_on_catalogue"] is True
+    assert "Afficher le bandeau" in hac["btn_on_catalogue"]
+    assert hac["restored_on_livret"] is True
+
+    kb = payload["keyboard"]
+    assert kb["after_arrow_right"] == "G2"
+    assert kb["after_arrow_left"] == "G1"
+    assert kb["drawer_closed_by_escape"] is True
+
+    hd = payload["health_drawer"]
+    assert hd["opened"] is True
+    assert hd["radarPillsCount"] == 7
+    assert hd["hasBad"] is False
+    assert payload["index_drawer_slots_count"] == 30
+    assert payload["next_pending_after_g1"] == "G2"
 
     # 1. Modèle exact des 197 assises
     assert payload["total_assises"] == 197
     assert payload["counts_by_n"] == {"3": 20, "4": 45, "5": 72, "6": 60}
 
-    # 2. Pilier A & C : Rendu Bi-Composant + Zéro plomberie + Radar 100 % OK sur les 3 panels
+    # 2. Rendu Bi-Composant + Zéro plomberie + Radar 100 % OK sur les 3 panels
     for pid in ("panel_1", "panel_2", "panel_3"):
         rad = payload["panel_radars"][pid]
         assert rad["elected"] == 30
+        assert rad["overallStatus"] == "ok"
         assert rad["twistsCount"] == 6
         assert rad["twists2K3"] is True, f"{pid} doit valider 2 triangles orientés 2K3"
         assert rad["twistsStatus"] == "ok"
@@ -492,7 +580,6 @@ def test_explorer_v63_bicomponent_radar_simulator_draft_and_strict_candidate_exp
         rnd = payload["panel_renders"][pid]
         assert rnd["miniCount"] == 30
         assert rnd["grandeCount"] == 30
-        assert rnd["synergyStripCount"] == 30
         assert rnd["loiCards"] == rad["loisCount"]
         assert rnd["twistCards"] == 6
         assert rnd["hasBad"] is False
@@ -507,18 +594,14 @@ def test_explorer_v63_bicomponent_radar_simulator_draft_and_strict_candidate_exp
     assert pg["has_bad"] is False
     assert pg["croc_slots_count"] >= 1
 
-    # 4. Pilier B : Focus Ressource / Icône (Producteurs <-> Consommateurs)
+    # 4. Focus Ressource / Icône (Producteurs <-> Consommateurs)
     rf = payload["resource_focus"]
     assert rf["bleu_has_panel"] is True
     assert rf["bleu_producers"] >= 1
     assert rf["piegeage_producers"] >= 1
     assert rf["piegeage_guardians"] >= 1
 
-    # 5. Vue 1b : Duel P1 | P2 | P3
-    assert payload["duel"]["cols"] == ["panel_1", "panel_2", "panel_3"]
-    assert payload["duel"]["has_bad"] is False
-
-    # 6. Vue 2 : Simulateur de Table 3..6 Peuples
+    # 5. Écran 2 : Simulateur de Table 3..6 Peuples
     sim = payload["simulator"]
     assert sim["N3-HEI"]["tilesCount"] == 6
     assert sim["N3-HEI"]["modules"] == {"gardiens": False, "reves": True, "essaim": True}
@@ -537,16 +620,15 @@ def test_explorer_v63_bicomponent_radar_simulator_draft_and_strict_candidate_exp
     assert sim["N6-HEMROI"]["chainsCount"] >= 1
     assert sim["N6-HEMROI"]["hasBad"] is False
 
-    # 7. Vue 3 : Tableau de bord & Radar Mon Canon (y compris détection 2K3 cassée en mixant)
-    assert payload["dashboard"]["has_arbitrage"] is True
-    assert payload["dashboard"]["has_bad"] is False
+    # 6. Radar Mon Canon (y compris détection 2K3 cassée en mixant) + Archive v6.2
     assert payload["canon_radar_full_p1"]["elected"] == 30
+    assert payload["canon_radar_full_p1"]["overallStatus"] == "ok"
     assert payload["canon_radar_full_p1"]["twists2K3"] is True
     assert payload["canon_radar_mixed_twist_2k3"] is False
     assert payload["canon_shows_modified_badge"] is True
     assert payload["archive_ok"] is True
 
-    # 8. Pilier D : Briefs Gemini (4 périmètres, zéro code brut) & Persistance Workspace
+    # 7. Briefs Gemini (4 périmètres, zéro code brut) & Persistance Workspace
     gb = payload["gemini_briefs"]
     for sc in ("to_arbitrate", "active_context", "notes_and_edits", "canon_summary"):
         assert gb[sc]["words"] > 20
@@ -561,7 +643,7 @@ def test_explorer_v63_bicomponent_radar_simulator_draft_and_strict_candidate_exp
     assert payload["workspace_reimported_g1_modified"] is True
     assert payload["workspace_reimported_g1_title"] == "Le Jaguar hybride des rives"
 
-    # 9. Pont Antigravity : le JSON candidat exporté depuis le navigateur passe strict Python + audit_197 !
+    # 8. Pont Antigravity : le JSON candidat exporté depuis le navigateur passe strict Python + audit_197 !
     cand = payload["candidate_canon_strict"]
     schema_errs = validate_tiles_canon_v6_3(cand, strict=True)
     assert schema_errs == [], f"Export tiles_canon_v6_3.json invalide : {schema_errs}"
