@@ -1,26 +1,30 @@
 /* ============================================================================
- * Amazonia Doc Studio — Atelier d'Arbitrage Bi-Composant (v6.3.2)
- * Recentré : Duel P1|P2|P3 par défaut, trio Garder/À revoir/Note, tiroirs à la demande.
+ * Amazonia Doc Studio — Explorateur & Atelier Bi-Composant (v6.4.0)
+ * Ouverture par défaut sur le Canon v6.4 affiné (30 tuiles Passe 2) + Simulateur
+ * de Table + Archives lecture seule (v6.3 Passe 1, v6.2) & Duel P1|P2|P3.
  * 100 % vanilla JS (compatible file://, GitHub Pages & Node vm).
  * ============================================================================ */
 (function (global) {
   'use strict';
 
-  const VERSION = '6.3.2';
-  const STORAGE_KEY = 'amazonia_atelier_v6_3_workspace_v1';
+  const VERSION = '6.4.0';
+  const STORAGE_KEY = 'amazonia_atelier_v6_4_workspace_v1';
   const PEUPLE_ORDER = ['H', 'E', 'M', 'R', 'O', 'I'];
   const ANIMAL_PEUPLES = new Set(['M', 'R', 'O']);
   const NON_ANIMAL_PEUPLES = new Set(['H', 'E', 'I']);
   const ONIRIQUE_PEUPLES = new Set(['H', 'E']);
   const PANEL_IDS = ['panel_1', 'panel_2', 'panel_3'];
   const PANEL_LABELS = {
+    canon_v6_4: 'Canon v6.4 (Affiné)',
+    archive_v6_3: 'Archive v6.3 (Passe 1)',
+    archive_v6_2: 'Archive v6.2',
+    canon: 'Mon Canon (Duel)',
     panel_1: 'Panel 1',
     panel_2: 'Panel 2',
-    panel_3: 'Panel 3',
-    canon: 'Mon Canon v6.3',
-    archive_v6_2: 'Archive v6.2'
+    panel_3: 'Panel 3'
   };
   const PANEL_SHORT = {
+    canon_v6_4: 'v6.4',
     panel_1: 'P1',
     panel_2: 'P2',
     panel_3: 'P3',
@@ -41,10 +45,10 @@
   const GUARDIAN_ICONS = [
     { id: 'ICONE_PARADE', label: 'Parade', icon: '🛡️', desc: 'Parade classique par Défenseurs seuls' },
     { id: 'ICONE_PIEGEAGE', label: 'Piégeage', icon: '🪤', desc: 'Frappe arrêtée par un Piège autonome ou le Croc' },
-    { id: 'ICONE_SABOTAGE', label: 'Sabotage', icon: '💥', desc: 'Jeton Sabotage ou Écaille révélé à l’ouverture' },
-    { id: 'ICONE_REVE', label: 'Rêve', icon: '🌙', desc: 'Rêve défendu annulant au moins une machine' },
+    { id: 'ICONE_SABOTAGE', label: 'Sabotage', icon: '💥', desc: 'Jeton Sabotage (Refroidir sinon Reculer) ou Écaille révélé à l’ouverture' },
+    { id: 'ICONE_REVE', label: 'Rêve', icon: '🌙', desc: 'Rêve défendu Étouffant au moins une machine' },
     { id: 'ICONE_INSECTE', label: 'Insecte', icon: '🐜', desc: 'Déviation ±1 ou Parade avec Insectes (si I joue)' },
-    { id: 'ICONE_RESONANCE', label: 'Résonance', icon: '🔔', desc: '6e icône : 1res activations des autres Gardiens' }
+    { id: 'ICONE_RESONANCE', label: 'Résonance', icon: '🔔', desc: '6e icône : dernier pari glissé en encoche lors d’une vraie activation' }
   ];
   const GUARDIAN_ICON_BY_ID = Object.fromEntries(GUARDIAN_ICONS.map(ic => [ic.id, ic]));
 
@@ -69,37 +73,37 @@
   const ACCESSORIES_3_3 = {
     H: {
       code: 'H', tierLabel: 'Actif dès le Tour 1', title: 'Tambour & Chant', icon: '🥁',
-      summary: 'Tambour posable sur tout rayon dès le 1er temps ; Chant glisse un Rêve d’1 rang à gauche s’il vide son rang.',
+      summary: 'Tambour posable sur tout rayon dès le 1er temps ; Chant fait Glisser un Rêve d’1 rang à gauche s’il vide son rang.',
       states: ['TAMBOUR', 'CHANT', 'POSITION_REVE', 'RANG_REVE', 'ANNULATION'],
       icons: ['ICONE_PARADE', 'ICONE_REVE']
     },
     M: {
-      code: 'M', tierLabel: 'Actif dès le Tour 1', title: 'Jeton Duel (Défi ↔ Territoire tenu)', icon: '⚔️',
-      summary: 'Posé avec un Défenseur M ; parer sur sa parcelle le retourne sur Territoire tenu (bloque l’avancée +1).',
+      code: 'M', tierLabel: 'Actif dès le Tour 1', title: 'Jeton Duel unifié (Défi ↔ Territoire tenu)', icon: '⚔️',
+      summary: 'Posé avec un Défenseur M ; toute frappe parée ou piégée par n’importe quel moyen sur sa parcelle le retourne sur Territoire tenu.',
       states: ['DUEL', 'TERRITOIRE', 'GARDIEN'],
       icons: ['ICONE_PARADE']
     },
     O: {
-      code: 'O', tierLabel: 'Actif dès le Tour 1', title: 'Dé d’Envol · Perchoir · Plume de Vigie', icon: '🪶',
-      summary: 'Servi dernier au sac (garde 1, pose 1 au Perchoir) ; choix min(D1,D2) ou Dé d’Envol ; Plume Chaud/Calme.',
-      states: ['DE_ENVOL', 'PERCHOIR', 'PLUME', 'RANG_MACHINE', 'GARDIEN'],
+      code: 'O', tierLabel: 'Actif dès le Tour 1', title: 'Choix libre 2 dés · Perchoir de Vigie', icon: '🦅',
+      summary: 'Servi dernier au sac (garde 1, pose 1 face cachée au Perchoir) ; choisit librement lequel de ses 2 dés standards il retient ; Perchoir orientable Chaud ↔ Calme.',
+      states: ['PERCHOIR', 'RANG_MACHINE', 'GARDIEN'],
       icons: []
     },
     E: {
       code: 'E', tierLabel: 'Progressif via tuiles', title: 'Jetons d’Altération', icon: '🌀',
-      summary: 'Posés sur machine mobile (max 1) : compte dans m(r) puis recule d’1 parcelle sans frapper.',
+      summary: 'Posés sur machine mobile (max 1) : compte dans m(r) puis Recule d’1 parcelle et est Étouffée sans frapper.',
       states: ['ALTERATION', 'ALTEREE', 'POSITION_REVE', 'RANG_REVE', 'ANNULATION'],
       icons: ['ICONE_REVE']
     },
     R: {
-      code: 'R', tierLabel: 'Progressif via tuiles', title: '4 Écailles · Croc · Cales', icon: '🦷',
-      summary: 'Écaille allume Sabotage et pose le Croc réutilisable (pare en premier) ; max 1 cale/machine mobile.',
+      code: 'R', tierLabel: 'Progressif via tuiles', title: '4 Écailles · Croc · Cale (Caïman)', icon: '🦷',
+      summary: 'Écaille allume Sabotage et pose le Croc réutilisable (pare en premier) ; cale exclusive au Caïman noir.',
       states: ['ECAILLE', 'CROC', 'CALE', 'SABOTAGE', 'GARDIEN'],
       icons: ['ICONE_SABOTAGE', 'ICONE_PIEGEAGE']
     },
     I: {
-      code: 'I', tierLabel: 'Progressif via tuiles', title: 'Essaim · Nids · Déviation ±1 · Bouclier', icon: '🐜',
-      summary: 'Production des Nids (+1/+2), Migration, Déviation ±1, Parade Insecte et Bouclier de lisière.',
+      code: 'I', tierLabel: 'Progressif via tuiles', title: 'Essaim · Déploiement direct · Déviation ±1 · Bouclier', icon: '🐜',
+      summary: 'Nids à Déploiement direct (+1/+2), Amorçage natif, Déménagement unifié, Déviation ±1, Parade Insecte et Bouclier de lisière.',
       states: ['INSECTE', 'INSECTE_RANG', 'NID', 'NID_ACTIVE'],
       icons: ['ICONE_INSECTE']
     }
@@ -111,14 +115,29 @@
     'FURTIVITE', 'RATISSAGE'
   ]);
 
-  const PEUPLE_NATIVE_STATES = {
+  const PEUPLE_NATIVE_STATES_V6_4 = {
     H: new Set(['TAMBOUR', 'CHANT', 'POSITION_REVE', 'RANG_REVE', 'ANNULATION']),
     E: new Set(['POSITION_REVE', 'RANG_REVE', 'ANNULATION']),
     M: new Set(['DUEL', 'TERRITOIRE', 'GARDIEN']),
     R: new Set(['GARDIEN']),
-    O: new Set(['DE_ENVOL', 'PERCHOIR', 'PLUME', 'GARDIEN']),
+    O: new Set(['PERCHOIR', 'GARDIEN']),
     I: new Set(['INSECTE', 'INSECTE_RANG', 'NID', 'NID_ACTIVE'])
   };
+
+  const PEUPLE_NATIVE_STATES_V6_3 = {
+    H: PEUPLE_NATIVE_STATES_V6_4.H,
+    E: PEUPLE_NATIVE_STATES_V6_4.E,
+    M: PEUPLE_NATIVE_STATES_V6_4.M,
+    R: PEUPLE_NATIVE_STATES_V6_4.R,
+    O: new Set(['DE_ENVOL', 'PERCHOIR', 'PLUME', 'GARDIEN']),
+    I: PEUPLE_NATIVE_STATES_V6_4.I
+  };
+
+  function getNativeStatesForSource(src) {
+    return (src === 'panel_1' || src === 'panel_2' || src === 'panel_3' || src === 'archive_v6_3' || src === 'canon')
+      ? PEUPLE_NATIVE_STATES_V6_3
+      : PEUPLE_NATIVE_STATES_V6_4;
+  }
 
   const PRESET_TABLES = [
     { key: 'N3-HEI', peuples: ['H', 'E', 'I'], label: '{H, E, I}', tag: 'A=0' },
@@ -141,9 +160,9 @@
     DUEL: { icon: '⚔️', label: 'Jeton Duel', kind: 'state' },
     DEFI: { icon: '⚔️', label: 'Duel (Défi)', kind: 'state', canon: 'DUEL' },
     TERRITOIRE: { icon: '🏰', label: 'Territoire tenu', kind: 'state' },
-    PLUME: { icon: '🪶', label: 'Plume de Vigie', kind: 'state' },
-    PERCHOIR: { icon: '🦅', label: 'Perchoir', kind: 'state' },
-    DE_ENVOL: { icon: '🎲', label: 'Dé d’Envol', kind: 'state' },
+    PLUME: { icon: '🦅', label: 'Perchoir (archive)', kind: 'state', canon: 'PERCHOIR' },
+    PERCHOIR: { icon: '🦅', label: 'Perchoir de Vigie', kind: 'state' },
+    DE_ENVOL: { icon: '🎲', label: 'Dé Oiseau (archive)', kind: 'state', canon: 'DES_SOUS_PARAVENT' },
     DES_SOUS_PARAVENT: { icon: '🎲', label: 'Dés sous paravent', kind: 'state' },
     TAMBOUR: { icon: '🥁', label: 'Tambour', kind: 'state' },
     CHANT: { icon: '🎶', label: 'Chant', kind: 'state' },
@@ -169,12 +188,13 @@
     PIEGE: { icon: '🪤', label: 'Piège autonome', kind: 'state' },
     SABOTAGE: { icon: '💥', label: 'Sabotage (sac)', kind: 'state' },
     ECAILLE: { icon: '🦎', label: 'Écaille (Reptiles)', kind: 'state' },
-    CALE: { icon: '🧱', label: 'Cale (Reptiles)', kind: 'state' },
+    CALE: { icon: '🧱', label: 'Cale (Caïman noir)', kind: 'state' },
     ARBRE: { icon: '🌳', label: 'Arbre debout', kind: 'state' },
     SOUCHE: { icon: '🪵', label: 'Souche', kind: 'state' },
     SOUCHE_SANCTUARISEE: { icon: '🪵', label: 'Souche protégée', kind: 'state', canon: 'SOUCHE' },
     ROUTE: { icon: '🛣️', label: 'Route forestière', kind: 'state' },
     SENTIER_ROUTE: { icon: '🛣️', label: 'Sentier / Route', kind: 'state', canon: 'ROUTE' },
+    BOURBIER_ROUTE: { icon: '🛣️', label: 'Bourbier / Route', kind: 'state', canon: 'ROUTE' },
     RATISSAGE: { icon: '⚙️', label: 'Ratissage', kind: 'state' },
     RATISSAGE_ROMPU: { icon: '⏪', label: 'Ratissage rompu', kind: 'state', canon: 'RECUL' },
     PROIE_ARRACHEE: { icon: '⏪', label: 'Machine arrachée', kind: 'state', canon: 'RECUL' },
@@ -186,11 +206,11 @@
     PISTON_REVES: { icon: '⬅️', label: 'Piston de Rêves', kind: 'state', canon: 'RANG_REVE' },
     REVE_COMPACTE: { icon: '⬅️', label: 'Rêves compactés', kind: 'state', canon: 'RANG_REVE' },
     GLISSEMENT_CHANT: { icon: '🎶', label: 'Glissement Chant', kind: 'state', canon: 'RANG_REVE' },
-    ANNULATION: { icon: '🚫', label: 'Annulation machine', kind: 'state' },
-    ANNULATION_ENVOL: { icon: '🚫', label: 'Annulation Envol', kind: 'state', canon: 'ANNULATION' },
-    ANNULATION_INDUITE: { icon: '🚫', label: 'Annulation induite', kind: 'state', canon: 'ANNULATION' },
-    ANNULATION_RENFORCEE: { icon: '🚫', label: 'Annulation renforcée', kind: 'state', canon: 'ANNULATION' },
-    ANNULATION_SURCHAUFFE: { icon: '🚫', label: 'Annulation Surchauffe', kind: 'state', canon: 'ANNULATION' },
+    ANNULATION: { icon: '🚫', label: 'Étouffement machine', kind: 'state' },
+    ANNULATION_ENVOL: { icon: '🚫', label: 'Étouffement Envol', kind: 'state', canon: 'ANNULATION' },
+    ANNULATION_INDUITE: { icon: '🚫', label: 'Étouffement induit', kind: 'state', canon: 'ANNULATION' },
+    ANNULATION_RENFORCEE: { icon: '🚫', label: 'Étouffement renforcé', kind: 'state', canon: 'ANNULATION' },
+    ANNULATION_SURCHAUFFE: { icon: '🚫', label: 'Étouffement Surchauffe', kind: 'state', canon: 'ANNULATION' },
     DEFENSEUR_ATTENTE: { icon: '♻️', label: 'Défenseur en attente', kind: 'state' },
     DEFENSEUR_REDEPLOYE: { icon: '🛡️', label: 'Défenseur redéployé', kind: 'state' },
     DEFENSEUR_EVACUE: { icon: '🛡️', label: 'Défenseur évacué', kind: 'state', canon: 'DEFENSEUR_REDEPLOYE' },
@@ -203,7 +223,7 @@
     FURTIVITE: { icon: '🌫️', label: 'Furtivité', kind: 'state' },
     MOBILISATION: { icon: '🔥', label: 'Mobilisation m(r)', kind: 'state' },
     JETON_AVALE: { icon: '💥', label: 'Jeton absorbé', kind: 'state', canon: 'SABOTAGE' },
-    LANTERNE: { icon: '✨', label: 'Signal lumineux', kind: 'state', canon: 'PLUME' },
+    LANTERNE: { icon: '✨', label: 'Signal lumineux', kind: 'state', canon: 'PERCHOIR' },
     ICONE_PARADE: { icon: '🛡️', label: 'Icône Parade', kind: 'icon' },
     ICONE_PIEGEAGE: { icon: '🪤', label: 'Icône Piégeage', kind: 'icon' },
     ICONE_SABOTAGE: { icon: '💥', label: 'Icône Sabotage', kind: 'icon' },
@@ -213,7 +233,7 @@
   };
 
   const QUICK_RESOURCES = [
-    'BLEU', 'ALTERATION', 'CROC', 'DUEL', 'PLUME', 'INSECTE',
+    'BLEU', 'ALTERATION', 'CROC', 'DUEL', 'PERCHOIR', 'INSECTE',
     'PIEGE', 'SABOTAGE', 'SOUCHE', 'ICONE_PIEGEAGE', 'ICONE_SABOTAGE', 'ICONE_RESONANCE'
   ];
 
@@ -261,10 +281,11 @@
     ACTIVATION_RELAIS: ['GARDIEN'],
     SOUCHE_SANCTUARISEE: ['SOUCHE'],
     SENTIER_ROUTE: ['ROUTE'],
+    BOURBIER_ROUTE: ['ROUTE'],
     RATISSAGE_ROMPU: ['RECUL', 'RATISSAGE'],
     PROIE_ARRACHEE: ['RECUL'],
     JETON_AVALE: ['SABOTAGE'],
-    LANTERNE: ['PLUME']
+    LANTERNE: ['PERCHOIR']
   };
 
   const PICTO_CATEGORIES = [
@@ -310,7 +331,31 @@
     return global.PANELS_V6_3 || {};
   }
 
-  function getPictosRef() {
+  function getCanonV64Data() {
+    if (typeof CANON_V6_4 !== 'undefined' && CANON_V6_4) return CANON_V6_4;
+    return global.CANON_V6_4 || null;
+  }
+
+  function hasCanonV64() {
+    const c = getCanonV64Data();
+    return Boolean(c && c.tuiles_ciblees && Object.keys(c.tuiles_ciblees).length > 0);
+  }
+
+  function getArchiveV63Data() {
+    if (typeof CANON_V6_3_PASSE1 !== 'undefined' && CANON_V6_3_PASSE1) return CANON_V6_3_PASSE1;
+    return global.CANON_V6_3_PASSE1 || null;
+  }
+
+  function getPictosRef(src) {
+    const useLegacy = src === 'panel_1' || src === 'panel_2' || src === 'panel_3' || src === 'archive_v6_3' || src === 'canon';
+    if (!useLegacy) {
+      if (typeof REFERENTIEL_PICTOGRAMMES_V6_4 !== 'undefined' && REFERENTIEL_PICTOGRAMMES_V6_4) {
+        return REFERENTIEL_PICTOGRAMMES_V6_4;
+      }
+      if (global.REFERENTIEL_PICTOGRAMMES_V6_4) {
+        return global.REFERENTIEL_PICTOGRAMMES_V6_4;
+      }
+    }
     if (typeof REFERENTIEL_PICTOGRAMMES_V6_3 !== 'undefined' && REFERENTIEL_PICTOGRAMMES_V6_3) {
       return REFERENTIEL_PICTOGRAMMES_V6_3;
     }
@@ -338,6 +383,12 @@
   }
 
   function getInitialWorkspaceSeed() {
+    if (typeof AUTHOR_WORKSPACE_INITIAL_V6_4 !== 'undefined' && AUTHOR_WORKSPACE_INITIAL_V6_4) {
+      return AUTHOR_WORKSPACE_INITIAL_V6_4;
+    }
+    if (global.AUTHOR_WORKSPACE_INITIAL_V6_4) {
+      return global.AUTHOR_WORKSPACE_INITIAL_V6_4;
+    }
     if (typeof AUTHOR_WORKSPACE_INITIAL_V6_3 !== 'undefined' && AUTHOR_WORKSPACE_INITIAL_V6_3) {
       return AUTHOR_WORKSPACE_INITIAL_V6_3;
     }
@@ -587,7 +638,7 @@
   }
 
   // --------------------------------------------------------------------------
-  // Workspace persistant (localStorage + import/export author_workspace_v6_3.json)
+  // Workspace persistant (localStorage + import/export author_workspace_v6_4.json)
   // --------------------------------------------------------------------------
   function isSlotFlaggedReview(wsSlot) {
     return Boolean(wsSlot && (wsSlot.status === 'HESITATION' || wsSlot.status === 'A_HYBRIDER'));
@@ -602,6 +653,8 @@
         selected_source: null,
         base_source: 'panel_1',
         is_modified: false,
+        v64_modified: false,
+        v64_custom_tile: null,
         status: '',
         comment: '',
         custom_tile: null,
@@ -609,8 +662,8 @@
       };
     });
     return {
-      schema_version: '6.3.1-workspace',
-      projet: 'Amazonia : Dernier Rempart — Atelier Draft v6.3.1',
+      schema_version: '6.4.0-workspace',
+      projet: 'Amazonia : Dernier Rempart — Atelier v6.4.0',
       updated_at: null,
       slots
     };
@@ -625,18 +678,22 @@
       const src = rawSlots[sid];
       if (!src || typeof src !== 'object') return;
       const dst = base.slots[sid];
-      if (['panel_1', 'panel_2', 'panel_3', 'custom', null].includes(src.selected_source)) {
+      if (['canon_v6_4', 'panel_1', 'panel_2', 'panel_3', 'custom', null].includes(src.selected_source)) {
         dst.selected_source = src.selected_source;
       }
-      if (['panel_1', 'panel_2', 'panel_3'].includes(src.base_source)) {
+      if (['canon_v6_4', 'panel_1', 'panel_2', 'panel_3'].includes(src.base_source)) {
         dst.base_source = src.base_source;
       }
       dst.is_modified = Boolean(src.is_modified && src.custom_tile);
+      dst.v64_modified = Boolean(src.v64_modified && src.v64_custom_tile);
       dst.status = typeof src.status === 'string' ? src.status : '';
       dst.comment = typeof src.comment === 'string' ? src.comment : '';
       dst.updated_at = typeof src.updated_at === 'string' ? src.updated_at : null;
       if (src.custom_tile && typeof src.custom_tile === 'object') {
         dst.custom_tile = deepClone(src.custom_tile);
+      }
+      if (src.v64_custom_tile && typeof src.v64_custom_tile === 'object') {
+        dst.v64_custom_tile = deepClone(src.v64_custom_tile);
       }
     });
     return base;
@@ -668,18 +725,18 @@
   }
 
   // --------------------------------------------------------------------------
-  // État réactif (centré sur le Duel P1|P2|P3 par défaut)
+  // État réactif (ouverture par défaut sur le Canon v6.4 affiné)
   // --------------------------------------------------------------------------
   const uiState = {
     initialized: false,
-    mode: 'arbitrate', // 'arbitrate' | 'list' | 'simulator'
+    mode: 'list', // 'list' (Canon v6.4 par défaut) | 'simulator' | 'arbitrate' (Duel P1|P2|P3)
     currentSlotId: 'G1',
-    listSource: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3' | 'archive_v6_2'
-    simSource: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
+    listSource: 'canon_v6_4', // 'canon_v6_4' | 'archive_v6_3' | 'archive_v6_2' | 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
+    simSource: 'canon_v6_4', // 'canon_v6_4' | 'archive_v6_3' | 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
     activeDrawer: null, // null | 'health' | 'index30' | 'browse'
     indexFilter: 'ALL', // 'ALL' | 'UNELECTED' | 'REVIEW' | 'MODIFIED'
     radarDetailKey: null,
-    radarTarget: 'canon', // 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
+    radarTarget: 'canon_v6_4', // 'canon_v6_4' | 'archive_v6_3' | 'canon' | 'panel_1' | 'panel_2' | 'panel_3'
     filters: {
       search: '',
       peuple: 'ALL',
@@ -702,6 +759,12 @@
     ensureBorderMaps();
     if (!uiState.initialized) {
       uiState.workspace = loadInitialWorkspace();
+      if (!hasCanonV64()) {
+        uiState.mode = 'arbitrate';
+        uiState.listSource = 'canon';
+        uiState.simSource = 'canon';
+        uiState.radarTarget = 'canon';
+      }
       uiState.initialized = true;
       bindGlobalKeys();
     }
@@ -739,6 +802,22 @@
     return p && p.tuiles_ciblees ? p.tuiles_ciblees[slotId] || null : null;
   }
 
+  function getCanonV64SlotResolved(slotId) {
+    ensureInitialized();
+    const w = uiState.workspace.slots[slotId];
+    if (w && w.v64_modified && w.v64_custom_tile) {
+      return { tile: w.v64_custom_tile, sourceKey: 'canon_v6_4', baseSource: 'canon_v6_4', elected: true, modified: true };
+    }
+    const c = getCanonV64Data();
+    const t = c && c.tuiles_ciblees ? c.tuiles_ciblees[slotId] || null : null;
+    return { tile: t, sourceKey: 'canon_v6_4', baseSource: 'canon_v6_4', elected: Boolean(t), modified: false };
+  }
+
+  function getArchiveV63Tile(slotId) {
+    const a = getArchiveV63Data();
+    return a && a.tuiles_ciblees ? a.tuiles_ciblees[slotId] || null : null;
+  }
+
   function getCanonSlotResolved(slotId, fallbackPanelId) {
     ensureInitialized();
     const w = uiState.workspace.slots[slotId];
@@ -759,6 +838,18 @@
 
   function getTilesMapForSource(src) {
     ensureInitialized();
+    if (src === 'canon_v6_4') {
+      const out = {};
+      getSlotsSpec().forEach(sp => {
+        const res = getCanonV64SlotResolved(sp.id);
+        if (res.tile) out[sp.id] = res.tile;
+      });
+      return out;
+    }
+    if (src === 'archive_v6_3') {
+      const a = getArchiveV63Data();
+      return (a && a.tuiles_ciblees) ? a.tuiles_ciblees : {};
+    }
     if (src === 'archive_v6_2') return getArchiveV62Map();
     if (src === 'canon') {
       const out = {};
@@ -773,6 +864,10 @@
   }
 
   function getEffectiveTile(slotId, src) {
+    if (src === 'canon_v6_4') return getCanonV64SlotResolved(slotId);
+    if (src === 'archive_v6_3') {
+      return { tile: getArchiveV63Tile(slotId), sourceKey: 'archive_v6_3', elected: false, modified: false };
+    }
     if (src === 'canon') return getCanonSlotResolved(slotId, null);
     if (src === 'archive_v6_2') {
       return { tile: getArchiveV62Map()[slotId] || null, sourceKey: 'archive_v6_2', elected: false, modified: false };
@@ -807,16 +902,17 @@
     return set;
   }
 
-  function computeSynergyCoverage64(slotId, stateToken, tilesMap) {
+  function computeSynergyCoverage64(slotId, stateToken, tilesMap, sourceKey) {
     const tok = String(stateToken || '').toUpperCase();
     const assises = enumerateAll197Assises();
+    const nativeStates = getNativeStatesForSource(sourceKey || 'canon_v6_4');
     let covered = 0;
     let total = 0;
     assises.forEach(a => {
       if (!a.tileIds.includes(slotId)) return;
       total++;
       const avail = new Set(SOCLE_STATES);
-      a.peuples.forEach(p => (PEUPLE_NATIVE_STATES[p] || []).forEach(st => avail.add(st)));
+      a.peuples.forEach(p => (nativeStates[p] || []).forEach(st => avail.add(st)));
       a.tileIds.forEach(otherId => {
         const ot = tilesMap[otherId];
         if (ot) expandOutputStates(ot.sorties).forEach(st => avail.add(st));
@@ -828,7 +924,7 @@
     return { covered, total: total || 64 };
   }
 
-  function computeTileLinks(slotId, tilesMap) {
+  function computeTileLinks(slotId, tilesMap, sourceKey) {
     const tile = tilesMap[slotId];
     if (!tile) return { upstreamTiles: [], downstreamTiles: [], synergyCoverage: {} };
     const floorIn = normalizeStateList(tile.entrees_plancher);
@@ -876,7 +972,7 @@
     });
 
     const synergyCoverage = {};
-    synIn.forEach(st => { synergyCoverage[st] = computeSynergyCoverage64(slotId, st, tilesMap); });
+    synIn.forEach(st => { synergyCoverage[st] = computeSynergyCoverage64(slotId, st, tilesMap, sourceKey); });
     const sortLinks = arr => arr.sort((a, b) => (b.isTwin ? 1 : 0) - (a.isTwin ? 1 : 0) || a.id.localeCompare(b.id));
     return {
       upstreamTiles: sortLinks(Array.from(upMap.values())),
@@ -885,7 +981,7 @@
     };
   }
 
-  function computeResourceIndex(token, tilesMap) {
+  function computeResourceIndex(token, tilesMap, sourceKey) {
     const key = String(token || '').toUpperCase();
     const isIcon = key.startsWith('ICONE_');
     const meta = humanizeToken(key);
@@ -895,7 +991,7 @@
 
     const nativeProducers = [];
     if (!isIcon && SOCLE_STATES.has(canon)) {
-      nativeProducers.push({ code: 'SOCLE', label: 'Socle commun v6.2', icon: '🌿' });
+      nativeProducers.push({ code: 'SOCLE', label: 'Socle commun v6.4', icon: '🌿' });
     }
     Object.values(ACCESSORIES_3_3).forEach(acc => {
       const hit = isIcon ? acc.icons.includes(key) : acc.states.some(s => matchSet.has(s));
@@ -921,7 +1017,7 @@
         if (Array.from(matchSet).some(m => fl.includes(m))) consumersFloor.push(item);
         const syn = normalizeStateList(tile.entrees_synergie);
         if (Array.from(matchSet).some(m => syn.includes(m))) {
-          const cov = computeSynergyCoverage64(sid, syn.find(s => matchSet.has(s)) || key, tilesMap);
+          const cov = computeSynergyCoverage64(sid, syn.find(s => matchSet.has(s)) || key, tilesMap, sourceKey);
           consumersSynergy.push(Object.assign({}, item, { coverage: cov }));
         }
       }
@@ -962,7 +1058,7 @@
 
   function computeHealthRadar(targetSource) {
     ensureInitialized();
-    const src = targetSource || uiState.radarTarget || 'canon';
+    const src = targetSource || uiState.radarTarget || (hasCanonV64() ? 'canon_v6_4' : 'canon');
     const tilesMap = getTilesMapForSource(src);
     const specs = getSlotsSpec();
     const assises = enumerateAll197Assises();
@@ -1068,7 +1164,7 @@
     const orphans = [];
     presentIds.forEach(sid => {
       normalizeStateList(tilesMap[sid].entrees_synergie).forEach(st => {
-        if (computeSynergyCoverage64(sid, st, tilesMap).covered === 0) orphans.push({ slotId: sid, state: st });
+        if (computeSynergyCoverage64(sid, st, tilesMap, src).covered === 0) orphans.push({ slotId: sid, state: st });
       });
     });
     const divergenceIssues = [];
@@ -1113,7 +1209,8 @@
     ensureInitialized();
     const circle = Array.from(peuples || []);
     const n = circle.length;
-    const src = sourceOverride || uiState.simSource || 'canon';
+    const src = sourceOverride || uiState.simSource || (hasCanonV64() ? 'canon_v6_4' : 'canon');
+    const nativeStates = getNativeStatesForSource(src);
     const canon = canonicalizeAssise(circle);
     const borders = [];
     const tileEntries = [];
@@ -1151,7 +1248,7 @@
     circle.forEach(p => {
       const acc = ACCESSORIES_3_3[p];
       if (!acc) return;
-      (PEUPLE_NATIVE_STATES[p] || []).forEach(st => pushProd(prodByState, st, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short}` }));
+      (nativeStates[p] || []).forEach(st => pushProd(prodByState, st, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short}` }));
       acc.icons.forEach(ic => pushProd(lightersByIcon, ic, { type: 'native', id: `ACC_${p}`, label: `${PEUPLE_META[p].short}` }));
     });
     Object.entries(activeTilesMap).forEach(([sid, tile]) => {
@@ -1240,7 +1337,9 @@
     ensureInitialized();
     const specs = getSlotsSpec();
     const ws = uiState.workspace;
-    const radar = computeHealthRadar('canon');
+    const isV64Active = hasCanonV64() && uiState.mode !== 'arbitrate' && uiState.listSource !== 'canon';
+    const activeRadarSrc = isV64Active ? 'canon_v6_4' : 'canon';
+    const radar = computeHealthRadar(activeRadarSrc);
     const lines = [];
     let tileCount = 0;
 
@@ -1260,7 +1359,7 @@
     }
 
     if (scope === 'to_arbitrate') {
-      lines.push('# Brief Atelier Amazonia v6.3 — Emplacements marqués « À revoir »');
+      lines.push(`# Brief Atelier Amazonia ${isV64Active ? 'v6.4' : 'v6.3'} — Emplacements marqués « À revoir »`);
       lines.push('');
       const targets = specs.filter(sp => isSlotFlaggedReview(ws.slots[sp.id]));
       if (targets.length === 0) {
@@ -1272,18 +1371,26 @@
           lines.push(`## ${sp.id} (${sp.alias_oriente})`);
           if (w.comment) lines.push(`> **Note d’auteur** : ${w.comment}`);
           lines.push('');
-          if (w.is_modified && w.custom_tile) {
-            lines.push(formatTileBrief(sp.id, w.custom_tile, 'Version hybride/éditée'));
+          if (isV64Active) {
+            const res = getCanonV64SlotResolved(sp.id);
+            if (res.tile) {
+              lines.push(formatTileBrief(sp.id, res.tile, res.modified ? 'Canon v6.4 (édité)' : 'Canon v6.4 (Affiné)'));
+              lines.push('');
+            }
+          } else {
+            if (w.is_modified && w.custom_tile) {
+              lines.push(formatTileBrief(sp.id, w.custom_tile, 'Version hybride/éditée'));
+              lines.push('');
+            }
+            PANEL_IDS.forEach(pid => {
+              const pt = getPanelTile(pid, sp.id);
+              if (!pt) return;
+              const tr = (pt.carte_joueur && pt.carte_joueur.texte_regle) || {};
+              const mark = w.selected_source === pid ? ' ★ Gardée' : '';
+              lines.push(`- **${PANEL_LABELS[pid]}${mark} — ${(pt.carte_joueur && pt.carte_joueur.titre_complet) || pt.tuile_plateau.nom_court}** : ${tr.face_1 || ''}${tr.face_2 ? ' // Face 2 : ' + tr.face_2 : ''}${tr.enracine ? ' // Enraciné : ' + tr.enracine : ''}`);
+            });
             lines.push('');
           }
-          PANEL_IDS.forEach(pid => {
-            const pt = getPanelTile(pid, sp.id);
-            if (!pt) return;
-            const tr = (pt.carte_joueur && pt.carte_joueur.texte_regle) || {};
-            const mark = w.selected_source === pid ? ' ★ Gardée' : '';
-            lines.push(`- **${PANEL_LABELS[pid]}${mark} — ${(pt.carte_joueur && pt.carte_joueur.titre_complet) || pt.tuile_plateau.nom_court}** : ${tr.face_1 || ''}${tr.face_2 ? ' // Face 2 : ' + tr.face_2 : ''}${tr.enracine ? ' // Enraciné : ' + tr.enracine : ''}`);
-          });
-          lines.push('');
         });
       }
     } else if (scope === 'active_context') {
@@ -1294,7 +1401,7 @@
         sim.tileEntries.forEach(e => {
           if (!e.tile) return;
           tileCount++;
-          lines.push(formatTileBrief(e.slotId, e.tile, PANEL_LABELS[e.sourceKey] || 'Mon Canon'));
+          lines.push(formatTileBrief(e.slotId, e.tile, PANEL_LABELS[e.sourceKey] || 'Canon v6.4'));
           lines.push('');
         });
       } else if (uiState.mode === 'arbitrate') {
@@ -1318,43 +1425,46 @@
           const res = getEffectiveTile(sid, uiState.listSource);
           if (!res.tile) return;
           tileCount++;
-          lines.push(formatTileBrief(sid, res.tile, res.modified ? 'Hybride' : (PANEL_LABELS[res.sourceKey] || uiState.listSource)));
+          lines.push(formatTileBrief(sid, res.tile, res.modified ? 'Éditée' : (PANEL_LABELS[res.sourceKey] || uiState.listSource)));
           lines.push('');
         });
       }
     } else if (scope === 'notes_and_edits') {
-      lines.push('# Brief Atelier Amazonia v6.3 — Notes d’auteur & Tuiles modifiées');
+      lines.push(`# Brief Atelier Amazonia ${isV64Active ? 'v6.4' : 'v6.3'} — Notes d’auteur & Tuiles modifiées`);
       lines.push('');
       const touched = specs.filter(sp => {
         const w = ws.slots[sp.id];
-        return w && (w.is_modified || (w.comment && w.comment.trim()) || isSlotFlaggedReview(w));
+        return w && (w.v64_modified || w.is_modified || (w.comment && w.comment.trim()) || isSlotFlaggedReview(w));
       });
       if (touched.length === 0) {
         lines.push('_Aucune note ni modification enregistrée pour le moment._');
       } else {
         touched.forEach(sp => {
           const w = ws.slots[sp.id];
-          const res = getCanonSlotResolved(sp.id, w.base_source || 'panel_1');
+          const res = isV64Active ? getCanonV64SlotResolved(sp.id) : getCanonSlotResolved(sp.id, w.base_source || 'panel_1');
           if (!res.tile) return;
           tileCount++;
-          lines.push(formatTileBrief(sp.id, res.tile, w.is_modified ? 'Hybride / Édité' : (w.selected_source ? PANEL_LABELS[w.selected_source] : 'À trancher')));
+          const tag = res.modified ? 'Éditée' : (isV64Active ? 'Canon v6.4' : (w.selected_source ? PANEL_LABELS[w.selected_source] : 'À trancher'));
+          lines.push(formatTileBrief(sp.id, res.tile, tag));
           lines.push('');
         });
       }
     } else {
-      lines.push(`# Synthèse Mon Canon v6.3 (${radar.electedCount}/30 emplacements gardés)`);
+      lines.push(`# Synthèse ${isV64Active ? 'Canon v6.4 (Affiné)' : 'Mon Canon (Duel)'} (${radar.electedCount}/30 emplacements)`);
       lines.push('');
       lines.push(`- **Twists 2K3** : ${radar.twists.count} (${radar.twists.triangles2K3 ? '2 triangles valides' : 'géométrie en cours'})`);
       lines.push(`- **Lois passives** : ${radar.lois.count}/5 (max ${radar.lois.maxPerAssise}/assise sur 197 assises)`);
       lines.push(`- **Éveil** : ${radar.eveil.count} catalyseurs · **Sommeil E sans H** : ${radar.sommeil.coveredEBorders.length}/4 lisières · **Enracinements** : ${radar.enrac.count}`);
       lines.push('');
-      lines.push('| Slot | Lisière | Choix | Titre | À revoir | Note |');
+      lines.push('| Slot | Lisière | Source | Titre | À revoir | Note |');
       lines.push('| --- | --- | --- | --- | --- | --- |');
       specs.forEach(sp => {
         const w = ws.slots[sp.id];
-        const res = getCanonSlotResolved(sp.id, null);
+        const res = isV64Active ? getCanonV64SlotResolved(sp.id) : getCanonSlotResolved(sp.id, null);
         if (res.tile) tileCount++;
-        const srcTxt = w.selected_source ? (PANEL_SHORT[w.selected_source] || w.selected_source) : '—';
+        const srcTxt = isV64Active
+          ? (res.modified ? 'v6.4*' : 'v6.4')
+          : (w.selected_source ? (PANEL_SHORT[w.selected_source] || w.selected_source) : '—');
         const title = res.tile ? ((res.tile.carte_joueur && res.tile.carte_joueur.titre_complet) || res.tile.tuile_plateau.nom_court) : '—';
         const safeCom = (w.comment || '').replace(/\|/g, '/').replace(/\n/g, ' ');
         lines.push(`| ${sp.id} | ${sp.alias_oriente} | ${srcTxt} | ${title} | ${isSlotFlaggedReview(w) ? '🤔' : '—'} | ${safeCom || '—'} |`);
@@ -1374,7 +1484,7 @@
 
   function buildAuthorWorkspaceExport() {
     ensureInitialized();
-    const radar = computeHealthRadar('canon');
+    const radar = computeHealthRadar(hasCanonV64() ? 'canon_v6_4' : 'canon');
     const orderedSlots = {};
     getSlotsSpec().forEach(sp => {
       const w = uiState.workspace.slots[sp.id];
@@ -1384,15 +1494,17 @@
         selected_source: w.selected_source,
         base_source: w.base_source,
         is_modified: Boolean(w.is_modified && w.custom_tile),
+        v64_modified: Boolean(w.v64_modified && w.v64_custom_tile),
         status: w.status || '',
         comment: w.comment || '',
         custom_tile: (w.is_modified && w.custom_tile) ? deepClone(w.custom_tile) : null,
+        v64_custom_tile: (w.v64_modified && w.v64_custom_tile) ? deepClone(w.v64_custom_tile) : null,
         updated_at: w.updated_at || null
       };
     });
     return {
-      schema_version: '6.3.1-workspace',
-      projet: 'Amazonia : Dernier Rempart — Atelier Draft v6.3.1',
+      schema_version: '6.4.0-workspace',
+      projet: 'Amazonia : Dernier Rempart — Atelier v6.4.0',
       updated_at: uiState.workspace.updated_at || new Date().toISOString(),
       radar_summary: {
         elected_count: radar.electedCount,
@@ -1409,9 +1521,10 @@
     };
   }
 
-  function sanitizeTileForCanonExport(rawTile, spec) {
+  function sanitizeTileForCanonExport(rawTile, spec, targetVersion) {
     const t = deepClone(rawTile);
     const casting = getCastingRef();
+    const isV64 = targetVersion === 'v6.4';
     t.id = spec.id;
     t.alias_oriente = spec.alias_oriente;
     t.famille = spec.famille;
@@ -1422,6 +1535,9 @@
     t.cablage = spec.famille === 'GARDIEN' ? [1, 2, 3, 4, 5, 6] : null;
     t.nature = t.nature === 'LOI_PASSIVE' ? 'LOI_PASSIVE' : 'ACTION';
     t.est_twist = Boolean(t.est_twist);
+    if (isV64) {
+      t.statut = 'REFINED_V6_4';
+    }
 
     const roles = new Set(Array.isArray(t.roles_portes) ? t.roles_portes : []);
     if (A0_SLOTS.has(spec.id)) roles.add('AUTONOMIE_A0');
@@ -1444,6 +1560,11 @@
     if (!Array.isArray(t.tags)) t.tags = [];
 
     if (!t.tuile_plateau) t.tuile_plateau = {};
+    if (isV64 && Array.isArray(t.tuile_plateau.pictogrammes)) {
+      t.tuile_plateau.pictogrammes = Array.from(new Set(
+        t.tuile_plateau.pictogrammes.map(p => (p === 'PIC_PLUME' ? 'PIC_PERCHOIR' : p))
+      )).slice(0, 4);
+    }
     if (spec.famille === 'GARDIEN' && casting[spec.id]) t.tuile_plateau.nom_court = casting[spec.id].nom_animal;
     if (spec.famille !== 'GARDIEN') {
       t.tuile_plateau.icone_conseillee = null;
@@ -1457,6 +1578,71 @@
     return t;
   }
 
+  function buildCandidateCanonV64() {
+    ensureInitialized();
+    const specs = getSlotsSpec();
+    const tuilesOut = {};
+    const provenance = {};
+
+    specs.forEach(sp => {
+      const res = getCanonV64SlotResolved(sp.id);
+      if (res.tile) {
+        tuilesOut[sp.id] = sanitizeTileForCanonExport(res.tile, sp, 'v6.4');
+        provenance[sp.id] = res.modified ? 'canon_v6_4_edited' : 'canon_v6_4';
+      }
+    });
+
+    const rolesSummary = {
+      catalyseurs_eveil: [], leviers_reve: [], synergies_enracinement: [],
+      lois_passives: [], autonomie_A0: [], twists_2K3: []
+    };
+    specs.forEach(sp => {
+      const t = tuilesOut[sp.id];
+      if (!t) return;
+      const tag = `${sp.id}=${sp.alias_oriente}`;
+      if (t.roles_portes.includes('CATALYSEUR_EVEIL')) rolesSummary.catalyseurs_eveil.push(tag);
+      if (t.roles_portes.includes('LEVIER_REVE')) rolesSummary.leviers_reve.push(tag);
+      if (t.roles_portes.includes('ENRACINEMENT')) rolesSummary.synergies_enracinement.push(tag);
+      if (t.nature === 'LOI_PASSIVE') rolesSummary.lois_passives.push(tag);
+      if (t.roles_portes.includes('AUTONOMIE_A0')) rolesSummary.autonomie_A0.push(tag);
+      if (t.est_twist) rolesSummary.twists_2K3.push(tag);
+    });
+
+    const tris = find2K3Triangles(specs.map(sp => tuilesOut[sp.id]).filter(t => t && t.est_twist));
+    const carteDesRoles = { statut: 'CANON_V6_4_CONSOLIDE', roles: rolesSummary };
+    if (tris) {
+      carteDesRoles.partition_2K3 = {
+        triangle_1: tris[0].arcs.map(a => `${a.alias_oriente} (${a.id})`).join(' → '),
+        triangle_2: tris[1].arcs.map(a => `${a.alias_oriente} (${a.id})`).join(' → ')
+      };
+    }
+
+    return {
+      _meta: {
+        projet: 'Amazonia : Dernier Rempart — Catalogue Canonique v6.4 (Passe 2 Consolidée · Bi-Composant Mini-Tuile + Grande Carte)',
+        schema_version: '6.4.0',
+        socle_verrouille: '6.4.0',
+        cadrage_source: 'docs/cadrage_v6_4.md',
+        etape_active: 'ETAPE_4_CANON_V6_4_CONSOLIDE',
+        statut_global: 'REFINED_V6_4',
+        genere_le: new Date().toISOString().slice(0, 10),
+        slots_count: 30,
+        c02_supprime: true,
+        panel_id: 'canon_v6_4',
+        murs_porteurs_verrouilles: [
+          'M1_TEMPS_BATAILLE', 'M2_CONSERVATION_THERMIQUE',
+          'M3_INTEGRITE_PLATEAU_ET_ICONES', 'M4_AUTONOMIE_PLANCHER_SOLO'
+        ],
+        provenance_par_emplacement: provenance
+      },
+      referentiel_pictogrammes: deepClone(getPictosRef('canon_v6_4')),
+      casting_gardiens_verrouille: deepClone(getCastingRef()),
+      carte_des_roles: carteDesRoles,
+      rapport_audit_197: { verdict_global: 'A_VALIDER_PAR_AUDIT_197', c02_word_count_purged: true, assises_verifiees: 197 },
+      tuiles_ciblees: tuilesOut
+    };
+  }
+
   function buildCandidateCanonV63(fallbackPanelId) {
     ensureInitialized();
     const specs = getSlotsSpec();
@@ -1466,7 +1652,7 @@
 
     specs.forEach(sp => {
       const res = getCanonSlotResolved(sp.id, fallback);
-      tuilesOut[sp.id] = sanitizeTileForCanonExport(res.tile, sp);
+      tuilesOut[sp.id] = sanitizeTileForCanonExport(res.tile, sp, 'v6.3');
       provenance[sp.id] = res.elected ? res.sourceKey : `${fallback}_fallback`;
     });
 
@@ -1512,7 +1698,7 @@
         ],
         provenance_par_emplacement: provenance
       },
-      referentiel_pictogrammes: deepClone(getPictosRef()),
+      referentiel_pictogrammes: deepClone(getPictosRef('panel_1')),
       casting_gardiens_verrouille: deepClone(getCastingRef()),
       carte_des_roles: carteDesRoles,
       rapport_audit_197: { verdict_global: 'A_VALIDER_PAR_AUDIT_197', c02_word_count_purged: true, assises_verifiees: 197 },
@@ -1580,8 +1766,8 @@
     );
   }
 
-  function renderPictoToken(picCode) {
-    const entry = getPictosRef()[picCode];
+  function renderPictoToken(picCode, srcHint) {
+    const entry = getPictosRef(srcHint)[picCode] || getPictosRef('panel_1')[picCode];
     if (!entry) return '';
     return `<span class="x3-picto-token" data-picto-symbol="true" title="${esc(entry.libelle)}" aria-label="${esc(entry.libelle)}">${esc(entry.symbole)}</span>`;
   }
@@ -1603,14 +1789,15 @@
     const cj = tile.carte_joueur || {};
     const dr = cj.decision_et_renoncement || {};
     const temoins = Array.isArray(tile.temoins) ? tile.temoins : [];
-    const links = computeTileLinks(tile.id, tilesMap);
+    const effSrc = sourceHint || (uiState.mode === 'list' ? uiState.listSource : (uiState.mode === 'simulator' ? uiState.simSource : 'panel_1'));
+    const links = computeTileLinks(tile.id, tilesMap, effSrc);
     const floorIn = normalizeStateList(tile.entrees_plancher);
     const synIn = normalizeStateList(tile.entrees_synergie);
     const outs = normalizeStateList(tile.sorties);
     const litIcons = normalizeStateList(tile.declencheurs_amorces);
     const twinId = TWIN_BY_SLOT[tile.id];
     const twinTile = twinId ? tilesMap[twinId] : null;
-    const srcArg = sourceHint ? `, '${esc(sourceHint)}'` : '';
+    const srcArg = effSrc ? `, '${esc(effSrc)}'` : '';
 
     const floorChips = floorIn.map(st => `<button type="button" class="x3-res-pill is-floor" onclick="AmazoniaExplorerV63.focusResource('${esc(st)}'${srcArg})">${humanizeToken(st).icon} ${esc(humanizeToken(st).label)}</button>`).join('');
     const synChips = synIn.map(st => {
@@ -1661,41 +1848,51 @@
   // 1. Bandeau Supérieur Unique + Tiroirs à la demande
   // --------------------------------------------------------------------------
   function renderTopBar() {
-    const canonRadar = computeHealthRadar('canon');
-    const healthRadar = uiState.radarTarget === 'canon' ? canonRadar : computeHealthRadar(uiState.radarTarget);
+    const v64Available = hasCanonV64();
+    const isDuelContext = !v64Available || uiState.mode === 'arbitrate' || (uiState.mode === 'list' && uiState.listSource === 'canon');
+    const primarySrc = isDuelContext ? 'canon' : 'canon_v6_4';
+    const primaryRadar = computeHealthRadar(primarySrc);
+    const healthRadar = uiState.radarTarget === primarySrc ? primaryRadar : computeHealthRadar(uiState.radarTarget);
     const reviewCount = getSlotsSpec().filter(sp => isSlotFlaggedReview(uiState.workspace.slots[sp.id])).length;
+    const v64ModCount = getSlotsSpec().filter(sp => Boolean(uiState.workspace.slots[sp.id] && uiState.workspace.slots[sp.id].v64_modified)).length;
 
-    const healthLabel = canonRadar.overallStatus === 'ok'
+    const healthLabel = primaryRadar.overallStatus === 'ok'
       ? '✅ Équilibre OK'
-      : (canonRadar.electedCount < 30
-        ? `🩺 Santé (${canonRadar.issuesCount} point${canonRadar.issuesCount > 1 ? 's' : ''})`
-        : `⚠️ ${canonRadar.issuesCount} point${canonRadar.issuesCount > 1 ? 's' : ''} à vérifier`);
+      : (primaryRadar.electedCount < 30
+        ? `🩺 Santé (${primaryRadar.issuesCount} point${primaryRadar.issuesCount > 1 ? 's' : ''})`
+        : `⚠️ ${primaryRadar.issuesCount} point${primaryRadar.issuesCount > 1 ? 's' : ''} à vérifier`);
 
     let drawerHtml = '';
     if (uiState.activeDrawer === 'health') {
       drawerHtml = renderHealthDrawer(healthRadar);
     } else if (uiState.activeDrawer === 'index30') {
-      drawerHtml = renderIndex30Drawer(canonRadar, reviewCount);
+      drawerHtml = renderIndex30Drawer(primaryRadar, reviewCount, isDuelContext);
     } else if (uiState.activeDrawer === 'browse') {
       drawerHtml = renderBrowseDrawer();
     }
+
+    const isCanonV64Mode = uiState.mode === 'list' && uiState.listSource === 'canon_v6_4';
+    const progressLabel = isDuelContext
+      ? `★ Mon Canon : ${primaryRadar.electedCount}/30`
+      : `★ Canon v6.4 : ${primaryRadar.electedCount}/30${v64ModCount > 0 ? ' · ✏️ ' + v64ModCount : ''}`;
 
     return (
       `<div class="x3-topbar" data-explorer-version="${VERSION}">` +
       `<div class="x3-topbar-row">` +
       `<div class="x3-mode-group" role="tablist" aria-label="Modes de l’Atelier">` +
-      `<button type="button" class="x3-mode-btn ${uiState.mode === 'arbitrate' || uiState.mode === 'list' ? 'is-active' : ''}" data-mode-btn="arbitrate" onclick="AmazoniaExplorerV63.setMode('arbitrate')">⚔️ Arbitrer (30)</button>` +
+      (v64Available ? `<button type="button" class="x3-mode-btn ${isCanonV64Mode ? 'is-active' : ''}" data-mode-btn="canon_v6_4" onclick="AmazoniaExplorerV63.openListView('canon_v6_4')">📖 Canon v6.4 (30)</button>` : '') +
       `<button type="button" class="x3-mode-btn ${uiState.mode === 'simulator' ? 'is-active' : ''}" data-mode-btn="simulator" onclick="AmazoniaExplorerV63.setMode('simulator')">🎡 Tester une Table</button>` +
+      `<button type="button" class="x3-mode-btn ${uiState.mode === 'arbitrate' ? 'is-active' : ''}" data-mode-btn="arbitrate" onclick="AmazoniaExplorerV63.setMode('arbitrate')">⚔️ ${v64Available ? 'Archives Duel P1·P2·P3' : 'Arbitrer (30)'}</button>` +
       `</div>` +
       `<div class="x3-status-group">` +
       `<button type="button" class="x3-progress-pill ${uiState.activeDrawer === 'index30' ? 'is-open' : ''}" data-progress-pill="true" onclick="AmazoniaExplorerV63.toggleDrawer('index30')" title="Ouvrir l’index des 30 emplacements">` +
-      `<span>★ Mon Canon : ${canonRadar.electedCount}/30</span>` +
+      `<span>${esc(progressLabel)}</span>` +
       (reviewCount > 0 ? `<span>· 🤔 ${reviewCount}</span>` : '') +
       `</button>` +
-      `<button type="button" class="x3-health-pill is-${canonRadar.overallStatus} ${uiState.activeDrawer === 'health' ? 'is-open' : ''}" data-health-pill="true" data-health-status="${canonRadar.overallStatus}" onclick="AmazoniaExplorerV63.toggleDrawer('health')" title="Déplier le bilan des invariants sur les 197 assises">${esc(healthLabel)}</button>` +
+      `<button type="button" class="x3-health-pill is-${primaryRadar.overallStatus} ${uiState.activeDrawer === 'health' ? 'is-open' : ''}" data-health-pill="true" data-health-status="${primaryRadar.overallStatus}" onclick="AmazoniaExplorerV63.toggleDrawer('health')" title="Déplier le bilan des invariants sur les 197 assises">${esc(healthLabel)}</button>` +
       `</div>` +
       `<div class="x3-tools-group">` +
-      `<button type="button" class="x3-tool-btn ${uiState.activeDrawer === 'browse' || uiState.mode === 'list' ? 'is-active' : ''}" data-browse-btn="true" onclick="AmazoniaExplorerV63.toggleDrawer('browse')">🔍 Parcourir / Filtrer</button>` +
+      `<button type="button" class="x3-tool-btn ${uiState.activeDrawer === 'browse' ? 'is-active' : ''}" data-browse-btn="true" onclick="AmazoniaExplorerV63.toggleDrawer('browse')">🔍 Parcourir / Filtrer</button>` +
       `<button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.openPictoGuide()">📖 Pictos</button>` +
       `<button type="button" class="x3-tool-btn x3-tool-btn-accent" onclick="AmazoniaExplorerV63.openExportModal('gemini')">📤 Exporter</button>` +
       `</div>` +
@@ -1747,7 +1944,9 @@
       `<div class="flex items-center gap-2 flex-wrap">` +
       `<span class="x3-section-label">🩺 Radar sur les 197 assises — ${esc(radar.scopeLabel)} (${radar.electedCount}/30)</span>` +
       `<select class="x3-select text-xs" aria-label="Cible du Radar" onchange="AmazoniaExplorerV63.setRadarTarget(this.value)">` +
-      `<option value="canon" ${uiState.radarTarget === 'canon' ? 'selected' : ''}>Mon Canon v6.3</option>` +
+      (hasCanonV64() ? `<option value="canon_v6_4" ${uiState.radarTarget === 'canon_v6_4' ? 'selected' : ''}>★ Canon v6.4 (Affiné)</option>` : '') +
+      (getArchiveV63Data() ? `<option value="archive_v6_3" ${uiState.radarTarget === 'archive_v6_3' ? 'selected' : ''}>📦 Archive v6.3 (Passe 1)</option>` : '') +
+      `<option value="canon" ${uiState.radarTarget === 'canon' ? 'selected' : ''}>Mon Canon (Duel)</option>` +
       `<option value="panel_1" ${uiState.radarTarget === 'panel_1' ? 'selected' : ''}>Panel 1</option>` +
       `<option value="panel_2" ${uiState.radarTarget === 'panel_2' ? 'selected' : ''}>Panel 2</option>` +
       `<option value="panel_3" ${uiState.radarTarget === 'panel_3' ? 'selected' : ''}>Panel 3</option>` +
@@ -1761,28 +1960,32 @@
     );
   }
 
-  function renderIndex30Drawer(radar, reviewCount) {
+  function renderIndex30Drawer(radar, reviewCount, isDuelContext) {
     const specs = getSlotsSpec();
     const ws = uiState.workspace;
     const filtered = specs.filter(sp => {
       const w = ws.slots[sp.id];
-      if (uiState.indexFilter === 'UNELECTED') return !w.selected_source;
+      if (uiState.indexFilter === 'UNELECTED') return isDuelContext ? !w.selected_source : false;
       if (uiState.indexFilter === 'REVIEW') return isSlotFlaggedReview(w);
-      if (uiState.indexFilter === 'MODIFIED') return Boolean(w.is_modified);
+      if (uiState.indexFilter === 'MODIFIED') return Boolean(isDuelContext ? w.is_modified : w.v64_modified);
       return true;
     });
 
     const cells = filtered.map(sp => {
       const w = ws.slots[sp.id];
-      const res = getCanonSlotResolved(sp.id, null);
+      const res = isDuelContext ? getCanonSlotResolved(sp.id, null) : getCanonV64SlotResolved(sp.id);
       const nom = res.tile ? ((res.tile.tuile_plateau && res.tile.tuile_plateau.nom_court) || sp.id) : (getCastingRef()[sp.id] ? getCastingRef()[sp.id].nom_animal : sp.alias_oriente);
       const isRev = isSlotFlaggedReview(w);
       const cls = ['x3-index-cell'];
       if (uiState.currentSlotId === sp.id) cls.push('is-current');
       if (isRev) cls.push('is-review');
-      else if (w.selected_source) cls.push('is-elected');
-      const srcCls = w.selected_source === 'custom' ? 'is-custom' : (w.selected_source ? 'is-set' : '');
-      const srcTxt = w.selected_source ? PANEL_SHORT[w.selected_source] : '—';
+      else if (isDuelContext ? w.selected_source : res.tile) cls.push('is-elected');
+      const srcCls = isDuelContext
+        ? (w.selected_source === 'custom' ? 'is-custom' : (w.selected_source ? 'is-set' : ''))
+        : (res.modified ? 'is-custom' : 'is-set');
+      const srcTxt = isDuelContext
+        ? (w.selected_source ? PANEL_SHORT[w.selected_source] : '—')
+        : (res.modified ? 'v6.4*' : 'v6.4');
 
       return (
         `<button type="button" class="${cls.join(' ')}" data-index-slot="${esc(sp.id)}" onclick="AmazoniaExplorerV63.goToSlot('${esc(sp.id)}')">` +
@@ -1797,13 +2000,15 @@
       `<div class="flex flex-wrap items-center justify-between gap-2">` +
       `<div class="flex flex-wrap items-center gap-1.5">` +
       `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'ALL' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('ALL')">Tous (30)</button>` +
-      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'UNELECTED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('UNELECTED')">À trancher (${radar.unelectedIds.length})</button>` +
+      (isDuelContext ? `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'UNELECTED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('UNELECTED')">À trancher (${radar.unelectedIds.length})</button>` : '') +
       `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'REVIEW' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('REVIEW')">🤔 À revoir (${reviewCount})</button>` +
-      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'MODIFIED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('MODIFIED')">✏️ Hybrides</button>` +
+      `<button type="button" class="x3-btn x3-btn-sm ${uiState.indexFilter === 'MODIFIED' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setIndexFilter('MODIFIED')">✏️ ${isDuelContext ? 'Hybrides' : 'Éditées'}</button>` +
       `</div>` +
       `<div class="flex flex-wrap items-center gap-1.5">` +
-      `<span class="text-xs text-slate-500">Pré-remplir les non tranchés :</span>` +
-      PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.fillUnelectedFrom('${pid}')">${PANEL_SHORT[pid]}</button>`).join('') +
+      (isDuelContext
+        ? `<span class="text-xs text-slate-500">Pré-remplir les non tranchés :</span>` +
+          PANEL_IDS.map(pid => `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.fillUnelectedFrom('${pid}')">${PANEL_SHORT[pid]}</button>`).join('')
+        : `<span class="text-xs text-slate-500">30/30 tuiles Canon v6.4 consolidées</span>`) +
       `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleDrawer(null)">✕</button>` +
       `</div>` +
       `</div>` +
@@ -1814,13 +2019,17 @@
 
   function renderBrowseDrawer() {
     const f = uiState.filters;
-    const sources = [
-      { id: 'canon', label: '★ Mon Canon' },
+    const rawSources = [];
+    if (hasCanonV64()) rawSources.push({ id: 'canon_v6_4', label: '★ Canon v6.4 (Affiné)' });
+    if (getArchiveV63Data()) rawSources.push({ id: 'archive_v6_3', label: '📦 Archive v6.3 (Passe 1)' });
+    rawSources.push(
+      { id: 'archive_v6_2', label: '📦 Archive v6.2' },
       { id: 'panel_1', label: 'Panel 1' },
       { id: 'panel_2', label: 'Panel 2' },
       { id: 'panel_3', label: 'Panel 3' },
-      { id: 'archive_v6_2', label: '📦 Archive v6.2' }
-    ].map(s => (
+      { id: 'canon', label: '⚔️ Mon Canon (Duel)' }
+    );
+    const sources = rawSources.map(s => (
       `<button type="button" class="x3-btn x3-btn-sm ${uiState.mode === 'list' && uiState.listSource === s.id ? 'x3-btn-primary' : ''}" ` +
       `data-list-source="${s.id}" onclick="AmazoniaExplorerV63.openListView('${s.id}')">${esc(s.label)}</button>`
     )).join('');
@@ -1834,9 +2043,8 @@
     return (
       `<div class="x3-drawer" data-drawer="browse">` +
       `<div class="flex flex-wrap items-center justify-between gap-2">` +
-      `<div class="flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-slate-600">Vue Liste complète :</span>${sources}</div>` +
+      `<div class="flex flex-wrap items-center gap-1.5"><span class="text-xs font-bold text-slate-600">Source affichée :</span>${sources}</div>` +
       `<div class="flex items-center gap-1.5">` +
-      (uiState.mode === 'list' ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setMode('arbitrate')">↩ Retour au Duel P1·P2·P3</button>` : '') +
       `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.toggleDrawer(null)">✕ Fermer</button>` +
       `</div>` +
       `</div>` +
@@ -1869,9 +2077,9 @@
     );
   }
 
-  function renderResourceFocusPanel(tilesMap) {
+  function renderResourceFocusPanel(tilesMap, sourceHint) {
     if (!uiState.resourceFocus) return '';
-    const idx = computeResourceIndex(uiState.resourceFocus, tilesMap);
+    const idx = computeResourceIndex(uiState.resourceFocus, tilesMap, sourceHint || uiState.resourceFocusSource || uiState.listSource);
     const natHtml = idx.nativeProducers.map(n => `<span class="x3-res-pill is-floor">${n.icon} ${esc(n.label)}</span>`).join('');
     const prodHtml = idx.producers.map(p => `<button type="button" class="x3-tile-link-chip is-up" onclick="AmazoniaExplorerV63.goToSlot('${esc(p.id)}')"><strong>${esc(p.id)}</strong> ${esc(p.nom)}</button>`).join('');
     const consList = idx.isIcon
@@ -2034,13 +2242,15 @@
     const isRev = isSlotFlaggedReview(w);
     const isLoi = tile.nature === 'LOI_PASSIVE';
     const isTwist = Boolean(tile.est_twist);
+    const srcKey = (sourceInfo && sourceInfo.sourceKey) || 'canon_v6_4';
+    const isV64Card = srcKey === 'canon_v6_4';
     const cls = ['x3-tile-card'];
     if (isLoi) cls.push('is-loi');
     if (isTwist) cls.push('is-twist');
-    if (sourceInfo && sourceInfo.elected) cls.push('is-kept');
+    if (sourceInfo && sourceInfo.elected && !isV64Card) cls.push('is-kept');
 
     const recIcon = tp.icone_conseillee ? GUARDIAN_ICON_BY_ID[String(tp.icone_conseillee).toUpperCase()] : null;
-    const pictos = (tp.pictogrammes || []).map(renderPictoToken).join('');
+    const pictos = (tp.pictogrammes || []).map(p => renderPictoToken(p, srcKey)).join('');
     const medallion = getTileMedallionHtml(tile.id, tile.famille);
 
     const kwLines = [
@@ -2049,15 +2259,24 @@
       mcp.enracine ? `<div class="x3-mini-kw-line text-emerald-800"><strong>🌱 :</strong> ${esc(mcp.enracine)}</div>` : ''
     ].filter(Boolean).join('');
 
-    const digestFooter = (sourceInfo && sourceInfo.sourceKey === 'archive_v6_2' && typeof global.renderSlotDigestFooter === 'function')
+    const digestFooter = (srcKey === 'archive_v6_2' && typeof global.renderSlotDigestFooter === 'function')
       ? `<div class="px-4 pb-3">${global.renderSlotDigestFooter(tile.id, ['A'])}</div>`
       : '';
 
-    const keepTarget = (sourceInfo && PANEL_IDS.includes(sourceInfo.sourceKey)) ? sourceInfo.sourceKey : (w && w.selected_source) || 'panel_1';
-    const isKept = Boolean(w && (sourceInfo.sourceKey === 'canon' ? w.selected_source : w.selected_source === sourceInfo.sourceKey));
+    const keepTarget = PANEL_IDS.includes(srcKey) ? srcKey : (w && w.selected_source) || 'panel_1';
+    const isKept = Boolean(w && (srcKey === 'canon' ? w.selected_source : w.selected_source === srcKey));
+    const editSrc = isV64Card ? 'canon_v6_4' : (srcKey === 'canon' ? (w.selected_source || 'panel_1') : srcKey);
+
+    const inlineNoteBar = isV64Card && allowEdit
+      ? `<div class="x3-trio-bar" data-trio-bar="${esc(tile.id)}">` +
+        `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${isRev ? 'is-on' : ''}" data-review-btn="true" onclick="AmazoniaExplorerV63.toggleSlotReview('${esc(tile.id)}')">${isRev ? '🤔 Marqué À revoir' : '🤔 À revoir'}</button>` +
+        `<input type="text" class="x3-note-input" data-note-slot="${esc(tile.id)}" value="${esc(w.comment || '')}" placeholder="Note d’auteur sur ${esc(tile.id)} (sauvegarde instantanée)…" oninput="AmazoniaExplorerV63.setSlotCommentLive('${esc(tile.id)}', this.value)" />` +
+        `<span class="x3-saved-hint" id="x3-saved-${esc(tile.id)}">✓ Enregistré</span>` +
+        `</div>`
+      : '';
 
     return (
-      `<article class="${cls.join(' ')}" data-slot-id="${esc(tile.id)}" data-nature="${esc(tile.nature)}" data-twist="${isTwist ? 'true' : 'false'}">` +
+      `<article class="${cls.join(' ')}" data-slot-id="${esc(tile.id)}" data-source="${esc(srcKey)}" data-nature="${esc(tile.nature)}" data-twist="${isTwist ? 'true' : 'false'}">` +
       `<div class="x3-card-top">` +
       `<div class="flex items-center gap-1.5 flex-wrap">` +
       `<span class="x3-slot-id-pill">${esc(tile.id)}</span>` +
@@ -2065,9 +2284,10 @@
       `${renderRoleBadges(tile, sourceInfo && sourceInfo.modified)}` +
       `</div>` +
       `<div class="flex items-center gap-1.5">` +
-      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${isKept ? 'is-kept' : ''}" onclick="AmazoniaExplorerV63.keepSlot('${esc(tile.id)}', '${esc(keepTarget)}')">${isKept ? '✓ Gardée' : '★ Garder'}</button>` : '') +
-      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${isRev ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleSlotReview('${esc(tile.id)}')">🤔</button>` : '') +
-      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openEditor('${esc(tile.id)}', '${esc(sourceInfo.sourceKey === 'canon' ? (w.selected_source || 'panel_1') : sourceInfo.sourceKey)}')">✏️</button>` : '') +
+      (allowEdit && !isV64Card ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-keep ${isKept ? 'is-kept' : ''}" onclick="AmazoniaExplorerV63.keepSlot('${esc(tile.id)}', '${esc(keepTarget)}')">${isKept ? '✓ Gardée' : '★ Garder'}</button>` : '') +
+      (allowEdit && !isV64Card ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-review ${isRev ? 'is-on' : ''}" onclick="AmazoniaExplorerV63.toggleSlotReview('${esc(tile.id)}')">🤔</button>` : '') +
+      (allowEdit && isV64Card && sourceInfo && sourceInfo.modified ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-danger" title="Restaurer le Canon v6.4 d’origine" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(tile.id)}', 'canon_v6_4')">↺</button>` : '') +
+      (allowEdit ? `<button type="button" class="x3-btn x3-btn-sm" title="Modifier cette tuile" onclick="AmazoniaExplorerV63.openEditor('${esc(tile.id)}', '${esc(editSrc)}')">✏️${isV64Card ? ' Éditer' : ''}</button>` : '') +
       `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.goToSlot('${esc(tile.id)}')">⚔️ Duel</button>` +
       `</div>` +
       `</div>` +
@@ -2084,9 +2304,10 @@
       `<div class="x3-rule-block ${isLoi ? 'is-loi-rule' : ''}"><div class="x3-rule-label">${isLoi ? '⚖️ Loi passive permanente' : (tile.famille === 'GARDIEN' ? 'Face 1' : 'Effet')}</div><div>${esc(tr.face_1 || '—')}</div></div>` +
       (tr.face_2 ? `<div class="x3-rule-block is-face2"><div class="x3-rule-label">✨ Face 2 — Éveillée</div><div>${esc(tr.face_2)}</div></div>` : '') +
       (tr.enracine ? `<div class="x3-rule-block is-enracine"><div class="x3-rule-label">🌱 Enraciné</div><div>${esc(tr.enracine)}</div></div>` : '') +
-      `${renderCollapsibleDetails(tile, tilesMap)}` +
+      `${renderCollapsibleDetails(tile, tilesMap, srcKey)}` +
       `</div>` +
       `</div>` +
+      `${inlineNoteBar}` +
       `${digestFooter}` +
       `</article>`
     );
@@ -2095,13 +2316,19 @@
   function renderListView() {
     const visibleIds = getFilteredSlotIds();
     const tilesMap = getTilesMapForSource(uiState.listSource);
-    const isArchive = uiState.listSource === 'archive_v6_2';
+    const isArchive = uiState.listSource === 'archive_v6_2' || uiState.listSource === 'archive_v6_3';
+    const isCanonV64 = uiState.listSource === 'canon_v6_4';
+    const rightBtn = isCanonV64
+      ? `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.openListView('archive_v6_3')">📦 Archive v6.3 (Passe 1)</button>` +
+        `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setMode('arbitrate')">⚔️ Duel P1·P2·P3</button>`
+      : (hasCanonV64()
+          ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.openListView('canon_v6_4')">↩ Retour au Canon v6.4</button>`
+          : `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setMode('arbitrate')">↩ Retour au Duel P1·P2·P3</button>`);
+
     const headerBanner =
       `<div class="x3-stepper-bar">` +
-      `<div class="text-sm font-bold">${esc(PANEL_LABELS[uiState.listSource] || uiState.listSource)} · ${visibleIds.length} / 30 emplacements${isArchive ? ' (lecture seule)' : ''}</div>` +
-      `<div class="flex items-center gap-1.5">` +
-      `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setMode('arbitrate')">↩ Retour au Duel P1·P2·P3</button>` +
-      `</div></div>`;
+      `<div class="text-sm font-bold">${esc(PANEL_LABELS[uiState.listSource] || uiState.listSource)} · ${visibleIds.length} / 30 emplacements${isArchive ? ' (archive lecture seule)' : ''}</div>` +
+      `<div class="flex items-center gap-1.5 flex-wrap">${rightBtn}</div></div>`;
 
     const cards = visibleIds.map(sid => {
       const res = getEffectiveTile(sid, uiState.listSource);
@@ -2111,7 +2338,7 @@
     return (
       `<div class="space-y-3" data-list-view="${esc(uiState.listSource)}">` +
       `${headerBanner}` +
-      (uiState.resourceFocus ? renderResourceFocusPanel(tilesMap) : '') +
+      (uiState.resourceFocus ? renderResourceFocusPanel(tilesMap, uiState.listSource) : '') +
       `${cards || '<div class="p-8 text-center bg-white rounded-xl border border-dashed border-slate-300 text-sm text-slate-500">Aucun emplacement ne correspond aux filtres.</div>'}` +
       `</div>`
     );
@@ -2191,16 +2418,19 @@
         })
       : sim.tileEntries;
 
-    const cards = visibleEntries.map(e => renderBiComponentCard(e.slotId, e.tile, e, activeMap, true)).join('');
+    const isSimArchive = uiState.simSource === 'archive_v6_3' || uiState.simSource === 'archive_v6_2';
+    const cards = visibleEntries.map(e => renderBiComponentCard(e.slotId, e.tile, e, activeMap, !isSimArchive)).join('');
 
     return (
-      `<div class="space-y-3" data-simulator-assise="${esc(sim.canonKey)}">` +
+      `<div class="space-y-3" data-simulator-assise="${esc(sim.canonKey)}" data-simulator-source="${esc(uiState.simSource)}">` +
       `<div class="x3-sim-panel">` +
       `<div class="flex flex-wrap items-center justify-between gap-2">` +
       `<h2 class="font-serif text-xl font-bold text-slate-900">🎡 Tester une Table — ${esc(sim.canonKey)} (${sim.n} joueurs · ${sim.n * 2} tuiles)</h2>` +
       `<div class="flex items-center gap-1.5 text-xs"><span class="font-semibold text-slate-500">Source :</span>` +
       `<select class="x3-select" onchange="AmazoniaExplorerV63.setSimSource(this.value)">` +
-      `<option value="canon" ${uiState.simSource === 'canon' ? 'selected' : ''}>★ Mon Canon v6.3</option>` +
+      (hasCanonV64() ? `<option value="canon_v6_4" ${uiState.simSource === 'canon_v6_4' ? 'selected' : ''}>★ Canon v6.4 (Affiné)</option>` : '') +
+      (getArchiveV63Data() ? `<option value="archive_v6_3" ${uiState.simSource === 'archive_v6_3' ? 'selected' : ''}>📦 Archive v6.3 (Passe 1)</option>` : '') +
+      `<option value="canon" ${uiState.simSource === 'canon' ? 'selected' : ''}>⚔️ Mon Canon (Duel)</option>` +
       `<option value="panel_1" ${uiState.simSource === 'panel_1' ? 'selected' : ''}>Panel 1</option>` +
       `<option value="panel_2" ${uiState.simSource === 'panel_2' ? 'selected' : ''}>Panel 2</option>` +
       `<option value="panel_3" ${uiState.simSource === 'panel_3' ? 'selected' : ''}>Panel 3</option>` +
@@ -2209,8 +2439,9 @@
       `<div class="flex flex-wrap gap-1.5">${presets}</div>` +
       (uiState.simSource === 'canon' && sim.metrics.missingCanonCount > 0
         ? `<div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-950 flex flex-wrap items-center justify-between gap-2">` +
-          `<span>💡 <strong>${sim.metrics.missingCanonCount}</strong> tuile(s) de cette table ne sont pas encore gardées dans <strong>Mon Canon</strong>.</span>` +
-          `<span class="flex gap-1.5"><button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_1')">Tester Panel 1</button>` +
+          `<span>💡 <strong>${sim.metrics.missingCanonCount}</strong> tuile(s) de cette table ne sont pas encore gardées dans <strong>Mon Canon (Duel)</strong>.</span>` +
+          `<span class="flex gap-1.5">${hasCanonV64() ? `<button type="button" class="x3-btn x3-btn-sm x3-btn-primary" onclick="AmazoniaExplorerV63.setSimSource('canon_v6_4')">Tester Canon v6.4</button>` : ''}` +
+          `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_1')">Panel 1</button>` +
           `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_2')">Panel 2</button>` +
           `<button type="button" class="x3-btn x3-btn-sm" onclick="AmazoniaExplorerV63.setSimSource('panel_3')">Panel 3</button></span></div>`
         : '') +
@@ -2236,11 +2467,12 @@
   }
 
   // --------------------------------------------------------------------------
-  // 5. Modales : Guide 32 Pictos, Éditeur/Hybrideur, Exports
+  // 5. Modales : Guide Pictos (31 v6.4), Éditeur/Hybrideur, Exports
   // --------------------------------------------------------------------------
   function renderPictoGuideModal() {
     if (!uiState.pictoGuideOpen) return '';
-    const ref = getPictosRef();
+    const refSrc = uiState.mode === 'arbitrate' ? 'panel_1' : 'canon_v6_4';
+    const ref = getPictosRef(refSrc);
     const byCat = {};
     Object.values(ref).forEach(it => {
       const c = it.categorie || 'ACTION';
@@ -2273,12 +2505,12 @@
     return hasPunct ? '<div class="p-2 rounded bg-amber-50 border border-amber-200 text-[11px] text-amber-900">💡 Astuce Mini-Tuile : évitez <code>. ! ?</code> sur les mots-clés plateau.</div>' : '';
   }
 
-  function renderEditorPreviewHtml(tile) {
+  function renderEditorPreviewHtml(tile, srcHint) {
     const tp = tile.tuile_plateau || {};
     const mcp = tp.mots_cles_plateau || {};
     const cj = tile.carte_joueur || {};
     const tr = cj.texte_regle || {};
-    const pictos = (tp.pictogrammes || []).map(renderPictoToken).join('');
+    const pictos = (tp.pictogrammes || []).map(p => renderPictoToken(p, srcHint)).join('');
     return (
       `<div class="x3-section-label">👁️ Prévisualisation en direct</div>` +
       `${renderEditorMiniTuileHint(tile)}` +
@@ -2310,6 +2542,7 @@
     const tr = cj.texte_regle || {};
     const dr = cj.decision_et_renoncement || {};
     const isGardien = t.famille === 'GARDIEN';
+    const isV64Edit = ed.baseSource === 'canon_v6_4';
     const w = uiState.workspace.slots[ed.slotId];
     const selPictos = Array.isArray(tp.pictogrammes) ? tp.pictogrammes : [];
     const roles = Array.isArray(t.roles_portes) ? t.roles_portes : [];
@@ -2320,17 +2553,20 @@
       `</span>`
     );
 
-    const pictoPicker = Object.values(getPictosRef()).map(it => (
+    const pictoPicker = Object.values(getPictosRef(ed.baseSource)).map(it => (
       `<button type="button" class="x3-picto-pick-btn ${selPictos.includes(it.code) ? 'is-selected' : ''}" title="${esc(it.libelle)}" onclick="AmazoniaExplorerV63.toggleEditorPicto('${esc(it.code)}')">${esc(it.symbole)}</button>`
     )).join('');
+
+    const canRestore = isV64Edit ? Boolean(w && w.v64_modified) : Boolean(w && w.is_modified);
+    const restoreArg = isV64Edit ? `, 'canon_v6_4'` : '';
 
     return (
       `<div class="x3-modal-backdrop" id="x3-editor-modal" role="dialog" aria-modal="true" onclick="if(event.target===this) AmazoniaExplorerV63.closeEditor()">` +
       `<div class="x3-modal-panel" style="width:min(1180px,100%)">` +
-      `<div class="x3-modal-head"><h3 class="x3-modal-title">✏️ Modifier / Hybrider — ${esc(ed.slotId)} (${esc(t.alias_oriente)})</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeEditor()">✕ Fermer</button></div>` +
+      `<div class="x3-modal-head"><h3 class="x3-modal-title">✏️ Modifier ${isV64Edit ? '(Canon v6.4)' : '/ Hybrider'} — ${esc(ed.slotId)} (${esc(t.alias_oriente)})</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeEditor()">✕ Fermer</button></div>` +
       `<div class="x3-modal-body">` +
       `<div class="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex flex-wrap items-center gap-3">` +
-      `<span class="text-xs font-bold text-amber-900">🧬 Importer depuis un panel :</span>` +
+      `<span class="text-xs font-bold text-amber-900">🧬 Importer depuis un panel d’archive :</span>` +
       `${hybridRow('Tout', 'all')}${hybridRow('Face 1', 'face_1')}${isGardien ? hybridRow('Face 2', 'face_2') : ''}${hybridRow('Enraciné', 'enracine')}${hybridRow('Pitch', 'pitch')}${hybridRow('Dilemme', 'dilemma')}` +
       `</div>` +
       `<div class="x3-editor-layout">` +
@@ -2365,12 +2601,12 @@
       `</div>` +
       `</div>` +
       `</div>` +
-      `<div class="space-y-3" id="x3-editor-live-preview">${renderEditorPreviewHtml(t)}</div>` +
+      `<div class="space-y-3" id="x3-editor-live-preview">${renderEditorPreviewHtml(t, ed.baseSource)}</div>` +
       `</div>` +
       `</div>` +
       `<div class="x3-modal-foot">` +
-      `<div>${w && w.is_modified ? `<button type="button" class="x3-btn x3-btn-danger" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(ed.slotId)}')">↺ Restaurer l’original</button>` : ''}</div>` +
-      `<div class="flex gap-2"><button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.closeEditor()">Annuler</button><button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.saveEditorToCanon()">💾 Enregistrer &amp; Garder</button></div>` +
+      `<div>${canRestore ? `<button type="button" class="x3-btn x3-btn-danger" onclick="AmazoniaExplorerV63.restoreOriginalSlot('${esc(ed.slotId)}'${restoreArg})">↺ Restaurer l’original</button>` : ''}</div>` +
+      `<div class="flex gap-2"><button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.closeEditor()">Annuler</button><button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.saveEditorToCanon()">💾 Enregistrer</button></div>` +
       `</div></div></div>`
     );
   }
@@ -2378,21 +2614,23 @@
   function renderExportModal() {
     if (!uiState.exportModal) return '';
     const em = uiState.exportModal;
-    const radar = computeHealthRadar('canon');
+    const v64Available = hasCanonV64();
+    const v64Radar = v64Available ? computeHealthRadar('canon_v6_4') : null;
+    const duelRadar = computeHealthRadar('canon');
     const brief = buildGeminiMarkdownBrief(em.geminiScope || 'to_arbitrate');
     const comfortCls = brief.comfort === 'green' ? 'is-ok' : (brief.comfort === 'amber' ? 'is-warn' : 'is-err');
 
     const scopes = [
       { id: 'to_arbitrate', label: '🤔 À revoir' },
-      { id: 'active_context', label: uiState.mode === 'simulator' ? '🎡 Table active' : '⚔️ Emplacement actif' },
-      { id: 'notes_and_edits', label: '✏️ Notes & Hybrides' },
-      { id: 'canon_summary', label: '📋 Synthèse Mon Canon' }
+      { id: 'active_context', label: uiState.mode === 'simulator' ? '🎡 Table active' : (uiState.mode === 'list' ? '📖 Liste active' : '⚔️ Emplacement actif') },
+      { id: 'notes_and_edits', label: '✏️ Notes & Modifiées' },
+      { id: 'canon_summary', label: v64Available ? '📋 Synthèse Canon v6.4' : '📋 Synthèse Mon Canon' }
     ].map(sc => `<button type="button" class="x3-btn x3-btn-sm ${em.geminiScope === sc.id ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setExportGeminiScope('${sc.id}')">${esc(sc.label)}</button>`).join('');
 
     return (
       `<div class="x3-modal-backdrop" id="x3-export-modal" role="dialog" aria-modal="true" onclick="if(event.target===this) AmazoniaExplorerV63.closeExportModal()">` +
       `<div class="x3-modal-panel">` +
-      `<div class="x3-modal-head"><h3 class="x3-modal-title">📤 Passerelles Gemini &amp; Antigravity</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeExportModal()">✕ Fermer</button></div>` +
+      `<div class="x3-modal-head"><h3 class="x3-modal-title">📤 Passerelles Gemini &amp; Antigravity (v6.4)</h3><button type="button" class="x3-tool-btn" onclick="AmazoniaExplorerV63.closeExportModal()">✕ Fermer</button></div>` +
       `<div class="x3-modal-body">` +
       `<div class="flex gap-2">` +
       `<button type="button" class="x3-btn x3-btn-sm ${em.tab === 'gemini' ? 'x3-btn-primary' : ''}" onclick="AmazoniaExplorerV63.setExportTab('gemini')">✨ Vers Gemini (Markdown)</button>` +
@@ -2406,18 +2644,25 @@
           `</div>`
         : `<div class="space-y-3">` +
           `<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">` +
-          `<div class="x3-section-label">1. Sauvegarde complète (contracts/panels/author_workspace_v6_3.json)</div>` +
+          `<div class="x3-section-label">1. Sauvegarde complète (author_workspace_v6_4.json)</div>` +
           `<div class="flex flex-wrap gap-2">` +
-          `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadWorkspaceJson()">💾 Télécharger author_workspace_v6_3.json</button>` +
+          `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadWorkspaceJson()">💾 Télécharger author_workspace_v6_4.json</button>` +
           `<input type="file" id="x3-workspace-import-input" accept=".json,application/json" class="hidden" onchange="AmazoniaExplorerV63.handleWorkspaceImport(event)" />` +
-          `<button type="button" class="x3-btn" onclick="document.getElementById('x3-workspace-import-input').click()">📂 Importer author_workspace_v6_3.json</button>` +
+          `<button type="button" class="x3-btn" onclick="document.getElementById('x3-workspace-import-input').click()">📂 Importer un workspace JSON</button>` +
           `</div></div>` +
-          `<div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">` +
-          `<div class="x3-section-label">2. Exporter tiles_canon_v6_3.json candidat (${radar.electedCount}/30 gardées)</div>` +
-          (radar.electedCount < 30
-            ? `<div class="flex items-center gap-2 text-xs"><span>Compléter les ${30 - radar.electedCount} non tranchées depuis :</span><select class="x3-select" onchange="AmazoniaExplorerV63.setExportFallbackPanel(this.value)">${PANEL_IDS.map(p => `<option value="${p}" ${em.fallbackPanel === p ? 'selected' : ''}>${PANEL_LABELS[p]}</option>`).join('')}</select></div>`
-            : `<div class="text-xs text-emerald-800 font-semibold">✅ 30/30 emplacements gardés dans Mon Canon.</div>`) +
-          `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadCandidateCanonJson()">🏆 Exporter tiles_canon_v6_3.json candidat</button>` +
+          (v64Available
+            ? `<div class="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2">` +
+              `<div class="x3-section-label">2. Exporter tiles_canon_v6_4.json (${v64Radar.electedCount}/30 · ${v64Radar.overallStatus === 'ok' ? 'Équilibre OK' : 'Vérifier Radar'})</div>` +
+              `<div class="text-xs text-emerald-800 font-semibold">✅ Canon v6.4 consolidé prêt pour Antigravity (Passe 2 + vos éventuelles éditions locales).</div>` +
+              `<button type="button" class="x3-btn x3-btn-primary" onclick="AmazoniaExplorerV63.downloadCandidateCanonV64Json()">🏆 Exporter tiles_canon_v6_4.json</button>` +
+              `</div>`
+            : '') +
+          `<div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">` +
+          `<div class="x3-section-label">3. Archive Duel P1·P2·P3 — Exporter tiles_canon_v6_3.json (${duelRadar.electedCount}/30 gardées)</div>` +
+          (duelRadar.electedCount < 30
+            ? `<div class="flex items-center gap-2 text-xs"><span>Compléter les ${30 - duelRadar.electedCount} non tranchées depuis :</span><select class="x3-select" onchange="AmazoniaExplorerV63.setExportFallbackPanel(this.value)">${PANEL_IDS.map(p => `<option value="${p}" ${em.fallbackPanel === p ? 'selected' : ''}>${PANEL_LABELS[p]}</option>`).join('')}</select></div>`
+            : `<div class="text-xs text-emerald-800 font-semibold">✅ 30/30 emplacements gardés dans Mon Canon (Duel).</div>`) +
+          `<button type="button" class="x3-btn" onclick="AmazoniaExplorerV63.downloadCandidateCanonJson()">📦 Exporter tiles_canon_v6_3.json (Duel)</button>` +
           `</div></div>`) +
       `</div></div></div>`
     );
@@ -2506,6 +2751,7 @@
     computeTileLinks,
     buildGeminiMarkdownBrief,
     buildAuthorWorkspaceExport,
+    buildCandidateCanonV64,
     buildCandidateCanonV63,
     getFilteredSlotIds,
 
@@ -2516,10 +2762,18 @@
       render();
     },
 
+    openCanonV64View() {
+      ensureInitialized();
+      uiState.mode = 'list';
+      uiState.listSource = hasCanonV64() ? 'canon_v6_4' : 'canon';
+      uiState.activeDrawer = null;
+      render();
+    },
+
     openListView(src) {
       ensureInitialized();
       uiState.mode = 'list';
-      uiState.listSource = src || 'canon';
+      uiState.listSource = src || (hasCanonV64() ? 'canon_v6_4' : 'canon');
       render();
     },
 
@@ -2641,7 +2895,7 @@
       uiState.filters[key] = val;
       if (uiState.mode !== 'list') uiState.mode = 'list';
       if (uiState.listSource === 'canon' && computeHealthRadar('canon').electedCount === 0) {
-        uiState.listSource = 'panel_1';
+        uiState.listSource = hasCanonV64() ? 'canon_v6_4' : 'panel_1';
       }
       render();
       if (key === 'search') {
@@ -2669,7 +2923,7 @@
       uiState.pictoGuideOpen = false;
       uiState.mode = 'list';
       if (uiState.listSource === 'canon' && computeHealthRadar('canon').electedCount === 0) {
-        uiState.listSource = 'panel_1';
+        uiState.listSource = hasCanonV64() ? 'canon_v6_4' : 'panel_1';
       }
       render();
     },
@@ -2689,7 +2943,7 @@
         uiState.resourceFocusSource = null;
       } else {
         uiState.resourceFocus = tok;
-        uiState.resourceFocusSource = sourceHint || (uiState.mode === 'list' ? uiState.listSource : 'panel_1');
+        uiState.resourceFocusSource = sourceHint || (uiState.mode === 'list' ? uiState.listSource : (hasCanonV64() ? 'canon_v6_4' : 'panel_1'));
       }
       render();
     },
@@ -2737,10 +2991,18 @@
     openPictoGuide() { ensureInitialized(); uiState.pictoGuideOpen = true; render(); },
     closePictoGuide() { ensureInitialized(); uiState.pictoGuideOpen = false; render(); },
 
-    // Éditeur / Hybrideur
+    // Éditeur / Hybrideur (Canon v6.4 & Duel P1·P2·P3)
     openEditor(slotId, sourceHint) {
       ensureInitialized();
       const w = uiState.workspace.slots[slotId];
+      if (!w) return;
+      if (sourceHint === 'canon_v6_4') {
+        const res = getCanonV64SlotResolved(slotId);
+        if (!res.tile) return;
+        uiState.editor = { slotId, baseSource: 'canon_v6_4', tile: deepClone(res.tile) };
+        render();
+        return;
+      }
       const baseSource = PANEL_IDS.includes(sourceHint) ? sourceHint : (w.base_source || 'panel_1');
       const baseTile = (sourceHint === 'custom' && w.custom_tile)
         ? deepClone(w.custom_tile)
@@ -2756,7 +3018,10 @@
       const src = getPanelTile(panelId, uiState.editor.slotId);
       if (!src) return;
       const t = uiState.editor.tile;
-      if (section === 'all') { uiState.editor.tile = deepClone(src); uiState.editor.baseSource = panelId; }
+      if (section === 'all') {
+        uiState.editor.tile = deepClone(src);
+        if (uiState.editor.baseSource !== 'canon_v6_4') uiState.editor.baseSource = panelId;
+      }
       else if (section === 'face_1') { t.carte_joueur.texte_regle.face_1 = src.carte_joueur.texte_regle.face_1; t.tuile_plateau.mots_cles_plateau.face_1 = src.tuile_plateau.mots_cles_plateau.face_1; }
       else if (section === 'face_2') { t.carte_joueur.texte_regle.face_2 = src.carte_joueur.texte_regle.face_2; t.tuile_plateau.mots_cles_plateau.face_2 = src.tuile_plateau.mots_cles_plateau.face_2; }
       else if (section === 'enracine') { t.carte_joueur.texte_regle.enracine = src.carte_joueur.texte_regle.enracine; t.tuile_plateau.mots_cles_plateau.enracine = src.tuile_plateau.mots_cles_plateau.enracine; }
@@ -2781,7 +3046,7 @@
         uiState.editor.tile.roles_portes = Array.from(r);
       }
       const prev = document.getElementById('x3-editor-live-preview');
-      if (prev) prev.innerHTML = renderEditorPreviewHtml(uiState.editor.tile);
+      if (prev) prev.innerHTML = renderEditorPreviewHtml(uiState.editor.tile, uiState.editor.baseSource);
     },
     toggleEditorRole(roleCode, checked) {
       ensureInitialized();
@@ -2792,7 +3057,7 @@
       if (roleCode === 'TWIST_2K3') t.est_twist = Boolean(checked);
       t.roles_portes = Array.from(r);
       const prev = document.getElementById('x3-editor-live-preview');
-      if (prev) prev.innerHTML = renderEditorPreviewHtml(t);
+      if (prev) prev.innerHTML = renderEditorPreviewHtml(t, uiState.editor.baseSource);
     },
     toggleEditorPicto(picCode) {
       ensureInitialized();
@@ -2809,22 +3074,32 @@
       if (!uiState.editor) return;
       const { slotId, baseSource, tile } = uiState.editor;
       const w = uiState.workspace.slots[slotId];
-      w.custom_tile = sanitizeTileForCanonExport(tile, getSlotSpecMap()[slotId]);
-      w.is_modified = true;
-      w.selected_source = 'custom';
-      w.base_source = baseSource;
+      if (baseSource === 'canon_v6_4') {
+        w.v64_custom_tile = sanitizeTileForCanonExport(tile, getSlotSpecMap()[slotId], 'v6.4');
+        w.v64_modified = true;
+      } else {
+        w.custom_tile = sanitizeTileForCanonExport(tile, getSlotSpecMap()[slotId], 'v6.3');
+        w.is_modified = true;
+        w.selected_source = 'custom';
+        w.base_source = baseSource;
+      }
       w.updated_at = new Date().toISOString();
       uiState.editor = null;
       saveWorkspaceToStorage();
       render();
     },
-    restoreOriginalSlot(slotId) {
+    restoreOriginalSlot(slotId, scope) {
       ensureInitialized();
       const w = uiState.workspace.slots[slotId];
       if (!w) return;
-      w.custom_tile = null;
-      w.is_modified = false;
-      if (w.selected_source === 'custom') w.selected_source = w.base_source || 'panel_1';
+      if (scope === 'canon_v6_4') {
+        w.v64_custom_tile = null;
+        w.v64_modified = false;
+      } else {
+        w.custom_tile = null;
+        w.is_modified = false;
+        if (w.selected_source === 'custom') w.selected_source = w.base_source || 'panel_1';
+      }
       w.updated_at = new Date().toISOString();
       uiState.editor = null;
       saveWorkspaceToStorage();
@@ -2853,7 +3128,8 @@
       }
       return b;
     },
-    downloadWorkspaceJson() { return downloadJsonFile('author_workspace_v6_3.json', buildAuthorWorkspaceExport()); },
+    downloadWorkspaceJson() { return downloadJsonFile('author_workspace_v6_4.json', buildAuthorWorkspaceExport()); },
+    downloadCandidateCanonV64Json() { return downloadJsonFile('tiles_canon_v6_4.json', buildCandidateCanonV64()); },
     downloadCandidateCanonJson() { return downloadJsonFile('tiles_canon_v6_3.json', buildCandidateCanonV63((uiState.exportModal && uiState.exportModal.fallbackPanel) || 'panel_1')); },
     importWorkspaceObject(rawObj) {
       ensureInitialized();
@@ -2869,7 +3145,7 @@
       reader.onload = function (e) {
         try {
           api.importWorkspaceObject(JSON.parse(String(e.target.result || '')));
-          if (typeof global.showToast === 'function') global.showToast('Atelier importé', `${file.name} chargé dans Mon Canon v6.3.`);
+          if (typeof global.showToast === 'function') global.showToast('Atelier importé', `${file.name} chargé dans l’Atelier v6.4.`);
         } catch (err) {
           if (typeof global.showToast === 'function') global.showToast('Import invalide', err.message);
         } finally { event.target.value = ''; }
@@ -2895,4 +3171,5 @@
   };
 
   global.AmazoniaExplorerV63 = api;
+  global.AmazoniaExplorerV64 = api;
 })(typeof window !== 'undefined' ? window : globalThis);

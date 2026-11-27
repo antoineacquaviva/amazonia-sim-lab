@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Amazonia : Dernier Rempart — Studio Documentaire & Configurateur v6.1</title>
+  <title>Amazonia : Dernier Rempart — Studio Documentaire &amp; Canon v6.4</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -266,22 +266,23 @@
             <div class="flex items-center gap-2 flex-wrap">
               <h1 class="font-bold text-base sm:text-lg tracking-tight text-white">AMAZONIA : DERNIER REMPART</h1>
               <span class="px-2.5 py-0.5 text-xs font-mono font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                v6.2 · SSOT Canon 0
+                v6.4 · Canon 30 Affiné
               </span>
               <span id="header-config-badge" class="px-2.5 py-0.5 text-xs font-mono rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
                 Config #1 / 1 (Châssis Standard)
               </span>
             </div>
-            <p class="text-xs text-forest-300">Studio Documentaire : Fondation SSOT v6.2 (P4_2233 · Départ décalé · Asymétrie 3+3 · Enracinement · Canon 0 de 30 tuiles) &amp; Livret Joueur</p>
+            <p class="text-xs text-forest-300">Studio Documentaire : Fondation SSOT v6.4 (9 Évolutions Cœur · 6 Verbes du Cœur · Passe 2 des 30 Tuiles · P4_2233 · Départ décalé) &amp; Livret Joueur</p>
           </div>
         </div>
 
         <!-- Contrôles rapides de traçabilité -->
         <div class="flex items-center gap-2 flex-wrap">
           <div class="flex items-center bg-forest-900 rounded-lg p-1 border border-forest-700 text-xs">
-            <span class="px-2 text-forest-300">Comparer v6.2 avec :</span>
+            <span class="px-2 text-forest-300">Comparer v6.4 avec :</span>
             <select id="diff-version-select" onchange="updateVersionDiffBadge()" class="bg-forest-800 text-white font-medium rounded px-2 py-1 border border-forest-600 focus:outline-none">
-              <option value="v6.1" selected>v6.1 (Socle symétrique précédent)</option>
+              <option value="v6.2" selected>v6.2 (Socle asymétrique précédent)</option>
+              <option value="v6.1">v6.1 (Socle symétrique précédent)</option>
               <option value="v5.5">v5.5 (Socle gelé précédent)</option>
               <option value="v5.4.7">v5.4.7 (Validation pré-gel)</option>
               <option value="v5.3">v5.3 (Siège T4, 2 profils piste, 128 configs)</option>
@@ -314,7 +315,7 @@
         <div class="flex items-center gap-2 flex-wrap text-xs">
           <span class="text-forest-300 font-medium">Instance active :</span>
           <select id="preset-bundle-select" onchange="applyPresetBundle(this.value)" class="bg-forest-900 text-emerald-200 font-semibold rounded-lg px-2.5 py-1 border border-forest-700 focus:outline-none">
-            <option value="STANDARD_A">Canon 0 v6.2 (30 tuiles A · P4_2233 · Départ décalé)</option>
+            <option value="STANDARD_A">Canon v6.4 (30 tuiles Passe 2 · P4_2233 · Départ décalé)</option>
             <option value="CUSTOM">Configuration Personnalisée</option>
           </select>
 
@@ -353,7 +354,7 @@
         </div>
       </div>
 
-      <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DU CERCLE DE TABLE & CHÂSSIS UNIQUE v6.2 -->
+      <!-- TIROIR DÉPLIABLE : CONFIGURATEUR DU CERCLE DE TABLE & CHÂSSIS UNIQUE v6.4 -->
       <div id="config-drawer" class="hidden mt-3 pt-3 border-t border-forest-700 bg-forest-900/95 rounded-xl p-4 shadow-2xl">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <!-- Colonne Gauche : Cercle des Peuples autour de la table -->
@@ -373,35 +374,35 @@
               <div id="cercle-lisieres-preview" class="font-mono text-[11px] text-emerald-300 leading-relaxed"></div>
             </div>
 
-            <!-- Module Essaim (règles natives v6.2) -->
+            <!-- Module Essaim (règles natives v6.4) -->
             <div class="mt-3 pt-3 border-t border-forest-800">
-              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Module Essaim — Règles natives v6.2 (si I joue)</h4>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">Module Essaim — Règles natives v6.4 (si I joue)</h4>
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <label class="block text-[11px] text-forest-300 mb-1">Réglette des Tactiques :</label>
                   <select id="slot-bug-select" disabled class="w-full bg-forest-900/60 border border-forest-700 rounded px-2 py-1 text-forest-200 opacity-80 cursor-not-allowed">
-                    <option value="B">Déviation de dé ±1 (native v6.2)</option>
+                    <option value="B">Déviation de dé ±1 (native v6.4)</option>
                   </select>
                 </div>
                 <div>
                   <label class="block text-[11px] text-forest-300 mb-1">Piste des Gardiens :</label>
                   <select id="slot-colonie-select" disabled class="w-full bg-forest-900/60 border border-forest-700 rounded px-2 py-1 text-forest-200 opacity-80 cursor-not-allowed">
-                    <option value="B">Bouclier de lisière facultatif (natif v6.2)</option>
+                    <option value="B">Bouclier de lisière facultatif (natif v6.4)</option>
                   </select>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Colonne Droite : Châssis Canonique Unique v6.2 (verrouillé) -->
+          <!-- Colonne Droite : Châssis Canonique Unique v6.4 (verrouillé) -->
           <div class="lg:col-span-8 bg-forest-950/80 p-3.5 rounded-xl border border-forest-800">
             <div class="flex items-center justify-between mb-2">
               <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Châssis Canonique Unique v6.2 (Standard Verrouillé · 0 écart)</h3>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">2. Châssis Canonique Unique v6.4 (Standard Verrouillé · 0 écart)</h3>
                 <p class="text-[11px] text-forest-300">Les axes expérimentaux v6.0 sont neutralisés : la table applique le standard unique P4_2233 à départ décalé (Bulldozer p=1 / Abatteuse p=2).</p>
               </div>
               <button onclick="resetChassisToDefault()" class="text-xs px-2.5 py-1 rounded bg-forest-800 hover:bg-forest-700 text-forest-200 border border-forest-600 transition">
-                ↺ Réinitialiser au standard v6.2
+                ↺ Réinitialiser au standard v6.4
               </button>
             </div>
             <div id="chassis-axes-grid" class="grid grid-cols-1 md:grid-cols-2 gap-2.5 mt-2">
@@ -421,7 +422,7 @@
           📖 1. Livret Didactique
         </button>
         <button onclick="switchTab('catalogue')" id="tab-btn-catalogue" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
-          🧩 2. Explorateur &amp; Atelier v6.3
+          🧩 2. Explorateur &amp; Canon v6.4
         </button>
         <button onclick="switchTab('changelog')" id="tab-btn-changelog" class="tab-btn px-3 py-1 rounded-lg text-xs font-semibold transition text-forest-200 hover:text-white">
           🔍 3. Évolutions & Arbitrages
@@ -466,7 +467,7 @@
               <span>✨ Surligner dans le texte les passages qui dépendent des options & de la version</span>
             </label>
             <span class="text-xs text-slate-500 hidden sm:inline">
-              Les passages surlignés en ambre sont compilés dynamiquement selon vos réglages v6.2 et vos Peuples.
+              Les passages surlignés en ambre sont compilés dynamiquement selon vos réglages v6.4 et vos Peuples.
             </span>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap text-xs">
@@ -488,7 +489,7 @@
           <a href="#brique-pose" class="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium transition">Pose des Défenseurs</a>
           <a href="#brique-ouverture-reves" class="px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-medium transition">Ouverture &amp; Rêves</a>
           <a href="#brique-furtivite" class="px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-medium transition">Furtivité — Piège &amp; Sabotage</a>
-          <a href="#brique-nids-migration" class="px-2 py-0.5 rounded-full bg-lime-50 hover:bg-lime-100 text-lime-900 border border-lime-200 font-medium transition">Nids &amp; Migration</a>
+          <a href="#brique-nids-migration" class="px-2 py-0.5 rounded-full bg-lime-50 hover:bg-lime-100 text-lime-900 border border-lime-200 font-medium transition">Nids &amp; Déploiement direct</a>
           <a href="#brique-attaques-piegeages" class="px-2 py-0.5 rounded-full bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 font-medium transition">Résolution des attaques &amp; Piégeages</a>
           <a href="#brique-menage" class="px-2 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-medium transition">Ménage de fin de tour</a>
           <a href="#brique-gardiens-eveil" class="px-2 py-0.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-200 font-medium transition">Gardiens &amp; Éveil</a>
@@ -505,18 +506,18 @@
     </section>
 
     <!-- =================================================================== -->
-    <!-- ONGLET 2 : EXPLORATEUR COMPLET DES 30 EMPLACEMENTS CANON 0          -->
+    <!-- ONGLET 2 : EXPLORATEUR COMPLET DES 30 EMPLACEMENTS CANON v6.4       -->
     <!-- =================================================================== -->
     <section id="view-catalogue" class="hidden space-y-5 no-print">
-      <!-- Bandeau Fondation SSOT v6.2 (masqué automatiquement par l'Atelier v6.3) -->
+      <!-- Bandeau Fondation SSOT v6.4 (masqué automatiquement par l'Explorateur v6.4) -->
       <div id="v62-catalogue-banner" class="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-xs text-emerald-950 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <span class="font-bold">🌿 Fondation SSOT v6.2 (Canon 0 · 30 tuiles épurées · 48 faces · 197 assises auditées) :</span>
-          Socle épuré (P4_2233, départ décalé Bulldozer p=1 / Abatteuse p=2, sac opaque de jetons, Réglette fixe à bandelette d’Acte, 6 icônes Gardiens avec Résonance en 6e et 2 encoches visibles), Asymétrie Hybride 3+3 et Enracinement volontaire.
+          <span class="font-bold">🌿 Fondation SSOT v6.4 (Canon 30 Passe 2 · 9 Évolutions Cœur · 6 Verbes du Cœur · 197 assises auditées) :</span>
+          Perchoir de Vigie orientable, Duel unifié, Déploiement direct &amp; Amorçage natif Essaim, Enracinement Sentinelle sur Rive Sabotage, Sabotage différé, Piste Gardiens directe (Résonance au dernier pari) &amp; Éveil cumulatif A + 1.
         </div>
       </div>
 
-      <!-- Explorateur Bi-Composant & Atelier Draft v6.3.1 -->
+      <!-- Explorateur Bi-Composant & Canon v6.4 (+ Archives v6.3 / v6.2 / Duel P1·P2·P3) -->
       <div id="explorer-v6-3-toolbar"></div>
 
       <!-- Explorateur v6.2 (repli si explorer_v6_3.js non chargé) -->
@@ -526,8 +527,8 @@
       <div id="legacy-catalogue-filters" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 class="text-lg font-bold text-slate-900">Explorateur du Catalogue Canon 0 (30 Emplacements · 30 Profils A)</h2>
-            <p class="text-xs text-slate-500">Explorez les 30 tuiles du Canon 0 ou filtrez par mécanique, couple de Peuples ou présence autour de la table.</p>
+            <h2 class="text-lg font-bold text-slate-900">Explorateur du Catalogue Canon v6.4 (30 Emplacements)</h2>
+            <p class="text-xs text-slate-500">Explorez les 30 tuiles du Canon ou filtrez par mécanique, couple de Peuples ou présence autour de la table.</p>
           </div>
           <div class="flex items-center gap-2">
             <span id="catalogue-count-badge" class="px-3 py-1 rounded-full bg-forest-100 text-forest-800 font-mono text-xs font-bold">
@@ -547,11 +548,10 @@
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Support / Famille :</label>
             <select id="filter-family" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
-              <option value="ALL">Toutes les familles (32)</option>
+              <option value="ALL">Toutes les familles (30)</option>
               <option value="GARDIEN">Gardiens G1–G15 (15)</option>
               <option value="REVE">Rêves R1–R10 (10)</option>
               <option value="CROISSANCE">Nids Croissance M1–M5 (5)</option>
-              <option value="MIGRATION">Slots Migration (2)</option>
             </select>
           </div>
 
@@ -575,11 +575,7 @@
             <select id="filter-profile-letter" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
               <option value="ALL_COMPARE">Comparer tous (A / B / C / D)</option>
               <option value="ACTIVE_INSTANCE">Profil retenu dans l'instance</option>
-              <option value="A">Profil A uniquement (Flux)</option>
-              <option value="B">Profil B uniquement (Loi)</option>
-              <option value="C">Profil C uniquement (22 compl.)</option>
-              <option value="D">Profil D uniquement (15 Embuscade)</option>
-              
+              <option value="A">Profil A uniquement</option>
             </select>
           </div>
 
@@ -587,9 +583,8 @@
           <div>
             <label class="block font-semibold text-slate-600 mb-1">Filtre Table & Tags :</label>
             <select id="filter-scope" onchange="renderCatalogue()" class="w-full rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white">
-              <option value="ALL">Tout le catalogue (32)</option>
+              <option value="ALL">Tout le catalogue (30)</option>
               <option value="IN_CIRCLE_ONLY">Uniquement les 2N tuiles en jeu</option>
-                            <option value="TAG_ARMEMENT">Tag : ARMEMENT</option>
               <option value="TAG_POSE">Tag : POSE de Piège</option>
               <option value="TAG_SOUCHES">Tag : SOUCHES / Repousse</option>
               <option value="TAG_SURCHAUFFE">Tag : SURCHAUFFE (Bleu/Rouge)</option>
@@ -607,27 +602,21 @@
     </section>
 
     <!-- =================================================================== -->
-    <!-- ONGLET 3 : DIFFÉRENTIEL DE VERSIONS & HISTORIQUE (v4.3 -> v6.0)     -->
+    <!-- ONGLET 3 : DIFFÉRENTIEL DE VERSIONS & HISTORIQUE (v4.3 -> v6.4)     -->
     <!-- =================================================================== -->
     <section id="view-changelog" class="hidden space-y-6 no-print">
       <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
         <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-200">
           <div>
-            <h2 class="text-xl font-bold text-slate-900">Traçabilité &amp; Différentiel des Versions (v4.3 → v5.5 → v6.0)</h2>
-            <p class="text-xs text-slate-500 mt-0.5">Comprenez en un coup d'œil pourquoi et comment chaque règle du châssis ou du catalogue a évolué jusqu'à la version actuelle.</p>
+            <h2 class="text-xl font-bold text-slate-900">Traçabilité &amp; Différentiel des Versions (v4.3 → v6.2 → v6.4)</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Comprenez en un coup d'œil pourquoi et comment chaque règle du Cœur ou du catalogue des 30 tuiles a évolué jusqu'en v6.4.</p>
           </div>
           <div class="flex items-center gap-2 text-xs">
             <span class="font-semibold text-slate-600">Filtrer le journal :</span>
             <select id="changelog-filter-select" onchange="renderChangelogView()" class="rounded-lg border border-slate-300 px-3 py-1.5 bg-slate-50 font-semibold">
-              <option value="ALL">Toutes les évolutions (v4.3 → v6.0)</option>
-              <option value="v6.0">Nouveautés v6.0 uniquement (Réglette 2 Actes, Rêves Bloquer/Avancer, Furtivité libre)</option>
-              <option value="v5.5">Nouveautés v5.5 uniquement (Socle gelé, refonte livret, Mode 4)</option>
-              <option value="v5.4">Nouveautés v5.4 uniquement (6 pistes, Placement, Sommeil en bloc, Ratissage)</option>
-              <option value="v5.3">Nouveautés v5.3 uniquement (Seuil Imprimé, Fin 5.3, 100 profils)</option>
-              <option value="v5.2">Nouveautés v5.2 uniquement (Pièges Embuscade/Amortisseur + 30 profils D/E)</option>
-              <option value="v5.1">Nouveautés v5.1 (Abatteuse 2 arbres, Bulldozer coupe+terrasse, 11 arbitrages)</option>
-              <option value="v5.0">Nouveautés v5.0 (Bibliothèque des 22 profils C &amp; conventions)</option>
-              <option value="v4.9">Écarts depuis v4.3 / v4.9 (Siège T4 irréversible, Surchauffe Rouge/Bleu)</option>
+              <option value="ALL">Toutes les évolutions (v4.3 → v6.4)</option>
+              <option value="v6.4">Nouveautés v6.4 (9 Évolutions Cœur, 6 Verbes, Passe 2 des 30 Tuiles)</option>
+              <option value="v6.2">Nouveautés v6.2 (Socle asymétrique 3+3, Enracinement, 22 Invariants)</option>
             </select>
           </div>
         </div>
@@ -647,8 +636,8 @@
         <div class="lg:col-span-7 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col">
           <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200">
             <div>
-              <h2 class="text-base font-bold text-slate-900">Manifeste JSON de l'Instance (`schema_version: "6.0.0-alpha"`)</h2>
-              <p class="text-xs text-slate-500">Prêt pour `amazonia-sim-lab` : inclut les 6 axes, le cercle, les 2N tuiles actives et la validation des contraintes.</p>
+              <h2 class="text-base font-bold text-slate-900">Manifeste JSON de l'Instance (`schema_version: "6.4.0"`)</h2>
+              <p class="text-xs text-slate-500">Prêt pour `amazonia-sim-lab` : inclut le châssis verrouillé v6.4, le cercle, les 2N tuiles actives, le Module Essaim et les 6 Verbes du Cœur.</p>
             </div>
             <div class="flex items-center gap-2">
               <button onclick="copyManifestJson()" id="btn-copy-json" class="px-3 py-1.5 rounded-lg bg-forest-700 hover:bg-forest-600 text-white text-xs font-semibold transition">
@@ -662,45 +651,39 @@
           <pre id="json-manifest-output" class="mt-4 flex-1 bg-slate-950 text-emerald-300 font-mono text-xs p-4 rounded-xl overflow-x-auto max-h-[640px] leading-relaxed"></pre>
         </div>
 
-        <!-- Panneau droit : Importateur JSON & Grammaire Formelle à 8 Primitives -->
+        <!-- Panneau droit : Importateur JSON & Lexique Officiel des 6 Verbes du Cœur v6.4 -->
         <div class="lg:col-span-5 space-y-6">
           <!-- Import JSON -->
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
             <h3 class="text-sm font-bold text-slate-900 mb-1">Importer un Manifeste JSON d'Instance</h3>
-            <p class="text-xs text-slate-500 mb-3">Collez un bloc JSON d'essai pour reconfigurer immédiatement les 6 axes, les Peuples et le Livret de Règles :</p>
-            <textarea id="json-import-input" rows="5" placeholder='{"chassis_overrides": {"Profil_Piste": "P5_22233"}, "peuples_cercle": ["M","H","I"]}' class="w-full font-mono text-xs p-3 rounded-xl border border-slate-300 bg-slate-50 focus:outline-none focus:border-forest-600"></textarea>
+            <p class="text-xs text-slate-500 mb-3">Collez un bloc JSON d'essai pour reconfigurer immédiatement le cercle de Peuples et régénérer le Livret de Règles :</p>
+            <textarea id="json-import-input" rows="5" placeholder='{"peuples_cercle": ["M","H","I"]}' class="w-full font-mono text-xs p-3 rounded-xl border border-slate-300 bg-slate-50 focus:outline-none focus:border-forest-600"></textarea>
             <button onclick="importManifestJson()" class="mt-2 w-full py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold transition">
               ⚡ Appliquer ce JSON et régénérer le Livret de Règles
             </button>
           </div>
 
-          <!-- Référence rapide des 8 Primitives Formelles -->
+          <!-- Référence rapide des 6 Verbes du Cœur v6.4 -->
           <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200">
-            <h3 class="text-sm font-bold text-slate-900 mb-2">Grammaire Formelle v6.0 : Les 8 Primitives Atomiques</h3>
+            <h3 class="text-sm font-bold text-slate-900 mb-2">Lexique Officiel v6.4 : Les 6 Verbes du Cœur</h3>
             <div class="space-y-2 text-xs">
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">1. MOD_SEUIL</span> — Réduit de -X le Seuil de Parade (plancher 1) ou `auto_parade: true`.
+                <span class="font-mono font-bold text-forest-700">1. Refroidir</span> — Retourner 1 Rouge existant d’une machine (mobile ou Ratissage) sur sa face Bleu Surchauffe (−1 en tous modes).
               </div>
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">2. CREATION_ENTITE</span> — Crée `PIEGE` (case 2), `SABOTAGE` (case 3), `INSECTE` (case 6) ou `SANCTUAIRE_SOUCHE`.
+                <span class="font-mono font-bold text-forest-700">2. Altérer</span> — Poser 1 jeton d’Altération de la réserve Entités sur une machine mobile sans Altération (max 1).
               </div>
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">3. DEPLACEMENT</span> — Déplace `DEFENSEUR`, `PIEGE` (non déclenché ce tour), `INSECTE`, `MACHINE` ou `CIBLAGE`.
+                <span class="font-mono font-bold text-forest-700">3. Reculer</span> — Déplacer une machine mobile d’1 parcelle vers la bordure de son rayon en sautant les Routes.
               </div>
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">4. MOD_PUISSANCE</span> — Retire rouge, inverse rouge → bleu *Surchauffe*, ou consomme 2 bleus.
+                <span class="font-mono font-bold text-forest-700">4. Étouffer</span> — Neutraliser toute l’activation restante (jeton mobile incliné 90° + dé retiré, ou Ratissage tourné 90° jusqu’au ménage). Le mot <em>cale</em> est exclusif au Caïman noir.
               </div>
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">5. MOD_APPRENTISSAGE</span> — Retire ou annule -X jeton(s) Apprentissage en 6.1.
+                <span class="font-mono font-bold text-forest-700">5. Semer au sac</span> — Glisser 1 jeton disponible (Sabotage ou Écaille) dans le sac opaque sans allumer d’icône.
               </div>
               <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">6. PERMUTATION_PISTE</span> — Échange sur la Réglette des Tactiques (r ± 1), saut de Rêve ou décalage du dé M.
-              </div>
-              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">7. PARTAGE_INFO_ETAT_GARDIEN</span> — Révèle paravent, retourne Gardien Face 2, réactive Gardien ou Nid.
-              </div>
-              <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="font-mono font-bold text-forest-700">8. MOD_LOI_DU_COEUR</span> — Remplace une instruction du châssis sur sa fenêtre et sa portée.
+                <span class="font-mono font-bold text-forest-700">6. Glisser un Rêve</span> — Déplacer une tuile Rêve sur la Réglette 1–6 avec ses Défenseurs dans leur état actuel (debout ou couchés).
               </div>
             </div>
           </div>
@@ -711,9 +694,10 @@
   </main>
 
   <!-- ===================================================================== -->
-  <!-- BASE DE DONNÉES COMPLÈTE v6.0 & MOTEUR D'INSTANCIATION JAVASCRIPT     -->
+  <!-- BASE DE DONNÉES COMPLÈTE v6.4 & MOTEUR D'INSTANCIATION JAVASCRIPT     -->
   <!-- ===================================================================== -->
   <script src="data/amazonia_data_v6_0.js"></script>
+  <script src="data/canon_v6_4_data.js"></script>
   <script src="data/livret_v6_0.js"></script>
   <script src="tile_illustrations_v6_2.js"></script>
   <script src="explorer_v6_2.js"></script>
@@ -1834,7 +1818,7 @@
         const badgeHtml = isMod
           ? '<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500 text-slate-950 font-bold">Modifié</span>'
           : (isLocked
-            ? '<span class="text-[10px] text-emerald-300 font-mono">Verrouillé v6.2</span>'
+            ? '<span class="text-[10px] text-emerald-300 font-mono">Verrouillé v6.4</span>'
             : '<span class="text-[10px] text-forest-400 font-mono">Standard</span>');
         return `
           <div class="p-2.5 rounded-lg border ${isMod ? 'bg-amber-950/40 border-amber-500/70' : 'bg-forest-900/60 border-forest-800'}">
@@ -2036,8 +2020,8 @@
       const v = document.getElementById('diff-version-select').value;
       const filterEl = document.getElementById('changelog-filter-select');
       if (filterEl) {
-        const latest = (VERSION_CHANGELOG[0] && VERSION_CHANGELOG[0].version) || 'v6.2';
-        filterEl.value = (v === 'v6.1' || v === 'v5.5' || v === 'v5.4.7' || v === 'v5.3') ? latest : 'ALL';
+        const latest = (VERSION_CHANGELOG[0] && VERSION_CHANGELOG[0].version) || 'v6.4';
+        filterEl.value = (v === 'v6.2' || v === 'v6.1' || v === 'v5.5' || v === 'v5.4.7' || v === 'v5.3') ? latest : 'ALL';
         renderChangelogView();
       }
     }
@@ -2087,9 +2071,12 @@
       const topoCode = state.chassis.Profil_Piste || 'P4_2233';
       const topoSpec = (typeof TOPOLOGIES_PISTE_SPEC !== 'undefined' && TOPOLOGIES_PISTE_SPEC[topoCode]) || { code: 'P4_2233', p_max: 4, somme: 10, arbres_par_rayon: 10 };
       const arbresParRayon = topoSpec.arbres_par_rayon ?? topoSpec.somme ?? 10;
+      const essaimNatif = typeof MODULE_ESSAIM_REGLES_NATIVES_V6_4 !== 'undefined'
+        ? MODULE_ESSAIM_REGLES_NATIVES_V6_4
+        : (typeof MODULE_ESSAIM_REGLES_NATIVES !== 'undefined' ? MODULE_ESSAIM_REGLES_NATIVES : {});
 
       return {
-        schema_version: '6.2.0',
+        schema_version: '6.4.0',
         bundle_id: state.bundleId,
         configuration_index: computeConfigurationIndex(),
         peuples_cercle: [...state.peuplesCercle],
@@ -2102,7 +2089,8 @@
         })),
         profile_overrides_en_jeu: activeOverrides,
         catalogue_complet_overrides: { ...state.profileOverrides },
-        module_essaim_natif: typeof MODULE_ESSAIM_REGLES_NATIVES !== 'undefined' ? MODULE_ESSAIM_REGLES_NATIVES : {}
+        module_essaim_natif: essaimNatif,
+        ...(typeof SIX_VERBES_COEUR_V6_4 !== 'undefined' ? { six_verbes_du_coeur: SIX_VERBES_COEUR_V6_4 } : {})
       };
     }
 
@@ -2131,7 +2119,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `amazonia_instance_v6_0_${state.peuplesCercle.join('')}.json`;
+      a.download = `amazonia_instance_v6_4_${state.peuplesCercle.join('')}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -2251,6 +2239,7 @@
     async function copyContextForGemini(event) {
       const forceFull = event && event.shiftKey;
       const { lisieres, activeTileIds } = getActiveLisieresAndTiles();
+      const v64Tiles = (typeof CANON_V6_4 !== 'undefined' && CANON_V6_4 && CANON_V6_4.tuiles_ciblees) ? CANON_V6_4.tuiles_ciblees : null;
       let modeLabel = '';
       let tuilesPayload = {};
       let changelogPayload = undefined;
@@ -2258,8 +2247,13 @@
 
       if (forceFull) {
         modeLabel = 'CATALOGUE_COMPLET_FORCE';
-        tuilesPayload = CATALOGUE_TUILES;
-        Object.values(CATALOGUE_TUILES).forEach(t => { countProfiles += Object.keys(t.profils).length; });
+        if (v64Tiles) {
+          tuilesPayload = v64Tiles;
+          countProfiles = Object.keys(v64Tiles).length;
+        } else {
+          tuilesPayload = CATALOGUE_TUILES;
+          Object.values(CATALOGUE_TUILES).forEach(t => { countProfiles += Object.keys(t.profils).length; });
+        }
         changelogPayload = VERSION_CHANGELOG[0];
       } else if (state.activeTab === 'catalogue') {
         const filt = getFilteredCatalogueSelection();
@@ -2280,6 +2274,11 @@
       if (Object.keys(tuilesPayload).length === 0) {
         if (!modeLabel) modeLabel = 'INSTANCE_TABLE_ACTIVE_2N';
         activeTileIds.forEach(id => {
+          if (v64Tiles && v64Tiles[id]) {
+            tuilesPayload[id] = v64Tiles[id];
+            countProfiles++;
+            return;
+          }
           const t = CATALOGUE_TUILES[id];
           if (!t) return;
           const actLetter = state.profileOverrides[id] || 'A';
@@ -2295,17 +2294,27 @@
         });
       }
 
-      const latestVersion = (Array.isArray(VERSION_CHANGELOG) && VERSION_CHANGELOG[0]) ? VERSION_CHANGELOG[0].version : 'v6.2';
+      const latestVersion = (Array.isArray(VERSION_CHANGELOG) && VERSION_CHANGELOG[0]) ? VERSION_CHANGELOG[0].version : 'v6.4';
       const digestExcerpt = buildDigestExcerptForGemini(tuilesPayload);
       const topoCode = state.chassis.Profil_Piste || 'P4_2233';
 
       const payload = {
         _meta: {
           projet: 'Amazonia : Dernier Rempart — Doc Studio',
-          schema_version: latestVersion === 'v6.2' ? '6.2.0' : latestVersion.replace(/^v/, ''),
+          schema_version: latestVersion === 'v6.4' ? '6.4.0' : (latestVersion === 'v6.2' ? '6.2.0' : latestVersion.replace(/^v/, '')),
           mode_extraction: modeLabel,
-          fichiers_source: ['contracts/rules_canon_v6_2.json', 'contracts/physical_and_edge_invariants.json', 'contracts/tiles_canon_v6_2.json', 'data/amazonia_data_v6_0.js', 'data/livret_v6_0.js', 'data/catalog_v6_0.json', 'data/spec_formelle_v6_0.json', 'index.html'],
-          workflow_rule: 'Source unique de vérité dans contracts/*.json ; régénérer docs/data/ via scripts/build_studio_artifacts.py.'
+          fichiers_source: [
+            'contracts/rules_canon_v6_4.json',
+            'contracts/physical_and_edge_invariants_v6_4.json',
+            'contracts/tiles_canon_v6_4.json',
+            'data/canon_v6_4_data.js',
+            'data/amazonia_data_v6_0.js',
+            'data/livret_v6_0.js',
+            'data/catalog_v6_4.json',
+            'data/spec_formelle_v6_4.json',
+            'index.html'
+          ],
+          workflow_rule: 'Source unique de vérité dans contracts/*_v6_4.json ; régénérer docs/data/ via scripts/build_studio_artifacts.py.'
         },
         regles_coeur: REGLES_COEUR_SYNTHESE,
         instance: {

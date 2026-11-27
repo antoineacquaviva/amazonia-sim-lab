@@ -111,7 +111,7 @@
       "id": "INV-09",
       "categorie": "MATERIEL",
       "titre": "Piste des Gardiens directe à 6 icônes (sans balayage) & Résonance au dernier pari",
-      "enonce_canonique": "La Piste des Gardiens comporte 6 icônes dédiées sans numéros : [Parade, Piégeage, Sabotage, Rêve, Insecte, Résonance]. Lorsqu’un événement allume son unique icône parmi les 5 premières, seuls les Gardiens posés sur cette icône portant ≥ 1 pari s’activent directement (zéro balayage gauche → droite, zéro reprise en arrière). Si cette activation vide le dessus d’au moins un Gardien (dernier pari glissé en encoche lors d’une vraie activation ; exclu sur glissement passif sans activation), l’icône Résonance s’allume juste après, une seule fois pour cette vague sans boucler sur elle-même.",
+      "enonce_canonique": "La Piste des Gardiens comporte 6 icônes dédiées sans numéros : [Parade, Piégeage, Sabotage, Rêve, Insecte, Résonance]. Lorsqu’un événement allume son unique icône parmi les 5 premières, seuls les Gardiens posés sur cette icône portant ≥ 1 pari s’activent directement (zéro balayage séquentiel, zéro reprise en arrière). Si cette activation vide le dessus d’au moins un Gardien (dernier pari glissé en encoche lors d’une vraie activation ; exclu sur glissement passif sans activation), l’icône Résonance s’allume juste après, une seule fois pour cette vague sans boucler sur elle-même.",
       "assertions_livret": [
         "Parade",
         "Piégeage",

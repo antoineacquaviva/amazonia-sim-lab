@@ -25,6 +25,10 @@ INVARIANTS_FILE = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CANON_FILE = CONTRACTS_DIR / "tiles_canon_v6_2.json"
 TILES_CANON_V6_3_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.json"
 TILES_CANON_V6_3_SCHEMA_FILE = CONTRACTS_DIR / "tiles_canon_v6_3.schema.json"
+RULES_CANON_V6_4_FILE = CONTRACTS_DIR / "rules_canon_v6_4.json"
+INVARIANTS_V6_4_FILE = CONTRACTS_DIR / "physical_and_edge_invariants_v6_4.json"
+TILES_CANON_V6_4_FILE = CONTRACTS_DIR / "tiles_canon_v6_4.json"
+TILES_CANON_V6_4_SCHEMA_FILE = CONTRACTS_DIR / "tiles_canon_v6_4.schema.json"
 PANELS_DIR = CONTRACTS_DIR / "panels"
 GUARDS_FILE = CONTRACTS_DIR / "studio_rules_guards.json"
 EFFECTS_DIR = ROOT / "engine" / "effects"
@@ -34,6 +38,10 @@ STUDIO_CONTEXT_FILE = ROOT / "docs" / "AMAZONIA_STUDIO_CONTEXT.md"
 STUDIO_CATALOG_FILE = DOCS_DATA_DIR / "catalog_v6_0.json"
 STUDIO_SPEC_FILE = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
 STUDIO_JS_FILE = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
+STUDIO_LIVRET_JS_FILE = DOCS_DATA_DIR / "livret_v6_0.js"
+STUDIO_CATALOG_V6_4_FILE = DOCS_DATA_DIR / "catalog_v6_4.json"
+STUDIO_SPEC_V6_4_FILE = DOCS_DATA_DIR / "spec_formelle_v6_4.json"
+STUDIO_CANON_V6_4_JS_FILE = DOCS_DATA_DIR / "canon_v6_4_data.js"
 SPEC_BUNDLE_FILE = ROOT / "data" / "spec_bundle_v6_0.json"
 UPPER_CASE_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 
@@ -480,18 +488,23 @@ def check_active_tile_handlers_non_noop(
 
 
 def verify_tiles_canon() -> None:
-    """Linter structurel, audit 197 assises (I01..I07, C02 purgé) et contrat bi-composant v6.3."""
-    if not TILES_CANON_FILE.is_file():
-        raise FileNotFoundError(f"Contrat tuiles Canon 0 manquant : {TILES_CANON_FILE}")
-    if not STUDIO_JS_FILE.is_file():
-        raise FileNotFoundError(f"Fichier Studio JS manquant : {STUDIO_JS_FILE}")
-    if not TILES_CANON_V6_3_SCHEMA_FILE.is_file():
-        raise FileNotFoundError(f"Schéma JSON v6.3 manquant : {TILES_CANON_V6_3_SCHEMA_FILE}")
-    if not TILES_CANON_V6_3_FILE.is_file():
-        raise FileNotFoundError(f"Contrat bi-composant v6.3 manquant : {TILES_CANON_V6_3_FILE}")
+    """Linter structurel, audit 197 assises (I01..I07, C02 purgé) et contrats bi-composants v6.3 & v6.4."""
+    for req_file, label in (
+        (TILES_CANON_FILE, "Contrat tuiles Canon 0 v6.2"),
+        (STUDIO_JS_FILE, "Fichier Studio JS"),
+        (TILES_CANON_V6_3_SCHEMA_FILE, "Schéma JSON v6.3"),
+        (TILES_CANON_V6_3_FILE, "Contrat bi-composant v6.3"),
+        (TILES_CANON_V6_4_SCHEMA_FILE, "Schéma JSON v6.4"),
+        (TILES_CANON_V6_4_FILE, "Contrat bi-composant v6.4"),
+    ):
+        if not req_file.is_file():
+            raise FileNotFoundError(f"{label} manquant : {req_file}")
 
     from scripts.audit_197 import audit_panels_directory, audit_tiles_catalog_197
-    from scripts.tiles_v6_3_schema import validate_tiles_canon_v6_3
+    from scripts.tiles_v6_3_schema import (
+        validate_tiles_canon_v6_3,
+        validate_tiles_canon_v6_4,
+    )
 
     canon_doc: dict[str, Any] = json.loads(TILES_CANON_FILE.read_text(encoding="utf-8"))
     canon_tiles: dict[str, Any] = dict(canon_doc.get("tuiles_ciblees", {}))
@@ -532,7 +545,7 @@ def verify_tiles_canon() -> None:
     if audit_v62["verdict_global"] != "OK":
         errors.extend(f"audit_197[v6.2]: {e}" for e in audit_v62["errors"])
 
-    # Validation du schéma JSON v6.3 et du contrat bi-composant tiles_canon_v6_3.json
+    # Validation du schéma JSON v6.3 et du contrat bi-composant tiles_canon_v6_3.json (Archive Passe 1)
     schema_v63 = json.loads(TILES_CANON_V6_3_SCHEMA_FILE.read_text(encoding="utf-8"))
     if not isinstance(schema_v63, dict) or "$defs" not in schema_v63:
         errors.append("contracts/tiles_canon_v6_3.schema.json invalide")
@@ -548,6 +561,19 @@ def verify_tiles_canon() -> None:
     audit_v63 = audit_tiles_catalog_197(v63_doc, allow_draft=v63_is_draft)
     if audit_v63["verdict_global"] != "OK":
         errors.extend(f"audit_197[v6.3]: {e}" for e in audit_v63["errors"])
+
+    # Validation stricte du schéma JSON v6.4 et du Canon Passe 2 tiles_canon_v6_4.json (0 erreur tolérée)
+    schema_v64 = json.loads(TILES_CANON_V6_4_SCHEMA_FILE.read_text(encoding="utf-8"))
+    if not isinstance(schema_v64, dict) or "$defs" not in schema_v64:
+        errors.append("contracts/tiles_canon_v6_4.schema.json invalide")
+    v64_doc: dict[str, Any] = json.loads(TILES_CANON_V6_4_FILE.read_text(encoding="utf-8"))
+    errors.extend(
+        f"tiles_canon_v6_4.json: {e}"
+        for e in validate_tiles_canon_v6_4(v64_doc, strict=True)
+    )
+    audit_v64 = audit_tiles_catalog_197(v64_doc, allow_draft=False)
+    if audit_v64["verdict_global"] != "OK":
+        errors.extend(f"audit_197[v6.4]: {e}" for e in audit_v64["errors"])
 
     # Répertoire multi-panels (`contracts/panels/`) : JSON bien formé requis, audit diagnostic non bloquant
     panels_summary = "0 panel"
@@ -568,22 +594,25 @@ def verify_tiles_canon() -> None:
                 errors.append(f"contracts/panels/: JSON mal formé ({exc})")
 
     if errors:
-        raise RuntimeError("VIOLATION Linter Tuiles / Audit 197 / Schéma v6.3 :\n" + "\n".join(errors))
+        raise RuntimeError(
+            "VIOLATION Linter Tuiles / Audit 197 / Schémas v6.3 & v6.4 :\n" + "\n".join(errors)
+        )
 
     v63_mode = "DRAFT_V6_3" if v63_is_draft else "STRICT_V6_3"
     print(
-        f"[5/10] Linter Tuiles + Audit 197 (M1..M4 + I01..I07) + Schéma v6.3 "
+        f"[5/10] Linter Tuiles + Audit 197 (M1..M4 + I01..I07) + Schémas v6.3 & v6.4 "
         f"({len(canon_tiles)} slots, C02 purgé, {verified_handlers}/30 ACTIVE_VERIFIED, "
-        f"0 no-op, {v63_mode}, {panels_summary}) : OK"
+        f"0 no-op, {v63_mode}, STRICT_V6_4, {panels_summary}) : OK"
     )
 
 
 def verify_global_anti_vestiges() -> None:
-    """Scanner global anti-vestiges sur contracts/*.json, docs/data/*.json, STUDIO_CONTEXT et .agents/**/*.md."""
+    """Scanner global anti-vestiges + garde termes retirés v6.4 sur les artefacts actifs."""
     guards: dict[str, Any] = json.loads(GUARDS_FILE.read_text(encoding="utf-8"))
     banned_patterns: list[str] = [str(p) for p in guards.get("banned_global_vestiges", [])]
     if not banned_patterns:
         raise RuntimeError("Liste 'banned_global_vestiges' vide dans studio_rules_guards.json")
+    banned_v64_retired: list[str] = [str(p) for p in guards.get("banned_v6_4_retired_terms", [])]
 
     targets: list[Path] = []
     for f in sorted(CONTRACTS_DIR.glob("*.json")):
@@ -605,32 +634,80 @@ def verify_global_anti_vestiges() -> None:
             if pat in txt:
                 errors.append(f"{rel}: vestige interdit {pat!r} détecté")
 
+    # Garde stricte des termes retirés v6.4 uniquement sur les fichiers actifs v6.4 (archives v6.2/v6.3 isolées)
+    v64_active_targets: list[Path] = [
+        p
+        for p in (
+            RULES_CANON_V6_4_FILE,
+            INVARIANTS_V6_4_FILE,
+            TILES_CANON_V6_4_FILE,
+            STUDIO_CATALOG_V6_4_FILE,
+            STUDIO_SPEC_V6_4_FILE,
+            STUDIO_LIVRET_JS_FILE,
+            STUDIO_CONTEXT_FILE,
+        )
+        if p.is_file()
+    ]
+    for path in v64_active_targets:
+        rel = path.relative_to(ROOT).as_posix()
+        txt = path.read_text(encoding="utf-8")
+        for pat in banned_v64_retired:
+            if pat in txt:
+                errors.append(f"{rel}: terme retiré v6.4 interdit {pat!r} détecté")
+
     if errors:
         raise RuntimeError("VIOLATION Scanner Global Anti-Vestiges :\n" + "\n".join(errors))
     print(
-        f"[6/10] Scanner global anti-vestiges ({len(targets)} fichiers contrats/docs/.agents) : OK"
+        f"[6/10] Scanner global anti-vestiges ({len(targets)} fichiers + "
+        f"{len(v64_active_targets)} cibles actives v6.4) : OK"
     )
 
 
-def verify_studio_coherence() -> None:
-    """Vérifie la cohérence SSOT v6.2 entre contracts/, docs/data/ et le simulateur Python.
+def _check_canon_v6_4_js_vm(canon_js_path: Path) -> dict[str, Any]:
+    """Valide `docs/data/canon_v6_4_data.js` via Node `new vm.Script()` et renvoie ses métriques clés."""
+    js_script = (
+        "const fs = require('fs');\n"
+        "const vm = require('vm');\n"
+        "const ctx = { window: {} };\n"
+        "vm.createContext(ctx);\n"
+        f"const src = fs.readFileSync({json.dumps(canon_js_path.as_posix())}, 'utf8');\n"
+        "new vm.Script(src, { filename: 'docs/data/canon_v6_4_data.js' }).runInContext(ctx);\n"
+        "const out = vm.runInContext(\n"
+        "  '({ verbes: Object.keys(SIX_VERBES_COEUR_V6_4 || {}), '\n"
+        "  + 'invariants: (PHYSICAL_INVARIANTS_V6_4 || []).map(x => x.id), '\n"
+        "  + 'pictos: Object.keys(REFERENTIEL_PICTOGRAMMES_V6_4 || {}), '\n"
+        "  + 'slots_v64: Object.keys((CANON_V6_4 && CANON_V6_4.tuiles_ciblees) || {}), '\n"
+        "  + 'slots_v63: Object.keys((CANON_V6_3_PASSE1 && CANON_V6_3_PASSE1.tuiles_ciblees) || {}) })', ctx);\n"
+        "process.stdout.write(JSON.stringify(out));\n"
+    )
+    proc = subprocess.run(
+        ["node", "-"],
+        input=js_script,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    return dict(json.loads(proc.stdout))
 
-    Contrôles actifs :
-    - Existence & empreintes SHA-256 des 3 contrats SSOT (`rules_canon_v6_2`, `invariants` 22, `tiles_canon_v6_2`) ;
-    - `docs/data/spec_formelle_v6_0.json == data/spec_bundle_v6_0.json['spec_formelle_v6_0']` ;
-    - Topologie canonique `P4_2233` dans `catalog_v6_0.json` == `engine.state.CANONICAL_DOTATION (2,2,3,3)` ;
-    - Châssis verrouillé (`Placement_Initial_Machines.defaultVal == 'BULLDOZER_P1_ABATTEUSE_P2'`) ;
-    - Réglette des Tactiques `T1..T6` == `engine.state.TACTIQUES_SPEC` ;
-    - Empreintes SHA-256 de `data/studio_lock.json` alignées avec `docs/data/` et `contracts/`.
-    """
+
+def verify_studio_coherence() -> None:
+    """Vérifie la cohérence SSOT v6.4 (Studio actif) & v6.2 (runtime PyPy) entre contracts/, docs/data/ et engine/."""
     studio_lock_file = ROOT / "data" / "studio_lock.json"
     for req_file in (
         RULES_CANON_FILE,
         INVARIANTS_FILE,
         TILES_CANON_FILE,
+        RULES_CANON_V6_4_FILE,
+        INVARIANTS_V6_4_FILE,
+        TILES_CANON_V6_4_FILE,
         STUDIO_CATALOG_FILE,
         STUDIO_SPEC_FILE,
         STUDIO_JS_FILE,
+        STUDIO_LIVRET_JS_FILE,
+        STUDIO_CATALOG_V6_4_FILE,
+        STUDIO_SPEC_V6_4_FILE,
+        STUDIO_CANON_V6_4_JS_FILE,
         SPEC_BUNDLE_FILE,
         studio_lock_file,
     ):
@@ -638,24 +715,59 @@ def verify_studio_coherence() -> None:
             raise FileNotFoundError(f"Fichier SSOT/Studio manquant : {req_file}")
 
     invariants_doc: dict[str, Any] = json.loads(INVARIANTS_FILE.read_text(encoding="utf-8"))
+    invariants_v64_doc: dict[str, Any] = json.loads(INVARIANTS_V6_4_FILE.read_text(encoding="utf-8"))
     catalog: dict[str, Any] = json.loads(STUDIO_CATALOG_FILE.read_text(encoding="utf-8"))
     spec_doc: dict[str, Any] = json.loads(STUDIO_SPEC_FILE.read_text(encoding="utf-8"))
+    spec_v64_doc: dict[str, Any] = json.loads(STUDIO_SPEC_V6_4_FILE.read_text(encoding="utf-8"))
+    catalog_v64: dict[str, Any] = json.loads(STUDIO_CATALOG_V6_4_FILE.read_text(encoding="utf-8"))
     bundle: dict[str, Any] = json.loads(SPEC_BUNDLE_FILE.read_text(encoding="utf-8"))
     lock_doc: dict[str, Any] = json.loads(studio_lock_file.read_text(encoding="utf-8"))
     studio_js = _load_studio_js_catalog_and_axes(STUDIO_JS_FILE)
+    v64_js_meta = _check_canon_v6_4_js_vm(STUDIO_CANON_V6_4_JS_FILE)
 
     errors: list[str] = []
 
-    # 0. Registre permanent des 22 invariants INV-01..INV-22
-    inv_ids = [str(item.get("id", "")) for item in invariants_doc.get("invariants", [])]
+    # 0. Registres permanents des 22 invariants INV-01..INV-22 (v6.2 & v6.4)
     expected_inv_ids = [f"INV-{i:02d}" for i in range(1, 23)]
-    if inv_ids != expected_inv_ids:
+    for lbl, doc in (
+        ("physical_and_edge_invariants.json", invariants_doc),
+        ("physical_and_edge_invariants_v6_4.json", invariants_v64_doc),
+    ):
+        inv_ids = [str(item.get("id", "")) for item in doc.get("invariants", [])]
+        if inv_ids != expected_inv_ids:
+            errors.append(
+                f"Registre invariants invalide ({lbl}) : attendu {expected_inv_ids[0]}..{expected_inv_ids[-1]}, "
+                f"obtenu {inv_ids}"
+            )
+
+    # 0b. Cohérence Studio v6.4 compilé (canon_v6_4_data.js, spec_formelle_v6_4.json, catalog_v6_4.json, studio_lock)
+    if str(spec_v64_doc.get("schema_version")) != "6.4.0":
         errors.append(
-            f"Registre invariants invalide : attendu {expected_inv_ids[0]}..{expected_inv_ids[-1]}, "
-            f"obtenu {inv_ids}"
+            f"docs/data/spec_formelle_v6_4.json schema_version attendu '6.4.0', obtenu {spec_v64_doc.get('schema_version')!r}"
+        )
+    if str(catalog_v64.get("schema_version")) != "6.4.0":
+        errors.append(
+            f"docs/data/catalog_v6_4.json schema_version attendu '6.4.0', obtenu {catalog_v64.get('schema_version')!r}"
+        )
+    if str(lock_doc.get("studio_version")) != "v6.4" or str(lock_doc.get("schema_version")) != "6.4.0":
+        errors.append(
+            f"data/studio_lock.json doit déclarer studio_version='v6.4' & schema_version='6.4.0' "
+            f"(obtenu {lock_doc.get('studio_version')!r} / {lock_doc.get('schema_version')!r})"
+        )
+    if len(v64_js_meta.get("verbes", [])) != 6:
+        errors.append(f"SIX_VERBES_COEUR_V6_4 doit contenir 6 verbes, obtenu {v64_js_meta.get('verbes')}")
+    if v64_js_meta.get("invariants") != expected_inv_ids:
+        errors.append("PHYSICAL_INVARIANTS_V6_4 dans canon_v6_4_data.js != INV-01..INV-22")
+    pictos_v64 = list(v64_js_meta.get("pictos", []))
+    if len(pictos_v64) != 31 or "PIC_PLUME" in pictos_v64:
+        errors.append(f"REFERENTIEL_PICTOGRAMMES_V6_4 invalide (len={len(pictos_v64)}, PIC_PLUME={'PIC_PLUME' in pictos_v64})")
+    if len(v64_js_meta.get("slots_v64", [])) != 30 or len(v64_js_meta.get("slots_v63", [])) != 30:
+        errors.append(
+            f"CANON_V6_4 / CANON_V6_3_PASSE1 doivent contenir 30 tuiles chacun "
+            f"(obtenu {len(v64_js_meta.get('slots_v64', []))}/{len(v64_js_meta.get('slots_v63', []))})"
         )
 
-    # 1. Cohérence spec_formelle_v6_0.json <-> bundle
+    # 1. Cohérence spec_formelle_v6_0.json <-> bundle (runtime PyPy v6.2 sanctuarisé Phase A)
     if bundle.get("spec_formelle_v6_0") != spec_doc:
         errors.append(
             "Désynchronisation entre docs/data/spec_formelle_v6_0.json et "
@@ -753,8 +865,8 @@ def verify_studio_coherence() -> None:
     if errors:
         raise RuntimeError("VIOLATION Cohérence SSOT Studio <-> Simulateur :\n" + "\n".join(errors))
     print(
-        f"[4/10] Cohérence SSOT v6.2 (contracts/ <-> docs/data/ <-> simulateur : "
-        f"22 invariants, châssis unique {CANONICAL_PROFIL_PISTE}, 6 tactiques, studio_lock) : OK"
+        f"[4/10] Cohérence SSOT v6.4 Studio + v6.2 Runtime (contracts/ <-> docs/data/ <-> simulateur : "
+        f"22 invariants, 6 Verbes, 31 pictos, châssis unique {CANONICAL_PROFIL_PISTE}, studio_lock) : OK"
     )
 
 

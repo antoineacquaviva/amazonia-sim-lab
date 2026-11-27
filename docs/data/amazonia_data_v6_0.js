@@ -1,5 +1,5 @@
 // =========================================================================
-// data/amazonia_data_v6_0.js — Généré automatiquement depuis contracts/ (SSOT v6.2.0 · 30 tuiles Canon 0 · Châssis unique verrouillé)
+// data/amazonia_data_v6_0.js — Généré automatiquement depuis contracts/ (Archive/Runtime v6.2.0 · 30 tuiles Canon 0 · Châssis unique verrouillé · Changelog aligné v6.4)
 // NE PAS ÉDITER À LA MAIN : exécuter `uv run python scripts/build_studio_artifacts.py`.
 // =========================================================================
 const PEUPLES = {
@@ -3980,6 +3980,39 @@ const CATALOGUE_TUILES = {
 };
 
 const VERSION_CHANGELOG = [
+  {
+    "version": "v6.4",
+    "date": "2026-11-27",
+    "titre": "Consolidation Cœur v6.4 (9 évolutions zéro-mémoire + 6 Verbes) & Passe 2 des 30 Tuiles",
+    "resume": "Épuration matérielle et cognitive du Cœur sans altérer la profondeur tactique (Oiseau à 2 dés et Perchoir orientable unique, Duel unifié, Essaim à déploiement direct sans sous-étape radiale, Enracinement sur la Rive Sabotage avec Effet Sentinelle permanent, Sabotage différé Refroidir/Reculer, Piste des Gardiens directe avec Résonance au dernier pari, Éveil cumulatif A + 1 Face 2, fil d’ouverture imprimé et 6 Verbes du Cœur), accompagnée de la Passe 2 complète des 30 tuiles bi-composant.",
+    "deltas": [
+      {
+        "domaine": "Oiseau épuré & Duel unifié (INV-07, INV-20)",
+        "avant": "L’Oiseau manipulait un 3e dé dédié et deux pièces distinctes de vigie ; le Duel exigeait des clauses d’exception sur plusieurs tuiles pour basculer sur Territoire tenu.",
+        "apres": "Tous les joueurs lancent uniquement 2 dés standards 1–6 (l’Oiseau choisit librement lequel retenir) ; pièce unique orientable Perchoir de Vigie (Chaud/Calme) ; Duel unifié retourné sur Territoire tenu par toute parade ou piège de n’importe quel moyen."
+      },
+      {
+        "domaine": "Module Essaim fluide & Bonus 3J unifié (INV-19, INV-21)",
+        "avant": "Sous-étape radiale dédiée avec retournement/redressement d’Insectes, amorçages répétés carte par carte et bonus 3 joueurs réservé aux Gardiens et Rêves.",
+        "apres": "Déploiement direct à la Production (+1/+2 posés sur le Nid, une parcelle adjacente ou les pistes centrales depuis la dernière parcelle), Amorçage natif en réserve, Déménagement unifié des Nids et bonus 3 joueurs étendu aux Nids."
+      },
+      {
+        "domaine": "Pied du rayon unifié & Sabotage différé (INV-05, INV-14, INV-22)",
+        "avant": "Enracinements alignés face à une parcelle précise ; jeton Sabotage ordinaire sans effet immédiat sur le plateau.",
+        "apres": "100 % des Enracinements posés sur la Rive Sabotage du rayon avec Effet Sentinelle permanent (1 ou 2 places occupées) et choix libre des Souches au décompte final ; Sabotage ordinaire révélé permet de Refroidir ou Reculer 1 machine de son rayon ou d’un voisin."
+      },
+      {
+        "domaine": "Piste directe, Éveil cumulatif & Zéro-mémoire (INV-08, INV-09, INV-10)",
+        "avant": "Défilement gauche → droite avec retours en arrière, compteur individuel sur Résonance et Éveil exigeant les N deuxièmes pions engagés au même tour.",
+        "apres": "Activation directe sur l’unique icône allumée, Résonance déclenchée une fois par vague lorsqu’une vraie activation vide un dernier pari, Éveil cumulatif dès ≥ A + 1 Gardiens en piste en Face 2 avec 0 pari perdu ce tour, fil d’ouverture imprimé, dé retiré et Défenseurs couchés sur Rêve résolu."
+      },
+      {
+        "domaine": "6 Verbes du Cœur & Passe 2 des 30 Tuiles",
+        "avant": "Canon Passe 1 assemblé depuis 3 panels aux styles hétérogènes et à quelques clauses redondantes ou lourdes.",
+        "apres": "Lexique unifié des 6 Verbes (Refroidir, Altérer, Reculer, Étouffer, Semer au sac, Glisser un Rêve), grammaire télégraphique zéro-émoji des 30 Mini-Tuiles, 13 tuiles alignées + 17 tuiles consolidées (13 catalyseurs d’Éveil, 6 Twists 2K3, 3 Lois passives, 0 erreur sur 197 assises)."
+      }
+    ]
+  },
   {
     "version": "v6.2",
     "date": "2026-11-24",

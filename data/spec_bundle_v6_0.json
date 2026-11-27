@@ -15,19 +15,34 @@
         "source": "docs/data/spec_formelle_v6_0.json"
       },
       "amazonia_data_v6_0.js": {
-        "sha256": "275e50602e9474620d75004486323bc63cb871e2a346ba53983abeeffda17eb5",
-        "bytes": 195848,
+        "sha256": "469d55b2299267cba1149ffc555594a55adf9028c03a7c742d3d857a6058d579",
+        "bytes": 199387,
         "source": "docs/data/amazonia_data_v6_0.js"
       },
       "livret_v6_0.js": {
-        "sha256": "3befa2c426b35252cc77890a4d7fbfb1d09e76cf37fee0867e1ceedfa18d6131",
-        "bytes": 136020,
+        "sha256": "4dd266c5b78932ee2923a479761fd5863dc21166c225377d86d1b2571c93e419",
+        "bytes": 147799,
         "source": "docs/data/livret_v6_0.js"
       },
       "panels_v6_3_data.js": {
         "sha256": "7b5ff06c1db815c95eb8d538278c2b1d43a126563909bcad537c18a60ccd070a",
         "bytes": 503474,
         "source": "docs/data/panels_v6_3_data.js"
+      },
+      "catalog_v6_4.json": {
+        "sha256": "88295e7e3a64c87b65dfc4353ae9f92b813d7da01b68fe23b1a4bd36b52f5218",
+        "bytes": 32839,
+        "source": "docs/data/catalog_v6_4.json"
+      },
+      "spec_formelle_v6_4.json": {
+        "sha256": "f1a947b3f57e8b9141e3213c1a2afb06dea68806d013586a3629a2ec709c569a",
+        "bytes": 30008,
+        "source": "docs/data/spec_formelle_v6_4.json"
+      },
+      "canon_v6_4_data.js": {
+        "sha256": "c9fe8d5b58382d95f5a93a781fd131750c42f65a33d1eaa57b0d56f2c1d6070d",
+        "bytes": 381309,
+        "source": "docs/data/canon_v6_4_data.js"
       }
     },
     "contracts_sha256": {
@@ -45,6 +60,26 @@
         "sha256": "4a21fc21e55b480e4a835ae4bff4bf742066142fd40022781da61d060d7fba32",
         "bytes": 160640,
         "source": "contracts/tiles_canon_v6_2.json"
+      },
+      "rules_canon_v6_4.json": {
+        "sha256": "e602de9741bab40497c678ee4d57258f804f57202632eb31d4bc577eb0b42fa0",
+        "bytes": 56820,
+        "source": "contracts/rules_canon_v6_4.json"
+      },
+      "physical_and_edge_invariants_v6_4.json": {
+        "sha256": "528b769bd09c83da30be051050d81e345917539496d15f778cc5f78904f4d9b5",
+        "bytes": 19677,
+        "source": "contracts/physical_and_edge_invariants_v6_4.json"
+      },
+      "tiles_canon_v6_4.json": {
+        "sha256": "161507e68e577498fe5e32dd9da270ddc1dbf40c8a56694c896bddd1e4705971",
+        "bytes": 143316,
+        "source": "contracts/tiles_canon_v6_4.json"
+      },
+      "tiles_canon_v6_3.json": {
+        "sha256": "5c01a6e4d7e8682e8418fe73cbcc8c74011bc278870c6ed0f842224202f40138",
+        "bytes": 172764,
+        "source": "contracts/tiles_canon_v6_3.json"
       },
       "panels/panel_1.json": {
         "sha256": "f8e1d22a928627e988a6c4efc3e8b3a6b24e91dc97b240d2a5f36f48921b84db",

@@ -1,17 +1,18 @@
-"""Tests de rendu headless, garde-fous sémantiques SSOT v6.2 et linter Canon 0 d'Amazonia Doc Studio.
+"""Tests de rendu headless, garde-fous sémantiques SSOT v6.4 et linter Canon d'Amazonia Doc Studio.
 
 Exécuté automatiquement par `pytest` (porte [9/10] de `verify_lot.py`) sans dépendance npm :
-1. Vérifie les schémas SSOT de `amazonia_data_v6_0.js` (`VERSION_CHANGELOG`, `TOPOLOGIES_PISTE_SPEC`,
-   `CHASSIS_AXES_SPEC` verrouillé avec `Placement_Initial_Machines.defaultVal = 'BULLDOZER_P1_ABATTEUSE_P2'`,
-   30 tuiles du Canon 0 dans `CATALOGUE_TUILES`).
-2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `livret_v6_0.js` dans
-   Node `vm` sur un mini-DOM mocké :
+1. Vérifie les schémas SSOT de `amazonia_data_v6_0.js` (`VERSION_CHANGELOG` avec `v6.4` en tête,
+   `TOPOLOGIES_PISTE_SPEC`, `CHASSIS_AXES_SPEC` verrouillé avec
+   `Placement_Initial_Machines.defaultVal = 'BULLDOZER_P1_ABATTEUSE_P2'`, 30 tuiles dans `CATALOGUE_TUILES`)
+   et `canon_v6_4_data.js` (`CANON_V6_4`, `SIX_VERBES_COEUR_V6_4`, `31` pictogrammes).
+2. Exécute le rendu complet `refreshAllUI()` de `docs/index.html` + `canon_v6_4_data.js` + `livret_v6_0.js`
+   dans Node `vm` sur un mini-DOM mocké :
    - vérifie `0 écart` initial sur le châssis et la neutralisation des axes morts `v6.0` ;
    - teste l'appel à `resetChassisToDefault()` ;
-   - vérifie le rendu sans erreur JS des 30 tuiles du Canon 0 ;
-   - active automatiquement le contrôleur bloquant `data-inv="INV-01"` .. `data-inv="INV-22"`
-     dès que `livret` déclare `LIVRET_SCHEMA_VERSION = "6.2.0"` (Chantier 2).
-3. Vérifie le linter automatique `verify_tiles_canon` et le scanner global anti-vestiges.
+   - vérifie le rendu sans erreur JS des 30 tuiles ;
+   - active le contrôleur bloquant `data-inv="INV-01"` .. `data-inv="INV-22"` sur `LIVRET_SCHEMA_VERSION = "6.4.0"`
+     ainsi que le bloc `#bloc-six-verbes` des 6 Verbes du Cœur.
+3. Vérifie le linter automatique `verify_tiles_canon` et le scanner global anti-vestiges (y compris termes retirés v6.4).
 """
 
 from __future__ import annotations
@@ -32,9 +33,11 @@ from verify_lot import (
 ROOT = Path(__file__).resolve().parent.parent
 GUARDS_PATH = ROOT / "contracts" / "studio_rules_guards.json"
 INVARIANTS_PATH = ROOT / "contracts" / "physical_and_edge_invariants.json"
+INVARIANTS_V6_4_PATH = ROOT / "contracts" / "physical_and_edge_invariants_v6_4.json"
 TILES_CANON_PATH = ROOT / "contracts" / "tiles_canon_v6_2.json"
 STUDIO_INDEX = ROOT / "docs" / "index.html"
 STUDIO_DATA = ROOT / "docs" / "data" / "amazonia_data_v6_0.js"
+STUDIO_CANON_V6_4 = ROOT / "docs" / "data" / "canon_v6_4_data.js"
 STUDIO_LIVRET = ROOT / "docs" / "data" / "livret_v6_0.js"
 
 
@@ -61,9 +64,10 @@ _NODE_HARNESS = r"""
 const fs = require('fs');
 const vm = require('vm');
 
-const [indexPath, dataPath, livretPath, guardsPath, invariantsPath] = process.argv.slice(1);
+const [indexPath, dataPath, canonV64Path, livretPath, guardsPath, invariantsPath] = process.argv.slice(1);
 const html = fs.readFileSync(indexPath, 'utf8');
 const dataJs = fs.readFileSync(dataPath, 'utf8');
+const canonV64Js = fs.readFileSync(canonV64Path, 'utf8');
 const livretJs = fs.readFileSync(livretPath, 'utf8');
 const guards = JSON.parse(fs.readFileSync(guardsPath, 'utf8'));
 const invariantsDoc = JSON.parse(fs.readFileSync(invariantsPath, 'utf8'));
@@ -85,7 +89,7 @@ function makeElement(id) {
     _innerHTML: '',
     _textContent: '',
     value: id === 'changelog-filter-select' ? 'ALL'
-         : id === 'diff-version-select' ? 'v6.1'
+         : id === 'diff-version-select' ? 'v6.2'
          : id === 'filter-family' || id === 'filter-peuple' || id === 'filter-scope' ? 'ALL'
          : id === 'filter-profile-letter' ? 'ALL_COMPARE'
          : '',
@@ -165,19 +169,20 @@ vm.createContext(sandbox);
 
 // Load Studio layers in exact browser order
 vm.runInContext(dataJs, sandbox, { filename: dataPath });
+vm.runInContext(canonV64Js, sandbox, { filename: canonV64Path });
 vm.runInContext(livretJs, sandbox, { filename: livretPath });
 for (let i = 0; i < inlineScripts.length; i++) {
   vm.runInContext(inlineScripts[i], sandbox, { filename: `docs/index.html#script${i}` });
 }
 
-// 1. Validate VERSION_CHANGELOG, TOPOLOGIES_PISTE_SPEC, CHASSIS_AXES_SPEC & 30 Canon 0 tiles
+// 1. Validate VERSION_CHANGELOG, TOPOLOGIES_PISTE_SPEC, CHASSIS_AXES_SPEC & 30 Canon tiles
 const schemaReport = vm.runInContext(`(() => {
   const errs = [];
   if (!Array.isArray(VERSION_CHANGELOG) || VERSION_CHANGELOG.length === 0) {
     errs.push('VERSION_CHANGELOG vide ou absent');
   } else {
-    if (VERSION_CHANGELOG[0].version !== 'v6.2') {
-      errs.push('VERSION_CHANGELOG[0].version attendu v6.2, trouvé ' + VERSION_CHANGELOG[0].version);
+    if (VERSION_CHANGELOG[0].version !== 'v6.4') {
+      errs.push('VERSION_CHANGELOG[0].version attendu v6.4, trouvé ' + VERSION_CHANGELOG[0].version);
     }
     for (const b of VERSION_CHANGELOG) {
       if (!b.version || !b.titre || !b.resume) errs.push('Bloc changelog incomplet: ' + b.version);
@@ -315,8 +320,13 @@ for (const id of watchedIds) {
   }
 }
 const changelogHtml = getEl('changelog-content').innerHTML;
-if (!changelogHtml || changelogHtml.length < 200 || !changelogHtml.includes('v6.2')) {
-  throw new Error('changelog-content vide ou sans entrée v6.2 après refreshAllUI()');
+if (!changelogHtml || changelogHtml.length < 200 || !changelogHtml.includes('v6.4') || !changelogHtml.includes('v6.2')) {
+  throw new Error('changelog-content vide ou sans entrée v6.4/v6.2 après refreshAllUI()');
+}
+const manifestOut = getEl('json-manifest-output').textContent || '';
+const manifestHasV64 = manifestOut.includes('"schema_version": "6.4.0"') && manifestOut.includes('six_verbes_du_coeur');
+if (!manifestHasV64) {
+  throw new Error('Manifeste JSON Tab 4 non aligné sur 6.4.0 / six_verbes_du_coeur');
 }
 
 // 4. Check positive rulebook assertions per table composition
@@ -343,10 +353,10 @@ for (const check of guards.required_livret_assertions || []) {
   }
 }
 
-// 5. Blocking LIVRET_SCHEMA_VERSION === '6.2.0' & INV-01..INV-22 data-inv guard (Chantier 2)
-if (schemaReport.livretSchemaVersion !== '6.2.0') {
+// 5. Blocking LIVRET_SCHEMA_VERSION === '6.4.0' & INV-01..INV-22 data-inv guard
+if (schemaReport.livretSchemaVersion !== '6.4.0') {
   throw new Error(
-    `LIVRET_SCHEMA_VERSION === "6.2.0" exigé (obtenu ${JSON.stringify(schemaReport.livretSchemaVersion)})`
+    `LIVRET_SCHEMA_VERSION === "6.4.0" exigé (obtenu ${JSON.stringify(schemaReport.livretSchemaVersion)})`
   );
 }
 const invGuardActivated = true;
@@ -354,12 +364,16 @@ vm.runInContext(`(() => {
   resetLivretComplet();
 })()`, sandbox);
 const fullLivretHtml = getEl('rulebook-article').innerHTML;
+const sixVerbesInLivret = fullLivretHtml.includes('id="bloc-six-verbes"');
+if (!sixVerbesInLivret) {
+  throw new Error('Bloc des 6 Verbes du Cœur (#bloc-six-verbes) manquant dans le Livret v6.4');
+}
 const fullLower = fullLivretHtml.toLowerCase();
 let invariantsVerified = 0;
 for (const inv of invariantsDoc.invariants || []) {
   const invRe = new RegExp(`data-inv=["'][^"']*\\b${inv.id}\\b[^"']*["']`);
   if (!invRe.test(fullLivretHtml)) {
-    throw new Error(`Invariant ${inv.id} manquant dans #rulebook-article (attribut data-inv="${inv.id}" requis en 6.2.0)`);
+    throw new Error(`Invariant ${inv.id} manquant dans #rulebook-article (attribut data-inv="${inv.id}" requis en 6.4.0)`);
   }
   for (const phrase of inv.assertions_livret || []) {
     if (!fullLower.includes(String(phrase).toLowerCase())) {
@@ -509,8 +523,8 @@ const expectedBriques = [
   'brique-peuple-insectes',
   'brique-memento',
 ];
-if (!html.includes('selon vos réglages v6.2') || html.includes('selon vos réglages v6.0')) {
-  throw new Error('Libellé dynamique de docs/index.html non aligné sur v6.2');
+if (!html.includes('selon vos réglages v6.4') || html.includes('selon vos réglages v6.2') || html.includes('selon vos réglages v6.0')) {
+  throw new Error('Libellé dynamique de docs/index.html non aligné sur v6.4');
 }
 if (html.includes('livret_v5_3.js')) {
   throw new Error('Commentaire obsolète livret_v5_3.js encore présent dans docs/index.html');
@@ -539,6 +553,8 @@ if (!n3LivretHtml.includes('Table à 3 joueurs')) {
 console.log(JSON.stringify({
   ok: true,
   livret_schema_version: schemaReport.livretSchemaVersion,
+  six_verbes_in_livret: sixVerbesInLivret,
+  manifest_has_v6_4: manifestHasV64,
   topologies_checked: schemaReport.topoKeys.length,
   tiles_rendered: schemaReport.tileKeys.length,
   tables_checked: (guards.required_livret_assertions || []).length,
@@ -565,7 +581,7 @@ def test_studio_banned_terms_in_livret_source() -> None:
 
 
 def test_studio_headless_render_and_semantic_guards() -> None:
-    """Exécute refreshAllUI() en headless Node vm : 0 écart, 30 tuiles, 22 INV et filtre interactif."""
+    """Exécute refreshAllUI() en headless Node vm : 0 écart, 30 tuiles, 22 INV v6.4, 6 Verbes et filtre interactif."""
     proc = subprocess.run(
         [
             "node",
@@ -573,9 +589,10 @@ def test_studio_headless_render_and_semantic_guards() -> None:
             _NODE_HARNESS,
             str(STUDIO_INDEX),
             str(STUDIO_DATA),
+            str(STUDIO_CANON_V6_4),
             str(STUDIO_LIVRET),
             str(GUARDS_PATH),
-            str(INVARIANTS_PATH),
+            str(INVARIANTS_V6_4_PATH),
         ],
         cwd=ROOT,
         capture_output=True,
@@ -587,7 +604,9 @@ def test_studio_headless_render_and_semantic_guards() -> None:
     )
     payload = json.loads(proc.stdout.strip().splitlines()[-1])
     assert payload["ok"] is True
-    assert payload["livret_schema_version"] == "6.2.0"
+    assert payload["livret_schema_version"] == "6.4.0"
+    assert payload["six_verbes_in_livret"] is True
+    assert payload["manifest_has_v6_4"] is True
     assert payload["topologies_checked"] == 1
     assert payload["tiles_rendered"] == 30
     assert payload["tables_checked"] == 4
@@ -601,22 +620,23 @@ def test_studio_headless_render_and_semantic_guards() -> None:
 
 
 def test_inv_html_guard_enforces_all_22_invariants_when_livret_is_6_2() -> None:
-    """Prouve que le contrôleur data-inv='INV-XX' prêt pour Chantier 2 bloque tout invariant manquant."""
-    inv_doc = json.loads(INVARIANTS_PATH.read_text(encoding="utf-8"))
-    assert len(inv_doc["invariants"]) == 22
+    """Prouve que le contrôleur data-inv='INV-XX' bloque tout invariant manquant (v6.2 et v6.4)."""
+    for inv_path in (INVARIANTS_PATH, INVARIANTS_V6_4_PATH):
+        inv_doc = json.loads(inv_path.read_text(encoding="utf-8"))
+        assert len(inv_doc["invariants"]) == 22
 
-    # 1. HTML synthétique couvrant tous les 22 data-inv et leurs assertions -> 0 erreur
-    blocks: list[str] = []
-    for inv in inv_doc["invariants"]:
-        phrases = " ".join(inv["assertions_livret"])
-        blocks.append(f'<section data-inv="{inv["id"]}">{phrases}</section>')
-    complete_html = "\n".join(blocks)
-    assert check_rulebook_html_invariants(complete_html, inv_doc) == []
+        # 1. HTML synthétique couvrant tous les 22 data-inv et leurs assertions -> 0 erreur
+        blocks: list[str] = []
+        for inv in inv_doc["invariants"]:
+            phrases = " ".join(inv["assertions_livret"])
+            blocks.append(f'<section data-inv="{inv["id"]}">{phrases}</section>')
+        complete_html = "\n".join(blocks)
+        assert check_rulebook_html_invariants(complete_html, inv_doc) == []
 
-    # 2. Suppression de INV-11 -> erreur bloquante immédiate
-    incomplete_html = "\n".join(b for b in blocks if 'data-inv="INV-11"' not in b)
-    errs = check_rulebook_html_invariants(incomplete_html, inv_doc)
-    assert any("INV-11" in e for e in errs)
+        # 2. Suppression de INV-11 -> erreur bloquante immédiate
+        incomplete_html = "\n".join(b for b in blocks if 'data-inv="INV-11"' not in b)
+        errs = check_rulebook_html_invariants(incomplete_html, inv_doc)
+        assert any("INV-11" in e for e in errs)
 
 
 def test_tiles_canon_linter_and_anti_vestiges_guards() -> None:

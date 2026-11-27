@@ -665,3 +665,102 @@ def test_v6_3_scaffold_locks_all_15_gardien_animals(slot_id: str, expected_anima
     tile = canon["tuiles_ciblees"][slot_id]
     assert tile["tuile_plateau"]["nom_court"] == expected_animal
     assert expected_animal.lower() in tile["carte_joueur"]["titre_complet"].replace("'", "’").lower()
+
+
+def test_v6_4_core_contracts_canon_passe2_and_markdown() -> None:
+    """Valide les contrats SSOT Cœur v6.4, le Canon 30 Passe 2, l'audit 197 et les exports Markdown."""
+    from scripts.build_canon_v6_4 import (
+        PANEL_MD_V6_4_PATH,
+        build_canon_v6_4_document,
+    )
+    from scripts.tiles_v6_3_schema import (
+        DEFAULT_REFERENTIEL_PICTOGRAMMES_V6_4,
+        V6_4_CONTRACT_PATH,
+        V6_4_SCHEMA_PATH,
+        is_v6_4_tiles_contract,
+        validate_tiles_canon_v6_4,
+    )
+
+    # 1. Cadrage & Contrats Cœur v6.4
+    cadrage_v64_path = ROOT / "docs" / "cadrage_v6_4.md"
+    rules_v64_path = ROOT / "contracts" / "rules_canon_v6_4.json"
+    inv_v64_path = ROOT / "contracts" / "physical_and_edge_invariants_v6_4.json"
+    for p in (
+        cadrage_v64_path,
+        rules_v64_path,
+        inv_v64_path,
+        V6_4_SCHEMA_PATH,
+        V6_4_CONTRACT_PATH,
+        PANEL_MD_V6_4_PATH,
+    ):
+        assert p.is_file(), f"Livrable v6.4 manquant : {p}"
+        raw = p.read_bytes()
+        assert not raw.startswith(b"\xef\xbb\xbf"), f"BOM UTF-8 interdit dans {p.name}"
+        assert b"\r\n" not in raw, f"CRLF interdit dans {p.name}"
+
+    rules_v64 = json.loads(rules_v64_path.read_text(encoding="utf-8"))
+    assert rules_v64["meta"]["schema_version"] == "6.4.0"
+    assert len(rules_v64["six_verbes_du_coeur"]) == 6
+    assert set(rules_v64["six_verbes_du_coeur"].keys()) == {
+        "REFROIDIR",
+        "ALTERER",
+        "RECULER",
+        "ETOUFFER",
+        "SEMER_AU_SAC",
+        "GLISSER_UN_REVE",
+    }
+
+    inv_v64 = json.loads(inv_v64_path.read_text(encoding="utf-8"))
+    assert inv_v64["meta"]["schema_version"] == "6.4.0"
+    assert [i["id"] for i in inv_v64["invariants"]] == [f"INV-{n:02d}" for n in range(1, 23)]
+
+    # 2. Schéma JSON & Canon v6.4 Passe 2 (strict + audit 197 = 0 erreur)
+    assert len(DEFAULT_REFERENTIEL_PICTOGRAMMES_V6_4) == 31
+    assert "PIC_PLUME" not in DEFAULT_REFERENTIEL_PICTOGRAMMES_V6_4
+    assert "PIC_PERCHOIR" in DEFAULT_REFERENTIEL_PICTOGRAMMES_V6_4
+
+    canon64 = json.loads(V6_4_CONTRACT_PATH.read_text(encoding="utf-8"))
+    assert is_v6_4_tiles_contract(canon64) is True
+    assert canon64["_meta"]["schema_version"] == "6.4.0"
+    assert canon64["_meta"]["statut_global"] == "PANEL_30_AFFINE"
+    assert validate_tiles_canon_v6_4(canon64, strict=True) == []
+
+    rep64 = audit_tiles_catalog_197(canon64, allow_draft=False)
+    assert rep64["verdict_global"] == "OK", rep64["errors"]
+    assert rep64["errors"] == []
+    assert rep64["M1_TEMPS_BATAILLE"]["verdict"] == "OK"
+    assert rep64["M2_CONSERVATION_THERMIQUE"]["verdict"] == "OK"
+    assert rep64["M3_INTEGRITE_PLATEAU_ET_ICONES"]["verdict"] == "OK"
+    assert rep64["M4_AUTONOMIE_PLANCHER_SOLO"]["verdict"] == "OK"
+    assert rep64["Q01_lois_passives"]["nombre"] == 3
+    assert rep64["Q01_lois_passives"]["max_par_assise"] <= 2
+    assert rep64["Q02_twists_2K3"]["nombre"] == 6
+    assert rep64["I04_couverture_eveil"]["nombre"] == 13
+    assert len(rep64["I05_couverture_sommeil"]["leviers"]) == 6
+    assert rep64["I06_enracinement"]["nombre"] == 4
+    assert all(
+        d["divergent"] and not d["boucle_a_deux_etats"]
+        for d in rep64["I03_divergence_lisiere"]["lisieres"]
+    )
+
+    # 3. Hygiène Passe 2 & reproductibilité du générateur build_canon_v6_4
+    rebuilt = build_canon_v6_4_document()
+    assert rebuilt == canon64
+
+    md_text = PANEL_MD_V6_4_PATH.read_text(encoding="utf-8")
+    for sid, *_ in SLOTS_SPEC_30:
+        assert f"### {sid} (`" in md_text, f"Fiche manquante dans {PANEL_MD_V6_4_PATH.name} : {sid}"
+
+    # 4. Tests négatifs v6.4 : rejet de PIC_PLUME et de termes retirés (Dé d'Envol, Migration)
+    bad_plume = copy.deepcopy(canon64)
+    bad_plume["tuiles_ciblees"]["G11"]["tuile_plateau"]["pictogrammes"] = ["PIC_PLUME", "PIC_PERCHOIR"]
+    errs_plume = validate_tiles_canon_v6_4(bad_plume, strict=True)
+    assert any("PIC_PLUME" in e for e in errs_plume)
+
+    bad_retired = copy.deepcopy(canon64)
+    bad_retired["tuiles_ciblees"]["G11"]["carte_joueur"]["texte_regle"]["face_1"] = (
+        "Relancez le Dé d’Envol de l’Oiseau et appliquez la Migration."
+    )
+    errs_ret = validate_tiles_canon_v6_4(bad_retired, strict=True)
+    assert errs_ret, "Un texte contenant des termes retirés v6.4 (Dé d'Envol / Migration) doit être rejeté"
+

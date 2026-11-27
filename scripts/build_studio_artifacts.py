@@ -1,17 +1,16 @@
-"""Compilateur dérivé unique (SSOT v6.2) pour Amazonia Doc Studio & simulateur.
+"""Compilateur dérivé unique (SSOT v6.4 actif + archive/runtime v6.2 sanctuarisée) pour Amazonia Doc Studio.
 
-Lit exclusivement les 3 contrats SSOT de `contracts/` :
-- `contracts/rules_canon_v6_2.json`
-- `contracts/physical_and_edge_invariants.json`
-- `contracts/tiles_canon_v6_2.json`
+Lit exclusivement les contrats SSOT de `contracts/` :
+- Socle actif Studio `v6.4` : `rules_canon_v6_4.json`, `physical_and_edge_invariants_v6_4.json`,
+  `tiles_canon_v6_4.json` (+ archive Passe 1 `tiles_canon_v6_3.json`)
+- Socle archive/runtime PyPy `v6.2` : `rules_canon_v6_2.json`,
+  `physical_and_edge_invariants.json`, `tiles_canon_v6_2.json`
 
 Génère sans aucune constante métier codée en dur :
-1. `docs/data/spec_formelle_v6_0.json`
-2. `docs/data/catalog_v6_0.json`
-3. `docs/data/amazonia_data_v6_0.js` (validé par `new vm.Script()` sous Node)
-4. `data/catalog_v6_0.json` et `data/spec_formelle_v6_0.json`
-5. `data/studio_lock.json`
-6. `data/spec_bundle_v6_0.json` (avec shim de compatibilité minimal jusqu'au Chantier 4)
+1. `docs/data/spec_formelle_v6_4.json`, `docs/data/catalog_v6_4.json`, `docs/data/canon_v6_4_data.js`
+2. `docs/data/spec_formelle_v6_0.json`, `docs/data/catalog_v6_0.json`, `docs/data/amazonia_data_v6_0.js`
+3. `docs/data/panels_v6_3_data.js` (archives duel P1/P2/P3)
+4. `data/catalog_v6_0.json`, `data/spec_formelle_v6_0.json`, `data/studio_lock.json`, `data/spec_bundle_v6_0.json`
 """
 
 from __future__ import annotations
@@ -34,14 +33,24 @@ DATA_DIR = ROOT / "data"
 RULES_CONTRACT_PATH = CONTRACTS_DIR / "rules_canon_v6_2.json"
 INVARIANTS_CONTRACT_PATH = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_2.json"
+
+RULES_V6_4_CONTRACT_PATH = CONTRACTS_DIR / "rules_canon_v6_4.json"
+INVARIANTS_V6_4_CONTRACT_PATH = CONTRACTS_DIR / "physical_and_edge_invariants_v6_4.json"
+TILES_V6_4_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_4.json"
+TILES_V6_3_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_3.json"
+
 PANELS_DIR = CONTRACTS_DIR / "panels"
 AUTHOR_WORKSPACE_PATH = PANELS_DIR / "author_workspace_v6_3.json"
+AUTHOR_WORKSPACE_V6_4_PATH = PANELS_DIR / "author_workspace_v6_4.json"
 PANEL_IDS_V6_3: tuple[str, ...] = ("panel_1", "panel_2", "panel_3")
 
 OUT_DOCS_SPEC = DOCS_DATA_DIR / "spec_formelle_v6_0.json"
 OUT_DOCS_CATALOG = DOCS_DATA_DIR / "catalog_v6_0.json"
 OUT_DOCS_JS = DOCS_DATA_DIR / "amazonia_data_v6_0.js"
 OUT_DOCS_PANELS_V6_3_JS = DOCS_DATA_DIR / "panels_v6_3_data.js"
+OUT_DOCS_SPEC_V6_4 = DOCS_DATA_DIR / "spec_formelle_v6_4.json"
+OUT_DOCS_CATALOG_V6_4 = DOCS_DATA_DIR / "catalog_v6_4.json"
+OUT_DOCS_CANON_V6_4_JS = DOCS_DATA_DIR / "canon_v6_4_data.js"
 DOCS_LIVRET_JS = DOCS_DATA_DIR / "livret_v6_0.js"
 
 OUT_DATA_SPEC = DATA_DIR / "spec_formelle_v6_0.json"
@@ -286,14 +295,17 @@ def _build_spec_formelle(
     meta = rules["meta"]
     chassis = rules["chassis_canonique"]
     topos_studio = rules["topologies_studio"]
-    sf_src = rules["spec_formelle_v6_2"]
+    sf_src = rules.get("spec_formelle_v6_4") or rules["spec_formelle_v6_2"]
     tuiles = tiles["tuiles_ciblees"]
 
     total_slots = len(tuiles)
-    total_profiles = sum(len(slot["profils"]) for slot in tuiles.values())
+    total_profiles = sum(
+        len(slot["profils"]) if isinstance(slot, dict) and "profils" in slot else 1
+        for slot in tuiles.values()
+    )
     mat_arbres = rules["materiel_fini_reversible"]["arbres_et_souches"]
 
-    return {
+    out: dict[str, Any] = {
         "schema_version": str(meta["schema_version"]),
         "date_consolidation": str(meta["date_consolidation"]),
         "architecture_reference": {
@@ -318,6 +330,9 @@ def _build_spec_formelle(
         "arbitrages_valides": copy.deepcopy(sf_src["arbitrages_valides"]),
         "invariants_physiques_ids": [str(inv["id"]) for inv in invariants["invariants"]],
     }
+    if "six_verbes_du_coeur" in rules:
+        out["six_verbes_du_coeur"] = copy.deepcopy(rules["six_verbes_du_coeur"])
+    return out
 
 
 def _build_catalog_json(
@@ -342,7 +357,10 @@ def _build_catalog_json(
         "schema_version": str(meta["schema_version"]),
         "date_consolidation": str(meta["date_consolidation"]),
         "total_emplacements": len(tuiles),
-        "total_profils": sum(len(s["profils"]) for s in tuiles.values()),
+        "total_profils": sum(
+            len(s["profils"]) if isinstance(s, dict) and "profils" in s else 1
+            for s in tuiles.values()
+        ),
         "topologies": topos_out,
         "formule_seuil_parade": str(arb["A23"]),
         "verification_fin_de_partie": str(arb["A15"]),
@@ -360,12 +378,21 @@ def _build_amazonia_js(
     tiles: dict[str, Any],
     spec_formelle: dict[str, Any],
     existing_changelog: list[dict[str, Any]],
+    *,
+    extra_top_changelog: dict[str, Any] | None = None,
 ) -> str:
     meta = rules["meta"]
     changelog_v6_2 = copy.deepcopy(rules["changelog_v6_2"])
     v62_ver = str(changelog_v6_2["version"])
-    merged_changelog = [changelog_v6_2] + [
-        block for block in existing_changelog if str(block.get("version", "")) != v62_ver
+    head_blocks: list[dict[str, Any]] = []
+    skip_versions: set[str] = {v62_ver}
+    if extra_top_changelog is not None:
+        top_block = copy.deepcopy(extra_top_changelog)
+        head_blocks.append(top_block)
+        skip_versions.add(str(top_block["version"]))
+    head_blocks.append(changelog_v6_2)
+    merged_changelog = head_blocks + [
+        block for block in existing_changelog if str(block.get("version", "")) not in skip_versions
     ]
 
     catalogue_js = copy.deepcopy(tiles["tuiles_ciblees"])
@@ -378,7 +405,8 @@ def _build_amazonia_js(
         "// =========================================================================",
         (
             f"// data/amazonia_data_v6_0.js — Généré automatiquement depuis contracts/ "
-            f"(SSOT v{meta['schema_version']} · {len(catalogue_js)} tuiles Canon 0 · Châssis unique verrouillé)"
+            f"(Archive/Runtime v{meta['schema_version']} · {len(catalogue_js)} tuiles Canon 0 · "
+            "Châssis unique verrouillé · Changelog aligné v6.4)"
         ),
         "// NE PAS ÉDITER À LA MAIN : exécuter `uv run python scripts/build_studio_artifacts.py`.",
         "// =========================================================================",
@@ -495,35 +523,131 @@ def compile_panels_v6_3_js(
     }
 
 
+def compile_canon_v6_4_js(
+    rules_v64: dict[str, Any],
+    invariants_v64: dict[str, Any],
+    tiles_v64: dict[str, Any],
+    tiles_v63: dict[str, Any],
+    spec_formelle_v64: dict[str, Any],
+    workspace_v64_path: Path | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Compile `docs/data/canon_v6_4_data.js` (Cœur v6.4, 22 INV, 6 Verbes, Canon 30 affiné + Archive Passe 1)."""
+    ws_file = workspace_v64_path if workspace_v64_path is not None else AUTHOR_WORKSPACE_V6_4_PATH
+    initial_ws_v64: dict[str, Any] | None = None
+    ws_used: Path | None = None
+    if ws_file.is_file():
+        loaded_ws = json.loads(ws_file.read_text(encoding="utf-8"))
+        if isinstance(loaded_ws, dict):
+            initial_ws_v64 = loaded_ws
+            ws_used = ws_file
+
+    canon_v64_payload = {
+        "_meta": copy.deepcopy(tiles_v64.get("_meta") or {}),
+        "carte_des_roles": copy.deepcopy(tiles_v64.get("carte_des_roles") or {}),
+        "rapport_audit_197": copy.deepcopy(tiles_v64.get("rapport_audit_197") or {}),
+        "tuiles_ciblees": copy.deepcopy(tiles_v64.get("tuiles_ciblees") or {}),
+    }
+    canon_v63_payload = {
+        "_meta": copy.deepcopy(tiles_v63.get("_meta") or {}),
+        "carte_des_roles": copy.deepcopy(tiles_v63.get("carte_des_roles") or {}),
+        "rapport_audit_197": copy.deepcopy(tiles_v63.get("rapport_audit_197") or {}),
+        "tuiles_ciblees": copy.deepcopy(tiles_v63.get("tuiles_ciblees") or {}),
+    }
+    ref_pictos_v64 = copy.deepcopy(tiles_v64.get("referentiel_pictogrammes") or {})
+    essaim_natives_v64 = copy.deepcopy(
+        rules_v64["architecture_modulaire"]["modules"]["module_essaim"]["regles_natives"]
+    )
+    rules_summary_v64 = {
+        "meta": copy.deepcopy(rules_v64["meta"]),
+        "six_verbes_du_coeur": copy.deepcopy(rules_v64["six_verbes_du_coeur"]),
+        "architecture_modulaire": copy.deepcopy(rules_v64["architecture_modulaire"]),
+        "accessoires_3_plus_3": copy.deepcopy(rules_v64["accessoires_3_plus_3"]),
+        "enracinement_volontaire": copy.deepcopy(rules_v64["enracinement_volontaire"]),
+        "supports_fixes": copy.deepcopy(rules_v64["supports_fixes"]),
+        "changelog_v6_4": copy.deepcopy(rules_v64["changelog_v6_4"]),
+    }
+
+    sections = [
+        "// =========================================================================",
+        (
+            "// data/canon_v6_4_data.js — Généré automatiquement depuis contracts/*_v6_4.json "
+            f"(SSOT v{rules_v64['meta']['schema_version']} · 30 tuiles Passe 2 affinées · "
+            f"{len(ref_pictos_v64)} pictogrammes · Archive Passe 1 v6.3 incluse)"
+        ),
+        "// NE PAS ÉDITER À LA MAIN : exécuter `uv run python scripts/build_studio_artifacts.py`.",
+        "// =========================================================================",
+        f"const SIX_VERBES_COEUR_V6_4 = {json.dumps(rules_v64['six_verbes_du_coeur'], indent=2, ensure_ascii=False)};",
+        "",
+        f"const RULES_CANON_V6_4 = {json.dumps(rules_summary_v64, indent=2, ensure_ascii=False)};",
+        "",
+        f"const MODULE_ESSAIM_REGLES_NATIVES_V6_4 = {json.dumps(essaim_natives_v64, indent=2, ensure_ascii=False)};",
+        "",
+        f"const PHYSICAL_INVARIANTS_V6_4 = {json.dumps(invariants_v64['invariants'], indent=2, ensure_ascii=False)};",
+        "",
+        f"const SPEC_FORMELLE_V6_4 = {json.dumps(spec_formelle_v64, indent=2, ensure_ascii=False)};",
+        "",
+        f"const REFERENTIEL_PICTOGRAMMES_V6_4 = {json.dumps(ref_pictos_v64, indent=2, ensure_ascii=False)};",
+        "",
+        f"const CANON_V6_4 = {json.dumps(canon_v64_payload, indent=2, ensure_ascii=False)};",
+        "",
+        f"const CANON_V6_3_PASSE1 = {json.dumps(canon_v63_payload, indent=2, ensure_ascii=False)};",
+        "",
+        f"const AUTHOR_WORKSPACE_INITIAL_V6_4 = {json.dumps(initial_ws_v64, indent=2, ensure_ascii=False)};",
+        "",
+    ]
+    js_src = "\n".join(sections)
+    _validate_js_syntax(js_src, "docs/data/canon_v6_4_data.js")
+    return js_src, {
+        "pictograms_v6_4": len(ref_pictos_v64),
+        "invariants_v6_4": len(invariants_v64["invariants"]),
+        "workspace_v6_4_file": ws_used,
+    }
+
+
 def compile_studio_payloads(
     rules: dict[str, Any],
     invariants: dict[str, Any],
     tiles: dict[str, Any],
     existing_changelog: list[dict[str, Any]],
+    *,
+    extra_top_changelog: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any], str, dict[str, Any]]:
-    """Compile en mémoire `(spec_formelle, catalog_doc, amazonia_js, adapted_tiles)` pour v6.2 ou v6.3."""
+    """Compile en mémoire `(spec_formelle, catalog_doc, amazonia_js, adapted_tiles)` pour v6.2/v6.3/v6.4."""
     from scripts.tiles_v6_3_schema import adapt_tiles_contract_for_studio
 
     adapted_tiles = adapt_tiles_contract_for_studio(tiles)
     spec_formelle = _build_spec_formelle(rules, invariants, adapted_tiles)
     catalog_doc = _build_catalog_json(rules, spec_formelle, adapted_tiles)
     amazonia_js = _build_amazonia_js(
-        rules, invariants, adapted_tiles, spec_formelle, existing_changelog
+        rules,
+        invariants,
+        adapted_tiles,
+        spec_formelle,
+        existing_changelog,
+        extra_top_changelog=extra_top_changelog,
     )
     _validate_js_syntax(amazonia_js, "docs/data/amazonia_data_v6_0.js")
     return spec_formelle, catalog_doc, amazonia_js, adapted_tiles
 
 
 def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, Any]:
-    """Compile l'ensemble des artefacts dérivés depuis les contrats SSOT de `contracts/`.
+    """Compile l'ensemble des artefacts dérivés Studio v6.4 + archive/runtime PyPy v6.2.
 
-    Accepte un `tiles_contract_path` optionnel (par défaut `contracts/tiles_canon_v6_2.json`,
-    compatible de manière transparente avec le schéma bi-composant `tiles_canon_v6_3.json`).
-    Compile également `docs/data/panels_v6_3_data.js` (3 panels `v6.3.1`, 32 pictogrammes et
-    éventuel `author_workspace_v6_3.json` initial) pour l'Atelier Doc Studio.
+    - Couche Studio active `v6.4` : `docs/data/spec_formelle_v6_4.json`, `docs/data/catalog_v6_4.json`,
+      `docs/data/canon_v6_4_data.js` (+ `VERSION_CHANGELOG[0] = v6.4` dans `amazonia_data_v6_0.js`).
+    - Couche archive/runtime PyPy `v6.2` (sanctuarisée jusqu'au Jalon 4) : `docs/data/*_v6_0.*`,
+      `data/spec_bundle_v6_0.json`, `docs/data/panels_v6_3_data.js`.
     """
     active_tiles_path = tiles_contract_path or TILES_CONTRACT_PATH
-    for req in (RULES_CONTRACT_PATH, INVARIANTS_CONTRACT_PATH, active_tiles_path):
+    for req in (
+        RULES_CONTRACT_PATH,
+        INVARIANTS_CONTRACT_PATH,
+        active_tiles_path,
+        RULES_V6_4_CONTRACT_PATH,
+        INVARIANTS_V6_4_CONTRACT_PATH,
+        TILES_V6_4_CONTRACT_PATH,
+        TILES_V6_3_CONTRACT_PATH,
+    ):
         if not req.is_file():
             raise FileNotFoundError(f"Contrat SSOT manquant : {req}")
 
@@ -531,17 +655,41 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
     invariants: dict[str, Any] = json.loads(INVARIANTS_CONTRACT_PATH.read_text(encoding="utf-8"))
     raw_tiles: dict[str, Any] = json.loads(active_tiles_path.read_text(encoding="utf-8"))
 
+    rules_v64: dict[str, Any] = json.loads(RULES_V6_4_CONTRACT_PATH.read_text(encoding="utf-8"))
+    invariants_v64: dict[str, Any] = json.loads(INVARIANTS_V6_4_CONTRACT_PATH.read_text(encoding="utf-8"))
+    tiles_v64: dict[str, Any] = json.loads(TILES_V6_4_CONTRACT_PATH.read_text(encoding="utf-8"))
+    tiles_v63: dict[str, Any] = json.loads(TILES_V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
+
     existing_changelog = _extract_existing_changelog(OUT_DOCS_JS)
     spec_formelle, catalog_doc, amazonia_js, tiles = compile_studio_payloads(
-        rules, invariants, raw_tiles, existing_changelog
+        rules,
+        invariants,
+        raw_tiles,
+        existing_changelog,
+        extra_top_changelog=rules_v64.get("changelog_v6_4"),
     )
     panels_v6_3_js, panels_meta = compile_panels_v6_3_js(PANELS_DIR, AUTHOR_WORKSPACE_PATH)
+
+    # Couche Studio v6.4 (Cœur v6.4 + 30 Tuiles Passe 2 + Archive Passe 1)
+    spec_formelle_v64 = _build_spec_formelle(rules_v64, invariants_v64, tiles_v64)
+    catalog_v64 = _build_catalog_json(rules_v64, spec_formelle_v64, tiles_v64)
+    canon_v6_4_js, v64_meta = compile_canon_v6_4_js(
+        rules_v64,
+        invariants_v64,
+        tiles_v64,
+        tiles_v63,
+        spec_formelle_v64,
+        AUTHOR_WORKSPACE_V6_4_PATH,
+    )
 
     # 1. Écriture des artefacts Studio (docs/data/)
     _write_json(OUT_DOCS_SPEC, spec_formelle)
     _write_json(OUT_DOCS_CATALOG, catalog_doc)
     _write_text_lf(OUT_DOCS_JS, amazonia_js)
     _write_text_lf(OUT_DOCS_PANELS_V6_3_JS, panels_v6_3_js)
+    _write_json(OUT_DOCS_SPEC_V6_4, spec_formelle_v64)
+    _write_json(OUT_DOCS_CATALOG_V6_4, catalog_v64)
+    _write_text_lf(OUT_DOCS_CANON_V6_4_JS, canon_v6_4_js)
 
     # 2. Miroirs data/ et verrou SHA-256 data/studio_lock.json
     _write_json(OUT_DATA_SPEC, spec_formelle)
@@ -553,11 +701,18 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
         "amazonia_data_v6_0.js": _file_lock_entry(OUT_DOCS_JS),
         "livret_v6_0.js": _file_lock_entry(DOCS_LIVRET_JS),
         "panels_v6_3_data.js": _file_lock_entry(OUT_DOCS_PANELS_V6_3_JS),
+        "catalog_v6_4.json": _file_lock_entry(OUT_DOCS_CATALOG_V6_4),
+        "spec_formelle_v6_4.json": _file_lock_entry(OUT_DOCS_SPEC_V6_4),
+        "canon_v6_4_data.js": _file_lock_entry(OUT_DOCS_CANON_V6_4_JS),
     }
     contracts_sha256: dict[str, dict[str, object]] = {
         "rules_canon_v6_2.json": _file_lock_entry(RULES_CONTRACT_PATH),
         "physical_and_edge_invariants.json": _file_lock_entry(INVARIANTS_CONTRACT_PATH),
         active_tiles_path.name: _file_lock_entry(active_tiles_path),
+        "rules_canon_v6_4.json": _file_lock_entry(RULES_V6_4_CONTRACT_PATH),
+        "physical_and_edge_invariants_v6_4.json": _file_lock_entry(INVARIANTS_V6_4_CONTRACT_PATH),
+        "tiles_canon_v6_4.json": _file_lock_entry(TILES_V6_4_CONTRACT_PATH),
+        "tiles_canon_v6_3.json": _file_lock_entry(TILES_V6_3_CONTRACT_PATH),
     }
     for pfile in panels_meta["panel_files"]:
         rel_panel = pfile.relative_to(CONTRACTS_DIR).as_posix()
@@ -565,16 +720,20 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
     if panels_meta["workspace_file"] is not None:
         ws_rel = panels_meta["workspace_file"].relative_to(CONTRACTS_DIR).as_posix()
         contracts_sha256[ws_rel] = _file_lock_entry(panels_meta["workspace_file"])
+    if v64_meta["workspace_v6_4_file"] is not None:
+        ws64_rel = v64_meta["workspace_v6_4_file"].relative_to(CONTRACTS_DIR).as_posix()
+        contracts_sha256[ws64_rel] = _file_lock_entry(v64_meta["workspace_v6_4_file"])
 
     lock_payload: dict[str, Any] = {
-        "studio_version": "v6.2",
-        "schema_version": str(rules["meta"]["schema_version"]),
+        "studio_version": "v6.4",
+        "schema_version": str(rules_v64["meta"]["schema_version"]),
+        "runtime_bundle_version": str(rules["meta"]["schema_version"]),
         "files": studio_sha256,
         "contracts": contracts_sha256,
     }
     _write_json(OUT_STUDIO_LOCK, lock_payload)
 
-    # 3. Construction de data/spec_bundle_v6_0.json (dérivé SSOT + shim de compatibilité Chantier 1)
+    # 3. Construction de data/spec_bundle_v6_0.json (runtime PyPy v6.2 sanctuarisé jusqu'au Jalon 4)
     trigger_codes = rules["supports_fixes"]["piste_gardiens"]["codes_internes"]
     catalogue_bundle = copy.deepcopy(tiles["tuiles_ciblees"])
     for slot in catalogue_bundle.values():
@@ -635,7 +794,7 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
             ),
             "ratissage": copy.deepcopy(ratissage),
         },
-        # Shim de clé `machine_deck_rules` conservé pour compatibilité tests/digest jusqu'au Chantier 4
+        # Shim de clé `machine_deck_rules` conservé pour compatibilité tests/digest jusqu'au Jalon 4
         "machine_deck_rules": {
             "support_physique": str(sac["support"]),
             "jetons_machine_par_rayon": int(sac["jetons_machine_par_rayon"]),
@@ -662,21 +821,23 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
 
     return {
         "schema_version": bundle["meta"]["schema_version"],
+        "studio_schema_version": str(rules_v64["meta"]["schema_version"]),
         "slots": bundle["meta"]["total_emplacements"],
         "profiles": bundle["meta"]["total_profils"],
-        "invariants": len(invariants["invariants"]),
+        "invariants": len(invariants_v64["invariants"]),
         "panels_v6_3": panels_meta["panels_count"],
         "pictograms_v6_3": panels_meta["pictograms_count"],
+        "pictograms_v6_4": v64_meta["pictograms_v6_4"],
     }
 
 
 def main() -> int:
     summary = build_all_artifacts()
     print(
-        f"build_studio_artifacts.py : OK (v{summary['schema_version']}, "
-        f"{summary['slots']} slots, {summary['profiles']} profils, "
-        f"{summary['invariants']} invariants, "
-        f"{summary['panels_v6_3']} panels v6.3.1, {summary['pictograms_v6_3']} pictos)"
+        f"build_studio_artifacts.py : OK (Studio v{summary['studio_schema_version']} · "
+        f"Runtime PyPy v{summary['schema_version']}, {summary['slots']} slots, "
+        f"{summary['invariants']} invariants, {summary['pictograms_v6_4']} pictos v6.4, "
+        f"{summary['panels_v6_3']} panels archive)"
     )
     return 0
 

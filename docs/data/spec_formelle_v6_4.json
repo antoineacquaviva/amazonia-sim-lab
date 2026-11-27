@@ -1,0 +1,296 @@
+{
+  "schema_version": "6.4.0",
+  "date_consolidation": "2026-11-27",
+  "architecture_reference": {
+    "total_emplacements_synergie": 30,
+    "total_profils": 30,
+    "topologies_validees": {
+      "P4_2233": [
+        2,
+        2,
+        3,
+        3
+      ]
+    },
+    "reserves_materiel": "finie (10 * N pions uniques recto-verso Arbre debout/Souche ; sac opaque de jetons)",
+    "plafond_repousse_parcelle": "dotation_initiale_arbres_physique",
+    "repousse_finale_base": 0,
+    "enracinement_volontaire": {
+      "face_unique_ou_face_1": 1,
+      "face_2": 2
+    },
+    "score_final": "arbres_debout_apres_enracinement_volontaire"
+  },
+  "architecture_modulaire": {
+    "principe": "1 Tronc commun court suivi de 3 modules activés uniquement si au moins un Peuple de la famille participe à la partie.",
+    "tronc_commun": {
+      "id": "tronc_commun",
+      "titre": "Tronc commun (toujours actif)",
+      "perimetre": "Forêt finie 10×N, sac opaque de jetons (avec Sabotage différé Refroidir/Reculer), 2 dés standards universels, Réglette fixe à bandelette d’Acte et fil d’ouverture imprimé, 2 Défenseurs recto-verso, Furtivité Chaud/Calme à Rive Sabotage unifiée avec Enracinement volontaire (Effet Sentinelle permanent), Pièges autonomes, attaques avec dé retiré, Ratissage physique, 6 Verbes du Cœur et score final."
+    },
+    "modules": {
+      "module_gardiens_et_eveil": {
+        "titre": "Module Gardiens & Éveil",
+        "peuples_requis": [
+          "M",
+          "R",
+          "O"
+        ],
+        "assises_actives": 196,
+        "assises_total": 197,
+        "assises_inactives": [
+          [
+            "H",
+            "E",
+            "I"
+          ]
+        ],
+        "resume": "Lu uniquement si au moins un Peuple Animal Sauvage (M, R ou O) joue : Piste des Gardiens à 6 icônes directes (sans balayage), Résonance en 6e position déclenchée au dernier pari glissé lors d’une vraie activation, 2 encoches visibles par Gardien, paris 0/1/2 Défenseurs, passage Face 2 sur pari gagné et fin anticipée par Éveil cumulatif (≥ A + 1 Gardiens en piste en Face 2 et 0 pari perdu ce tour)."
+      },
+      "module_reves_et_sommeil": {
+        "titre": "Module Rêves & Sommeil",
+        "peuples_requis": [
+          "H",
+          "E"
+        ],
+        "famille_inactive": [
+          "M",
+          "R",
+          "O",
+          "I"
+        ],
+        "resume": "Lu uniquement si au moins un Peuple Onirique (H ou E) joue : pose de Rêves sur la Réglette depuis la droite, défense en 1er et 2e temps, annulation (Étouffement) choisie par le propriétaire du Rêve, Défenseurs couchés dès résolution, glissements avec Défenseurs solidaires et fin anticipée par Sommeil du Contremaître (impossible si un Rêve est enraciné, hors exception explicite)."
+      },
+      "module_essaim": {
+        "titre": "Module Essaim",
+        "peuples_requis": [
+          "I"
+        ],
+        "assises_actives": 160,
+        "assises_total": 197,
+        "assises_inactives_count": 37,
+        "regles_natives": {
+          "deploiement_direct_production": {
+            "nom": "Déploiement direct à la Production",
+            "fenetre": "PRODUCTION",
+            "texte": "Chaque Nid défendu produit +1 Insecte (0–1 présent) ou +2 Insectes (≥ 2 présents) sans allumer d’icône ; chaque Insecte ainsi créé est immédiatement posé au choix sur ce Nid, sur une parcelle adjacente de son rayon (en sautant les Routes), ou — si ce Nid occupe la dernière parcelle de son rayon — sur un rang 1–6 de la Réglette ou une icône de la Piste des Gardiens ; puis le pouvoir du Nid s’applique."
+          },
+          "amorcage_natif": {
+            "nom": "Amorçage natif de l’Essaim",
+            "fenetre": "PERMANENT",
+            "texte": "Si un effet de tuile déplace ou prélève un Insecte en jeu alors qu’aucun Insecte n’est sur le plateau, prenez 1 Insecte dans la réserve de l’Essaim."
+          },
+          "demenagement_unifie_nid": {
+            "nom": "Déménagement unifié d’un Nid",
+            "fenetre": "PERMANENT",
+            "texte": "Tout Nid déplacé par une tuile emporte simultanément tous ses Insectes, tous les Défenseurs de sa parcelle et toute éventuelle ponte glissée sous lui."
+          },
+          "deviation_reglette": {
+            "nom": "Déviation de dé (±1)",
+            "fenetre": "OUVERTURE",
+            "texte": "À l’ouverture des paravents, défaussez 1 Insecte posé sur un rang de la Réglette pour décaler le dé d’une machine mobile de −1 ou +1 rang (entre 1 et 6), en allumant l’icône Insecte."
+          },
+          "bouclier_de_lisiere": {
+            "nom": "Bouclier de lisière (facultatif)",
+            "fenetre": "FIN_ATTAQUES",
+            "gouverneur": "I",
+            "facultatif": true,
+            "texte": "En fin d’attaques, si un Gardien perd son pari et porte au moins 1 Insecte sur son icône, le joueur Insectes choisit de défausser ou non 1 Insecte pour maintenir le Gardien en piste sur sa face actuelle (sa Face 2 est sauvée pour la suite, mais son pari reste perdu à ce tour)."
+          }
+        },
+        "resume": "Lu uniquement si les Insectes (I) jouent : jetons Insectes exclusifs aux 10 tuiles des 5 lisières de I (laissés dans la boîte sans I, Production ignorée et icône Insecte inactive), Déploiement direct à la Production (+1/+2 vers le Nid, une parcelle adjacente ou les pistes centrales depuis la dernière parcelle), Amorçage natif en réserve, Déménagement unifié des Nids, Déviation ±1, Parade Insecte, Bouclier de lisière facultatif gouverné par I et descente sur place au ménage d’un Insecte passager non dépensé."
+      }
+    }
+  },
+  "principes_transverses": {
+    "gouvernance_unitaire": "Chaque Tuile de Synergie (Gardien, Rêve, Nid) est gouvernée exclusivement par le joueur de son Peuple d’origine ; la pose d’un Piège gagné en Furtivité est choisie par le propriétaire du rayon ; le Bouclier de lisière est facultatif et gouverné par le joueur Insectes (I). Zéro vote de groupe.",
+    "communication_muette": "Silence tactique complet tant que les paravents sont fermés. Tous les joueurs lancent uniquement leurs 2 dés standards 1–6 (même sur Sabotage ou Écaille, jet ignoré) afin d’éliminer toute fuite sonore.",
+    "pont_routier_routes_forestieres": "Une parcelle désigne toujours une case de forêt non devenue Route Forestière. Le long d’un rayon, les Routes Forestières sont sautées radialement et infranchissables latéralement. Dès qu’un rayon est 100 % Routes Forestières, sa zone de Furtivité est fermée et l’Enracinement y est interdit.",
+    "zero_ecrasement_et_zero_dette": "Zéro écrasement au contact hors Route : déplacer une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d’une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel/ponte en réserve). Zéro dette mémorielle : fil d’ouverture imprimé sur la Réglette, dé retiré dès qu’une mobile est Étouffée ou a attaqué, Défenseurs couchés sur Rêve résolu ; Pièges autonomes SINGLE_STRIKE (max 1 par parcelle ; Croc cohabite et pare en premier).",
+    "piste_gardiens_directe_6_icones": "On résout intégralement l’action ou la tuile en cours avant d’activer directement la seule icône allumée parmi [PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE] (zéro balayage séquentiel, zéro reprise en arrière). Partition stricte « 1 événement = au plus 1 icône » ; si cette vague vide le dessus d’au moins un Gardien (dernier pari glissé en encoche lors d’une vraie activation, exclu sur glissement passif), l’icône RESONANCE (6e position) s’allume aussitôt une seule fois pour cette vague sans boucler sur elle-même."
+  },
+  "etapes_tour": [
+    {
+      "numero": 1,
+      "code": "PREPARATION_ET_DES_SECRETS",
+      "nom": "Bandelette d’Acte, Pioche au sac opaque et 2 Dés universels",
+      "regles": [
+        "Réglette fixe 1–6 à bandelette d’Acte réversible et fil d’ouverture imprimé : Acte 1 (Tours 1–4, Face A) place les rangs 1–3 en Mode Charge et 4–6 en Mode Assaut. Au début du Tour 5, retournez uniquement la bandelette d’Acte sur Face B (Acte 2, Tours 5–8) : 1–3 en Mode Assaut et 4–6 en Mode Charge, sans déplacer ni Rêves ni Insectes. Actions fixes : 1/4 Sur place (0), 2/5 Devant (0), 3/6 En avançant (Sur place + Devant, avancée +1, Seuil −1).",
+        "Départ décalé canonique (P4_2233, dotation finie 10×N pions Arbre/Souche recto-verso) : Bulldozer en parcelle 1, Abatteuse en parcelle 2 sur chaque rayon.",
+        "Pioche au sac opaque : chaque joueur pioche secrètement 1 jeton (2N jetons Machine épais + Sabotages ordinaires + jusqu’à 4 Écailles). Les jetons non piochés restent cachés sans être consultés. En cas de pénurie, distribution horaire depuis le Coordonnateur, Oiseau toujours servi en dernier (regarde jusqu’à 2 jetons, garde 1 et pose l’autre face cachée sur son Perchoir de Vigie).",
+        "Lancer universel de 2 dés standards 1–6 sous paravent fermé : tous les joueurs lancent leurs 2 dés standards, même sur Sabotage ou Écaille (jet ignoré), éliminant toute fuite sonore. S’il détient un jeton Machine, l’Oiseau choisit librement lequel de ses 2 dés il retient (l’autre est son dé écarté) ; les autres Peuples retiennent le plus petit (min) et écartent l’autre."
+      ]
+    },
+    {
+      "numero": 2,
+      "code": "POSE_DES_DEFENSEURS",
+      "nom": "Pose des 2 Défenseurs recto-verso, Rêves, Furtivité et Paris Gardiens",
+      "regles": [
+        "1er temps de pose simultané (directement face Définitif, jamais sur les Gardiens) : parcelle de sa propre Forêt (ou parcelle alliée en repli si aucun emplacement légal ; Tambour H autorisé sur tout rayon), tuile non construite de ses 2 lisières (interdit si impossible à placer), Rêve présent sur la Réglette, ou rive ouverte de Furtivité d’un rayon non 100 % Route.",
+        "Furtivité « Chaud vs Calme » par rayon : 2 rives indépendantes de 2 places (Rive Piège et Rive Sabotage) au pied de chaque rayon actif. Effet Sentinelle : chaque tuile enracinée occupe en permanence 1 place de la Rive Sabotage (1 tuile = 1 Défenseur requis ; 2 tuiles = 2/2 permanent à 0 Défenseur). La Rive Piège exige toujours 2 Défenseurs.",
+        "2e temps de pose global (face Réflexion -> validation irréversible face Définitif) : partout sur le plateau, y compris en pari sur un Gardien construit (0, 1 ou 2 Défenseurs max par Gardien si au moins 1 Animal Sauvage joue). Retourner son 2e pion sur Définitif fige simultanément son jeton Duel ou la position/orientation Chaud–Calme de son Perchoir de Vigie ; dès que N−1 joueurs ont validé, le dernier joueur effectue au plus 1 ultime ajustement. Chez H : 2 pions Chamanes (1 Tambour, 1 Chant) rendant le binôme auto-vérifiant."
+      ]
+    },
+    {
+      "numero": 3,
+      "code": "CONSTRUCTION_ET_REVELATION",
+      "nom": "Constructions obligatoires et Fil d’ouverture imprimé (1 → 4)",
+      "regles": [
+        "Constructions obligatoires avant l’ouverture des paravents de toute tuile réunissant ses 2 bâtisseurs (interdit si l’emplacement cible est indisponible). Sitôt construite, les 2 bâtisseurs sont couchés « en attente » devant leur propriétaire — sauf à 3 joueurs où construire un Gardien, un Rêve ou un Nid libère immédiatement 1 des 2 bâtisseurs vers une parcelle adjacente.",
+        "Nid : posé sur une parcelle libre sans machine ni autre Nid de l’un de ses 2 rayons. Rêve : posé par-dessus le rang libre le plus à droite (6, 5…) de la Réglette fixe sans déplacer les Insectes.",
+        "Ouverture des paravents : les jetons Machine révélés restent visibles devant leur rayon jusqu’à la Furtivité ; les dés retenus des machines mobiles sont posés sur leur rang 1–6 (dès qu’une mobile est Étouffée ou a terminé son attaque, son dé est retiré de la Réglette et son jeton est incliné à 90° si Étouffée).",
+        "Fil d’ouverture imprimé sur la Réglette : (1) Altérations (retirez chaque Altération sur machine révélée : elle compte dans m(r), Recule d’1 parcelle et est Étouffée) → (2) Sabotages & Écailles un par un (tous allument SABOTAGE ; un Sabotage ordinaire vise 1 machine de son rayon ou d’un rayon voisin pour la Refroidir si ≥ 1 Rouge, sinon la faire Reculer d’1 parcelle si mobile ; une Écaille pose le Croc sur une parcelle ciblée) → (3) Déviations d’Insectes ±1 une par une (allume INSECTE) → (4) Rêves défendus de gauche à droite (le propriétaire choisit quelle(s) machine(s) du rang sont Étouffées y compris déviées, résout intégralement le pouvoir du Rêve actif même à 0 machine hors mention contraire, couche ses Défenseurs à plat pour le marquer résolu, puis allume REVE si ≥ 1 machine a été Étouffée). Les Défenseurs posés sur un Rêve se déplacent toujours avec lui."
+      ]
+    },
+    {
+      "numero": 4,
+      "code": "FURTIVITE_ET_PRODUCTION_ESSAIM",
+      "nom": "Furtivité par rayon et Déploiement direct des Nids de l’Essaim",
+      "regles": [
+        "Furtivité « Chaud vs Calme » : évaluée sur toute rive complétée à 2/2 (2 Défenseurs sur Rive Piège ; 2 places occupées sur Rive Sabotage en comptant les tuiles enracinées en Sentinelle permanente) selon m(r) = jetons Machine visibles devant r (droits ou inclinés) + machines de r en Ratissage (indépendant de déviation ±1, Étouffement Rêve ou Altération ; Sabotage/Écaille = 0 rayon). Rive Piège gagnée si m(r) == 2 (le propriétaire du rayon r pose 1 Piège ordinaire) ; Rive Sabotage gagnée si m(r) == 0 (Semer 1 Sabotage au sac sans allumer SABOTAGE).",
+        "Module Essaim (uniquement si I joue) — Production à Déploiement direct : dans l’ordre choisi par I, chaque Nid défendu produit +1 Insecte (0–1 présent) ou +2 Insectes (≥ 2 présents) sans allumer INSECTE ; chaque Insecte ainsi créé est immédiatement posé au choix sur ce Nid, sur une parcelle adjacente de son rayon (en sautant les Routes), ou — si ce Nid occupe la dernière parcelle de son rayon — sur un rang 1–6 de la Réglette ou une icône de la Piste des Gardiens ; puis le pouvoir propre du Nid s’applique. Aucune phase supplémentaire ensuite."
+      ]
+    },
+    {
+      "numero": 5,
+      "code": "ATTAQUES_ET_TEST_FIN",
+      "nom": "Attaques des Machines, Encoches Gardiens et Verdict de fin",
+      "regles": [
+        "Ordre de passage : dés encore présents sur les rangs 1 à 6 de la Réglette (chaque dé est retiré sitôt son attaque terminée), puis machines en Ratissage non Étouffées (Assaut permanent, immobiles, mais leur parcelle compte comme ciblée tant qu’elles n’ont pas frappé). Abatteuse avant Bulldozer sur un même rayon.",
+        "Parcelles ciblées figées au début de l’activation (toute cible devenue Route entre-temps est annulée sans report). Seuil de Parade = chiffre gravé + rouges (en Assaut et Ratissage uniquement ; ignorés en Charge) − bleus Surchauffe (actifs dans TOUS les modes : Charge, Assaut et Ratissage) − 1 aux rangs 3 et 6, minimum 1.",
+        "Chaîne des parades : Croc Reptile (pare en premier, allume PIEGEAGE, revient en réserve R) -> Piège ordinaire autonome SINGLE_STRIKE (pare 1 frappe même à 0 pion, allume PIEGEAGE, défaussé aussitôt) -> Parade classique (Défenseurs seuls -> PARADE ; avec défausse immédiate d’Insectes -> INSECTE). Duel unifié : toute frappe sur la parcelle du Duel parée ou piégée par n’importe quel moyen retourne aussitôt le Duel sur Territoire tenu.",
+        "Frappe non parée : Abatteuse retourne tous les Arbres debout en Souches sans toucher aux Souches ; Bulldozer retourne 1 Arbre en Souche puis retire toutes les Souches. En Mode Charge : +1 jeton rouge max/activation dès qu’au moins 1 frappe réelle non-Route n’est ni parée ni piégée. En création de Route (0 Arbre, 0 Souche) : la case est vidée (Nid en lisière, Défenseurs en main, Piège/Croc/Insectes/Duel/ponte en réserve) ; si la poussée de bordure déplace déjà la machine d’1 parcelle vers le cœur, elle couvre et remplace l’avancée finale de En avançant (jamais de double bond +2).",
+        "Verdict des Gardiens (2 encoches visibles) : ≥ 1 pion encore sur la tuile = pari perdu (retour lisière Face 1, sauf choix facultatif de I de défausser 1 Insecte en Bouclier de lisière pour préserver sa face pour la suite, le pari restant perdu à ce tour) ; 0 pion dessus et ≥ 1 encoche occupée = pari gagné (passage Face 2) ; 0 pion dessus et 0 encoche occupée = aucune mise (reste en place sans évoluer).",
+        "Vérification de fin : priorité absolue au Tour 8 ; aux Tours 1–7, priorité au Sommeil du Contremaître (tous les Rêves en bloc contigu 1..k, impossible si un Rêve est enraciné hors R1) sur l’Éveil de la Forêt cumulatif (≥ A + 1 Gardiens en piste en Face 2 ET 0 pari perdu ce tour). Au décompte final : application des tuiles enracinées (1 Souche en F1/unique ou 2 en F2 librement choisies parmi les parcelles survivantes de son rayon) puis décompte des Arbres debout."
+      ]
+    },
+    {
+      "numero": 6,
+      "code": "MENAGE_FIN_DE_TOUR",
+      "nom": "Enracinement sur Rive Sabotage, Ratissage physique et Ménage",
+      "regles": [
+        "Retour en main des Défenseurs (y compris depuis les encoches, les Rêves couchés et la zone en attente), redressement des machines en Ratissage Étouffées à 90°, descente sur place de tout Insecte passager non dépensé et remise à zéro des états transitoires.",
+        "Enracinement volontaire (avant remise au sac) : chaque joueur peut enraciner au plus 1 tuile construite de son Peuple sur une place libre de la Rive Sabotage de son rayon (interdit si rayon 100 % Routes). Elle occupe en permanence cette place (Effet Sentinelle) et retournera 1 Souche (F1/unique) ou 2 (F2) au décompte final parmi les parcelles survivantes de son rayon ; un Rêve enraciné ferme le Sommeil (sauf R1).",
+        "Passage en Ratissage : toute machine terminant sur la dernière parcelle de son rayon glisse son jeton Machine sous elle (hors sac), conserve tous ses jetons Puissance antérieurs et gagne +1 jeton rouge physique (convertible en bleu ; 0 bonus imprimé).",
+        "Remise au sac opaque de tous les jetons révélés et du jeton caché du Perchoir de Vigie, passage du pion Coordonnateur au siège suivant et avancée du marqueur de Tour."
+      ]
+    }
+  ],
+  "step_arbitrages_map": {
+    "1": [
+      "A01",
+      "A10",
+      "A24"
+    ],
+    "2": [
+      "A02",
+      "A03",
+      "A22"
+    ],
+    "3": [
+      "A04",
+      "A11",
+      "A21"
+    ],
+    "4": [
+      "A03",
+      "A17",
+      "A18"
+    ],
+    "5": [
+      "A05",
+      "A06",
+      "A08",
+      "A09",
+      "A14",
+      "A15",
+      "A16",
+      "A19",
+      "A23",
+      "A25"
+    ],
+    "6": [
+      "A10",
+      "A12",
+      "A13",
+      "A20"
+    ]
+  },
+  "arbitrages_valides": {
+    "A01": "Lancer universel de 2 dés standards 1–6 sous paravent fermé : tous les joueurs lancent leurs 2 dés standards, même sur Sabotage ou Écaille (jet ignoré), éliminant toute fuite sonore. L’Oiseau choisit librement lequel de ses 2 dés il retient (l’autre est son dé écarté) ; les autres Peuples retiennent le plus petit.",
+    "A02": "Défenseurs recto-verso (Réflexion/Définitif) et clôture à N−1 : 1er pion posé directement face Définitif (jamais sur les Gardiens ; ouvert aux Rêves et à la Furtivité) ; 2e pion posé face Réflexion puis validé irréversiblement sur Définitif (figeant le Duel ou le Perchoir de Vigie ; à N−1 validés, au plus 1 ultime ajustement pour le dernier joueur) ; chez H, 2 Chamanes uniques (Tambour, Chant).",
+    "A03": "Furtivité « Chaud vs Calme » & Effet Sentinelle : 2 rives indépendantes de 2 places par rayon actif. Chaque tuile enracinée occupe en permanence 1 place de la Rive Sabotage de son rayon (1 tuile = 1 Défenseur requis ; 2 tuiles = 2/2 permanent à 0 Défenseur quand m(r)=0 ; Rive Piège exige toujours 2 Défenseurs). Les jetons Machine révélés restent visibles devant leur rayon jusqu’à la Furtivité (inclinés à 90° si Étouffés). m(r) = jetons Machine visibles devant r + Ratissages de r.",
+    "A04": "Gouvernance unitaire : chaque Tuile de Synergie est décidée par son Peuple d’origine ; la pose de Piège en Furtivité par le propriétaire du rayon ; le Bouclier de lisière facultatif par le joueur Insectes (I).",
+    "A05": "Parade classique sans dette : défausse immédiate à la frappe des Insectes requis ; zéro Insecte réservé d’avance.",
+    "A06": "Pièges autonomes SINGLE_STRIKE & Croc : max 1 Piège ordinaire par parcelle (pare 1 frappe même à 0 Défenseur/Insecte, allume PIEGEAGE, défaussé aussitôt) ; le Croc Reptile peut cohabiter, pare en premier puis retourne dans la réserve Reptile.",
+    "A07": "Zéro verrouillage d’avance & Zéro mémoire cachée : dé retiré sitôt la mobile Étouffée ou son attaque terminée ; Défenseurs couchés sur Rêve résolu ; tant qu’un Insecte ou un Piège est sur le plateau, il reste librement utilisable.",
+    "A08": "Pont routier : une parcelle est une case non-Route ; les Routes Forestières sont sautées radialement et infranchissables latéralement.",
+    "A09": "Repli sur création de Route et plafond En avançant : recul vers la bordure par défaut, ou d’1 parcelle vers le cœur si la bordure est rasée ; cette poussée vers le cœur couvre et remplace l’avancée finale d’une action En avançant (jamais de double bond +2).",
+    "A10": "Dotation finie 10×N recto-verso, départ décalé & Ratissage physique : 10×N pions Arbre/Souche sans réserve illimitée ; Bulldozer p=1 / Abatteuse p=2 ; Abatteuse retourne tous les Arbres sans toucher aux Souches ; au ménage, toute machine sur la dernière parcelle glisse son jeton Machine sous elle (hors sac), conserve ses jetons Puissance et gagne +1 jeton rouge physique (convertible en bleu ; 0 bonus imprimé ; immobile mais parcelle ciblée ; Étouffée = tournée à 90° jusqu’au ménage).",
+    "A11": "Réglette fixe 1–6, bandelette d’Acte réversible et fil d’ouverture imprimé : bandelette retournée seule au début du Tour 5 sans déplacer ni Rêves ni Insectes ; fil d’ouverture imprimé 1→4 ; un Rêve construit se pose au-dessus du rang libre le plus à droite (6, 5…).",
+    "A12": "Piste des Gardiens directe à 6 icônes (zéro balayage) : [PARADE, PIEGEAGE, SABOTAGE, REVE, INSECTE, RESONANCE], sans numéros visibles. Seule l’icône allumée par l’événement s’active immédiatement ; si cette vague vide le dessus d’au moins un Gardien (dernier pari glissé en encoche lors d’une vraie activation, exclu sur glissement passif), Résonance s’allume une seule fois pour cette vague sans boucler sur elle-même.",
+    "A13": "Deux encoches visibles par Gardien et Faces 2 autonomes : ≥ 1 pion encore sur la tuile = pari perdu ; 0 pion dessus et ≥ 1 encoche occupée = pari gagné (passage Face 2) ; 0 pion dessus et 0 encoche = aucune mise (reste en place sans évoluer).",
+    "A14": "Éveil de la Forêt cumulatif en piste (Module Gardiens) : actif si A ≥ 1 Animal Sauvage joue, aux Tours 1–7 (priorité Tour 8, puis Sommeil), remporté dès qu’au moins A + 1 Gardiens en piste sont sur leur Face 2 (2/2 à A=1, 3/4 à A=2, 4/6 à A=3) ET qu’aucun pari de Gardien n’a été perdu à ce tour (Bouclier de lisière préserve la Face 2 pour la suite mais laisse le pari perdu à ce tour).",
+    "A15": "Fins de partie & Enracinement sur Rive Sabotage : priorité absolue Tour 8 ; Tours 1–7 Sommeil (tous les Rêves en bloc contigu 1..k, impossible si un Rêve est enraciné hors R1) avant Éveil cumulatif ; au décompte final, chaque tuile enracinée sur la Rive Sabotage de son rayon y retourne 1 Souche survivante (F1/unique) ou 2 Souches (F2) en Arbres debout, librement choisies parmi les parcelles survivantes de son rayon.",
+    "A16": "Zéro écrasement au contact hors Route : le déplacement d’une machine laisse Nids, Insectes, Pièges et Duel intacts. Seule la création d’une Route Forestière vide la case (Nid en lisière reconstructible, Défenseurs en main, Piège/Croc/Insectes/Duel/ponte en réserve).",
+    "A17": "Module Essaim clos sur I : jetons Insectes exclusifs aux 10 tuiles des 5 lisières de I (laissés dans la boîte sans I). Quand I joue : Déploiement direct à la Production, Amorçage natif en réserve si 0 Insecte en jeu, Déménagement unifié des Nids (Insectes + Défenseurs + ponte), Déviation ±1, Parade Insecte, Bouclier de lisière facultatif gouverné par I et descente sur place au ménage d’un Insecte passager.",
+    "A18": "Production des Nids à Déploiement direct (Module Essaim) : bloc indivisible (+1 si 0–1 présent / +2 si ≥ 2 présents sans allumer INSECTE ; chaque Insecte créé est posé au choix sur ce Nid, sur une parcelle adjacente de son rayon en sautant les Routes, ou depuis la dernière parcelle sur un rang 1–6 ou une icône Gardien ; puis pouvoir propre du Nid).",
+    "A19": "Parcelles ciblées figées au début de l’activation d’une machine : toute cible devenue Route entre-temps est annulée sans report ; une machine en Ratissage non Étouffée rend sa parcelle ciblée tant qu’elle n’a pas frappé ce tour.",
+    "A20": "Accessoires 3 + 3 épurés : actifs Tour 1 (H Tambour/Chant, M Duel unifié retourné sur Territoire tenu par toute parade ou piège de tout moyen, O Perchoir de Vigie orientable Chaud/Calme + choix libre parmi ses 2 dés) et progressifs via tuiles (E Altération max 1/mobile, R 4 Écailles + Croc + cale exclusive du Caïman noir, I Module Essaim).",
+    "A21": "Fil d’ouverture imprimé (1→4) & Sabotage différé : (1) Altérations → (2) Sabotages ordinaires (allume SABOTAGE + Refroidir sinon Reculer 1 machine de son rayon ou d’un voisin) & Écailles (allume SABOTAGE + pose Croc) → (3) Déviations ±1 (allume INSECTE) → (4) Rêves défendus de gauche à droite (le propriétaire Étouffe 1 machine/Défenseur, résout le pouvoir du Rêve actif même à 0 machine hors mention contraire, couche ses Défenseurs à plat, puis allume REVE si ≥ 1 machine Étouffée). Défenseurs solidaires lors de tout glissement.",
+    "A22": "Légalité des poses & Bâtisseurs (Bonus 3J unifié) : interdit de compléter une tuile impossible à placer ; repli 1re pose sur parcelle alliée si aucun emplacement légal ; sitôt construite, les 2 bâtisseurs sont couchés en attente devant leur propriétaire — sauf à 3 joueurs où construire un Gardien, un Rêve ou un Nid libère immédiatement 1 bâtisseur vers une parcelle adjacente.",
+    "A23": "Seuil de Parade unifié & Gain Charge : en Mode Charge, seuls les jetons rouges sont ignorés ; les jetons bleus Surchauffe (−1) s’appliquent dans TOUS les modes (Charge, Assaut, Ratissage), −1 aux rangs 3 et 6, minimum 1. Gain Charge = +1 rouge max/activation dès qu’au moins 1 frappe réelle non-Route n’est ni parée ni piégée.",
+    "A24": "Sac opaque & pénurie : 2N jetons Machine + Sabotages + max 4 Écailles dans un sac en tissu opaque ; non piochés cachés ; pénurie distribuée en sens horaire depuis le Coordonnateur avec Oiseau toujours servi en dernier (regarde jusqu’à 2 jetons, garde 1 et pose l’autre sur son Perchoir de Vigie).",
+    "A25": "Séquence des attaques : dés restants sur les rangs 1..6 de la Réglette (retirés sitôt l’attaque achevée) puis machines en Ratissage non Étouffées ; Abatteuse avant Bulldozer sur un même rayon ; chaque machine résolue d’un seul tenant."
+  },
+  "invariants_physiques_ids": [
+    "INV-01",
+    "INV-02",
+    "INV-03",
+    "INV-04",
+    "INV-05",
+    "INV-06",
+    "INV-07",
+    "INV-08",
+    "INV-09",
+    "INV-10",
+    "INV-11",
+    "INV-12",
+    "INV-13",
+    "INV-14",
+    "INV-15",
+    "INV-16",
+    "INV-17",
+    "INV-18",
+    "INV-19",
+    "INV-20",
+    "INV-21",
+    "INV-22"
+  ],
+  "six_verbes_du_coeur": {
+    "REFROIDIR": {
+      "verbe": "Refroidir",
+      "definition": "Retourner 1 jeton Rouge existant d’une machine (mobile ou en Ratissage) sur sa face Bleu Surchauffe (−1 dans tous les modes ; jamais de Bleu posé à sec depuis la réserve)."
+    },
+    "ALTERER": {
+      "verbe": "Altérer",
+      "definition": "Poser 1 jeton d’Altération de la réserve Entités sur une machine mobile qui n’en porte pas encore (max 1 par machine ; jamais sur une machine en Ratissage)."
+    },
+    "RECULER": {
+      "verbe": "Reculer",
+      "definition": "Déplacer une machine mobile d’1 parcelle vers la bordure de son rayon en sautant les Routes Forestières (sans sortir du plateau ; sans effet sur une machine en Ratissage)."
+    },
+    "ETOUFFER": {
+      "verbe": "Étouffer",
+      "definition": "Neutraliser toute l’activation restante d’une machine à ce tour : incliner son jeton Machine mobile à 90° devant son rayon et retirer immédiatement son dé de la Réglette, ou tourner une machine en Ratissage à 90° sur place jusqu’au ménage. Annuler une machine via un Rêve revient à l’Étouffer. Le mot « cale » est 100 % exclusif au jeton glissé sous une machine mobile par Le Caïman noir."
+    },
+    "SEMER_AU_SAC": {
+      "verbe": "Semer au sac",
+      "definition": "Glisser 1 jeton disponible (Sabotage ordinaire ou Écaille) dans le sac opaque sans allumer d’icône."
+    },
+    "GLISSER_UN_REVE": {
+      "verbe": "Glisser un Rêve",
+      "definition": "Déplacer une tuile Rêve sur la Réglette 1–6 en emportant ses Défenseurs dans leur état actuel (debout si encore à résoudre, couchés si déjà résolu)."
+    }
+  }
+}
