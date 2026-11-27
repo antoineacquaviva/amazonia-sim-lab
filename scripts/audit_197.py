@@ -47,10 +47,12 @@ from scripts.tiles_v6_3_schema import (
     SLOTS_BY_ID,
     SLOTS_SPEC_30,
     is_v6_3_tiles_contract,
+    is_v6_4_tiles_contract,
     validate_tiles_canon_v6_3,
+    validate_tiles_canon_v6_4,
 )
 
-# États garantis disponibles par le socle v6.2 sur 100 % des 197 assises (même à 0 tuile construite)
+# États garantis disponibles par le socle v6.2 / v6.4 sur 100 % des 197 assises (même à 0 tuile construite)
 SOCLE_STATES: frozenset[str] = frozenset(
     {
         "ARBRE",
@@ -77,6 +79,12 @@ PEUPLE_NATIVE_STATES: dict[str, frozenset[str]] = {
     "R": frozenset({"GARDIEN"}),
     "O": frozenset({"DE_ENVOL", "PERCHOIR", "PLUME", "GARDIEN"}),
     "I": frozenset({"INSECTE", "INSECTE_RANG", "NID", "NID_ACTIVE"}),
+}
+
+# En v6.4, Oiseau épuré fusionne Plume + Perchoir en un seul Perchoir de Vigie orientable (zéro Dé d'Envol)
+PEUPLE_NATIVE_STATES_V6_4: dict[str, frozenset[str]] = {
+    **PEUPLE_NATIVE_STATES,
+    "O": frozenset({"PERCHOIR", "GARDIEN"}),
 }
 
 # M4 : états créés exclusivement par d'autres tuiles (interdits comme prérequis bloquant Face 1)
@@ -151,6 +159,16 @@ BANNED_OBSOLETE_TILE_TERMS: tuple[str, ...] = (
     "case Furtivité",
     "Défenseur d'ajustement",
     "Défenseur d’ajustement",
+)
+
+BANNED_V6_4_RETIRED_TILE_TERMS: tuple[str, ...] = (
+    "Dé d'Envol",
+    "Dé d’Envol",
+    "mini-paravent",
+    "Plume de Vigie",
+    "étape de Migration",
+    "reprise du balayage",
+    "balayage",
 )
 
 # ---------------------------------------------------------------------------
@@ -387,9 +405,10 @@ def _split_v6_2_html_faces(famille: str, raw_html: str) -> tuple[str, str | None
 
 
 def normalize_catalog_for_audit(doc: Mapping[str, Any]) -> tuple[str, dict[str, AuditTileSpec]]:
-    """Convertit un contrat JSON `v6.2` ou `v6.3.x` en dictionnaire `{slot_id: AuditTileSpec}`."""
+    """Convertit un contrat JSON `v6.2`, `v6.3.x` ou `v6.4.x` en dictionnaire `{slot_id: AuditTileSpec}`."""
+    is_v64 = is_v6_4_tiles_contract(doc)
     is_v63 = is_v6_3_tiles_contract(doc)
-    version_tag = "v6.3" if is_v63 else "v6.2"
+    version_tag = "v6.4" if is_v64 else ("v6.3" if is_v63 else "v6.2")
     raw_tiles = doc.get("tuiles_ciblees")
     if not isinstance(raw_tiles, Mapping):
         raise TypeError("Champ 'tuiles_ciblees' absent ou invalide")
@@ -716,7 +735,11 @@ def _check_m3_integrite_plateau_et_icones(
     return violations, icon_jumpers
 
 
-def _check_m4_autonomie_plancher_solo(specs: Mapping[str, AuditTileSpec]) -> list[str]:
+def _check_m4_autonomie_plancher_solo(
+    specs: Mapping[str, AuditTileSpec],
+    *,
+    native_states: Mapping[str, frozenset[str]] = PEUPLE_NATIVE_STATES,
+) -> list[str]:
     """M4 : toute tuile construite seule doit avoir un effet utile garanti dès sa Face 1."""
     violations: list[str] = []
 
@@ -726,8 +749,8 @@ def _check_m4_autonomie_plancher_solo(specs: Mapping[str, AuditTileSpec]) -> lis
 
         solo_native = (
             set(SOCLE_STATES)
-            | set(PEUPLE_NATIVE_STATES[sp.origine])
-            | set(PEUPLE_NATIVE_STATES[sp.voisin])
+            | set(native_states[sp.origine])
+            | set(native_states[sp.voisin])
         )
 
         # 1. Contrôle typé sur `entrees_plancher` (ou `entrees` si non séparé)
@@ -798,6 +821,7 @@ def audit_tiles_catalog_197(
 ) -> dict[str, Any]:
     """Exécute l'audit structurel complet (M1..M4 + I01..I07 + Q01..Q02) sur les 197 assises."""
     version_tag, specs = normalize_catalog_for_audit(doc)
+    native_states = PEUPLE_NATIVE_STATES_V6_4 if version_tag == "v6.4" else PEUPLE_NATIVE_STATES
     assises = enumerate_197_canonical_assises()
     errors: list[str] = []
 
@@ -830,7 +854,7 @@ def audit_tiles_catalog_197(
     m1_violations = _check_m1_temps_bataille(specs)
     m2_violations = _check_m2_conservation_thermique(specs)
     m3_violations, m3_icon_jumpers = _check_m3_integrite_plateau_et_icones(specs)
-    m4_violations = _check_m4_autonomie_plancher_solo(specs)
+    m4_violations = _check_m4_autonomie_plancher_solo(specs, native_states=native_states)
     errors.extend(m1_violations)
     errors.extend(m2_violations)
     errors.extend(m3_violations)
@@ -840,6 +864,11 @@ def audit_tiles_catalog_197(
     mem_debt_hits: list[str] = []
     step_code_hits: list[str] = []
     obsolete_term_hits: list[str] = []
+    banned_terms = (
+        (*BANNED_OBSOLETE_TILE_TERMS, *BANNED_V6_4_RETIRED_TILE_TERMS)
+        if version_tag == "v6.4"
+        else BANNED_OBSOLETE_TILE_TERMS
+    )
     for sid, sp in sorted(specs.items()):
         for idx_txt, txt in enumerate(sp.rule_texts, start=1):
             low = txt.lower()
@@ -849,7 +878,7 @@ def audit_tiles_catalog_197(
             steps = _STEP_CODE_RE.findall(txt)
             if steps:
                 step_code_hits.append(f"{sid} (bloc {idx_txt}): code d'étape {steps}")
-            for term in BANNED_OBSOLETE_TILE_TERMS:
+            for term in banned_terms:
                 if re.search(rf"(?i)\b{re.escape(term)}\b", txt):
                     obsolete_term_hits.append(f"{sid} (bloc {idx_txt}): terme obsolète {term!r}")
 
@@ -885,8 +914,8 @@ def audit_tiles_catalog_197(
         twin_spec = specs.get(twin_id)
         local_without_twin = (
             set(SOCLE_STATES)
-            | set(PEUPLE_NATIVE_STATES[sp.origine])
-            | set(PEUPLE_NATIVE_STATES[sp.voisin])
+            | set(native_states[sp.origine])
+            | set(native_states[sp.voisin])
             | set(sp.sorties)
         )
         twin_outputs = set(twin_spec.sorties) if twin_spec is not None else set()
@@ -899,7 +928,7 @@ def audit_tiles_catalog_197(
                     continue
                 avail: set[str] = set(SOCLE_STATES)
                 for p in assise.peuples:
-                    avail.update(PEUPLE_NATIVE_STATES[p])
+                    avail.update(native_states[p])
                 for other_sid in seated:
                     other_sp = specs.get(other_sid)
                     if other_sp is not None:
@@ -921,7 +950,7 @@ def audit_tiles_catalog_197(
                     continue
                 avail_s: set[str] = set(SOCLE_STATES)
                 for p in assise.peuples:
-                    avail_s.update(PEUPLE_NATIVE_STATES[p])
+                    avail_s.update(native_states[p])
                 for other_sid in seated:
                     other_sp = specs.get(other_sid)
                     if other_sp is not None:
@@ -1159,9 +1188,12 @@ def audit_tiles_catalog_197(
             twists_violations.append(f"Q02: lisières portant > 1 Twist : {double_edges}")
     errors.extend(twists_violations)
 
-    # 10. Validation schéma bi-composant & casting animalier pour v6.3
+    # 10. Validation schéma bi-composant & casting animalier pour v6.3 / v6.4
     v63_schema_errors: list[str] = []
-    if version_tag == "v6.3":
+    if version_tag == "v6.4":
+        v63_schema_errors = validate_tiles_canon_v6_4(doc, strict=not allow_draft)
+        errors.extend(v63_schema_errors)
+    elif version_tag == "v6.3":
         v63_schema_errors = validate_tiles_canon_v6_3(doc, strict=not allow_draft)
         errors.extend(v63_schema_errors)
 
@@ -1264,7 +1296,9 @@ def audit_tiles_catalog_197(
         },
         "V63_schema_et_casting": {
             "verdict": "OK" if not v63_schema_errors else "ECHEC",
-            "casting_attendu": LOCKED_GARDIEN_CASTING_V6_3 if version_tag == "v6.3" else None,
+            "casting_attendu": (
+                LOCKED_GARDIEN_CASTING_V6_3 if version_tag in ("v6.3", "v6.4") else None
+            ),
             "errors": v63_schema_errors,
         },
         "I07_zero_c02": {

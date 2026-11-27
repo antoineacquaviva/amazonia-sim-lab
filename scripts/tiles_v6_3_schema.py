@@ -1,6 +1,8 @@
-"""Validation, gabarit initial et adaptateur Studio du contrat bi-composant v6.3.
+"""Validation, gabarit initial et adaptateur Studio des contrats bi-composant v6.3 / v6.4.
 
-Source d'autorité : `docs/cadrage_tuiles_v6_3.md` & `contracts/tiles_canon_v6_3.schema.json`.
+Sources d'autorité :
+- `docs/cadrage_tuiles_v6_3.md` & `contracts/tiles_canon_v6_3.schema.json` (Archive Passe 1)
+- `docs/cadrage_v6_4.md` & `contracts/tiles_canon_v6_4.schema.json` (Canon actif v6.4 Passe 2)
 Invariant `I07` : aucune vérification ni métrique de comptage de mots, de nombre de phrases
 ou de nombre de conditions sur les textes de règles (`carte_joueur.texte_regle`).
 """
@@ -20,6 +22,8 @@ CONTRACTS_DIR = ROOT / "contracts"
 PANELS_DIR = CONTRACTS_DIR / "panels"
 V6_3_SCHEMA_PATH = CONTRACTS_DIR / "tiles_canon_v6_3.schema.json"
 V6_3_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_3.json"
+V6_4_SCHEMA_PATH = CONTRACTS_DIR / "tiles_canon_v6_4.schema.json"
+V6_4_CONTRACT_PATH = CONTRACTS_DIR / "tiles_canon_v6_4.json"
 
 MURS_PORTEURS_V6_3: tuple[str, ...] = (
     "M1_TEMPS_BATAILLE",
@@ -114,10 +118,10 @@ VALID_CYCLES: frozenset[str] = frozenset(
     {"DOUBLE_FACE_UPGRADE", "SIMPLE_CONTINU", "PASSIF_CONTINU"}
 )
 VALID_ENGINE_SYNC_STATUSES: frozenset[str] = frozenset(
-    {"DRAFT_V6_3", "DESIGNED_V6_3", "REFINED_V6_3", "ACTIVE_VERIFIED"}
+    {"DRAFT_V6_3", "DESIGNED_V6_3", "REFINED_V6_3", "REFINED_V6_4", "ACTIVE_VERIFIED"}
 )
 VALID_STATUTS_CONCEPTION: frozenset[str] = frozenset(
-    {"A_CONCEVOIR", "PASSE_1_CREATIF", "PASSE_2_AFFINE", "VALIDE_V6_3"}
+    {"A_CONCEVOIR", "PASSE_1_CREATIF", "PASSE_2_AFFINE", "VALIDE_V6_3", "VALIDE_V6_4"}
 )
 
 _FORBIDDEN_GARDIEN_ORGAN_GESTURE_RE = re.compile(
@@ -127,6 +131,16 @@ _FORBIDDEN_GARDIEN_ORGAN_GESTURE_RE = re.compile(
 _SENTENCE_PUNCT_RE = re.compile(r"[.!?]")
 _PIC_CODE_RE = re.compile(r"^PIC_[A-Z0-9_]+$")
 _TEMOIN_ID_RE = re.compile(r"^(G([1-9]|1[0-5])|R([1-9]|10)|M[1-5])_T[1-3]$")
+_EMOJI_RE = re.compile(r"[\U0001F300-\U0001FAFF\u2600-\u27BF]")
+_MINI_TUILE_FORBIDDEN_SYNTAX_RE = re.compile(r"[\[\]&‖]")
+_INTERNAL_CODE_RE = re.compile(
+    r"(?:\b(?:G(?:1[0-5]|[1-9])|R(?:10|[1-9])|M[1-5])\b|\b[HEMROI]·[1-4]\b)"
+)
+_V6_4_ARTICLE_PREFIX_RE = re.compile(r"^(?:Le |La |L’)")
+_V6_4_CALE_RE = re.compile(r"(?i)\bcal(?:e|es|er|ée|ées)\b")
+_V6_4_RETIRED_TERMS_RE = re.compile(
+    r"(?:(?i:dé\s+d['’]envol|mini-paravent|plume\s+de\s+vigie|\bmigrations?\b|\bbalayages?\b)|\bPlume\b)"
+)
 
 DEFAULT_REFERENTIEL_PICTOGRAMMES: dict[str, dict[str, str]] = {
     "PIC_ARBRE": {
@@ -324,14 +338,37 @@ DEFAULT_REFERENTIEL_PICTOGRAMMES: dict[str, dict[str, str]] = {
 }
 
 
+def _build_default_referentiel_pictogrammes_v6_4() -> dict[str, dict[str, str]]:
+    ref = copy.deepcopy(DEFAULT_REFERENTIEL_PICTOGRAMMES)
+    ref.pop("PIC_PLUME", None)
+    ref["PIC_PERCHOIR"]["libelle"] = "Perchoir de Vigie — Chaud / Calme & jeton caché (Oiseaux)"
+    ref["PIC_MIGRATION"]["libelle"] = "Déplacement / phorésie de l’Essaim"
+    ref["PIC_ANNULATION"]["libelle"] = "Étouffer une machine (jeton incliné 90°, dé retiré)"
+    ref["PIC_AVANCEE_REVE"]["libelle"] = "Glisser un Rêve sur la Réglette 1–6"
+    ref["PIC_RESONANCE"]["libelle"] = "Icône Résonance (dernier pari glissé en encoche)"
+    ref["PIC_CALE"]["libelle"] = "Cale sous machine mobile (exclusif Caïman noir)"
+    return ref
+
+
+DEFAULT_REFERENTIEL_PICTOGRAMMES_V6_4: dict[str, dict[str, str]] = (
+    _build_default_referentiel_pictogrammes_v6_4()
+)
+
+
 def _norm_apostrophe(text: str) -> str:
     return text.strip().replace("'", "’")
 
 
-def is_v6_3_tiles_contract(doc: Mapping[str, Any]) -> bool:
-    """Retourne True si `doc` suit le schéma bi-composant v6.3."""
+def is_v6_4_tiles_contract(doc: Mapping[str, Any]) -> bool:
+    """Retourne True si `doc` suit le schéma bi-composant v6.4."""
     meta = doc.get("_meta")
-    if isinstance(meta, Mapping) and str(meta.get("schema_version", "")).startswith("6.3."):
+    return isinstance(meta, Mapping) and str(meta.get("schema_version", "")).startswith("6.4.")
+
+
+def is_v6_3_tiles_contract(doc: Mapping[str, Any]) -> bool:
+    """Retourne True si `doc` suit le schéma bi-composant v6.3 ou v6.4."""
+    meta = doc.get("_meta")
+    if isinstance(meta, Mapping) and str(meta.get("schema_version", "")).startswith(("6.3.", "6.4.")):
         return True
     tuiles = doc.get("tuiles_ciblees")
     if isinstance(tuiles, Mapping) and tuiles:
@@ -346,7 +383,7 @@ def validate_tiles_canon_v6_3(
     *,
     strict: bool = False,
 ) -> list[str]:
-    """Valide un contrat `tiles_canon_v6_3.json` contre les règles du cadrage `v6.3`.
+    """Valide un contrat bi-composant `v6.3` (ou délègue à `validate_tiles_canon_v6_4` si `6.4.x`).
 
     - `strict=False` : valide la structure complète bi-composant, les 30 emplacements,
       le casting verrouillé des 15 Gardiens, la purge C02 (zéro `mots_par_face`/`C02_textes`),
@@ -357,6 +394,27 @@ def validate_tiles_canon_v6_3(
       heuristique bot, Face 2 autonome sur les 15 Gardiens). Aucun plafond de mots,
       de phrases ou de conditions n'est jamais appliqué (`I07`).
     """
+    if is_v6_4_tiles_contract(doc):
+        return validate_tiles_canon_v6_4(doc, strict=strict)
+    return _validate_bicomponent_tiles(doc, strict=strict, target_version="6.3")
+
+
+def validate_tiles_canon_v6_4(
+    doc: Mapping[str, Any],
+    *,
+    strict: bool = True,
+) -> list[str]:
+    """Valide un contrat `tiles_canon_v6_4.json` contre les règles du cadrage `v6.4` (Passe 2)."""
+    return _validate_bicomponent_tiles(doc, strict=strict, target_version="6.4")
+
+
+def _validate_bicomponent_tiles(
+    doc: Mapping[str, Any],
+    *,
+    strict: bool,
+    target_version: str,
+) -> list[str]:
+    is_v64 = target_version == "6.4"
     errors: list[str] = []
 
     required_root = (
@@ -369,16 +427,23 @@ def validate_tiles_canon_v6_3(
     )
     for key in required_root:
         if key not in doc:
-            errors.append(f"Racine v6.3 : clé obligatoire manquante {key!r}")
+            errors.append(f"Racine v{target_version} : clé obligatoire manquante {key!r}")
 
     meta = doc.get("_meta")
     if isinstance(meta, Mapping):
-        if not str(meta.get("schema_version", "")).startswith("6.3."):
-            errors.append(f"_meta.schema_version doit commencer par '6.3.' (obtenu {meta.get('schema_version')!r})")
-        if meta.get("socle_verrouille") != "6.2.0":
-            errors.append(f"_meta.socle_verrouille doit valoir '6.2.0' (obtenu {meta.get('socle_verrouille')!r})")
-        if meta.get("cadrage_source") != "docs/cadrage_tuiles_v6_3.md":
-            errors.append("_meta.cadrage_source doit référencer 'docs/cadrage_tuiles_v6_3.md'")
+        exp_prefix = f"{target_version}."
+        if not str(meta.get("schema_version", "")).startswith(exp_prefix):
+            errors.append(
+                f"_meta.schema_version doit commencer par {exp_prefix!r} (obtenu {meta.get('schema_version')!r})"
+            )
+        exp_socle = "6.4.0" if is_v64 else "6.2.0"
+        if meta.get("socle_verrouille") != exp_socle:
+            errors.append(
+                f"_meta.socle_verrouille doit valoir {exp_socle!r} (obtenu {meta.get('socle_verrouille')!r})"
+            )
+        exp_cadrage = "docs/cadrage_v6_4.md" if is_v64 else "docs/cadrage_tuiles_v6_3.md"
+        if meta.get("cadrage_source") != exp_cadrage:
+            errors.append(f"_meta.cadrage_source doit référencer {exp_cadrage!r}")
         if meta.get("slots_count") != 30:
             errors.append(f"_meta.slots_count doit valoir 30 (obtenu {meta.get('slots_count')!r})")
         if meta.get("c02_supprime") is not True:
@@ -555,6 +620,10 @@ def validate_tiles_canon_v6_3(
                     )
             elif is_authored and not nom_court:
                 errors.append(f"{lbl}.tuile_plateau.nom_court requis")
+            if is_v64 and is_authored and exp_fam != "GARDIEN" and not _V6_4_ARTICLE_PREFIX_RE.match(nom_court):
+                errors.append(
+                    f"{lbl}.tuile_plateau.nom_court: article défini obligatoire (Le / La / L’) en v6.4 ({nom_court!r})"
+                )
 
             ic_cons = tp.get("icone_conseillee")
             if ic_cons is not None and ic_cons not in VALID_ICONES_GARDIEN:
@@ -577,6 +646,27 @@ def validate_tiles_canon_v6_3(
                 for p in pics:
                     if str(p) not in valid_pics:
                         errors.append(f"{lbl}.tuile_plateau.pictogrammes: code non déclaré {p!r}")
+                if is_v64 and is_authored:
+                    if "PIC_PLUME" in pics:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.pictogrammes: PIC_PLUME retiré en v6.4 (utiliser PIC_PERCHOIR)"
+                        )
+                    if tile.get("est_twist") is True and "PIC_TWIST" not in pics:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.pictogrammes: PIC_TWIST obligatoire sur un Twist 2K3 en v6.4"
+                        )
+                    if tile.get("est_twist") is False and "PIC_TWIST" in pics:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.pictogrammes: PIC_TWIST interdit hors Twist 2K3 en v6.4"
+                        )
+                    if nature == "LOI_PASSIVE" and "PIC_LOI_PASSIVE" not in pics:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.pictogrammes: PIC_LOI_PASSIVE obligatoire sur une Loi passive en v6.4"
+                        )
+                    if nature != "LOI_PASSIVE" and "PIC_LOI_PASSIVE" in pics:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.pictogrammes: PIC_LOI_PASSIVE interdit hors Loi passive en v6.4"
+                        )
 
             mcp = tp.get("mots_cles_plateau")
             if not isinstance(mcp, Mapping):
@@ -588,21 +678,93 @@ def validate_tiles_canon_v6_3(
                         continue
                     mval = mcp.get(mkey)
                     # Mini-Tuile : zéro phrase rédigée (pas de ponctuation terminale de phrase)
-                    if isinstance(mval, str) and mval.strip() and _SENTENCE_PUNCT_RE.search(mval):
-                        errors.append(
-                            f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
-                            f"zéro phrase rédigée sur la Mini-Tuile ({mval!r})"
-                        )
+                    if isinstance(mval, str) and mval.strip():
+                        if _SENTENCE_PUNCT_RE.search(mval):
+                            errors.append(
+                                f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                f"zéro phrase rédigée sur la Mini-Tuile ({mval!r})"
+                            )
+                        if is_v64:
+                            if _EMOJI_RE.search(mval):
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"zéro émoji en v6.4 ({mval!r})"
+                                )
+                            if _MINI_TUILE_FORBIDDEN_SYNTAX_RE.search(mval):
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"syntaxe interdite ([], &, ‖) en v6.4 ({mval!r})"
+                                )
+                            if "'" in mval:
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"apostrophe droite interdite en v6.4 (utiliser ’)"
+                                )
+                            if _INTERNAL_CODE_RE.search(mval):
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"code interne interdit sur la Mini-Tuile ({mval!r})"
+                                )
+                            if _V6_4_RETIRED_TERMS_RE.search(mval):
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"terme retiré v6.4 détecté ({mval!r})"
+                                )
+                            if sid != "G9" and _V6_4_CALE_RE.search(mval):
+                                errors.append(
+                                    f"{lbl}.tuile_plateau.mots_cles_plateau.{mkey}: "
+                                    f"mot 'cale' exclusif à G9 en v6.4 ({mval!r})"
+                                )
                 if is_authored:
                     if not str(mcp.get("face_1") or "").strip():
                         errors.append(f"{lbl}.tuile_plateau.mots_cles_plateau.face_1 requis")
                     if exp_fam == "GARDIEN" and not str(mcp.get("face_2") or "").strip():
                         errors.append(f"{lbl}.tuile_plateau.mots_cles_plateau.face_2 requis sur Gardien")
+                    if is_v64:
+                        has_enr_role = "ENRACINEMENT" in roles
+                        if not has_enr_role and mcp.get("enracine") is not None:
+                            errors.append(
+                                f"{lbl}.tuile_plateau.mots_cles_plateau.enracine doit être null hors ENRACINEMENT en v6.4"
+                            )
+                        if has_enr_role and not str(mcp.get("enracine") or "").strip():
+                            errors.append(
+                                f"{lbl}.tuile_plateau.mots_cles_plateau.enracine requis pour le rôle ENRACINEMENT en v6.4"
+                            )
 
             resume_p = tp.get("resume_plateau")
-            if isinstance(resume_p, str) and resume_p.strip() and _SENTENCE_PUNCT_RE.search(resume_p):
+            if isinstance(resume_p, str) and resume_p.strip():
+                if _SENTENCE_PUNCT_RE.search(resume_p):
+                    errors.append(
+                        f"{lbl}.tuile_plateau.resume_plateau: zéro phrase rédigée sur la Mini-Tuile ({resume_p!r})"
+                    )
+                if is_v64:
+                    if _EMOJI_RE.search(resume_p):
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: zéro émoji en v6.4 ({resume_p!r})"
+                        )
+                    if _MINI_TUILE_FORBIDDEN_SYNTAX_RE.search(resume_p):
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: syntaxe interdite ([], &, ‖) en v6.4 ({resume_p!r})"
+                        )
+                    if "'" in resume_p:
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: apostrophe droite interdite en v6.4 (utiliser ’)"
+                        )
+                    if _INTERNAL_CODE_RE.search(resume_p):
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: code interne interdit ({resume_p!r})"
+                        )
+                    if _V6_4_RETIRED_TERMS_RE.search(resume_p):
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: terme retiré v6.4 ({resume_p!r})"
+                        )
+                    if sid != "G9" and _V6_4_CALE_RE.search(resume_p):
+                        errors.append(
+                            f"{lbl}.tuile_plateau.resume_plateau: mot 'cale' exclusif à G9 en v6.4 ({resume_p!r})"
+                        )
+            if is_v64 and "'" in nom_court:
                 errors.append(
-                    f"{lbl}.tuile_plateau.resume_plateau: zéro phrase rédigée sur la Mini-Tuile ({resume_p!r})"
+                    f"{lbl}.tuile_plateau.nom_court: apostrophe droite interdite en v6.4 (utiliser ’)"
                 )
 
         # 3. Grande Carte Joueur (`carte_joueur`) — ZÉRO limite de mots / phrases / conditions (I07)
@@ -643,6 +805,35 @@ def validate_tiles_canon_v6_3(
                         errors.append(
                             f"{lbl}.carte_joueur.texte_regle.face_2 doit être null hors GARDIEN"
                         )
+                    if is_v64:
+                        has_enr_role = "ENRACINEMENT" in roles
+                        if not has_enr_role and tr.get("enracine") is not None:
+                            errors.append(
+                                f"{lbl}.carte_joueur.texte_regle.enracine doit être null hors ENRACINEMENT en v6.4"
+                            )
+                        if has_enr_role and not str(tr.get("enracine") or "").strip():
+                            errors.append(
+                                f"{lbl}.carte_joueur.texte_regle.enracine requis pour ENRACINEMENT en v6.4"
+                            )
+                        for tkey in ("face_1", "face_2", "enracine"):
+                            tval = tr.get(tkey)
+                            if isinstance(tval, str) and tval.strip():
+                                if "'" in tval:
+                                    errors.append(
+                                        f"{lbl}.carte_joueur.texte_regle.{tkey}: apostrophe droite interdite en v6.4 (utiliser ’)"
+                                    )
+                                if _INTERNAL_CODE_RE.search(tval):
+                                    errors.append(
+                                        f"{lbl}.carte_joueur.texte_regle.{tkey}: code interne interdit ({_INTERNAL_CODE_RE.findall(tval)})"
+                                    )
+                                if _V6_4_RETIRED_TERMS_RE.search(tval):
+                                    errors.append(
+                                        f"{lbl}.carte_joueur.texte_regle.{tkey}: terme retiré v6.4 ({_V6_4_RETIRED_TERMS_RE.findall(tval)})"
+                                    )
+                                if sid != "G9" and _V6_4_CALE_RE.search(tval):
+                                    errors.append(
+                                        f"{lbl}.carte_joueur.texte_regle.{tkey}: mot 'cale' exclusif à G9 en v6.4"
+                                    )
 
             dr = cj.get("decision_et_renoncement")
             if not isinstance(dr, Mapping) or "choix" not in dr or "renoncement" not in dr:
@@ -652,11 +843,33 @@ def validate_tiles_canon_v6_3(
                     errors.append(f"{lbl}.carte_joueur.decision_et_renoncement.choix requis")
                 if not str(dr.get("renoncement") or "").strip():
                     errors.append(f"{lbl}.carte_joueur.decision_et_renoncement.renoncement requis")
+                if is_v64:
+                    for dkey in ("choix", "renoncement"):
+                        if "'" in str(dr.get(dkey) or ""):
+                            errors.append(
+                                f"{lbl}.carte_joueur.decision_et_renoncement.{dkey}: apostrophe droite interdite en v6.4"
+                            )
 
             if is_authored:
                 for req_cj in ("titre_complet", "entite_illustree", "brief_illustration", "pitch_ambiance"):
-                    if not str(cj.get(req_cj) or "").strip():
+                    val_cj = str(cj.get(req_cj) or "").strip()
+                    if not val_cj:
                         errors.append(f"{lbl}.carte_joueur.{req_cj} requis")
+                    elif is_v64:
+                        if "'" in val_cj:
+                            errors.append(
+                                f"{lbl}.carte_joueur.{req_cj}: apostrophe droite interdite en v6.4 (utiliser ’)"
+                            )
+                        if req_cj in ("titre_complet", "pitch_ambiance") and _INTERNAL_CODE_RE.search(val_cj):
+                            errors.append(
+                                f"{lbl}.carte_joueur.{req_cj}: code interne interdit ({_INTERNAL_CODE_RE.findall(val_cj)})"
+                            )
+                if is_v64:
+                    pitch_val = str(cj.get("pitch_ambiance") or "").strip()
+                    if pitch_val.startswith("«") or pitch_val.endswith("»"):
+                        errors.append(
+                            f"{lbl}.carte_joueur.pitch_ambiance: guillemets « » interdits en v6.4"
+                        )
 
         # 4. Exécution & Preuve
         temoins = tile.get("temoins")
