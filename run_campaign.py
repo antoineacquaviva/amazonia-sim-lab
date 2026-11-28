@@ -32,6 +32,22 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from campaigns.digest_builder import write_digest_and_prompt_files
+from campaigns.modular_analytics import (
+    build_assises_197_summary,
+    build_b3_degenerate_audit,
+    build_modular_study_block,
+    build_v64_forks_summary,
+    build_v64_ockham_from_rows,
+    collect_remarkable_bookmarks_from_rows,
+)
+from campaigns.ockham_and_traces import extract_remarkable_traces_jsonl
+from campaigns.reporting import (
+    build_executive_digest,
+    estimate_campaign_cost_and_duration,
+    format_campaign_quote_5_lines,
+    generate_balancing_alerts,
+    render_campaign_markdown_report,
+)
 from campaigns.stats_tools import (
     assess_sign_stability,
     circle_dispersion_summary,
@@ -46,6 +62,7 @@ from campaigns.worker_main import (
     CANONICAL_32_SLOTS,
     _execute_manifest_unit,
     resolve_manifest_plan,
+    run_campaign_manifest,
 )
 from engine.state import ANIMAUX_SAUVAGES, MATRICE_PAIRES
 from engine.telemetry import (
@@ -75,6 +92,19 @@ CLOUD_RUN_JOB_NAME: str = "amazonia-campaign"
 BATCH_THRESHOLD_GAMES: int = 50_000
 DOCS_DIGESTS_DIR: Path = ROOT / "docs" / "digests"
 DOCS_DIGESTS_INDEX: Path = DOCS_DIGESTS_DIR / "index.json"
+DOCS_RAPPORTS_DIR: Path = ROOT / "docs" / "rapports"
+DOCS_TRACES_DIR: Path = ROOT / "docs" / "traces"
+DATA_DIGESTS_DIR: Path = ROOT / "data" / "digests"
+_DEFAULT_DOCS_RAPPORTS_DIR: Path = DOCS_RAPPORTS_DIR
+_DEFAULT_DOCS_TRACES_DIR: Path = DOCS_TRACES_DIR
+
+
+def _resolve_rapports_dir() -> Path:
+    return DOCS_RAPPORTS_DIR if DOCS_RAPPORTS_DIR != _DEFAULT_DOCS_RAPPORTS_DIR else ROOT / "docs" / "rapports"
+
+
+def _resolve_traces_dir() -> Path:
+    return DOCS_TRACES_DIR if DOCS_TRACES_DIR != _DEFAULT_DOCS_TRACES_DIR else ROOT / "docs" / "traces"
 
 
 def _run(cmd: list[str], *, check: bool = True, capture: bool = False) -> subprocess.CompletedProcess[str]:
@@ -264,10 +294,10 @@ def _inter_block_ci95(
 
 
 def _auto_task_count(n_units: int, total_games: int, backend: str) -> int:
-    if n_units <= 1 or total_games <= 32:
+    if backend == "local" or n_units <= 1 or total_games <= 32:
         return 1
     if backend == "batch":
-        return min(n_units, max(2, min(16, (total_games + 1999) // 2000)))
+        return min(n_units, max(2, min(32, (total_games + 1999) // 2000)))
     return min(n_units, max(1, min(10, (total_games + 499) // 500)))
 
 
@@ -330,6 +360,102 @@ def _run_cloud_run_job(
     return CLOUD_RUN_JOB_NAME, wall_sec
 
 
+def _machine_resources_for_type(machine_type: str) -> tuple[int, int, int]:
+    """Retourne `(cpu_milli, memory_mib, default_workers)` pour un type de VM Cloud Batch."""
+    mt = machine_type.strip().lower()
+    if mt.endswith("-16"):
+        return 16000, 16384, 16
+    if mt.endswith("-8"):
+        return 8000, 8192, 8
+    if mt.endswith("-4"):
+        return 4000, 4096, 4
+    return 4000, 4096, 4
+
+
+def _build_cloud_batch_spec(
+    *,
+    manifest_gcs_uri: str,
+    gcs_prefix: str,
+    tasks: int,
+    timeout_sec: int,
+    image_uri: str = IMAGE_URI,
+    machine_type: str = "c3d-highcpu-4",
+    workers: int | None = None,
+    max_retry_count: int = 5,
+    checkpoint_every: int = 20,
+    task_indices: tuple[int, ...] | None = None,
+    total_tasks: int | None = None,
+    provisioning_model: str = "SPOT",
+) -> dict[str, Any]:
+    """Construit la spécification JSON Cloud Batch résiliente aux préemptions Spot."""
+    cpu_milli, mem_mib, default_w = _machine_resources_for_type(machine_type)
+    eff_w = max(1, int(workers) if workers is not None else default_w)
+    eff_task_count = len(task_indices) if task_indices is not None else tasks
+    commands: list[str] = [
+        f"--campaign-manifest={manifest_gcs_uri}",
+        f"--gcs-prefix={gcs_prefix}",
+        f"--workers={eff_w}",
+        "--skip-existing-shards",
+        f"--checkpoint-every={max(0, int(checkpoint_every))}",
+    ]
+    if task_indices is not None:
+        commands.append("--task-indices=" + ",".join(str(i) for i in task_indices))
+        commands.append(f"--total-tasks={int(total_tasks or tasks)}")
+
+    return {
+        "taskGroups": [
+            {
+                "taskSpec": {
+                    "runnables": [
+                        {
+                            "container": {
+                                "imageUri": image_uri,
+                                "commands": commands,
+                            }
+                        }
+                    ],
+                    "computeResource": {"cpuMilli": cpu_milli, "memoryMib": mem_mib},
+                    "maxRetryCount": max(1, int(max_retry_count)),
+                    "maxRunDuration": f"{max(600, int(timeout_sec))}s",
+                    "lifecyclePolicies": [
+                        {
+                            "action": "RETRY_TASK",
+                            "actionCondition": {"exitCodes": [50001, 143]},
+                        }
+                    ],
+                },
+                "taskCount": eff_task_count,
+                "parallelism": eff_task_count,
+            }
+        ],
+        "allocationPolicy": {
+            "instances": [
+                {
+                    "policy": {
+                        "machineType": machine_type,
+                        "provisioningModel": provisioning_model,
+                    }
+                }
+            ]
+        },
+        "logsPolicy": {"destination": "CLOUD_LOGGING"},
+    }
+
+
+def _list_gcs_present_shard_indices(gcloud: str, gcs_prefix: str) -> set[int]:
+    """Liste les indices des shards `shard_XX.jsonl.gz` déjà écrits sur GCS."""
+    glob_uri = f"gs://{BUCKET_NAME}/{gcs_prefix.rstrip('/')}/shard_*.jsonl.gz"
+    proc = _run([gcloud, "storage", "ls", glob_uri], check=False, capture=True)
+    if proc.returncode != 0:
+        return set()
+    found: set[int] = set()
+    for line in (proc.stdout or "").splitlines():
+        m = re.search(r"shard_(\d+)\.jsonl\.gz$", line.strip())
+        if m:
+            found.add(int(m.group(1)))
+    return found
+
+
 def _run_cloud_batch_job(
     gcloud: str,
     *,
@@ -340,46 +466,31 @@ def _run_cloud_batch_job(
     timeout_sec: int,
     run_dir: Path,
     image_uri: str = IMAGE_URI,
+    machine_type: str = "c3d-highcpu-4",
+    workers: int | None = None,
+    max_retry_count: int = 5,
+    checkpoint_every: int = 20,
+    task_indices: tuple[int, ...] | None = None,
+    total_tasks: int | None = None,
+    wave_idx: int = 1,
 ) -> tuple[str, float]:
     ts = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
-    job_name = f"amazonia-{_sanitize_gcp_name(campaign_name, max_len=28)}-{ts}"
-    batch_spec: dict[str, Any] = {
-        "taskGroups": [
-            {
-                "taskSpec": {
-                    "runnables": [
-                        {
-                            "container": {
-                                "imageUri": image_uri,
-                                "commands": [
-                                    f"--campaign-manifest={manifest_gcs_uri}",
-                                    f"--gcs-prefix={gcs_prefix}",
-                                    "--workers=4",
-                                ],
-                            }
-                        }
-                    ],
-                    "computeResource": {"cpuMilli": 4000, "memoryMib": 4096},
-                    "maxRetryCount": 2,
-                    "maxRunDuration": f"{timeout_sec}s",
-                },
-                "taskCount": tasks,
-                "parallelism": tasks,
-            }
-        ],
-        "allocationPolicy": {
-            "instances": [
-                {
-                    "policy": {
-                        "machineType": "c3d-highcpu-4",
-                        "provisioningModel": "SPOT",
-                    }
-                }
-            ]
-        },
-        "logsPolicy": {"destination": "CLOUD_LOGGING"},
-    }
-    spec_path = run_dir / "batch_job.json"
+    wave_suffix = f"-w{wave_idx}" if wave_idx > 1 else ""
+    job_name = f"amazonia-{_sanitize_gcp_name(campaign_name, max_len=24)}{wave_suffix}-{ts}"
+    batch_spec = _build_cloud_batch_spec(
+        manifest_gcs_uri=manifest_gcs_uri,
+        gcs_prefix=gcs_prefix,
+        tasks=tasks,
+        timeout_sec=timeout_sec,
+        image_uri=image_uri,
+        machine_type=machine_type,
+        workers=workers,
+        max_retry_count=max_retry_count,
+        checkpoint_every=checkpoint_every,
+        task_indices=task_indices,
+        total_tasks=total_tasks,
+    )
+    spec_path = run_dir / (f"batch_job_wave{wave_idx}.json" if wave_idx > 1 else "batch_job.json")
     spec_path.parent.mkdir(parents=True, exist_ok=True)
     spec_path.write_text(json.dumps(batch_spec, indent=2) + "\n", encoding="utf-8")
 
@@ -422,6 +533,142 @@ def _run_cloud_batch_job(
 
     wall_sec = time.perf_counter() - t0
     return job_name, wall_sec
+
+
+def _run_cloud_batch_with_spot_recovery(
+    gcloud: str,
+    *,
+    campaign_name: str,
+    run_id: str,
+    manifest_gcs_uri: str,
+    gcs_prefix: str,
+    tasks: int,
+    timeout_sec: int,
+    run_dir: Path,
+    image_uri: str = IMAGE_URI,
+    machine_type: str = "c3d-highcpu-4",
+    workers: int | None = None,
+    max_retry_count: int = 5,
+    max_spot_waves: int = 4,
+    checkpoint_every: int = 20,
+) -> tuple[str, float]:
+    """Orchestre jusqu'à `max_spot_waves` vagues Cloud Batch Spot ne relançant que les shards manquants."""
+    state_path = run_dir / "run_state.json"
+    run_dir.mkdir(parents=True, exist_ok=True)
+    total_wall = 0.0
+    last_job_name = f"batch-resume-{run_id}"
+    expected = set(range(tasks))
+    waves_done = 0
+
+    for wave in range(1, max(1, int(max_spot_waves)) + 1):
+        present = _list_gcs_present_shard_indices(gcloud, gcs_prefix)
+        missing = tuple(sorted(expected - present))
+        state_payload = {
+            "campaign_name": campaign_name,
+            "run_id": run_id,
+            "gcs_prefix": gcs_prefix,
+            "tasks": tasks,
+            "present_shards": sorted(present),
+            "missing_shards": list(missing),
+            "waves_executed": waves_done,
+            "status": "COMPLETE" if not missing else f"WAVE_{wave}_RUNNING",
+            "updated_at_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        }
+        state_path.write_text(json.dumps(state_payload, indent=2) + "\n", encoding="utf-8")
+
+        if not missing:
+            print(
+                f"Cloud Batch Spot : {len(present)}/{tasks} shards déjà complets sur GCS (reprise instantanée).",
+                flush=True,
+            )
+            return last_job_name, total_wall
+
+        is_partial = len(missing) < tasks
+        print(
+            f"Cloud Batch Spot [vague {wave}/{max_spot_waves}] : lancement de {len(missing)}/{tasks} shard(s)"
+            + (f" manquants {list(missing)}" if is_partial else ""),
+            flush=True,
+        )
+        waves_done += 1
+        try:
+            last_job_name, w_sec = _run_cloud_batch_job(
+                gcloud,
+                campaign_name=campaign_name,
+                manifest_gcs_uri=manifest_gcs_uri,
+                gcs_prefix=gcs_prefix,
+                tasks=tasks,
+                timeout_sec=timeout_sec,
+                run_dir=run_dir,
+                image_uri=image_uri,
+                machine_type=machine_type,
+                workers=workers,
+                max_retry_count=max_retry_count,
+                checkpoint_every=checkpoint_every,
+                task_indices=missing if is_partial else None,
+                total_tasks=tasks,
+                wave_idx=wave,
+            )
+            total_wall += w_sec
+        except RuntimeError as exc:
+            if wave >= max_spot_waves:
+                raise
+            print(
+                f"Préemption/échec Spot détecté sur la vague {wave} ({exc}) — reprise automatique des shards manquants...",
+                flush=True,
+            )
+
+    present_final = _list_gcs_present_shard_indices(gcloud, gcs_prefix)
+    missing_final = sorted(expected - present_final)
+    state_path.write_text(
+        json.dumps(
+            {
+                "campaign_name": campaign_name,
+                "run_id": run_id,
+                "gcs_prefix": gcs_prefix,
+                "tasks": tasks,
+                "present_shards": sorted(present_final),
+                "missing_shards": missing_final,
+                "waves_executed": waves_done,
+                "status": "COMPLETE" if not missing_final else "INCOMPLETE",
+                "updated_at_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    if missing_final:
+        raise RuntimeError(
+            f"Campagne Cloud Batch Spot incomplète après {max_spot_waves} vagues : "
+            f"shards manquants {missing_final}. Relancer avec --resume-run-id {run_id}."
+        )
+    return last_job_name, total_wall
+
+
+def _run_local_execution(
+    *,
+    manifest_path: Path,
+    shards_dir: Path,
+    tasks: int,
+    workers: int | None,
+    checkpoint_every: int = 20,
+) -> tuple[str, float]:
+    """Exécute localement tous les shards du manifeste sans aucun appel GCP (validation locale 0 €)."""
+    shards_dir.mkdir(parents=True, exist_ok=True)
+    t0 = time.perf_counter()
+    for t_idx in range(tasks):
+        rc = run_campaign_manifest(
+            manifest_source=str(manifest_path),
+            task_index=t_idx,
+            task_count=tasks,
+            workers=workers if workers is not None else 1,
+            local_out_dir=str(shards_dir),
+            skip_existing_shards=True,
+            checkpoint_every=checkpoint_every,
+        )
+        if rc != 0:
+            raise RuntimeError(f"Échec du shard local {t_idx}/{tasks} (code={rc}).")
+    return "local-runner", time.perf_counter() - t0
 
 
 def _format_reveil_anatomy_row(raw: dict[str, Any]) -> dict[str, Any]:
@@ -2523,12 +2770,23 @@ def aggregate_campaign_duckdb(
         ("n_animaux_sauvages", "NULL AS n_animaux_sauvages"),
         ("table_id", "peuples AS table_id"),
         ("peuples", "table_id AS peuples"),
+        ("assise_key", "'' AS assise_key"),
+        ("composition_key", "'' AS composition_key"),
+        ("study_role", "'' AS study_role"),
+        ("study_group_id", "'' AS study_group_id"),
+        ("active_slots_count", "NULL AS active_slots_count"),
+        ("config_id", "-1 AS config_id"),
+        ("count_tour_8", "0 AS count_tour_8"),
+        ("count_reve_rang_1", "0 AS count_reve_rang_1"),
+        ("count_reveil_gardiens", "0 AS count_reveil_gardiens"),
         ("compared_slots_json", "'{}' AS compared_slots_json"),
         ("exp_seed", "0 AS exp_seed"),
         ("rep_start", "0 AS rep_start"),
         ("ratio_bp_counts_json", "NULL AS ratio_bp_counts_json"),
         ("rep_ratios_bp_json", "NULL AS rep_ratios_bp_json"),
         ("tile_activations_json", "NULL AS tile_activations_json"),
+        ("v64_dilemmas_json", "NULL AS v64_dilemmas_json"),
+        ("remarkable_bookmarks_json", "NULL AS remarkable_bookmarks_json"),
     )
     opt_select_sql = ",\n            ".join(
         col if col in cell_cols else fallback for col, fallback in opt_cell_cols
@@ -2859,9 +3117,25 @@ def aggregate_campaign_duckdb(
         else {}
     )
 
-    # Forks et seeds (inclus automatiquement si la campagne produit des colonnes de micro-forks)
+    # Forks et seeds (inclus automatiquement si la campagne produit des colonnes de micro-forks v6.1 ou v6.4)
     forks_block: dict[str, Any] | None = None
-    if "fork_anchors" in cell_cols:
+    _fork_anchor_cols = (
+        "fork_anchors",
+        "fork_2_1_anchors",
+        "fork_2_1_reve_anchors",
+        "fork_furt_rp_anchors",
+        "fork_furt_rs_anchors",
+        "fork_furt_sent_anchors",
+        "fork_4_1_piege_anchors",
+        "fork_6_1_enrac_anchors",
+        "fork_eveil_anchors",
+        "fork_2_2_gpari_anchors",
+        "fork_2_1_chaman_anchors",
+        "fork_alteration_anchors",
+        "fork_3_1_gicon_anchors",
+    )
+    _present_fork_anchors = [c for c in _fork_anchor_cols if c in cell_cols]
+    if _present_fork_anchors:
         def _opt_sum_sql(col_n: str, cast_t: str = "DOUBLE") -> str:
             return (
                 f"CAST(COALESCE(SUM({col_n}), 0) AS {cast_t}) AS {col_n}"
@@ -2869,6 +3143,7 @@ def aggregate_campaign_duckdb(
                 else f"CAST(0 AS {cast_t}) AS {col_n}"
             )
 
+        fork_where_sql = " + ".join(f"COALESCE({c}, 0)" for c in _present_fork_anchors) + " > 0"
         fork_cols_sql = ",\n                ".join(
             [
                 _opt_sum_sql("fork_anchors", "INTEGER"),
@@ -2893,12 +3168,32 @@ def aggregate_campaign_duckdb(
                 _opt_sum_sql("fork_furt_rs_anchors", "INTEGER"),
                 _opt_sum_sql("sum_delta_v_furt_rs"),
                 _opt_sum_sql("sum_sq_delta_v_furt_rs"),
+                _opt_sum_sql("fork_furt_sent_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_furt_sent"),
+                _opt_sum_sql("sum_sq_delta_v_furt_sent"),
                 _opt_sum_sql("fork_4_1_piege_anchors", "INTEGER"),
                 _opt_sum_sql("sum_delta_v_4_1_piege"),
                 _opt_sum_sql("sum_sq_delta_v_4_1_piege"),
+                _opt_sum_sql("fork_6_1_enrac_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_6_1_enrac"),
+                _opt_sum_sql("sum_sq_delta_v_6_1_enrac"),
                 _opt_sum_sql("fork_eveil_anchors", "INTEGER"),
                 _opt_sum_sql("sum_delta_v_eveil_vs_survival"),
                 _opt_sum_sql("sum_sq_delta_v_eveil_vs_survival"),
+                _opt_sum_sql("fork_2_2_gpari_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_2_2_gpari"),
+                _opt_sum_sql("sum_sq_delta_v_2_2_gpari"),
+                _opt_sum_sql("fork_2_1_chaman_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_2_1_chaman_chosen"),
+                _opt_sum_sql("sum_sq_delta_v_2_1_chaman_chosen"),
+                _opt_sum_sql("sum_delta_v_2_1_chaman_tmc"),
+                _opt_sum_sql("sum_sq_delta_v_2_1_chaman_tmc"),
+                _opt_sum_sql("fork_alteration_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_alteration"),
+                _opt_sum_sql("sum_sq_delta_v_alteration"),
+                _opt_sum_sql("fork_3_1_gicon_anchors", "INTEGER"),
+                _opt_sum_sql("sum_delta_v_3_1_gicon"),
+                _opt_sum_sql("sum_sq_delta_v_3_1_gicon"),
             ]
         )
 
@@ -2983,6 +3278,9 @@ def aggregate_campaign_duckdb(
                         fev, sev, float(fr.get("sum_sq_delta_v_eveil_vs_survival") or 0.0)
                     ),
                 }
+            c64 = build_v64_forks_summary(fr)
+            if c64:
+                d["causal_v6_4"] = c64
             return d
 
         fork_row = _query_dicts(
@@ -2992,15 +3290,15 @@ def aggregate_campaign_duckdb(
                 {fork_cols_sql},
                 COUNT(*) AS n_fork_rows
             FROM cells
-            WHERE fork_anchors > 0
+            WHERE {fork_where_sql}
             """,
         )[0]
-        if int(fork_row.get("fork_anchors") or 0) > 0:
+        if int(fork_row.get("n_fork_rows") or 0) > 0:
             seed_col = "exp_seed" if "exp_seed" in cell_cols else ("seed" if "seed" in cell_cols else None)
             if seed_col is not None:
                 seed_rows = _query_dicts(
                     con,
-                    f"SELECT DISTINCT {seed_col} AS seed FROM cells WHERE fork_anchors > 0 ORDER BY seed LIMIT 64",
+                    f"SELECT DISTINCT {seed_col} AS seed FROM cells WHERE {fork_where_sql} ORDER BY seed LIMIT 64",
                 )
                 fork_seeds = [int(r["seed"]) for r in seed_rows if r.get("seed") is not None]
             else:
@@ -3012,7 +3310,7 @@ def aggregate_campaign_duckdb(
                     n_players,
                     {fork_cols_sql}
                 FROM cells
-                WHERE fork_anchors > 0
+                WHERE {fork_where_sql}
                 GROUP BY n_players
                 ORDER BY n_players
                 """,
@@ -3058,10 +3356,50 @@ def aggregate_campaign_duckdb(
     if g_stats.get("mean_mid_combat_interrupts") is not None:
         telemetry_block["mean_mid_combat_interrupts"] = g_stats["mean_mid_combat_interrupts"]
 
+    pct_eff_global = round(
+        max(
+            0.0,
+            100.0
+            - float(g_stats["pct_tour_8"] or 0.0)
+            - float(g_stats["pct_reve_rang_1"] or 0.0)
+            - float(g_stats["pct_reveil_gardiens"] or 0.0),
+        ),
+        2,
+    )
+    by_bot_dict: dict[str, dict[str, Any]] = {}
+    for row_bm in by_mode:
+        b_k = str(row_bm["bot"]).upper()
+        p_t8_b = float(row_bm.get("pct_tour_8") or 0.0)
+        p_som_b = float(row_bm.get("pct_reve_rang_1") or 0.0)
+        p_ev_b = float(row_bm.get("pct_reveil_gardiens") or 0.0)
+        by_bot_dict[b_k] = {
+            "n_games": int(row_bm["n_games"]),
+            "mean_ratio_arbres": float(row_bm["mean_ratio_arbres"]),
+            "cvar20_ratio": float(row_bm["cvar20_ratio"]),
+            "mean_tours": float(row_bm["mean_tours"]),
+            "pct_tour_8": p_t8_b,
+            "pct_reve_rang_1": p_som_b,
+            "pct_reveil_gardiens": p_ev_b,
+            "pct_effondrement": round(max(0.0, 100.0 - p_t8_b - p_som_b - p_ev_b), 2),
+        }
+
+    plan_summary: dict[str, Any] = {
+        "mode": int(plan.get("mode", manifest.get("mode", 4))),
+        "table_selection": str(plan.get("table_selection", "BALANCED_CIRCLES")),
+        "player_counts": list(plan.get("player_counts", ())),
+        "bots": list(plan.get("bots", ())),
+        "bot": str(plan.get("bot", "")),
+        "base_bundle_id": str(plan.get("base_bundle_id", "STANDARD_A")),
+        "micro_forks": bool(plan.get("micro_forks", False)),
+    }
+    if plan.get("fork_families"):
+        plan_summary["fork_families"] = list(plan["fork_families"])
+
     digest_payload: dict[str, Any] = {
         "campaign": campaign_name,
         "description": str(manifest.get("description", "")).strip(),
         "generated_at_utc": generated_at,
+        "plan": plan_summary,
         "execution": execution_meta,
         "totals": {
             "total_games": total_games,
@@ -3082,6 +3420,7 @@ def aggregate_campaign_duckdb(
             "pct_tour_8": g_stats["pct_tour_8"],
             "pct_reve_rang_1": g_stats["pct_reve_rang_1"],
             "pct_reveil_gardiens": g_stats["pct_reveil_gardiens"],
+            "pct_effondrement": pct_eff_global,
             "count_reveil_attempts": int(g_stats["count_reveil_attempts"]),
             "count_reveil_failures": int(g_stats["count_reveil_failures"]),
             "count_gardien_bets_won": int(g_stats["count_gardien_bets_won"]),
@@ -3103,6 +3442,7 @@ def aggregate_campaign_duckdb(
         "inter_block_intervals": inter_block_intervals,
         "circle_dispersion": circle_dispersion,
         "telemetry": telemetry_block,
+        "by_bot": by_bot_dict,
         "by_mode": by_mode,
         "by_n_players": by_n_players,
         "by_variant": by_variant_clean,
@@ -3131,7 +3471,28 @@ def aggregate_campaign_duckdb(
     reveil_anatomy_block = _build_reveil_anatomy_block(con, cell_cols)
     if reveil_anatomy_block is not None:
         digest_payload["reveil_anatomy"] = reveil_anatomy_block
-    # Les 5 blocs analytiques détaillés d'audit du socle v6.1 (acceptance_v6, sommeil_temporality,
+
+    # Blocs analytiques v6.4 : Étude modulaire Tuiles à blanc, 197 Assises, Audit B3, Ockham v6.4 & Traces remarquables
+    modular_study_block = build_modular_study_block(cell_table_rows, plan)
+    if modular_study_block is not None:
+        digest_payload["modular_study"] = modular_study_block
+
+    assises_197_block = build_assises_197_summary(cell_table_rows)
+    if assises_197_block is not None:
+        digest_payload["assises_197_summary"] = assises_197_block
+
+    variant_tile_profiles_map: dict[str, tuple[tuple[str, str], ...]] = {
+        str(v["variant_id"]): tuple(sorted(dict(v.get("tile_profiles") or {}).items()))
+        for v in plan.get("profile_variants", ())
+    }
+    b3_audit_block, b3_outlier_bm = build_b3_degenerate_audit(
+        cell_table_rows,
+        variant_tile_profiles_map=variant_tile_profiles_map,
+    )
+    if b3_audit_block.get("enabled"):
+        digest_payload["b3_degenerate_audit"] = b3_audit_block
+
+    # Les 5 blocs analytiques détaillés d'audit du socle (acceptance_v6, sommeil_temporality,
     # charge_assaut_metrics, furtivite_metrics, ockham_razor) sont émis pour toute campagne Mode 2
     # ou multi-bots (ou si explicitement demandé via `include_v6_audit_blocks: true`).
     emit_v6_audit = (
@@ -3155,6 +3516,59 @@ def aggregate_campaign_duckdb(
         ockham_block = _build_ockham_razor_block(con, cell_cols)
         if ockham_block is not None:
             digest_payload["ockham_razor"] = ockham_block
+
+    v64_ockham_block = build_v64_ockham_from_rows(cell_table_rows)
+    if v64_ockham_block is not None:
+        ock_container = digest_payload.setdefault("ockham_razor", {})
+        ock_container["v64_decision_audit"] = v64_ockham_block
+
+    traces_cfg = plan.get("extract_remarkable_traces") or {}
+    if isinstance(traces_cfg, dict) and traces_cfg.get("enabled"):
+        max_tr = int(traces_cfg.get("max_games", 8))
+        extra_bms = [b3_outlier_bm] if b3_outlier_bm is not None else None
+        bookmarks = collect_remarkable_bookmarks_from_rows(
+            cell_table_rows,
+            extra_bookmarks=extra_bms,
+            max_games=max_tr,
+        )
+        if bookmarks:
+            traces_dir = _resolve_traces_dir()
+            custom_tr = traces_cfg.get("output_path")
+            trace_out_path = (
+                (ROOT / str(custom_tr))
+                if custom_tr
+                else (traces_dir / f"traces_{campaign_name}.jsonl")
+            )
+            b3_kw = plan.get("b3_config") if isinstance(plan.get("b3_config"), dict) else None
+            tr_meta = extract_remarkable_traces_jsonl(
+                bookmarks,
+                output_path=trace_out_path,
+                campaign_name=campaign_name,
+                b3_kwargs=b3_kw,
+            )
+            try:
+                rel_tr = trace_out_path.resolve().relative_to(ROOT.resolve()).as_posix()
+            except ValueError:
+                rel_tr = trace_out_path.as_posix()
+            tr_meta["traces_jsonl_path"] = rel_tr
+            digest_payload["remarkable_traces"] = tr_meta
+            digest_payload["traces_jsonl_path"] = rel_tr
+
+    # Alertes automatiques d'équilibrage & résumé exécutif (0 € LLM)
+    alerts = generate_balancing_alerts(digest_payload)
+    digest_payload["alerts"] = alerts
+    n_danger = sum(1 for a in alerts if a.get("level") == "danger")
+    n_warn = sum(1 for a in alerts if a.get("level") == "warn")
+    n_info = sum(1 for a in alerts if a.get("level") == "info")
+    digest_payload["executive_summary"] = {
+        "campaign": campaign_name,
+        "verdict": "ACTION_REQUISE" if n_danger > 0 else ("A_SURVEILLER" if n_warn > 0 else "SAIN"),
+        "alerts_counts": {"danger": n_danger, "warn": n_warn, "info": n_info},
+        "total_games": total_games,
+        "mean_ratio_arbres": g_stats["mean_ratio_arbres"],
+        "cvar20_ratio": exact_game_cvar20 if exact_game_cvar20 is not None else g_stats["cvar20_ratio"],
+        "top_alerts": [a["text"] for a in alerts[:6]],
+    }
 
     digest_path, prompt_path, final_digest = write_digest_and_prompt_files(
         campaign_name,
@@ -3183,6 +3597,28 @@ def aggregate_campaign_duckdb(
     return digest_path, prompt_path, final_digest
 
 
+def publish_campaign_markdown_report(
+    *,
+    campaign_name: str,
+    digest: dict[str, Any],
+    manifest: dict[str, Any],
+    report_title: str | None = None,
+) -> Path:
+    """Écrit le rapport Markdown lisible complet dans `docs/rapports/rapport_<nom>.md` (UTF-8 sans BOM, LF)."""
+    rep_cfg = manifest.get("report_output") if isinstance(manifest.get("report_output"), dict) else {}
+    custom_md = rep_cfg.get("markdown_path") if isinstance(rep_cfg, dict) else None
+    if custom_md:
+        report_path = Path(str(custom_md))
+        if not report_path.is_absolute():
+            report_path = ROOT / report_path
+    else:
+        report_path = _resolve_rapports_dir() / f"rapport_{campaign_name}.md"
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    md_text = render_campaign_markdown_report(digest, report_title=report_title)
+    report_path.write_text(md_text, encoding="utf-8", newline="\n")
+    return report_path
+
+
 def publish_to_studio_digests(
     *,
     campaign_name: str,
@@ -3190,10 +3626,42 @@ def publish_to_studio_digests(
     digest: dict[str, Any],
     manifest: dict[str, Any],
 ) -> tuple[Path, Path]:
-    """Copie `digest_<nom>.json` dans `docs/digests/` et met à jour `docs/digests/index.json`."""
+    """Publie le digest exécutif léger (< 35 Ko) dans `docs/digests/`, le rapport Markdown dans `docs/rapports/`, et met à jour `docs/digests/index.json`."""
     DOCS_DIGESTS_DIR.mkdir(parents=True, exist_ok=True)
     target_digest_path = DOCS_DIGESTS_DIR / digest_path.name
-    shutil.copyfile(digest_path, target_digest_path)
+
+    try:
+        full_rel = digest_path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        full_rel = digest_path.name
+
+    digest_for_report = dict(digest)
+    digest_for_report.setdefault("full_digest_path", full_rel)
+    report_md_path = publish_campaign_markdown_report(
+        campaign_name=campaign_name,
+        digest=digest_for_report,
+        manifest=manifest,
+    )
+    try:
+        report_rel = report_md_path.resolve().relative_to(ROOT.resolve()).as_posix()
+    except ValueError:
+        report_rel = report_md_path.name
+
+    rep_cfg = manifest.get("report_output") if isinstance(manifest.get("report_output"), dict) else {}
+    max_exec_bytes = int(rep_cfg.get("executive_max_bytes", 34_000)) if isinstance(rep_cfg, dict) else 34_000
+    exec_digest = build_executive_digest(
+        digest_for_report,
+        max_bytes=max_exec_bytes,
+        full_digest_path=full_rel,
+        report_markdown_path=report_rel,
+        traces_jsonl_path=digest.get("traces_jsonl_path"),
+    )
+    pretty_exec = json.dumps(exec_digest, indent=2, ensure_ascii=False) + "\n"
+    if len(pretty_exec.encode("utf-8")) <= max_exec_bytes:
+        target_digest_path.write_text(pretty_exec, encoding="utf-8", newline="\n")
+    else:
+        compact_exec = json.dumps(exec_digest, separators=(",", ":"), ensure_ascii=False) + "\n"
+        target_digest_path.write_text(compact_exec, encoding="utf-8", newline="\n")
 
     if DOCS_DIGESTS_INDEX.exists():
         index_data = json.loads(DOCS_DIGESTS_INDEX.read_text(encoding="utf-8"))
@@ -3206,6 +3674,8 @@ def publish_to_studio_digests(
     desc = str(manifest.get("description", "")).strip()
     base_label = desc if desc else campaign_name
     label = f"{base_label} ({total_games} parties)"
+    exec_sum = exec_digest.get("executive_summary") or {}
+    al_counts = exec_sum.get("alerts_counts") or {}
 
     new_entry: dict[str, Any] = {
         "id": campaign_name,
@@ -3214,7 +3684,13 @@ def publish_to_studio_digests(
         "campaign": campaign_name,
         "generated_at_utc": str(digest.get("generated_at_utc", "")),
         "total_games": total_games,
+        "verdict": str(exec_sum.get("verdict", "SAIN")),
+        "alerts_danger": int(al_counts.get("danger", 0)),
+        "alerts_warn": int(al_counts.get("warn", 0)),
+        "report_md": report_rel,
     }
+    if digest.get("traces_jsonl_path"):
+        new_entry["traces_jsonl"] = str(digest["traces_jsonl_path"])
 
     filtered = [
         item
@@ -3227,6 +3703,7 @@ def publish_to_studio_digests(
     DOCS_DIGESTS_INDEX.write_text(
         json.dumps(index_data, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
+        newline="\n",
     )
     return target_digest_path, DOCS_DIGESTS_INDEX
 
@@ -3261,20 +3738,579 @@ def git_commit_and_push(
     _run(["git", "push", "origin", target_branch])
 
 
+def _resolve_suite_stage_manifest(
+    suite_manifest: dict[str, Any],
+    stage_spec: dict[str, Any],
+    stage_idx: int,
+    suite_dir: Path,
+    *,
+    write_file: bool = True,
+) -> tuple[dict[str, Any], Path]:
+    """Résout le manifeste complet d'une étape de `campaign_suite` (fichier ou inline)."""
+    suite_name = str(suite_manifest.get("campaign_name") or "suite_v6_4")
+    if "manifest_path" in stage_spec:
+        ref = Path(str(stage_spec["manifest_path"]))
+        if not ref.is_absolute():
+            ref = (ROOT / ref).resolve()
+        if not ref.exists():
+            raise FileNotFoundError(f"Manifeste d'étape introuvable : {ref}")
+        base_m: dict[str, Any] = json.loads(ref.read_text(encoding="utf-8"))
+        for k, v in stage_spec.items():
+            if k not in ("manifest_path", "stage_name"):
+                base_m[k] = v
+    else:
+        base_m = {k: v for k, v in stage_spec.items() if k != "stage_name"}
+
+    # Héritage propre des paramètres communs de la suite s'ils sont absents dans l'étape
+    for inheritable in (
+        "schema_version",
+        "seed",
+        "player_counts",
+        "spot_resilience",
+        "report_output",
+        "b3_config",
+    ):
+        if inheritable not in base_m and inheritable in suite_manifest:
+            base_m[inheritable] = suite_manifest[inheritable]
+
+    base_m.setdefault("schema_version", "6.4")
+    base_m.setdefault("manifest_type", "campaign_plan")
+    stage_slug = str(stage_spec.get("stage_name") or base_m.get("campaign_name") or f"etape_{stage_idx + 1}")
+    if not base_m.get("campaign_name"):
+        base_m["campaign_name"] = f"{suite_name}__{stage_slug}"
+
+    stage_manifest_path = suite_dir / f"stage_{stage_idx:02d}_{_sanitize_gcp_name(stage_slug, max_len=36)}.json"
+    if write_file:
+        suite_dir.mkdir(parents=True, exist_ok=True)
+        stage_manifest_path.write_text(
+            json.dumps(base_m, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+    return base_m, stage_manifest_path
+
+
+def _execute_single_campaign(
+    *,
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    args: argparse.Namespace,
+    plan: dict[str, Any] | None = None,
+    run_id_override: str | None = None,
+    skip_git_push: bool | None = None,
+    gcloud_state: dict[str, Any] | None = None,
+    print_quote: bool = True,
+) -> dict[str, Any]:
+    """Exécute une campagne unitaire (`local`, `cloudrun` ou `batch` Spot avec reprise) et publie ses livrables."""
+    resolved_plan = plan if plan is not None else resolve_manifest_plan(manifest)
+    campaign_name = str(resolved_plan["campaign_name"])
+    total_games_planned = int(resolved_plan["total_games"])
+    n_units = len(resolved_plan["units"])
+
+    raw_spot_cfg = manifest.get("spot_resilience")
+    spot_cfg: dict[str, Any] = raw_spot_cfg if isinstance(raw_spot_cfg, dict) else {}
+    backend = (
+        ("batch" if total_games_planned > BATCH_THRESHOLD_GAMES else "cloudrun")
+        if args.backend == "auto"
+        else str(args.backend)
+    )
+    tasks = (
+        max(1, min(int(args.tasks), n_units))
+        if args.tasks is not None
+        else _auto_task_count(n_units, total_games_planned, backend)
+    )
+    machine_type = (
+        str(args.machine_type)
+        if args.machine_type != "c3d-highcpu-4"
+        else str(spot_cfg.get("machine_type", args.machine_type))
+    )
+    _, _, default_vcpu = _machine_resources_for_type(machine_type)
+    workers_eff = (
+        int(args.workers)
+        if args.workers is not None
+        else (
+            int(spot_cfg["workers"])
+            if spot_cfg.get("workers") is not None
+            else (1 if backend == "local" else default_vcpu)
+        )
+    )
+    max_spot_waves = (
+        int(args.max_spot_waves)
+        if args.max_spot_waves != 4
+        else int(spot_cfg.get("max_spot_waves", 4))
+    )
+    max_retry_count = int(spot_cfg.get("max_retry_count", 5))
+    checkpoint_every = int(spot_cfg.get("checkpoint_every", 20))
+    image_uri = str(args.image_uri).strip() or IMAGE_URI
+    run_id = (
+        run_id_override.strip()
+        if isinstance(run_id_override, str) and run_id_override.strip()
+        else _build_run_id(manifest)
+    )
+
+    if print_quote:
+        quote_text = format_campaign_quote_5_lines(
+            manifest,
+            resolved_plan,
+            backend=backend,
+            tasks=tasks,
+            workers=workers_eff,
+            machine_type=machine_type,
+            is_spot=(backend == "batch"),
+        )
+        print("\n=== DEVIS CAMPAGNE (0,00 € API LLM) ===", flush=True)
+        print(quote_text, flush=True)
+        print("=======================================\n", flush=True)
+
+    run_dir = ROOT / ".tmp_runs" / "campaigns" / campaign_name / run_id
+    shards_dir = run_dir / "shards"
+    parquet_path = run_dir / "cells.parquet"
+    gcs_prefix: str | None = None
+
+    if backend == "local":
+        print(
+            f"=== Campagne locale '{campaign_name}' [run_id={run_id}] : "
+            f"{total_games_planned} parties ({n_units} unités, workers={workers_eff}) ===",
+            flush=True,
+        )
+        job_name, job_wall_sec = _run_local_execution(
+            manifest_path=manifest_path,
+            shards_dir=shards_dir,
+            tasks=tasks,
+            workers=workers_eff,
+            checkpoint_every=checkpoint_every,
+        )
+        print(f"Calcul local ({job_name}) terminé en {job_wall_sec:.2f}s murale.", flush=True)
+    else:
+        print(
+            f"=== Campagne '{campaign_name}' [run_id={run_id}] : {total_games_planned} parties "
+            f"({resolved_plan['total_configurations']} configs, {n_units} unités) | "
+            f"backend={backend} ({REGION}, {tasks} tâche(s)) ===",
+            flush=True,
+        )
+        if gcloud_state is not None and gcloud_state.get("gcloud"):
+            gcloud = str(gcloud_state["gcloud"])
+        else:
+            gcloud = find_gcloud()
+            if gcloud_state is not None:
+                gcloud_state["gcloud"] = gcloud
+
+        gcs_prefix = f"campaigns/{campaign_name}/{run_id}"
+        manifest_gcs_uri = f"gs://{BUCKET_NAME}/{gcs_prefix}/manifest.json"
+        shards_gcs_glob = f"gs://{BUCKET_NAME}/{gcs_prefix}/shard_*.jsonl.gz"
+
+        # 1. Auto-détection (ou forçage --build / saut --no-build) du build de l'image worker PyPy (1 seule fois par suite)
+        if gcloud_state is None or not gcloud_state.get("image_checked"):
+            ensure_worker_image_up_to_date(
+                gcloud,
+                force_build=bool(args.build),
+                no_build=bool(args.no_build),
+            )
+            if gcloud_state is not None:
+                gcloud_state["image_checked"] = True
+
+        # 2. Upload du manifeste sous préfixe GCS isolé par run_id
+        _run([gcloud, "storage", "cp", str(manifest_path), manifest_gcs_uri])
+
+        # 3. Exécution Cloud Run Jobs ou Cloud Batch Spot (europe-west9) avec reprise automatique
+        if backend == "batch":
+            job_name, job_wall_sec = _run_cloud_batch_with_spot_recovery(
+                gcloud,
+                campaign_name=campaign_name,
+                run_id=run_id,
+                manifest_gcs_uri=manifest_gcs_uri,
+                gcs_prefix=gcs_prefix,
+                tasks=tasks,
+                timeout_sec=int(args.timeout),
+                run_dir=run_dir,
+                image_uri=image_uri,
+                machine_type=machine_type,
+                workers=workers_eff,
+                max_retry_count=max_retry_count,
+                max_spot_waves=max_spot_waves,
+                checkpoint_every=checkpoint_every,
+            )
+        else:
+            job_name, job_wall_sec = _run_cloud_run_job(
+                gcloud,
+                manifest_gcs_uri=manifest_gcs_uri,
+                gcs_prefix=gcs_prefix,
+                tasks=tasks,
+                cpu=str(args.cpu),
+                memory=str(args.memory),
+                timeout_sec=int(args.timeout),
+                image_uri=image_uri,
+            )
+        print(f"Calcul Cloud ({backend}/{job_name}) terminé en {job_wall_sec:.2f}s murale.", flush=True)
+
+        # 4. Rapatriement local des shards depuis gs://amazonia-sim-runs
+        if shards_dir.exists():
+            shutil.rmtree(shards_dir)
+        shards_dir.mkdir(parents=True, exist_ok=True)
+        _run([gcloud, "storage", "cp", shards_gcs_glob, str(shards_dir)])
+
+    # 5. Agrégation DuckDB + génération digest_<nom>.json auto-portant + traces remarquables
+    digest_path, prompt_path, final_digest = aggregate_campaign_duckdb(
+        manifest=manifest,
+        plan=resolved_plan,
+        shards_dir=shards_dir,
+        parquet_path=parquet_path,
+        backend=backend,
+        job_name=job_name,
+        tasks=tasks,
+        job_wall_sec=job_wall_sec,
+        run_id=run_id,
+        gcs_prefix=gcs_prefix,
+        image_uri=image_uri,
+    )
+    print(f"Digest complet généré : {digest_path.relative_to(ROOT).as_posix()} ({digest_path.stat().st_size} octets)")
+
+    # 6. Publication digest exécutif (< 35 Ko) dans docs/digests/ + rapport Markdown dans docs/rapports/
+    studio_digest_path, studio_index_path = publish_to_studio_digests(
+        campaign_name=campaign_name,
+        digest_path=digest_path,
+        digest=final_digest,
+        manifest=manifest,
+    )
+    rep_cfg = manifest.get("report_output") if isinstance(manifest.get("report_output"), dict) else {}
+    custom_md = rep_cfg.get("markdown_path") if isinstance(rep_cfg, dict) else None
+    if custom_md:
+        report_md_path = Path(str(custom_md))
+        if not report_md_path.is_absolute():
+            report_md_path = ROOT / report_md_path
+    else:
+        report_md_path = _resolve_rapports_dir() / f"rapport_{campaign_name}.md"
+
+    print(
+        f"Digest exécutif Studio : {studio_digest_path.relative_to(ROOT).as_posix()} "
+        f"({studio_digest_path.stat().st_size} octets)"
+    )
+    if report_md_path.exists():
+        print(f"Rapport Markdown : {report_md_path.relative_to(ROOT).as_posix()}")
+    print(f"Index Studio mis à jour : {studio_index_path.relative_to(ROOT).as_posix()}")
+
+    paths_to_stage: list[Path] = [
+        manifest_path,
+        digest_path,
+        prompt_path,
+        studio_digest_path,
+        studio_index_path,
+    ]
+    if report_md_path.exists():
+        paths_to_stage.append(report_md_path)
+    traces_rel = final_digest.get("traces_jsonl_path")
+    if isinstance(traces_rel, str) and traces_rel:
+        trace_p = Path(traces_rel)
+        if not trace_p.is_absolute():
+            trace_p = ROOT / trace_p
+        if trace_p.exists():
+            paths_to_stage.append(trace_p)
+
+    do_skip_push = bool(args.skip_git_push) if skip_git_push is None else bool(skip_git_push)
+    if not do_skip_push:
+        git_commit_and_push(
+            campaign_name=campaign_name,
+            total_games=int(final_digest["totals"]["total_games"]),
+            paths_to_stage=paths_to_stage,
+        )
+        print("Publication GitHub Pages poussée sur origin main.")
+    elif skip_git_push is None:
+        print("Option --skip-git-push active : commit/push ignorés.")
+
+    return {
+        "campaign_name": campaign_name,
+        "run_id": run_id,
+        "digest_path": digest_path,
+        "prompt_path": prompt_path,
+        "studio_digest_path": studio_digest_path,
+        "studio_index_path": studio_index_path,
+        "report_md_path": report_md_path,
+        "traces_jsonl_path": traces_rel,
+        "digest": final_digest,
+        "paths_to_stage": paths_to_stage,
+    }
+
+
+def _execute_campaign_suite(
+    *,
+    suite_manifest: dict[str, Any],
+    manifest_path: Path,
+    args: argparse.Namespace,
+) -> int:
+    """Orchestre une suite multi-étapes (`manifest_type: campaign_suite`) avec reprise et rapport maître unifié."""
+    suite_name = str(suite_manifest.get("campaign_name") or manifest_path.stem)
+    raw_stages = suite_manifest.get("stages")
+    if not isinstance(raw_stages, list) or not raw_stages:
+        raise ValueError("Un manifeste `campaign_suite` doit contenir une liste non vide `stages`.")
+
+    suite_run_id = (
+        str(args.resume_run_id).strip()
+        if isinstance(args.resume_run_id, str) and args.resume_run_id.strip()
+        else _build_run_id(suite_manifest)
+    )
+    suite_dir = ROOT / ".tmp_runs" / "suites" / suite_name / suite_run_id
+    state_file = suite_dir / "suite_state.json"
+
+    raw_suite_spot = suite_manifest.get("spot_resilience")
+    spot_cfg: dict[str, Any] = raw_suite_spot if isinstance(raw_suite_spot, dict) else {}
+    machine_type = (
+        str(args.machine_type)
+        if args.machine_type != "c3d-highcpu-4"
+        else str(spot_cfg.get("machine_type", args.machine_type))
+    )
+    _, _, default_vcpu = _machine_resources_for_type(machine_type)
+    workers_quote = (
+        int(args.workers)
+        if args.workers is not None
+        else (1 if args.backend == "local" else int(spot_cfg.get("workers", default_vcpu)))
+    )
+
+    resolved_stages: list[tuple[str, dict[str, Any], Path, dict[str, Any]]] = []
+    stage_summaries_quote: list[dict[str, Any]] = []
+    for idx, st_spec in enumerate(raw_stages):
+        if not isinstance(st_spec, dict):
+            raise TypeError(f"Étape #{idx + 1} invalide dans `campaign_suite` (attendu un objet JSON).")
+        st_manifest, st_path = _resolve_suite_stage_manifest(
+            suite_manifest,
+            st_spec,
+            idx,
+            suite_dir,
+            write_file=not bool(args.quote_only),
+        )
+        st_plan = resolve_manifest_plan(st_manifest)
+        st_name = str(st_spec.get("stage_name") or st_plan["campaign_name"])
+        st_backend = (
+            ("batch" if int(st_plan["total_games"]) > BATCH_THRESHOLD_GAMES else "cloudrun")
+            if args.backend == "auto"
+            else str(args.backend)
+        )
+        st_tasks = (
+            max(1, min(int(args.tasks), len(st_plan["units"])))
+            if args.tasks is not None
+            else _auto_task_count(len(st_plan["units"]), int(st_plan["total_games"]), st_backend)
+        )
+        st_est = estimate_campaign_cost_and_duration(
+            st_plan,
+            backend=st_backend,
+            tasks=st_tasks,
+            workers=workers_quote,
+            is_spot=(st_backend == "batch"),
+        )
+        resolved_stages.append((st_name, st_manifest, st_path, st_plan))
+        stage_summaries_quote.append(
+            {
+                "name": st_name,
+                "est": st_est,
+                "bots": list(st_plan.get("bots", ())),
+                "player_counts": list(st_plan.get("player_counts", ())),
+            }
+        )
+
+    backend_lbl = str(args.backend) if args.backend != "auto" else "batch"
+    quote_tasks = int(args.tasks) if args.tasks is not None else max(
+        1, max(int(s["est"]["effective_tasks"]) for s in stage_summaries_quote)
+    )
+    quote_text = format_campaign_quote_5_lines(
+        suite_manifest,
+        resolved_stages[0][3],
+        backend=backend_lbl,
+        tasks=quote_tasks,
+        workers=workers_quote,
+        machine_type=machine_type,
+        is_spot=(backend_lbl == "batch"),
+        stage_summaries=stage_summaries_quote,
+    )
+    print("\n=== DEVIS SUITE ORCHESTRÉE (0,00 € API LLM) ===", flush=True)
+    print(quote_text, flush=True)
+    print("=============================================\n", flush=True)
+
+    if args.quote_only:
+        return 0
+
+    prev_state: dict[str, Any] = (
+        json.loads(state_file.read_text(encoding="utf-8"))
+        if state_file.exists()
+        else {"suite_name": suite_name, "suite_run_id": suite_run_id, "completed_stages": {}}
+    )
+    completed_map: dict[str, dict[str, Any]] = dict(prev_state.get("completed_stages") or {})
+
+    gcloud_state: dict[str, Any] = {}
+    stages_summary_rows: list[dict[str, Any]] = []
+    all_alerts: list[dict[str, str]] = []
+    all_paths_to_stage: list[Path] = [manifest_path]
+    total_games_suite = 0
+    weighted_ratio_sum = 0.0
+    weighted_cvar_sum = 0.0
+    weighted_t8_sum = 0.0
+    weighted_som_sum = 0.0
+    weighted_ev_sum = 0.0
+    weighted_tours_sum = 0.0
+
+    for st_name, st_manifest, st_path, st_plan in resolved_stages:
+        prev_info = completed_map.get(st_name)
+        if prev_info and Path(str(prev_info.get("digest_path", ""))).exists():
+            print(f"[Suite {suite_name}] Étape '{st_name}' déjà terminée — reprise sautée.", flush=True)
+            st_digest = json.loads(Path(str(prev_info["digest_path"])).read_text(encoding="utf-8"))
+            st_report_rel = str(prev_info.get("report_md_rel", ""))
+            st_paths: list[Path] = []
+        else:
+            st_run_id = f"{suite_run_id}_{_sanitize_gcp_name(st_name, max_len=24)}"
+            res = _execute_single_campaign(
+                manifest=st_manifest,
+                manifest_path=st_path,
+                args=args,
+                plan=st_plan,
+                run_id_override=st_run_id,
+                skip_git_push=True,
+                gcloud_state=gcloud_state,
+                print_quote=False,
+            )
+            st_digest = res["digest"]
+            try:
+                st_report_rel = Path(res["report_md_path"]).resolve().relative_to(ROOT.resolve()).as_posix()
+            except ValueError:
+                st_report_rel = str(res["report_md_path"])
+            completed_map[st_name] = {
+                "campaign_name": res["campaign_name"],
+                "run_id": res["run_id"],
+                "digest_path": str(res["digest_path"]),
+                "report_md_rel": st_report_rel,
+            }
+            prev_state["completed_stages"] = completed_map
+            prev_state["updated_at_utc"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            state_file.write_text(json.dumps(prev_state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+            st_paths = [p for p in res["paths_to_stage"] if p != st_path]
+
+        all_paths_to_stage.extend(st_paths)
+        st_tot = st_digest.get("totals") or {}
+        ng = int(st_tot.get("total_games", 0))
+        total_games_suite += ng
+        weighted_ratio_sum += float(st_tot.get("mean_ratio_arbres") or 0.0) * ng
+        weighted_cvar_sum += float(st_tot.get("cvar20_ratio") or 0.0) * ng
+        weighted_t8_sum += float(st_tot.get("pct_tour_8") or 0.0) * ng
+        weighted_som_sum += float(st_tot.get("pct_reve_rang_1") or 0.0) * ng
+        weighted_ev_sum += float(st_tot.get("pct_reveil_gardiens") or 0.0) * ng
+        weighted_tours_sum += float(st_tot.get("mean_tours") or 0.0) * ng
+
+        st_alerts = list(st_digest.get("alerts") or generate_balancing_alerts(st_digest))
+        n_d = sum(1 for a in st_alerts if a.get("level") == "danger")
+        n_w = sum(1 for a in st_alerts if a.get("level") == "warn")
+        for a in st_alerts:
+            if a.get("level") in ("danger", "warn"):
+                all_alerts.append(
+                    {
+                        "level": str(a["level"]),
+                        "code": f"{_sanitize_gcp_name(st_name, 16).upper()}_{a.get('code', '')}",
+                        "text": f"[{st_name}] {a.get('text', '')}",
+                    }
+                )
+        stages_summary_rows.append(
+            {
+                "stage_name": st_name,
+                "campaign": str(st_digest.get("campaign", st_name)),
+                "total_games": ng,
+                "mean_ratio_arbres": st_tot.get("mean_ratio_arbres"),
+                "cvar20_ratio": st_tot.get("cvar20_ratio"),
+                "danger_alerts": n_d,
+                "warn_alerts": n_w,
+                "report_md": st_report_rel,
+                "traces_jsonl": st_digest.get("traces_jsonl_path"),
+            }
+        )
+
+    denom = max(1, total_games_suite)
+    p8_m = round(weighted_t8_sum / denom, 2)
+    ps_m = round(weighted_som_sum / denom, 2)
+    pe_m = round(weighted_ev_sum / denom, 2)
+    if not all_alerts:
+        all_alerts.append(
+            {
+                "level": "info",
+                "code": "SUITE_SAINE",
+                "text": f"Aucune alerte critique ou de vigilance sur les {len(stages_summary_rows)} étapes de la suite.",
+            }
+        )
+    n_dan_tot = sum(1 for a in all_alerts if a.get("level") == "danger")
+    n_wrn_tot = sum(1 for a in all_alerts if a.get("level") == "warn")
+    n_inf_tot = sum(1 for a in all_alerts if a.get("level") == "info")
+
+    master_payload: dict[str, Any] = {
+        "campaign": suite_name,
+        "description": str(suite_manifest.get("description", f"Suite orchestrée {suite_name}")).strip(),
+        "generated_at_utc": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "plan": {
+            "mode": 4,
+            "table_selection": "SUITE_MULTI_ETAPES",
+            "player_counts": sorted({n for s in stage_summaries_quote for n in s["player_counts"]}),
+            "bots": sorted({b for s in stage_summaries_quote for b in s["bots"]}),
+        },
+        "totals": {
+            "total_games": total_games_suite,
+            "n_stages": len(stages_summary_rows),
+            "mean_ratio_arbres": round(weighted_ratio_sum / denom, 4),
+            "cvar20_ratio": round(weighted_cvar_sum / denom, 4),
+            "mean_tours": round(weighted_tours_sum / denom, 3),
+            "pct_tour_8": p8_m,
+            "pct_reve_rang_1": ps_m,
+            "pct_reveil_gardiens": pe_m,
+            "pct_effondrement": round(max(0.0, 100.0 - p8_m - ps_m - pe_m), 2),
+        },
+        "stages_summary": stages_summary_rows,
+        "alerts": all_alerts,
+        "executive_summary": {
+            "campaign": suite_name,
+            "verdict": "ACTION_REQUISE" if n_dan_tot > 0 else ("A_SURVEILLER" if n_wrn_tot > 0 else "SAIN"),
+            "alerts_counts": {"danger": n_dan_tot, "warn": n_wrn_tot, "info": n_inf_tot},
+            "total_games": total_games_suite,
+            "mean_ratio_arbres": round(weighted_ratio_sum / denom, 4),
+            "cvar20_ratio": round(weighted_cvar_sum / denom, 4),
+            "top_alerts": [a["text"] for a in all_alerts[:6]],
+        },
+    }
+    master_digest_path, master_prompt_path, master_digest = write_digest_and_prompt_files(
+        suite_name,
+        master_payload,
+        tested_tiles=(),
+    )
+    studio_master_digest, studio_index_path = publish_to_studio_digests(
+        campaign_name=suite_name,
+        digest_path=master_digest_path,
+        digest=master_digest,
+        manifest=suite_manifest,
+    )
+    master_report_path = _resolve_rapports_dir() / f"rapport_{suite_name}.md"
+    all_paths_to_stage.extend(
+        [master_digest_path, master_prompt_path, studio_master_digest, studio_index_path]
+    )
+    if master_report_path.exists():
+        all_paths_to_stage.append(master_report_path)
+
+    if not args.skip_git_push:
+        git_commit_and_push(
+            campaign_name=suite_name,
+            total_games=total_games_suite,
+            paths_to_stage=all_paths_to_stage,
+        )
+        print("Suite orchestrée publiée et poussée sur origin main.")
+    else:
+        print("Option --skip-git-push active : commit/push ignorés pour la suite.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Exécute un manifeste campaigns/<nom>.json sur GCP -> DuckDB -> Studio -> GitHub Pages."
+        description="Exécute un manifeste campaigns/<nom>.json (ou campaign_suite) -> DuckDB -> Studio -> Rapport Markdown."
     )
     parser.add_argument(
         "manifest",
         type=str,
-        help="Chemin vers le manifeste JSON de campagne (ex: campaigns/micro_validation.json).",
+        help="Chemin vers le manifeste JSON de campagne ou de suite (ex: campaigns/micro_validation.json).",
     )
     parser.add_argument(
         "--backend",
-        choices=("auto", "cloudrun", "batch"),
+        choices=("auto", "cloudrun", "batch", "local"),
         default="auto",
-        help="Moteur GCP europe-west9 : auto (<=50k cloudrun, >50k batch), cloudrun ou batch.",
+        help="Moteur d'exécution : auto (<=50k cloudrun, >50k batch), cloudrun, batch (Spot) ou local (validation 0 €).",
     )
     parser.add_argument(
         "--tasks",
@@ -3282,13 +4318,44 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="Nombre de tâches parallèles Cloud (calculé automatiquement si omis).",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="Nombre de workers Python par tâche (défaut : vCPU machine sur Batch, 1 en local).",
+    )
+    parser.add_argument(
+        "--machine-type",
+        type=str,
+        default="c3d-highcpu-4",
+        help="Type de VM Cloud Batch Spot (ex: c3d-highcpu-4, c3-standard-8).",
+    )
+    parser.add_argument(
+        "--max-spot-waves",
+        type=int,
+        default=4,
+        help="Nombre maximal de vagues automatiques de reprise sur préemption Spot (défaut: 4).",
+    )
+    parser.add_argument(
+        "--resume-run-id",
+        type=str,
+        default=None,
+        help="Identifiant `run_id` existant à reprendre (ne relance que les shards ou étapes manquants).",
+    )
+    parser.add_argument(
+        "--quote-only",
+        "--dry-run",
+        dest="quote_only",
+        action="store_true",
+        help="Affiche le devis auteur en 5 lignes (volume, durée, coût Cloud, 0 € LLM) et quitte sans rien lancer.",
+    )
     parser.add_argument("--cpu", type=str, default="2", help="vCPU par tâche Cloud Run (défaut: 2).")
     parser.add_argument("--memory", type=str, default="1Gi", help="Mémoire par tâche Cloud Run (défaut: 1Gi).")
     parser.add_argument(
         "--timeout",
         type=int,
-        default=600,
-        help="Timeout max par tâche en secondes (défaut: 600).",
+        default=1800,
+        help="Timeout max par tâche en secondes (défaut: 1800).",
     )
     parser.add_argument(
         "--image-uri",
@@ -3310,7 +4377,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--skip-git-push",
         action="store_true",
-        help="N'exécute pas git add/commit/push (utile pour test à blanc).",
+        help="N'exécute pas git add/commit/push (utile pour validation locale).",
     )
     parser.add_argument(
         "--estimate-sample-size",
@@ -3341,6 +4408,13 @@ def main(argv: list[str] | None = None) -> int:
     if not manifest.get("campaign_name"):
         manifest["campaign_name"] = manifest_path.stem
 
+    if str(manifest.get("manifest_type", "campaign_plan")).strip() == "campaign_suite":
+        return _execute_campaign_suite(
+            suite_manifest=manifest,
+            manifest_path=manifest_path,
+            args=args,
+        )
+
     if args.estimate_sample_size:
         sizing = run_pilot_sample_size_estimation(
             manifest,
@@ -3351,123 +4425,52 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     plan = resolve_manifest_plan(manifest)
-    campaign_name = str(plan["campaign_name"])
-    total_games_planned = int(plan["total_games"])
-    n_units = len(plan["units"])
-
-    backend = (
-        ("batch" if total_games_planned > BATCH_THRESHOLD_GAMES else "cloudrun")
-        if args.backend == "auto"
-        else str(args.backend)
-    )
-    tasks = (
-        max(1, min(int(args.tasks), n_units))
-        if args.tasks is not None
-        else _auto_task_count(n_units, total_games_planned, backend)
-    )
-    image_uri = str(args.image_uri).strip() or IMAGE_URI
-    run_id = _build_run_id(manifest)
-
-    print(
-        f"=== Campagne '{campaign_name}' [run_id={run_id}] : {total_games_planned} parties "
-        f"({plan['total_configurations']} configs, {n_units} unités) | "
-        f"backend={backend} ({REGION}, {tasks} tâche(s)) ===",
-        flush=True,
-    )
-
-    gcloud = find_gcloud()
-    gcs_prefix = f"campaigns/{campaign_name}/{run_id}"
-    manifest_gcs_uri = f"gs://{BUCKET_NAME}/{gcs_prefix}/manifest.json"
-    shards_gcs_glob = f"gs://{BUCKET_NAME}/{gcs_prefix}/shard_*.jsonl.gz"
-
-    # 1. Auto-détection (ou forçage --build / saut --no-build) du build de l'image worker PyPy
-    ensure_worker_image_up_to_date(
-        gcloud,
-        force_build=bool(args.build),
-        no_build=bool(args.no_build),
-    )
-
-    # 2. Upload du manifeste sous préfixe GCS isolé par run_id (aucun `rm` destructif sur un préfixe partagé)
-    _run([gcloud, "storage", "cp", str(manifest_path), manifest_gcs_uri])
-
-    # 3. Exécution Cloud Run Jobs ou Cloud Batch (europe-west9) et attente synchrone
-    run_dir = ROOT / ".tmp_runs" / "campaigns" / campaign_name / run_id
-    shards_dir = run_dir / "shards"
-    parquet_path = run_dir / "cells.parquet"
-
-    if backend == "batch":
-        job_name, job_wall_sec = _run_cloud_batch_job(
-            gcloud,
-            campaign_name=campaign_name,
-            manifest_gcs_uri=manifest_gcs_uri,
-            gcs_prefix=gcs_prefix,
-            tasks=tasks,
-            timeout_sec=int(args.timeout),
-            run_dir=run_dir,
-            image_uri=image_uri,
+    if args.quote_only:
+        raw_q_spot = manifest.get("spot_resilience")
+        spot_cfg: dict[str, Any] = raw_q_spot if isinstance(raw_q_spot, dict) else {}
+        total_games_p = int(plan["total_games"])
+        n_units_p = len(plan["units"])
+        backend_q = (
+            ("batch" if total_games_p > BATCH_THRESHOLD_GAMES else "cloudrun")
+            if args.backend == "auto"
+            else str(args.backend)
         )
-    else:
-        job_name, job_wall_sec = _run_cloud_run_job(
-            gcloud,
-            manifest_gcs_uri=manifest_gcs_uri,
-            gcs_prefix=gcs_prefix,
-            tasks=tasks,
-            cpu=str(args.cpu),
-            memory=str(args.memory),
-            timeout_sec=int(args.timeout),
-            image_uri=image_uri,
+        tasks_q = (
+            max(1, min(int(args.tasks), n_units_p))
+            if args.tasks is not None
+            else _auto_task_count(n_units_p, total_games_p, backend_q)
         )
-    print(f"Calcul Cloud ({backend}/{job_name}) terminé en {job_wall_sec:.2f}s murale.", flush=True)
+        mtype_q = (
+            str(args.machine_type)
+            if args.machine_type != "c3d-highcpu-4"
+            else str(spot_cfg.get("machine_type", args.machine_type))
+        )
+        _, _, def_vcpu_q = _machine_resources_for_type(mtype_q)
+        workers_q = (
+            int(args.workers)
+            if args.workers is not None
+            else (1 if backend_q == "local" else int(spot_cfg.get("workers", def_vcpu_q)))
+        )
+        print(
+            format_campaign_quote_5_lines(
+                manifest,
+                plan,
+                backend=backend_q,
+                tasks=tasks_q,
+                workers=workers_q,
+                machine_type=mtype_q,
+                is_spot=(backend_q == "batch"),
+            )
+        )
+        return 0
 
-    # 4. Rapatriement local des shards depuis gs://amazonia-sim-runs
-    if shards_dir.exists():
-        shutil.rmtree(shards_dir)
-    shards_dir.mkdir(parents=True, exist_ok=True)
-    _run([gcloud, "storage", "cp", shards_gcs_glob, str(shards_dir)])
-
-    # 5. Agrégation DuckDB + génération digest_<nom>.json auto-portant
-    digest_path, prompt_path, final_digest = aggregate_campaign_duckdb(
+    _execute_single_campaign(
         manifest=manifest,
+        manifest_path=manifest_path,
+        args=args,
         plan=plan,
-        shards_dir=shards_dir,
-        parquet_path=parquet_path,
-        backend=backend,
-        job_name=job_name,
-        tasks=tasks,
-        job_wall_sec=job_wall_sec,
-        run_id=run_id,
-        gcs_prefix=gcs_prefix,
-        image_uri=image_uri,
+        run_id_override=args.resume_run_id,
     )
-    print(f"Digest généré : {digest_path.relative_to(ROOT).as_posix()} ({digest_path.stat().st_size} octets)")
-
-    # 6. Publication dans docs/digests/ et mise à jour de docs/digests/index.json
-    studio_digest_path, studio_index_path = publish_to_studio_digests(
-        campaign_name=campaign_name,
-        digest_path=digest_path,
-        digest=final_digest,
-        manifest=manifest,
-    )
-    print(f"Publié dans le Studio : {studio_digest_path.relative_to(ROOT).as_posix()}")
-    print(f"Index Studio mis à jour : {studio_index_path.relative_to(ROOT).as_posix()}")
-
-    # 7. Git add / commit / push origin main
-    if not args.skip_git_push:
-        git_commit_and_push(
-            campaign_name=campaign_name,
-            total_games=int(final_digest["totals"]["total_games"]),
-            paths_to_stage=[
-                manifest_path,
-                digest_path,
-                prompt_path,
-                studio_digest_path,
-                studio_index_path,
-            ],
-        )
-        print("Publication GitHub Pages poussée sur origin main.")
-    else:
-        print("Option --skip-git-push active : commit/push ignorés.")
-
     return 0
 
 

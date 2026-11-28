@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from engine.core_engine import (
@@ -534,9 +535,10 @@ class BotB0:
                 sl_idx = int(opt)
                 tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
                 fam_rt, _, num_rt = SYNERGY_META[tid_rt]
+                r1_active = tid_rt == "R1" and cfg.mode >= 3 and cfg.profile_for_slot("R1") is not None
                 if (
                     fam_rt == FAMILLE_REVE
-                    and tid_rt != "R1"
+                    and not r1_active
                     and obs.tour == 7
                     and reves_on >= max(1, cfg.total_reves_partie - 1)
                 ):
@@ -755,6 +757,7 @@ def play_game_b0(
     max_steps: int = 2000,
     chassis_id: int = -1,
     telemetry: Any | None = None,
+    on_decision: Callable[[GameState, DecisionRequest, Any], None] | None = None,
 ) -> GameOver:
     """Exécute une partie complète pilotée par B0 jusqu'à GameOver avec garde-fou max_steps."""
     steps = 0
@@ -775,4 +778,6 @@ def play_game_b0(
         if isinstance(out, GameOver):
             return out
         choice = choose_b0(state, out)
+        if on_decision is not None:
+            on_decision(state, out, choice)
         apply_choice(state, choice, telemetry=telemetry)

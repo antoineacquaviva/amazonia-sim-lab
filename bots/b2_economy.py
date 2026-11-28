@@ -13,7 +13,11 @@ from dataclasses import dataclass, fields
 from pathlib import Path
 from typing import Any, ClassVar
 
-from bots.belief_and_ticks import BeliefSummary
+from bots.belief_and_ticks import (
+    BeliefSummary,
+    any_tile_text_active,
+    is_tile_text_active,
+)
 from engine.state import (
     CANONICAL_DOTATION,
     CARD_ECAILLE,
@@ -56,12 +60,14 @@ __all__ = (
     "B2Weights",
     "EconomieNode",
     "ForestMarginalBreakdown",
+    "any_tile_text_active",
     "best_untrapped_parcel_trees",
     "compute_b2_resource_and_trigger_values_trees",
     "estimate_expected_gardien_triggers",
     "furtivite_ray_deduction",
     "get_economie_catalog",
     "is_own_hand_covered",
+    "is_tile_text_active",
     "score_forest_marginal_trees",
     "score_gardien_pari_marginal_trees",
     "score_lisiere_marginal_trees",
@@ -244,6 +250,7 @@ class ForestMarginalBreakdown:
 class _EconomieCache:
     catalog: ClassVar[dict[tuple[str, str], EconomieNode] | None] = None
     last_obs: ClassVar[PlayerObservation | None] = None
+    last_cfg: ClassVar[GameConfig | None] = None
     last_weights: ClassVar[B2Weights | None] = None
     last_res: ClassVar[dict[str, float]] = {}
     last_trigs: ClassVar[tuple[float, ...]] = ()
@@ -308,7 +315,11 @@ def compute_b2_resource_and_trigger_values_trees(
 ) -> tuple[dict[str, float], tuple[float, ...]]:
     """Calcule les valeurs marginales en équivalent-arbres des 11 `RES_*` actifs et de `TRIG_1..6`."""
     _ = belief
-    if _EconomieCache.last_obs is obs and _EconomieCache.last_weights is weights:
+    if (
+        _EconomieCache.last_obs is obs
+        and _EconomieCache.last_cfg is cfg
+        and _EconomieCache.last_weights is weights
+    ):
         return _EconomieCache.last_res, _EconomieCache.last_trigs
 
     n = obs.n_players
@@ -335,21 +346,20 @@ def compute_b2_resource_and_trigger_values_trees(
 
     frag_scale = 0.04 * fragile_parcels
     total_reves_cfg = cfg.total_reves_partie
-    reves_ranks = [
+    active_reves_ranks = [
         r_idx + 1
         for r_idx in range(TRACK_LEN)
         if is_reve_code(obs.tactique_code_bugs(r_idx)[0])
+        and is_tile_text_active(cfg, obs.piste_tactiques[r_idx].tile_id)
     ]
-    reves_in_head = sum(1 for rk in reves_ranks if rk <= total_reves_cfg)
-    face1_g = sum(1 for g in gardiens if g.gardien_num > 0 and g.face != 2)
+    active_reves_in_head = sum(1 for rk in active_reves_ranks if rk <= total_reves_cfg)
 
-    if obs.mode >= 3 and total_reves_cfg > 0 and len(reves_ranks) >= total_reves_cfg:
-        reve_push_mult = 1.65 if reves_in_head >= total_reves_cfg - 1 else 1.35
-    elif obs.mode >= 3 and total_reves_cfg > 0 and len(reves_ranks) > 0:
+    if total_reves_cfg > 0 and len(active_reves_ranks) >= total_reves_cfg:
+        reve_push_mult = 1.65 if active_reves_in_head >= total_reves_cfg - 1 else 1.35
+    elif total_reves_cfg > 0 and len(active_reves_ranks) > 0:
         reve_push_mult = 1.20
     else:
         reve_push_mult = 1.0
-    awaken_bonus = 0.40 if (obs.gardien_pari_enabled and obs.mode >= 3 and face1_g > 0) else 0.0
 
     res_val: dict[str, float] = {
         "RES_ARBRE": weights.res_arbre_w + frag_scale,
@@ -367,12 +377,15 @@ def compute_b2_resource_and_trigger_values_trees(
 
     trig_val = [0.10] * (TRACK_LEN + 1)
     if obs.mode >= 2:
-        econ = get_economie_catalog() if obs.mode >= 3 else None
+        has_any_text = any_tile_text_active(cfg)
+        econ = get_economie_catalog() if has_any_text else None
         for c in range(1, TRACK_LEN + 1):
             g_slot = gardiens[c - 1]
             if g_slot.gardien_num > 0 and g_slot.remaining_defenders >= 1 and g_slot.tile_id is not None:
-                v_open = weights.trig_open_trees + (awaken_bonus if g_slot.face == 1 else 0.0)
-                if econ is not None:
+                g_text_active = is_tile_text_active(cfg, g_slot.tile_id)
+                awaken_g = 0.40 if (obs.gardien_pari_enabled and g_text_active and g_slot.face == 1) else 0.0
+                v_open = weights.trig_open_trees + awaken_g
+                if econ is not None and g_text_active:
                     prof = cfg.profile_for_slot(g_slot.tile_id)
                     node = econ.get((g_slot.tile_id, prof)) if prof is not None else None
                     if node is not None:
@@ -400,6 +413,7 @@ def compute_b2_resource_and_trigger_values_trees(
 
     trigs_tuple = tuple(trig_val[1:])
     _EconomieCache.last_obs = obs
+    _EconomieCache.last_cfg = cfg
     _EconomieCache.last_weights = weights
     _EconomieCache.last_res = res_val
     _EconomieCache.last_trigs = trigs_tuple
@@ -1140,11 +1154,12 @@ def score_tile_construction_trees(
     fam, _, _ = SYNERGY_META[tile_id]
     tour = obs.tour
     late_decay = 1.0 if tour <= 5 else (0.62 if tour == 6 else 0.30)
+    tile_active = is_tile_text_active(cfg, tile_id)
 
     if fam == FAMILLE_REVE:
         reves_on_track = sum(1 for t in obs.piste_tactiques if is_reve_code(t.code))
         target_reves = max(1, cfg.total_reves_partie)
-        if obs.mode == 2:
+        if not tile_active:
             sat = 1.0 if reves_on_track == 0 else (0.75 if reves_on_track == 1 else 0.35)
             struct_v = weights.lisiere_reve_struct * sat * late_decay
         else:
@@ -1157,14 +1172,14 @@ def score_tile_construction_trees(
         min_g_eveil = (obs.n_players + 1) // 2
         if obs.gardien_pari_enabled and g_on_track < min_g_eveil:
             struct_v = weights.lisiere_gardien_eveil_struct
-        elif obs.mode >= 3:
+        elif tile_active:
             struct_v = weights.lisiere_gardien_mode4_struct
         elif obs.gardien_pari_enabled and obs.n_players >= 5 and g_on_track == min_g_eveil and tour <= 6:
             struct_v = 0.78 * weights.lisiere_gardien_eveil_struct
         else:
             struct_v = 0.35
 
-    if obs.mode < 3:
+    if not tile_active:
         return struct_v
 
     econ = get_economie_catalog()
@@ -1517,8 +1532,10 @@ def score_gardien_pari_marginal_trees(
     if allies_on_case >= GARDIEN_BET_CAP:
         return 0.0
 
+    g_slot = obs.piste_gardiens[case_c - 1]
+    g_active = is_tile_text_active(cfg, g_slot.tile_id)
     g_face = obs.gardien_face_at_case(case_c)
-    if obs.mode == 2 and (obs.tour >= 8 or g_face >= 2 or allies_on_case >= 1):
+    if (not g_active) and (obs.tour >= 8 or g_face >= 2 or allies_on_case >= 1):
         return 0.05
 
     eveil_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=True)
@@ -1582,10 +1599,10 @@ def score_gardien_pari_marginal_trees(
                     * eveil_mult
                     + bouclier_safety
                 )
-        elif marginally_supported and (will_win_eveil_now or obs.mode >= 3):
+        elif marginally_supported and (will_win_eveil_now or g_active):
             base_gp = weights.eveil_progress_trees * 0.72 + 0.40 * tree_ratio + bouclier_safety
 
-    if obs.mode >= 3:
+    if g_active:
         if exp_for_case >= (float(needed) + 0.02):
             face_b = weights.gardien_mode4_face1_bonus if g_face == 1 else 0.75
             mode4_v = weights.gardien_mode4_probable_trees + face_b + bouclier_safety
@@ -1598,7 +1615,7 @@ def score_gardien_pari_marginal_trees(
     if is_held:
         if obs.tour <= 7 and g_face == 1 and supported:
             return base_gp + 0.45
-        if obs.mode >= 3 and base_gp >= weights.gardien_mode4_marginal_trees:
+        if g_active and base_gp >= weights.gardien_mode4_marginal_trees:
             return base_gp + 0.20
         return base_gp - 0.55
     return base_gp

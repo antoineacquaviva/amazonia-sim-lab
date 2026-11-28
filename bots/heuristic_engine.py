@@ -10,11 +10,13 @@ from bots.b2_economy import (
     TREE_SCORE_UNIT,
     B2Weights,
     EconomieNode,
+    any_tile_text_active,
     best_untrapped_parcel_trees,
     compute_b2_resource_and_trigger_values_trees,
     furtivite_ray_deduction,
     get_economie_catalog,
     is_own_hand_covered,
+    is_tile_text_active,
     score_gardien_pari_marginal_trees,
     score_reve_marginal_trees,
     score_target_b2_trees,
@@ -23,6 +25,7 @@ from bots.b2_economy import (
 from bots.b2_rollouts import arbitrate_step2_gardien_reve_crn
 from bots.belief_and_ticks import (
     BeliefSummary,
+    DecisionCallback,
     build_belief_summary,
     resolve_step2_full_with_ticks,
     softmax_select_index,
@@ -144,6 +147,7 @@ def _tactique_danger(rank_1_6: int, tour: int, eff_red: int = 1) -> float:
 
 class _EconomieStore:
     last_b1_obs: ClassVar[PlayerObservation | None] = None
+    last_b1_cfg: ClassVar[GameConfig | None] = None
     last_b1_laws: ClassVar[int] = 0
 
 
@@ -162,7 +166,7 @@ def count_active_laws_from_obs(obs: PlayerObservation, cfg: GameConfig) -> int:
     """Compte les Lois `MOD_LOI_DU_COEUR` actives sur le plateau uniquement depuis `obs` et `cfg`."""
     if obs.mode < 3:
         return 0
-    if _EconomieStore.last_b1_obs is obs:
+    if _EconomieStore.last_b1_obs is obs and _EconomieStore.last_b1_cfg is cfg:
         return _EconomieStore.last_b1_laws
     econ = get_economie_catalog()
     count = 0
@@ -199,6 +203,7 @@ def count_active_laws_from_obs(obs: PlayerObservation, cfg: GameConfig) -> int:
                     count += 1
 
     _EconomieStore.last_b1_obs = obs
+    _EconomieStore.last_b1_cfg = cfg
     _EconomieStore.last_b1_laws = count
     return count
 
@@ -352,7 +357,7 @@ def _score_target_b1_core(
         fam, _, _ = SYNERGY_META[tile_id]
         reves_built = sum(1 for t in obs.piste_tactiques if is_reve_code(t.code))
         if fam == FAMILLE_REVE:
-            fam_bonus = 95.0 if (obs.mode >= 3 or reves_built < 2) else 35.0
+            fam_bonus = 95.0 if (is_tile_text_active(cfg, tile_id) or reves_built < 2) else 35.0
         elif fam == FAMILLE_CROISSANCE:
             fam_bonus = 85.0
         else:
@@ -1186,6 +1191,8 @@ def _choose_policy(
         return max(opts, key=_oiseau_die_sc)
 
     if dtype == DEC_SABOTAGE_CIBLE_3_2:
+        r7_active = is_tile_text_active(cfg, "R7") and ("R7" in cfg.lisiere_slots)
+
         def _sab_cible_sc(cand: tuple[int, int]) -> tuple[float, int]:
             r_m, mt_m = int(cand[0]), int(cand[1])
             pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
@@ -1196,9 +1203,9 @@ def _choose_policy(
                 if st_m == MACHINE_STATUS_RATISSAGE:
                     sc_s += 90.0
             else:
-                # Reculer une mobile sans Rouge (priorité avancée près du cœur / Bulldozer / Duel R7)
+                # Reculer une mobile sans Rouge (priorité avancée près du cœur / Bulldozer / Duel R7 actif)
                 sc_s = 160.0 + _machine_danger_score(obs, cfg, r_m, mt_m) + pos_m * 35.0
-                if obs.duel_state == (1, r_m, pos_m) and obs.mode >= 4:
+                if obs.duel_state == (1, r_m, pos_m) and r7_active:
                     sc_s += 140.0
             return (sc_s, _tiebreak(cfg, obs, r_m * 2 + mt_m, 75))
 
@@ -1240,12 +1247,16 @@ def _choose_policy(
                 return cand_pl
         elif (not own_h.has_card) or own_h.card in (CARD_SABOTAGE, CARD_ECAILLE):
             target_r = obs.observer_seat
-            if is_b2 and obs.mode >= 4:
-                # Coordonner la Plume (face Calme honnête) avec G6/G11/R5/M3 sur le rayon le plus utile
+            if is_b2 and any_tile_text_active(cfg):
+                # Coordonner la Plume (face Calme honnête) avec G6/G11/R5/M3 actifs sur le rayon le plus utile
                 has_plume_tile = False
-                for sl_p in range(obs.n_players * 5):
-                    tid_p, _, st_p = obs.lisiere_tile_info(sl_p)
-                    if st_p == LISIERE_CONSTRUCTED and tid_p in ("G6", "G11", "R5", "M3"):
+                for sl_p in range(2 * obs.n_players):
+                    tid_p, st_p, _ = obs.lisiere_tile_info(sl_p)
+                    if (
+                        st_p == LISIERE_CONSTRUCTED
+                        and tid_p in ("G6", "G11", "R5", "M3")
+                        and is_tile_text_active(cfg, tid_p)
+                    ):
                         has_plume_tile = True
                         break
                 if has_plume_tile:
@@ -1326,10 +1337,12 @@ def _choose_policy(
             sl_idx = int(opt)
             tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
             fam_rt, _, num_rt = SYNERGY_META[tid_rt]
-            # Ne pas fermer le Sommeil avant le Tour 8 si Sommeil atteignable (R1 ne ferme jamais le Sommeil !)
+            r1_active = tid_rt == "R1" and is_tile_text_active(cfg, "R1")
+            r2_active = tid_rt == "R2" and is_tile_text_active(cfg, "R2")
+            # Ne pas fermer le Sommeil avant le Tour 8 si Sommeil atteignable (R1 actif ne ferme jamais le Sommeil !)
             if (
                 fam_rt == FAMILLE_REVE
-                and tid_rt != "R1"
+                and not r1_active
                 and obs.tour <= 7
                 and reves_on >= max(1, cfg.total_reves_partie - 1)
             ):
@@ -1341,8 +1354,7 @@ def _choose_policy(
                         tier_rt = 2
                         break
             elif (
-                tid_rt == "R2"
-                and obs.mode >= 4
+                r2_active
                 and any(
                     obs.machine_has_alteration(seat_r, mt_a)
                     for mt_a in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
@@ -1355,9 +1367,9 @@ def _choose_policy(
             sentinel_val = 0.0
             if rem_turns_after >= 1 and sentinels_now < 2:
                 sentinel_val = (85.0 if sentinels_now == 1 else 65.0) * float(min(3, rem_turns_after))
-                if obs.mode >= 4 and tid_rt == "R2":
+                if r2_active:
                     sentinel_val += 75.0
-                elif obs.mode >= 4 and tid_rt == "R1":
+                elif r1_active:
                     sentinel_val += 55.0
 
             if obs.tour == 5 and (sentinel_val < 180.0 or tier_rt < 2):
@@ -1431,7 +1443,8 @@ def _choose_policy(
             TRIG_RESONANCE: w_res,
         }
         tid = str(decision.context.get("tile_id", ""))
-        if obs.mode >= 4 and tid in _CANON0_GARDIEN_CABLAGE:
+        tid_active = is_tile_text_active(cfg, tid)
+        if tid_active and tid in _CANON0_GARDIEN_CABLAGE:
             p_trig, f_trig = _CANON0_GARDIEN_CABLAGE[tid]
 
             def _trig_viable(tr: int) -> bool:
@@ -1458,7 +1471,7 @@ def _choose_policy(
                     )
                     adj_b = n_adj * (38.0 if is_b2 else 20.0) + (14.0 if 2 <= ci <= 5 else 0.0)
                     case_weights[ci] = case_weights.get(ci, 50.0) + adj_b
-        elif is_b2 and obs.mode >= 3 and tid:
+        elif is_b2 and tid_active:
             econ = get_economie_catalog()
             prof_g = cfg.profile_for_slot(tid)
             node = econ.get((tid, prof_g)) if prof_g is not None else None
@@ -1959,6 +1972,7 @@ def _play_game_cooperative(
     weights: B2Weights = DEFAULT_B2_WEIGHTS,
     gardien_reve_rollouts: int = 8,
     tau_b1: float = DEFAULT_TAU_B1,
+    on_decision: DecisionCallback | None = None,
 ) -> GameOver:
     if is_b2:
         scorer: Any = score_target_b2 if weights is DEFAULT_B2_WEIGHTS else make_b2_scorer(weights)
@@ -1987,7 +2001,11 @@ def _play_game_cooperative(
             telemetry=telemetry,
         )
 
-    post_hook = _post_rev_crn if (is_b2 and gardien_reve_rollouts > 0 and state.cfg.mode >= 3) else None
+    post_hook = (
+        _post_rev_crn
+        if (is_b2 and gardien_reve_rollouts > 0 and any_tile_text_active(state.cfg))
+        else None
+    )
     steps = 0
 
     while True:
@@ -2020,10 +2038,13 @@ def _play_game_cooperative(
                 telemetry=telemetry,
                 counterfactual_open_paravents=counterfactual_open_paravents,
                 post_revision_hook=post_hook,
+                on_decision=on_decision,
             )
             continue
 
         choice = chooser(state, out)
+        if on_decision is not None:
+            on_decision(state, out, choice)
         apply_choice(state, choice, telemetry=telemetry)
 
 
@@ -2035,6 +2056,7 @@ def play_game_b1(
     chassis_id: int = -1,
     telemetry: Any | None = None,
     tau_b1: float = DEFAULT_TAU_B1,
+    on_decision: DecisionCallback | None = None,
 ) -> GameOver:
     """Exécute une partie complète pilotée par B1 (Ticks 1..3 + softmax calibrable `tau_b1`)."""
     return _play_game_cooperative(
@@ -2046,6 +2068,7 @@ def play_game_b1(
         telemetry=telemetry,
         gardien_reve_rollouts=0,
         tau_b1=tau_b1,
+        on_decision=on_decision,
     )
 
 
@@ -2058,6 +2081,7 @@ def play_game_b2(
     telemetry: Any | None = None,
     weights: B2Weights = DEFAULT_B2_WEIGHTS,
     gardien_reve_rollouts: int = 8,
+    on_decision: DecisionCallback | None = None,
 ) -> GameOver:
     """Exécute une partie complète pilotée par B2 (économie arbres unifiée + CRN Gardiens/Rêves)."""
     return _play_game_cooperative(
@@ -2069,6 +2093,7 @@ def play_game_b2(
         telemetry=telemetry,
         weights=weights,
         gardien_reve_rollouts=gardien_reve_rollouts,
+        on_decision=on_decision,
     )
 
 
@@ -2081,6 +2106,7 @@ def play_game_b2_open(
     telemetry: Any | None = None,
     weights: B2Weights = DEFAULT_B2_WEIGHTS,
     gardien_reve_rollouts: int = 8,
+    on_decision: DecisionCallback | None = None,
 ) -> GameOver:
     """Plafond d'équipe omnisciente à paravents ouverts (`counterfactual_open_paravents=True`)."""
     return _play_game_cooperative(
@@ -2093,4 +2119,5 @@ def play_game_b2_open(
         counterfactual_open_paravents=True,
         weights=weights,
         gardien_reve_rollouts=gardien_reve_rollouts,
+        on_decision=on_decision,
     )

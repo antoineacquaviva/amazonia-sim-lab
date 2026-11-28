@@ -18,7 +18,12 @@ from dataclasses import replace
 from typing import Any
 
 from bots.b2_economy import estimate_expected_gardien_triggers
-from bots.belief_and_ticks import TargetFilter, build_belief_summary
+from bots.belief_and_ticks import (
+    TargetFilter,
+    any_tile_text_active,
+    build_belief_summary,
+    is_tile_text_active,
+)
 from engine.core_engine import (
     apply_choice,
     apply_step2_def2,
@@ -302,7 +307,8 @@ def evaluate_turn_state_trees(state: GameState) -> float:
         for slot_idx in range(2 * n):
             st_l, _ = state.get_lisiere_tile_state(slot_idx)
             if st_l == LISIERE_CONSTRUCTED:
-                assets += 0.35
+                tid_l = cfg.lisiere_slots[slot_idx]
+                assets += 0.35 if is_tile_text_active(cfg, tid_l) else 0.22
             elif st_l == LISIERE_ROOTED:
                 rinfo = state.get_slot_rooted_info(slot_idx)
                 if rinfo is not None:
@@ -322,8 +328,8 @@ def evaluate_turn_state_trees(state: GameState) -> float:
             for c_num in range(1, TRACK_LEN + 1):
                 g_num, g_face = state.get_gardien_at_case(c_num)
                 if g_num > 0:
-                    # En Mode 3/4, conserver un Gardien et le passer Face 2 ajoute une vraie valeur future
-                    if cfg.mode >= 3:
+                    # En Mode 3/4, conserver un Gardien actif et le passer Face 2 ajoute une vraie valeur future
+                    if is_tile_text_active(cfg, f"G{g_num}"):
                         assets += 0.55 if g_face == 2 else 0.25
                     else:
                         assets += 0.18
@@ -424,14 +430,14 @@ def arbitrate_step2_gardien_reve_crn(
     max_candidates_per_seat: int = 1,
     telemetry: Any | None = None,
 ) -> int:
-    """Passe d'arbitrage CRN en fin d'Étape 2.2 pour Gardiens (Mode >= 3) et Rêves.
+    """Passe d'arbitrage CRN en fin d'Étape 2.2 pour Gardiens (texte actif) et Rêves.
 
     Évalue sur `n_rollouts` (8..16) déroulements CRN d'un tour si déplacer le 2e Défenseur
     sur un Gardien ou un Rêve améliore l'espérance d'arbres par rapport au poste courant.
     Respecte strictement `PlayerObservation` et `target_filter`.
     """
     cfg = state.cfg
-    if n_rollouts <= 0 or cfg.mode < 3 or state.step != STEP_2_2_DEF2:
+    if n_rollouts <= 0 or (not any_tile_text_active(cfg)) or state.step != STEP_2_2_DEF2:
         return 0
 
     from bots.b2_economy import score_forest_marginal_trees
@@ -488,6 +494,11 @@ def arbitrate_step2_gardien_reve_crn(
                 c_num = int(tgt[1])
                 own_c = obs_s.player_def2_gardien_pari_case(s)
                 allies_c = max(0, obs_s.gardien_pari_defenders(c_num) - (1 if own_c == c_num else 0))
+                g_slot = obs_s.piste_gardiens[c_num - 1]
+                g_active = is_tile_text_active(cfg, g_slot.tile_id)
+                g_face = obs_s.gardien_face_at_case(c_num)
+                if (not g_active) and (obs_s.tour >= 8 or g_face >= 2 or allies_c >= 1):
+                    continue
                 if c_num == TRIG_RESONANCE:
                     exp_t = sum(
                         min(1.0, exp_trigs[k - 1])
@@ -497,7 +508,6 @@ def arbitrate_step2_gardien_reve_crn(
                 else:
                     exp_t = exp_trigs[c_num - 1]
                 if exp_t >= float(allies_c) + 0.45:
-                    g_face = obs_s.gardien_face_at_case(c_num)
                     prio = exp_t - float(allies_c) + (0.25 if g_face == 1 else 0.0)
                     scored_gr.append((prio, tgt))
             elif tk == "REVE_ACTIVATION":

@@ -106,9 +106,21 @@
     <div class="row">
       <button id="btnAdd" type="button">+ Ajouter la décision</button>
       <button id="btnExport" type="button" class="sec">Exporter JSONL</button>
+      <button id="btnImport" type="button" class="sec">Importer JSONL</button>
+      <input id="fileImport" type="file" accept=".jsonl,.ndjson,.json,text/plain" style="display:none;">
       <button id="btnClear" type="button" class="sec">Effacer la session</button>
       <span id="status" style="color: var(--muted); font-size: 0.88rem;">0 décision enregistrée.</span>
     </div>
+  </section>
+
+  <section class="card" id="timelineCard" style="display:none;">
+    <div class="row" style="margin-top:0; justify-content:space-between;">
+      <strong>Lecteur de parties remarquables (<code>human_trace_1.0</code>)</strong>
+      <label style="flex-direction:row; align-items:center; gap:8px;">Partie :
+        <select id="gameFilter"><option value="__ALL__">Toutes</option></select>
+      </label>
+    </div>
+    <pre id="timeline" style="margin-top:10px;"></pre>
   </section>
 
   <section class="card">
@@ -164,12 +176,42 @@
     };
   }
 
+  function renderTimeline() {
+    const card = document.getElementById("timelineCard");
+    const sel = document.getElementById("gameFilter");
+    const pre = document.getElementById("timeline");
+    if (!records.length) {
+      card.style.display = "none";
+      return;
+    }
+    card.style.display = "block";
+    const curVal = sel.value || "__ALL__";
+    const gameIds = Array.from(new Set(records.map((r) => r.game_id || "inconnu")));
+    sel.innerHTML = "<option value=\"__ALL__\">Toutes (" + gameIds.length + ")</option>" +
+      gameIds.map((g) => "<option value=\"" + g.replace(/"/g, "&quot;") + "\">" + g + "</option>").join("");
+    if (gameIds.includes(curVal)) sel.value = curVal;
+    const shown = sel.value === "__ALL__" ? records : records.filter((r) => r.game_id === sel.value);
+    pre.textContent = shown.map((r) => {
+      const peuples = (r.config && Array.isArray(r.config.peuples)) ? r.config.peuples : [];
+      const pName = peuples[r.seat] || ("S" + r.seat);
+      const stepLbl = r.is_first_defender ? "2.1" : "2.2";
+      const tgt = Array.isArray(r.chosen_target) ? r.chosen_target.join(" ") : String(r.chosen_target);
+      const note = r.notes ? " — " + r.notes : "";
+      return "[" + r.game_id + " #" + r.decision_id + "] T" + r.tour + " (" + stepLbl + ") " +
+        pName + " (" + (r.player_level || "?") + ") -> " + tgt + note;
+    }).join("\n");
+  }
+
   function refresh() {
     const pre = document.getElementById("preview");
     const st = document.getElementById("status");
-    st.textContent = records.length + " décision(s) enregistrée(s).";
+    const gameCount = new Set(records.map((r) => r.game_id)).size;
+    st.textContent = records.length + " décision(s) sur " + gameCount + " partie(s).";
     pre.textContent = records.length ? records.map((r) => JSON.stringify(r)).join("\n") : "(aucune entrée)";
+    renderTimeline();
   }
+
+  document.getElementById("gameFilter").addEventListener("change", renderTimeline);
 
   document.getElementById("btnAdd").addEventListener("click", function () {
     const n = Number(document.getElementById("nPlayers").value);
@@ -203,6 +245,37 @@
     };
     records.push(rec);
     refresh();
+  });
+
+  document.getElementById("btnImport").addEventListener("click", function () {
+    document.getElementById("fileImport").click();
+  });
+
+  document.getElementById("fileImport").addEventListener("change", function (ev) {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      const lines = String(reader.result || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      let imported = 0;
+      for (const line of lines) {
+        try {
+          const obj = JSON.parse(line);
+          if (obj && obj.schema_version === "human_trace_1.0") {
+            records.push(obj);
+            imported += 1;
+          }
+        } catch (_err) {
+          // Ignorer les lignes malformées
+        }
+      }
+      refresh();
+      if (imported === 0) {
+        document.getElementById("status").textContent = "Aucune ligne human_trace_1.0 valide dans " + file.name;
+      }
+    };
+    reader.readAsText(file, "utf-8");
+    ev.target.value = "";
   });
 
   document.getElementById("btnExport").addEventListener("click", function () {

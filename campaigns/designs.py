@@ -19,6 +19,9 @@ from bots.heuristic_engine import (
     score_target_b2,
 )
 from engine.core_engine import (
+    DEC_CHOIX_CASE_GARDIEN,
+    DEC_ENRACINEMENT_6_1,
+    DEC_HUMAIN_CHAMAN_2_1,
     DEC_POSE_DEFENSEUR_1,
     DEC_POSE_DEFENSEUR_2,
     apply_choice,
@@ -28,17 +31,24 @@ from engine.primitives import GameOver
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
     ANIMAUX_SAUVAGES,
+    CHAMAN_CHANT,
+    CHAMAN_TAMBOUR,
     FURT_RIVE_PIEGE,
     FURT_RIVE_SABOTAGE,
+    MACHINE_ABATTEUSE,
+    MACHINE_BULLDOZER,
+    MACHINE_STATUS_RETIRED,
     PEUPLES_ORDER,
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
+    TRACK_LEN,
     GameConfig,
     GameState,
     is_reve_code,
 )
 
 __all__ = (
+    "ALL_V6_4_FORK_FAMILIES",
     "BENCHMARK_ASSISE_KEYS",
     "CANON0_ACTIVE_PROFILES",
     "CANONICAL_PEUPLES_ORDER_197",
@@ -46,6 +56,7 @@ __all__ = (
     "MANDATORY_6_CIRCLES",
     "CanonicalAssise",
     "CausalForksSummary",
+    "CausalForksV64Summary",
     "MicroForkAggregate",
     "MicroForkRecord",
     "MirrorBlock",
@@ -64,6 +75,7 @@ __all__ = (
     "paired_mirror_blocks",
     "run_micro_fork_on_config",
     "run_v6_1_causal_forks_on_config",
+    "run_v6_4_causal_forks_on_config",
     "sequential_halving_select",
 )
 
@@ -1099,6 +1111,539 @@ def run_v6_1_causal_forks_on_config(
         delta_v_furt_rive_piege=dv_furt_rp,
         has_furt_rive_sabotage_fork=has_furt_rs,
         delta_v_furt_rive_sabotage=dv_furt_rs,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Batterie contrefactuelle multi-étapes v6.4
+# (2.1/2.2, Furtivité & Sentinelles enracinées, Éveil A+1, Chamanes, Altération, Icônes Gardiens)
+# ---------------------------------------------------------------------------
+
+ALL_V6_4_FORK_FAMILIES: tuple[str, ...] = (
+    "CORE_2_1_2_2",
+    "FURTIVITE_SENTINELLES",
+    "EVEIL_A_PLUS_1",
+    "CHAMANES",
+    "ALTERATION",
+    "GARDIEN_ICONES",
+)
+
+
+@dataclass(frozen=True, slots=True)
+class CausalForksV64Summary:
+    """Bilan contrefactuel multi-ancres v6.4 sur une trajectoire CRN (compatibilité ascendante v6.1)."""
+
+    mf_2_2: MicroForkRecord | None
+    has_2_1_anchor: bool
+    delta_v_2_1_b2_vs_b0: float
+    has_2_1_reve_fork: bool
+    delta_v_2_1_reve: float
+    has_4_1_piege_fork: bool
+    delta_v_4_1_pose_piege: float
+    has_eveil_fork: bool
+    delta_v_eveil_vs_survival: float
+    total_rollouts: int
+    has_furt_rive_piege_fork: bool = False
+    delta_v_furt_rive_piege: float = 0.0
+    has_furt_rive_sabotage_fork: bool = False
+    delta_v_furt_rive_sabotage: float = 0.0
+    # Extensions v6.4
+    has_furt_sentinelle_fork: bool = False
+    delta_v_furt_sentinelle: float = 0.0
+    has_6_1_enracinement_fork: bool = False
+    delta_v_6_1_enracinement: float = 0.0
+    has_2_2_gardien_pari_fork: bool = False
+    delta_v_2_2_gardien_pari: float = 0.0
+    has_2_1_chaman_fork: bool = False
+    delta_v_2_1_chaman_chosen_vs_alt: float = 0.0
+    delta_v_2_1_chaman_tambour_minus_chant: float = 0.0
+    has_alteration_fork: bool = False
+    delta_v_alteration: float = 0.0
+    has_3_1_gardien_icone_fork: bool = False
+    delta_v_3_1_gardien_icone: float = 0.0
+
+
+def run_v6_4_causal_forks_on_config(
+    cfg: GameConfig,
+    *,
+    target_tour: int = 2,
+    is_b2: bool = True,
+    n_selection_rollouts: int = 3,
+    n_eval_rollouts: int = 4,
+    k_max_future: int = 3,
+    max_steps: int = 2000,
+    fork_families: tuple[str, ...] | None = None,
+) -> CausalForksV64Summary:
+    """Exécute la batterie causale v6.4 (CRN apparié, zéro mutation noyau, familles à la carte)."""
+    from bots.bot_b0 import choose_b0
+    from engine.core_engine import (
+        DEC_POSE_PIEGE_FURTIVITE_4_1,
+        advance_step2_to_2_2,
+        apply_step2_def1,
+        clear_step2_pending_wait,
+        list_legal_targets,
+    )
+    from engine.primitives import DecisionRequest
+
+    if fork_families is None:
+        enabled = frozenset(ALL_V6_4_FORK_FAMILIES)
+    else:
+        enabled_list = [str(f).strip().upper() for f in fork_families]
+        unknown_f = set(enabled_list) - set(ALL_V6_4_FORK_FAMILIES)
+        if unknown_f:
+            raise ValueError(
+                f"Familles de forks v6.4 inconnues : {sorted(unknown_f)} "
+                f"(attendues : {list(ALL_V6_4_FORK_FAMILIES)})"
+            )
+        enabled = frozenset(enabled_list)
+
+    want_core = "CORE_2_1_2_2" in enabled
+    want_furt = "FURTIVITE_SENTINELLES" in enabled
+    want_eveil = "EVEIL_A_PLUS_1" in enabled
+    want_chaman = "CHAMANES" in enabled
+    want_alt = "ALTERATION" in enabled
+    want_icon = "GARDIEN_ICONES" in enabled
+
+    scorer = score_target_b2 if is_b2 else score_target_b1
+    chooser = choose_b2 if is_b2 else choose_b1
+    eps_b = 24.0 if is_b2 else 32.0
+    state = GameState(cfg)
+    steps = 0
+
+    mf_rec: MicroForkRecord | None = None
+    has_2_1 = False
+    dv_2_1_b0 = 0.0
+    has_2_1_reve = False
+    dv_2_1_reve = 0.0
+    has_furt_rp = False
+    dv_furt_rp = 0.0
+    has_furt_rs = False
+    dv_furt_rs = 0.0
+    has_furt_sent = False
+    dv_furt_sent = 0.0
+    has_4_1_piege = False
+    dv_4_1_piege = 0.0
+    has_6_1_enrac = False
+    dv_6_1_enrac = 0.0
+    has_eveil = False
+    dv_eveil = 0.0
+    has_gpari = False
+    dv_gpari = 0.0
+    has_chaman = False
+    dv_chaman_chosen = 0.0
+    dv_chaman_tmc = 0.0
+    has_alteration = False
+    dv_alteration = 0.0
+    has_gicon = False
+    dv_gicon = 0.0
+    rollouts = 0
+
+    def _allow_no_reve_2_1(t: tuple[Any, ...], is_f: bool) -> bool:
+        return not (is_f and t[0] == "REVE_ACTIVATION")
+
+    def _allow_no_furt_piege(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return not (t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_PIEGE)
+
+    def _allow_no_furt_sabotage(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return not (t[0] == "FURTIVITE" and len(t) >= 3 and int(t[2]) == FURT_RIVE_SABOTAGE)
+
+    def _allow_no_gardien_2_2(t: tuple[Any, ...], _is_f: bool) -> bool:
+        return t[0] != "GARDIEN_PARI"
+
+    def _paired_eval(
+        s_a: GameState, s_b: GameState, seed_offset: int, mult_s: int, mult_r: int
+    ) -> float:
+        nonlocal rollouts
+        acc_a = 0.0
+        acc_b = 0.0
+        for j in range(n_eval_rollouts):
+            ev_s = cfg.exp_seed + seed_offset + j * mult_s
+            ev_r = cfg.rep_id * mult_r + j
+            acc_a += _rollout_from_post_2_2(
+                _reseed_future_turns_clone(s_a, ev_s, ev_r),
+                is_b2=is_b2,
+                k_max_future=k_max_future,
+            ).ratio_arbres
+            acc_b += _rollout_from_post_2_2(
+                _reseed_future_turns_clone(s_b, ev_s, ev_r),
+                is_b2=is_b2,
+                k_max_future=k_max_future,
+            ).ratio_arbres
+            rollouts += 2
+        return (acc_a - acc_b) / n_eval_rollouts
+
+    def _maybe_check_alteration(cur_state: GameState) -> None:
+        nonlocal has_alteration, dv_alteration
+        if (not want_alt) or has_alteration:
+            return
+        for r_i in range(cfg.n_players):
+            for mt_i in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+                pos_m, st_m, _ = cur_state.get_machine_pos_status(r_i, mt_i)
+                if st_m != MACHINE_STATUS_RETIRED and pos_m > 0 and cur_state.has_machine_alteration(r_i, mt_i):
+                    s_real = cur_state.clone()
+                    s_clear = cur_state.clone()
+                    s_clear.set_machine_alteration(r_i, mt_i, False)
+                    has_alteration = True
+                    dv_alteration = _paired_eval(s_real, s_clear, 910_000, 53, 67)
+                    return
+
+    def _check_post_2_2_forks(
+        cur_state: GameState, pre_2_1_snap: GameState | None, pre_2_2_snap: GameState
+    ) -> None:
+        nonlocal has_furt_rp, dv_furt_rp, has_furt_rs, dv_furt_rs
+        nonlocal has_furt_sent, dv_furt_sent, has_eveil, dv_eveil, has_gpari, dv_gpari
+
+        if want_furt and cur_state.tour <= 7 and pre_2_1_snap is not None:
+            if not has_furt_rp and any(
+                cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_PIEGE) == 2
+                for r_i in range(cfg.n_players)
+            ):
+                s_no_rp = pre_2_1_snap.clone()
+                resolve_step2_full_with_ticks(
+                    s_no_rp,
+                    scorer,
+                    k_max_passes=k_max_future,
+                    epsilon_base=eps_b,
+                    epsilon_step=12.0,
+                    target_filter=_allow_no_furt_piege,
+                )
+                if cur_state.raw_used_bytes() != s_no_rp.raw_used_bytes():
+                    has_furt_rp = True
+                    dv_furt_rp = _paired_eval(cur_state, s_no_rp, 850_000, 41, 53)
+
+            sab_completed_rays = [
+                (
+                    r_i,
+                    cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_SABOTAGE),
+                    cur_state.count_rooted_sentinels_on_ray(r_i),
+                )
+                for r_i in range(cfg.n_players)
+                if cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_SABOTAGE) >= 1
+                and (
+                    cur_state.get_furtivite_nb_def_rive(r_i, 1, FURT_RIVE_SABOTAGE)
+                    + cur_state.count_rooted_sentinels_on_ray(r_i)
+                    >= 2
+                )
+            ]
+            if sab_completed_rays and ((not has_furt_rs) or (not has_furt_sent)):
+                has_sent_ray = any(s_cnt >= 1 for _, _, s_cnt in sab_completed_rays)
+                if (not has_furt_rs) or (has_sent_ray and not has_furt_sent):
+                    s_no_rs = pre_2_1_snap.clone()
+                    resolve_step2_full_with_ticks(
+                        s_no_rs,
+                        scorer,
+                        k_max_passes=k_max_future,
+                        epsilon_base=eps_b,
+                        epsilon_step=12.0,
+                        target_filter=_allow_no_furt_sabotage,
+                    )
+                    if cur_state.raw_used_bytes() != s_no_rs.raw_used_bytes():
+                        dv_rs_here = _paired_eval(cur_state, s_no_rs, 870_000, 43, 59)
+                        if not has_furt_rs:
+                            has_furt_rs = True
+                            dv_furt_rs = dv_rs_here
+                        if has_sent_ray and not has_furt_sent:
+                            has_furt_sent = True
+                            dv_furt_sent = dv_rs_here
+
+        # Éveil cumulatif v6.4 (A + 1 Gardiens Face 2) et Pari Gardien général
+        if want_eveil and cur_state.tour <= 7 and cfg.nb_animaux_sauvages >= 1:
+            total_gp_engaged = cur_state.total_gardien_pari_engaged()
+            if total_gp_engaged >= 1:
+                face2_now = cur_state.count_face2_gardiens_on_track()
+                f1_bet_cases = sum(
+                    1
+                    for c_i in range(1, TRACK_LEN + 1)
+                    if cur_state.get_gardien_at_case(c_i)[0] > 0
+                    and cur_state.get_gardien_at_case(c_i)[1] == 1
+                    and cur_state.count_gardien_pari_defenders_at_case(c_i) >= 1
+                )
+                is_eveil_push = (f1_bet_cases >= 1) and (
+                    face2_now + f1_bet_cases >= cfg.nb_animaux_sauvages + 1
+                )
+                need_eveil_now = is_eveil_push and not has_eveil
+                need_gpari_now = not has_gpari
+                if need_eveil_now or need_gpari_now:
+                    s_surv = pre_2_2_snap.clone()
+                    resolve_step2_2_from_state(
+                        s_surv,
+                        scorer,
+                        k_max_passes=k_max_future,
+                        epsilon_base=eps_b,
+                        target_filter=_allow_no_gardien_2_2,
+                    )
+                    if cur_state.raw_used_bytes() != s_surv.raw_used_bytes():
+                        dv_gp_here = _paired_eval(cur_state, s_surv, 830_000, 37, 43)
+                        if need_eveil_now:
+                            has_eveil = True
+                            dv_eveil = dv_gp_here
+                        if need_gpari_now:
+                            has_gpari = True
+                            dv_gpari = dv_gp_here
+
+        _maybe_check_alteration(cur_state)
+
+    while True:
+        steps += 1
+        if steps > max_steps:
+            raise RuntimeError(f"max_steps={max_steps} dépassé dans run_v6_4_causal_forks_on_config")
+        out = step_until_decision(state, max_internal_steps=max_steps)
+        if isinstance(out, GameOver):
+            break
+
+        # 0. Fork Chamanes 2.1 (Tambour vs Chant) dès la décision moteur DEC_HUMAIN_CHAMAN_2_1
+        if out.decision_type == DEC_HUMAIN_CHAMAN_2_1:
+            chosen_ch = chooser(state, out)
+            if want_chaman and not has_chaman and len(out.options) >= 2:
+                alt_ch = CHAMAN_CHANT if chosen_ch == CHAMAN_TAMBOUR else CHAMAN_TAMBOUR
+                if alt_ch in out.options:
+                    has_chaman = True
+                    s_ch_chosen = state.clone()
+                    apply_choice(s_ch_chosen, chosen_ch)
+                    s_ch_alt = state.clone()
+                    apply_choice(s_ch_alt, alt_ch)
+                    dv_chaman_chosen = _paired_eval(s_ch_chosen, s_ch_alt, 890_000, 47, 61)
+                    dv_chaman_tmc = (
+                        dv_chaman_chosen if chosen_ch == CHAMAN_TAMBOUR else -dv_chaman_chosen
+                    )
+            apply_choice(state, chosen_ch)
+            continue
+
+        # 1 & 2. Ancres 2.1 et 2.2 au target_tour
+        if want_core and state.tour == target_tour and state.step == STEP_2_1_DEF1 and not has_2_1:
+            has_2_1 = True
+            pre_2_1_clone = state.clone()
+            s_b0_21 = state.clone()
+            clear_step2_pending_wait(s_b0_21)
+            for seat_i in range(cfg.n_players):
+                leg_1 = list_legal_targets(s_b0_21, seat_i, is_first_defender=True)
+                if not leg_1:
+                    apply_step2_def1(s_b0_21, seat_i, ("PASSER_IMPASSE",), check_legal=False)
+                else:
+                    req_1 = DecisionRequest(
+                        decideur=seat_i,
+                        decision_type=DEC_POSE_DEFENSEUR_1,
+                        options=leg_1,
+                        context={},
+                    )
+                    apply_step2_def1(s_b0_21, seat_i, choose_b0(s_b0_21, req_1), check_legal=False)
+            advance_step2_to_2_2(s_b0_21)
+
+            s_noreve_21 = state.clone()
+            _resolve_only_2_1_ticks(s_noreve_21, scorer, target_filter=_allow_no_reve_2_1)
+
+            _resolve_only_2_1_ticks(state, scorer)
+            reve_diverged = (not has_2_1_reve) and (
+                state.raw_used_bytes() != s_noreve_21.raw_used_bytes()
+            )
+
+            acc_b2_21 = 0.0
+            acc_b0_21 = 0.0
+            acc_nr_21 = 0.0
+            for j in range(n_eval_rollouts):
+                ev_s = cfg.exp_seed + 710_000 + j * 31
+                ev_r = cfg.rep_id * 41 + j
+                c_b2 = _reseed_future_turns_clone(state, ev_s, ev_r)
+                resolve_step2_2_from_state(c_b2, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+                acc_b2_21 += _rollout_from_post_2_2(
+                    c_b2, is_b2=is_b2, k_max_future=k_max_future
+                ).ratio_arbres
+
+                c_b0 = _reseed_future_turns_clone(s_b0_21, ev_s, ev_r)
+                resolve_step2_2_from_state(c_b0, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+                acc_b0_21 += _rollout_from_post_2_2(
+                    c_b0, is_b2=is_b2, k_max_future=k_max_future
+                ).ratio_arbres
+                rollouts += 2
+
+                if reve_diverged:
+                    c_nr = _reseed_future_turns_clone(s_noreve_21, ev_s, ev_r)
+                    resolve_step2_2_from_state(
+                        c_nr, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                    )
+                    acc_nr_21 += _rollout_from_post_2_2(
+                        c_nr, is_b2=is_b2, k_max_future=k_max_future
+                    ).ratio_arbres
+                    rollouts += 1
+
+            dv_2_1_b0 = (acc_b2_21 - acc_b0_21) / n_eval_rollouts
+            if reve_diverged:
+                has_2_1_reve = True
+                dv_2_1_reve = (acc_b2_21 - acc_nr_21) / n_eval_rollouts
+
+            mf_rec = micro_fork(
+                state,
+                is_b2=is_b2,
+                n_selection_rollouts=n_selection_rollouts,
+                n_eval_rollouts=n_eval_rollouts,
+                k_max_future=k_max_future,
+            )
+            rollouts += n_selection_rollouts * 2 + n_eval_rollouts * 3
+
+            pre_2_2_clone = state.clone()
+            resolve_step2_2_from_state(state, scorer, k_max_passes=k_max_future, epsilon_base=eps_b)
+            _check_post_2_2_forks(state, pre_2_1_clone, pre_2_2_clone)
+            continue
+
+        # Résolution Étape 2 sur les autres tours (+ balayage Rêve, Furtivité, Éveil A+1, Altération)
+        if state.step in (STEP_2_1_DEF1, STEP_2_2_DEF2) and out.decision_type in (
+            DEC_POSE_DEFENSEUR_1,
+            DEC_POSE_DEFENSEUR_2,
+        ):
+            need_scan = (
+                (want_core and not has_2_1_reve and state.tour <= 7 and cfg.total_reves_partie > 0)
+                or (want_furt and (not has_furt_rp or not has_furt_rs or not has_furt_sent) and state.tour <= 7)
+                or (want_eveil and (not has_eveil or not has_gpari) and state.tour <= 7 and cfg.nb_animaux_sauvages >= 1)
+                or (want_alt and not has_alteration)
+            )
+            if need_scan:
+                pre_2_1_snap: GameState | None = (
+                    state.clone() if state.step == STEP_2_1_DEF1 else None
+                )
+                if state.step == STEP_2_1_DEF1:
+                    check_reve_here = (
+                        want_core
+                        and (not has_2_1_reve)
+                        and state.tour <= 7
+                        and any(is_reve_code(state.get_tactique_at_rank(rk)) for rk in range(TRACK_LEN))
+                    )
+                    s_noreve_other = state.clone() if check_reve_here else None
+                    _resolve_only_2_1_ticks(state, scorer)
+                    if s_noreve_other is not None:
+                        _resolve_only_2_1_ticks(
+                            s_noreve_other, scorer, target_filter=_allow_no_reve_2_1
+                        )
+                        if state.raw_used_bytes() != s_noreve_other.raw_used_bytes():
+                            has_2_1_reve = True
+                            acc_rv = 0.0
+                            acc_nr = 0.0
+                            for j in range(n_eval_rollouts):
+                                ev_s = cfg.exp_seed + 730_000 + j * 31
+                                ev_r = cfg.rep_id * 41 + j
+                                c_rv = _reseed_future_turns_clone(state, ev_s, ev_r)
+                                resolve_step2_2_from_state(
+                                    c_rv, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                                )
+                                acc_rv += _rollout_from_post_2_2(
+                                    c_rv, is_b2=is_b2, k_max_future=k_max_future
+                                ).ratio_arbres
+                                c_nr = _reseed_future_turns_clone(s_noreve_other, ev_s, ev_r)
+                                resolve_step2_2_from_state(
+                                    c_nr, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                                )
+                                acc_nr += _rollout_from_post_2_2(
+                                    c_nr, is_b2=is_b2, k_max_future=k_max_future
+                                ).ratio_arbres
+                                rollouts += 2
+                            dv_2_1_reve = (acc_rv - acc_nr) / n_eval_rollouts
+
+                pre_2_2_snap = state.clone()
+                resolve_step2_2_from_state(
+                    state, scorer, k_max_passes=k_max_future, epsilon_base=eps_b
+                )
+                _check_post_2_2_forks(state, pre_2_1_snap, pre_2_2_snap)
+                continue
+
+            resolve_step2_full_with_ticks(
+                state,
+                scorer,
+                k_max_passes=k_max_future,
+                epsilon_base=eps_b,
+                epsilon_step=12.0,
+            )
+            continue
+
+        # Balayage opportuniste Altération si apparue en cours de tour (3.1/3.2/4.x)
+        if want_alt and not has_alteration:
+            _maybe_check_alteration(state)
+
+        # 3. Fork 3.1 Icônes Gardiens (choix d'icône 1..6 parmi >= 2 icônes libres)
+        if (
+            want_icon
+            and not has_gicon
+            and out.decision_type == DEC_CHOIX_CASE_GARDIEN
+            and len(out.options) >= 2
+        ):
+            has_gicon = True
+            chosen_c = chooser(state, out)
+            alt_cands_g = [opt_c for opt_c in out.options if opt_c != chosen_c]
+            alt_c = alt_cands_g[0]
+            s_g_chosen = state.clone()
+            apply_choice(s_g_chosen, chosen_c)
+            s_g_alt = state.clone()
+            apply_choice(s_g_alt, alt_c)
+            dv_gicon = _paired_eval(s_g_chosen, s_g_alt, 930_000, 59, 71)
+            apply_choice(state, chosen_c)
+            continue
+
+        # 4. Fork 4.1 Pose Piège
+        if (
+            want_furt
+            and not has_4_1_piege
+            and out.decision_type == DEC_POSE_PIEGE_FURTIVITE_4_1
+            and len(out.options) >= 2
+        ):
+            has_4_1_piege = True
+            chosen_p = chooser(state, out)
+            alt_cands = [opt_p for opt_p in out.options if opt_p != chosen_p]
+            alt_p = alt_cands[0]
+            s_chosen = state.clone()
+            apply_choice(s_chosen, chosen_p)
+            s_alt = state.clone()
+            apply_choice(s_alt, alt_p)
+            dv_4_1_piege = _paired_eval(s_chosen, s_alt, 790_000, 29, 47)
+            apply_choice(state, chosen_p)
+            continue
+
+        # 5. Fork 6.1 Enracinement / Sentinelle volontaire (Enraciner vs PASSER)
+        if (
+            want_furt
+            and not has_6_1_enrac
+            and out.decision_type == DEC_ENRACINEMENT_6_1
+            and "PASSER" in out.options
+            and len(out.options) >= 2
+        ):
+            chosen_rt = chooser(state, out)
+            if chosen_rt != "PASSER":
+                has_6_1_enrac = True
+                s_rt_yes = state.clone()
+                apply_choice(s_rt_yes, chosen_rt)
+                s_rt_no = state.clone()
+                apply_choice(s_rt_no, "PASSER")
+                dv_6_1_enrac = _paired_eval(s_rt_yes, s_rt_no, 950_000, 61, 73)
+                apply_choice(state, chosen_rt)
+                continue
+
+        apply_choice(state, chooser(state, out))
+
+    return CausalForksV64Summary(
+        mf_2_2=mf_rec,
+        has_2_1_anchor=has_2_1,
+        delta_v_2_1_b2_vs_b0=dv_2_1_b0,
+        has_2_1_reve_fork=has_2_1_reve,
+        delta_v_2_1_reve=dv_2_1_reve,
+        has_4_1_piege_fork=has_4_1_piege,
+        delta_v_4_1_pose_piege=dv_4_1_piege,
+        has_eveil_fork=has_eveil,
+        delta_v_eveil_vs_survival=dv_eveil,
+        total_rollouts=max(1, rollouts),
+        has_furt_rive_piege_fork=has_furt_rp,
+        delta_v_furt_rive_piege=dv_furt_rp,
+        has_furt_rive_sabotage_fork=has_furt_rs,
+        delta_v_furt_rive_sabotage=dv_furt_rs,
+        has_furt_sentinelle_fork=has_furt_sent,
+        delta_v_furt_sentinelle=dv_furt_sent,
+        has_6_1_enracinement_fork=has_6_1_enrac,
+        delta_v_6_1_enracinement=dv_6_1_enrac,
+        has_2_2_gardien_pari_fork=has_gpari,
+        delta_v_2_2_gardien_pari=dv_gpari,
+        has_2_1_chaman_fork=has_chaman,
+        delta_v_2_1_chaman_chosen_vs_alt=dv_chaman_chosen,
+        delta_v_2_1_chaman_tambour_minus_chant=dv_chaman_tmc,
+        has_alteration_fork=has_alteration,
+        delta_v_alteration=dv_alteration,
+        has_3_1_gardien_icone_fork=has_gicon,
+        delta_v_3_1_gardien_icone=dv_gicon,
     )
 
 

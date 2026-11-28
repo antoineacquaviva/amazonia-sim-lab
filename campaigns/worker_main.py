@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import gzip
 import hashlib
 import itertools
@@ -11,8 +12,10 @@ import multiprocessing
 import os
 import platform
 import re
+import signal
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -23,14 +26,30 @@ from bots.bot_b0 import play_game_b0
 from bots.bot_b3_rh import play_game_b3
 from bots.heuristic_engine import play_game_b1, play_game_b2, play_game_b2_open
 from campaigns.designs import (
+    ALL_V6_4_FORK_FAMILIES,
+    BENCHMARK_ASSISE_KEYS,
     balanced_neighbor_mirror_tables,
+    canonicalize_dihedral_assise,
+    enumerate_197_canonical_assises,
     mirror_peuples,
-    run_v6_1_causal_forks_on_config,
+    run_v6_4_causal_forks_on_config,
 )
 from campaigns.digest_builder import (
     build_mobile_one_tap_html,
     build_prompt_gemini_markdown,
     build_self_contained_digest,
+)
+from campaigns.modular_studies import (
+    CANONICAL_30_TILES,
+    get_disjoint_motors,
+    get_pivot_motors,
+    get_pivot_tiles,
+    resolve_modular_study_variants,
+    resolve_slot_selection,
+)
+from campaigns.ockham_and_traces import (
+    RemarkableBookmarkTracker,
+    V64DecisionAuditRecorder,
 )
 from campaigns.stats_tools import cvar_exact_values
 from engine.core_engine import ensure_builtin_migration_registered
@@ -69,6 +88,7 @@ NATIVE_MIGRATION_SLOTS: frozenset[str] = frozenset(
 )
 NEUTRAL_TILE_PROFILE: str = "NEUTRE"
 CALIBRATION_BOT_PANEL: tuple[str, ...] = ("B0", "B1", "B2", "B2_OPEN")
+FULL_SPECTRUM_BOT_PANEL: tuple[str, ...] = ("B0", "B1", "B2", "B2_OPEN", "B3")
 ALLOWED_BOTS: frozenset[str] = frozenset({"B0", "B1", "B2", "B2_OPEN", "B3"})
 ALLOWED_AB_TILE_PROTOCOLS: frozenset[str] = frozenset({"ACTIVE_VS_NEUTRE", "PROFILE_COMPARE"})
 
@@ -83,32 +103,43 @@ ALLOWED_MANIFEST_KEYS: frozenset[str] = frozenset(
         "micro_forks",
         "fork_selection_rollouts",
         "fork_eval_rollouts",
+        "fork_families",
         "mode",
         "bot",
         "bots",
+        "b3_config",
         "k_max",
         "seed",
         "player_counts",
         "table_selection",
         "min_animaux_sauvages",
         "games_per_configuration",
+        "reps_per_assise",
         "include_full_tile_metrics",
         "include_v6_audit_blocks",
+        "include_v64_ockham_audit",
+        "extract_remarkable_traces",
         "base_instance",
+        "active_slots",
+        "neutral_slots",
+        "tile_study",
         "slot_profile_comparisons",
         "ab_tile_protocol",
         "ab_slots",
         "reference_variant_id",
+        "spot_resilience",
+        "report_output",
+        "stages",
     }
 )
 ALLOWED_BASE_INSTANCE_KEYS: frozenset[str] = frozenset(
-    {"bundle_id", "peuples_cercle", "profile_overrides"}
+    {"bundle_id", "peuples_cercle", "profile_overrides", "active_slots", "neutral_slots"}
 )
 ALLOWED_TABLE_SELECTIONS: frozenset[str] = frozenset(
-    {"DEFAULT", "ALL_PEUPLE_COMBOS", "BALANCED_CIRCLES"}
+    {"DEFAULT", "ALL_PEUPLE_COMBOS", "BALANCED_CIRCLES", "ALL_197_ASSISES", "BENCHMARK_ASSISES"}
 )
 ALLOWED_CAMPAIGN_KINDS: frozenset[str] = frozenset({"MACRO", "MICRO_FORKS"})
-ALLOWED_BUNDLE_IDS: frozenset[str] = frozenset({"STANDARD_A"})
+ALLOWED_BUNDLE_IDS: frozenset[str] = frozenset({"STANDARD_A", "ALL_NEUTRE"})
 
 METADATA_TOKEN_URL: str = (
     "http://metadata.google.internal/computeMetadata/v1/"
@@ -195,6 +226,23 @@ def _download_gcs_bytes(bucket: str, object_name: str, token: str) -> bytes:
     )
     with urllib.request.urlopen(req, timeout=60) as resp:
         return bytes(resp.read())
+
+
+def _gcs_object_exists(bucket: str, object_name: str, token: str) -> bool:
+    encoded_name = urllib.parse.quote(object_name, safe="")
+    url = f"https://storage.googleapis.com/storage/v1/b/{bucket}/o/{encoded_name}"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": f"Bearer {token}"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return int(getattr(resp, "status", 200)) == 200
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise
 
 
 def _upload_worker_mobile_latest_html(
@@ -344,7 +392,7 @@ def _active_slots_for_peuples_tuple(peuples: tuple[str, ...]) -> frozenset[str]:
 
 
 def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
-    """Valide strictement et résout un manifeste JSON `campaigns/<nom>.json` en plan déterministe v6.1."""
+    """Valide strictement et résout un manifeste JSON `campaigns/<nom>.json` en plan déterministe v6.4."""
     if not isinstance(manifest, dict):
         raise TypeError("Le manifeste de campagne doit être un objet JSON.")
 
@@ -364,7 +412,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     default_cfg = GameConfig(mode=mode)
 
-    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v6_1")))
+    campaign_name = _sanitize_slug(str(manifest.get("campaign_name", "campagne_v6_4")))
     raw_players = manifest.get("player_counts", [default_cfg.n_players])
     if not isinstance(raw_players, (list, tuple)) or not raw_players:
         raise ValueError(f"player_counts invalide (attendu liste non vide dans 3..6) : {raw_players!r}")
@@ -372,7 +420,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     if any(n not in (3, 4, 5, 6) for n in player_counts):
         raise ValueError(f"player_counts invalide (attendu 3..6) : {player_counts}")
 
-    games_per_cfg = int(manifest.get("games_per_configuration", 1))
+    raw_reps_per_assise = manifest.get("reps_per_assise")
+    reps_per_assise: int | None = None
+    if raw_reps_per_assise is not None:
+        reps_per_assise = int(raw_reps_per_assise)
+        if reps_per_assise < 1:
+            raise ValueError(f"reps_per_assise doit être >= 1 (reçu {reps_per_assise})")
+
+    games_per_cfg = int(manifest.get("games_per_configuration", reps_per_assise or 1))
     if games_per_cfg < 1:
         raise ValueError(f"games_per_configuration doit être >= 1 (reçu {games_per_cfg})")
 
@@ -382,7 +437,12 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     if raw_bots is not None:
         if isinstance(raw_bots, str):
             norm_b = raw_bots.strip().upper()
-            bot_list = list(CALIBRATION_BOT_PANEL) if norm_b == "CALIBRATION_PANEL" else [norm_b]
+            if norm_b == "CALIBRATION_PANEL":
+                bot_list = list(CALIBRATION_BOT_PANEL)
+            elif norm_b == "FULL_SPECTRUM":
+                bot_list = list(FULL_SPECTRUM_BOT_PANEL)
+            else:
+                bot_list = [norm_b]
         elif isinstance(raw_bots, (list, tuple)):
             bot_list = [str(b).strip().upper() for b in raw_bots]
         else:
@@ -393,9 +453,40 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     if not bot_list or any(b not in ALLOWED_BOTS for b in bot_list):
         raise ValueError(
             f"Bot(s) non supporté(s) dans le manifeste : {bot_list!r} "
-            f"(attendu {sorted(ALLOWED_BOTS)} ou 'CALIBRATION_PANEL')"
+            f"(attendu {sorted(ALLOWED_BOTS)}, 'CALIBRATION_PANEL' ou 'FULL_SPECTRUM')"
         )
     bot_name = bot_list[0]
+
+    # Validation optionnelle du budget MCTS B3
+    raw_b3_cfg = manifest.get("b3_config")
+    b3_config: dict[str, Any] = {}
+    b3_reps_cap: int | None = None
+    if raw_b3_cfg is not None:
+        if not isinstance(raw_b3_cfg, dict):
+            raise TypeError("b3_config doit être un objet JSON.")
+        allowed_b3_keys = {
+            "n_determinizations",
+            "max_determinizations",
+            "horizon_turns",
+            "max_candidates",
+            "uncertainty_threshold",
+            "reps_cap_per_table",
+        }
+        unk_b3 = sorted(str(k) for k in raw_b3_cfg if str(k) not in allowed_b3_keys)
+        if unk_b3:
+            raise ValueError(f"Clé(s) inconnue(s) dans b3_config : {unk_b3}")
+        if "n_determinizations" in raw_b3_cfg:
+            b3_config["n_determinizations"] = max(1, int(raw_b3_cfg["n_determinizations"]))
+        if "max_determinizations" in raw_b3_cfg and raw_b3_cfg["max_determinizations"] is not None:
+            b3_config["max_determinizations"] = max(1, int(raw_b3_cfg["max_determinizations"]))
+        if "horizon_turns" in raw_b3_cfg:
+            b3_config["horizon_turns"] = max(1, int(raw_b3_cfg["horizon_turns"]))
+        if "max_candidates" in raw_b3_cfg:
+            b3_config["max_candidates"] = max(1, int(raw_b3_cfg["max_candidates"]))
+        if "uncertainty_threshold" in raw_b3_cfg:
+            b3_config["uncertainty_threshold"] = float(raw_b3_cfg["uncertainty_threshold"])
+        if "reps_cap_per_table" in raw_b3_cfg and raw_b3_cfg["reps_cap_per_table"] is not None:
+            b3_reps_cap = max(1, int(raw_b3_cfg["reps_cap_per_table"]))
 
     has_explicit_k_max = "k_max" in manifest
     if has_explicit_k_max:
@@ -408,6 +499,18 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
     exp_seed = int(manifest.get("seed", 20261201))
     include_full_tile_metrics = bool(manifest.get("include_full_tile_metrics", False))
+    include_v6_audit = bool(manifest.get("include_v6_audit_blocks", False))
+    include_v64_ockham_audit = bool(manifest.get("include_v64_ockham_audit", include_v6_audit))
+
+    raw_traces = manifest.get("extract_remarkable_traces", False)
+    if isinstance(raw_traces, dict):
+        extract_traces_enabled = bool(raw_traces.get("enabled", True))
+        extract_traces_max_games = max(1, int(raw_traces.get("max_games", 8)))
+        extract_traces_path = str(raw_traces.get("output_path", "")).strip() or None
+    else:
+        extract_traces_enabled = bool(raw_traces)
+        extract_traces_max_games = 8
+        extract_traces_path = None
 
     campaign_kind = str(manifest.get("campaign_kind", "MACRO")).strip().upper()
     if campaign_kind not in ALLOWED_CAMPAIGN_KINDS:
@@ -421,6 +524,22 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             f"Rollouts de micro-forks invalides : selection={fork_n_sel} (>=1), eval={fork_n_eval} (>=2)"
         )
+    raw_fork_fams = manifest.get("fork_families")
+    fork_families: tuple[str, ...] | None = None
+    if raw_fork_fams is not None:
+        if isinstance(raw_fork_fams, str):
+            f_up = raw_fork_fams.strip().upper()
+            fork_families = ALL_V6_4_FORK_FAMILIES if f_up == "ALL" else (f_up,)
+        elif isinstance(raw_fork_fams, (list, tuple)) and raw_fork_fams:
+            fork_families = tuple(str(f).strip().upper() for f in raw_fork_fams)
+        else:
+            raise ValueError(f"fork_families invalide : {raw_fork_fams!r}")
+        unknown_ff = set(fork_families) - set(ALL_V6_4_FORK_FAMILIES)
+        if unknown_ff:
+            raise ValueError(
+                f"Famille(s) de forks inconnue(s) : {sorted(unknown_ff)} "
+                f"(attendu {list(ALL_V6_4_FORK_FAMILIES)})"
+            )
 
     # Registre réel des effets exécutables (30 tuiles Mode 4 + 2 migrations natives)
     ensure_builtin_migration_registered()
@@ -441,9 +560,40 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         raise ValueError(
             f"base_instance.bundle_id invalide : {bundle_id!r} (attendu {sorted(ALLOWED_BUNDLE_IDS)})"
         )
-    base_map: dict[str, str] = {slot_id: "A" for slot_id in CANONICAL_32_SLOTS}
+    default_slot_prof = NEUTRAL_TILE_PROFILE if bundle_id == "ALL_NEUTRE" else "A"
+    base_map: dict[str, str] = {slot_id: default_slot_prof for slot_id in CANONICAL_32_SLOTS}
     base_map["SLOT_BUG_CERVEAU"] = "B"
     base_map["SLOT_COLONISATION_GARDIENS"] = "B"
+
+    # Raccourcis « Tuiles à blanc » : active_slots / neutral_slots (racine ou base_instance)
+    top_active = manifest.get("active_slots")
+    base_active = base_inst_raw.get("active_slots")
+    top_neutral = manifest.get("neutral_slots")
+    base_neutral = base_inst_raw.get("neutral_slots")
+    if top_active is not None and base_active is not None:
+        raise ValueError("Spécifier active_slots soit à la racine, soit dans base_instance.")
+    if top_neutral is not None and base_neutral is not None:
+        raise ValueError("Spécifier neutral_slots soit à la racine, soit dans base_instance.")
+    eff_active_spec = top_active if top_active is not None else base_active
+    eff_neutral_spec = top_neutral if top_neutral is not None else base_neutral
+    if eff_active_spec is not None and eff_neutral_spec is not None:
+        raise ValueError("active_slots et neutral_slots sont mutuellement exclusifs.")
+    if eff_active_spec is not None:
+        act_set = set(resolve_slot_selection(eff_active_spec))
+        for s_30 in CANONICAL_30_TILES:
+            if s_30 in act_set:
+                _validate_tile_profile_executable(s_30, "A", mode=mode, registered_tiles=registered_tiles)
+                base_map[s_30] = "A"
+            else:
+                base_map[s_30] = NEUTRAL_TILE_PROFILE
+    elif eff_neutral_spec is not None:
+        neut_set = set(resolve_slot_selection(eff_neutral_spec))
+        for s_30 in CANONICAL_30_TILES:
+            if s_30 in neut_set:
+                base_map[s_30] = NEUTRAL_TILE_PROFILE
+            elif mode >= 3:
+                _validate_tile_profile_executable(s_30, "A", mode=mode, registered_tiles=registered_tiles)
+                base_map[s_30] = "A"
 
     raw_overrides = base_inst_raw.get("profile_overrides", {})
     if not isinstance(raw_overrides, dict):
@@ -454,8 +604,25 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         )
         base_map[s_ok] = p_ok
 
-    # 2. Validation du protocole A/B apparié ou des comparaisons de profils (slot_profile_comparisons)
+    # 2. Validation des variantes : tile_study (Tuiles à blanc) / ab_tile_protocol / slot_profile_comparisons
+    raw_tile_study = manifest.get("tile_study")
     raw_ab_proto = manifest.get("ab_tile_protocol")
+    raw_comps = manifest.get("slot_profile_comparisons", {})
+    if not isinstance(raw_comps, dict):
+        raise TypeError("slot_profile_comparisons doit être un objet JSON.")
+
+    if raw_tile_study is not None:
+        if not isinstance(raw_tile_study, dict):
+            raise TypeError("tile_study doit être un objet JSON.")
+        if raw_ab_proto is not None or raw_comps:
+            raise ValueError(
+                "tile_study est exclusif de ab_tile_protocol et slot_profile_comparisons."
+            )
+        if mode < 3:
+            raise ValueError(
+                f"tile_study requiert mode >= 3 (reçu mode={mode}) pour activer des sous-ensembles de tuiles."
+            )
+
     ab_tile_protocol: str | None = None
     if raw_ab_proto is not None:
         ab_tile_protocol = str(raw_ab_proto).strip().upper()
@@ -494,9 +661,6 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     elif ab_tile_protocol == "ACTIVE_VS_NEUTRE":
         ab_slots = list(CANONICAL_32_SLOTS if mode >= 3 else NATIVE_MIGRATION_SLOTS)
 
-    raw_comps = manifest.get("slot_profile_comparisons", {})
-    if not isinstance(raw_comps, dict):
-        raise TypeError("slot_profile_comparisons doit être un objet JSON.")
     if ab_tile_protocol == "ACTIVE_VS_NEUTRE" and raw_comps:
         raise ValueError(
             "ab_tile_protocol='ACTIVE_VS_NEUTRE' est exclusif de slot_profile_comparisons."
@@ -535,7 +699,68 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     profile_variants: list[dict[str, Any]] = []
     tested_tiles_set: list[tuple[str, str]] = []
     varying_tiles_set: list[tuple[str, str]] = []
-    if ab_tile_protocol == "ACTIVE_VS_NEUTRE":
+    modular_study_meta: dict[str, Any] | None = None
+
+    if raw_tile_study is not None:
+        mod_specs = resolve_modular_study_variants(raw_tile_study)
+        touched_slots: set[str] = set()
+        for v_idx, mspec in enumerate(mod_specs):
+            gmap = dict(base_map)
+            act_set = set(mspec.active_slots)
+            for s_30 in CANONICAL_30_TILES:
+                if s_30 in act_set:
+                    _validate_tile_profile_executable(
+                        s_30, "A", mode=mode, registered_tiles=registered_tiles
+                    )
+                    gmap[s_30] = "A"
+                else:
+                    gmap[s_30] = NEUTRAL_TILE_PROFILE
+            touched_slots.update(mspec.target_slots)
+            profile_variants.append(
+                {
+                    "variant_idx": v_idx,
+                    "variant_id": mspec.variant_id,
+                    "study_role": mspec.study_role,
+                    "study_group_id": mspec.group_id,
+                    "active_slots": mspec.active_slots,
+                    "target_slots": mspec.target_slots,
+                    "extra_meta": dict(mspec.extra_meta),
+                    "compared_slots": {
+                        "study_role": mspec.study_role,
+                        "group_id": mspec.group_id,
+                        "n_active": len(mspec.active_slots),
+                    },
+                    "required_active_slot": None,
+                    "required_any_slots": mspec.required_any_slots,
+                    "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
+                }
+            )
+        for s_t in sorted(touched_slots, key=lambda x: CANONICAL_30_TILES.index(x)):
+            for pair in ((s_t, "A"), (s_t, NEUTRAL_TILE_PROFILE)):
+                if pair not in varying_tiles_set:
+                    varying_tiles_set.append(pair)
+                if pair not in tested_tiles_set:
+                    tested_tiles_set.append(pair)
+        modular_study_meta = {
+            "study_type": str(raw_tile_study.get("study_type", "SUBSET")).strip().upper(),
+            "background": str(raw_tile_study.get("background", "ALL_NEUTRE")).strip().upper(),
+            "filter_tables_by_presence": bool(raw_tile_study.get("filter_tables_by_presence", False)),
+            "disjoint_motors": {k: list(v) for k, v in get_disjoint_motors().items()},
+            "pivot_motors": {k: list(v) for k, v in get_pivot_motors().items()},
+            "pivot_tiles": {k: list(v) for k, v in get_pivot_tiles().items()},
+            "variants": [
+                {
+                    "variant_id": v["variant_id"],
+                    "study_role": v["study_role"],
+                    "group_id": v["study_group_id"],
+                    "active_slots": list(v["active_slots"]),
+                    "target_slots": list(v["target_slots"]),
+                    "extra_meta": v["extra_meta"],
+                }
+                for v in profile_variants
+            ],
+        }
+    elif ab_tile_protocol == "ACTIVE_VS_NEUTRE":
         for s_ab in ab_slots:
             _validate_tile_profile_executable(
                 s_ab, base_map[s_ab], mode=mode, registered_tiles=registered_tiles
@@ -549,8 +774,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             {
                 "variant_idx": 0,
                 "variant_id": "BASE",
+                "study_role": "baseline_active",
+                "study_group_id": "BASELINE",
+                "active_slots": tuple(s for s in CANONICAL_30_TILES if base_map[s] != NEUTRAL_TILE_PROFILE),
+                "target_slots": (),
+                "extra_meta": {},
                 "compared_slots": {},
                 "required_active_slot": None,
+                "required_any_slots": (),
                 "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
             }
         )
@@ -561,8 +792,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 {
                     "variant_idx": v_offset,
                     "variant_id": f"{s_ab}:{NEUTRAL_TILE_PROFILE}",
+                    "study_role": "loo",
+                    "study_group_id": s_ab,
+                    "active_slots": tuple(s for s in CANONICAL_30_TILES if gmap[s] != NEUTRAL_TILE_PROFILE),
+                    "target_slots": (s_ab,),
+                    "extra_meta": {},
                     "compared_slots": {s_ab: NEUTRAL_TILE_PROFILE},
                     "required_active_slot": s_ab,
+                    "required_any_slots": (),
                     "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
                 }
             )
@@ -589,8 +826,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 {
                     "variant_idx": v_idx,
                     "variant_id": v_label,
+                    "study_role": "profile_compare",
+                    "study_group_id": v_label,
+                    "active_slots": tuple(s for s in CANONICAL_30_TILES if gmap[s] != NEUTRAL_TILE_PROFILE),
+                    "target_slots": tuple(ordered_comp_slots),
+                    "extra_meta": {},
                     "compared_slots": overrides,
                     "required_active_slot": None,
+                    "required_any_slots": (),
                     "tile_profiles": tuple((s, gmap[s]) for s in CANONICAL_32_SLOTS),
                 }
             )
@@ -599,8 +842,14 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
             {
                 "variant_idx": 0,
                 "variant_id": "BASE",
+                "study_role": "baseline",
+                "study_group_id": "BASE",
+                "active_slots": tuple(s for s in CANONICAL_30_TILES if base_map[s] != NEUTRAL_TILE_PROFILE),
+                "target_slots": (),
+                "extra_meta": {},
                 "compared_slots": {},
                 "required_active_slot": None,
+                "required_any_slots": (),
                 "tile_profiles": tuple((s, base_map[s]) for s in CANONICAL_32_SLOTS),
             }
         )
@@ -619,9 +868,16 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 f"(variantes résolues : {variant_ids})"
             )
     else:
-        reference_variant_id = "BASE" if "BASE" in variant_ids else variant_ids[0]
+        if "BASE" in variant_ids:
+            reference_variant_id = "BASE"
+        elif "ALL_NEUTRE" in variant_ids:
+            reference_variant_id = "ALL_NEUTRE"
+        elif "ALL_ACTIVE" in variant_ids:
+            reference_variant_id = "ALL_ACTIVE"
+        else:
+            reference_variant_id = variant_ids[0]
 
-    # 3. Construction des unités de calcul (cercles de voisinage équilibrés en paires miroirs CRN)
+    # 3. Construction des unités de calcul (197 assises diédrales OU paires miroirs équilibrées)
     base_peuples_raw = base_inst_raw.get("peuples_cercle", [])
     if not isinstance(base_peuples_raw, (list, tuple)):
         raise TypeError("base_instance.peuples_cercle doit être une liste de codes Peuples.")
@@ -642,11 +898,21 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
     if not (0 <= min_animaux <= 3):
         raise ValueError(f"min_animaux_sauvages invalide (attendu 0..3) : {min_animaux}")
 
+    all_197_assises = (
+        enumerate_197_canonical_assises()
+        if table_selection in ("ALL_197_ASSISES", "BENCHMARK_ASSISES")
+        else ()
+    )
+    bench_keys = frozenset(BENCHMARK_ASSISE_KEYS)
+
     units: list[dict[str, Any]] = []
     config_idx = 0
     for b_name in bot_list:
         b_k_max = 0 if b_name == "B0" else explicit_k_max
         for n_pl in player_counts:
+            use_exact_assises = table_selection in ("ALL_197_ASSISES", "BENCHMARK_ASSISES") and len(base_peuples) != n_pl
+            assise_meta_by_tid: dict[str, tuple[str, str]] = {}
+
             if len(base_peuples) == n_pl:
                 mir = mirror_peuples(base_peuples)
                 t1_id = "-".join(base_peuples)
@@ -658,6 +924,30 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     )
                 else:
                     candidate_tables = ((t1_id, base_peuples),)
+            elif use_exact_assises:
+                filtered_assises = [
+                    a
+                    for a in all_197_assises
+                    if a.n_players == n_pl
+                    and sum(1 for p in a.peuples if p in ANIMAUX_SAUVAGES) >= min_animaux
+                    and (table_selection == "ALL_197_ASSISES" or a.key in bench_keys)
+                ]
+                if not filtered_assises and table_selection == "BENCHMARK_ASSISES":
+                    # Assises repères déterministes pour 4J / 5J (absents de BENCHMARK_ASSISE_KEYS 3J/6J)
+                    pool_n = [
+                        a
+                        for a in all_197_assises
+                        if a.n_players == n_pl
+                        and sum(1 for p in a.peuples if p in ANIMAUX_SAUVAGES) >= min_animaux
+                    ]
+                    if pool_n:
+                        picked = [pool_n[0]]
+                        if len(pool_n) > 1:
+                            picked.append(pool_n[-1])
+                        filtered_assises = picked
+                candidate_tables = tuple((a.key, a.peuples) for a in filtered_assises)
+                for a in filtered_assises:
+                    assise_meta_by_tid[a.key] = (a.key, a.composition_key)
             elif table_selection in ("ALL_PEUPLE_COMBOS", "BALANCED_CIRCLES"):
                 candidate_tables = balanced_neighbor_mirror_tables(
                     n_pl,
@@ -666,7 +956,6 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                     exp_seed=exp_seed,
                 )
             else:
-                # DEFAULT : sous-ensemble compact de paires miroirs équilibrées (sans biais M/R ni ordre fixe)
                 candidate_tables = balanced_neighbor_mirror_tables(
                     n_pl,
                     min_animaux_sauvages=min_animaux,
@@ -675,20 +964,27 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                 )
 
             if not candidate_tables:
+                if table_selection == "BENCHMARK_ASSISES":
+                    continue
                 raise ValueError(
                     f"Aucune table légale pour n_players={n_pl} et min_animaux_sauvages={min_animaux}"
                 )
 
             n_tables = len(candidate_tables)
-            base_per_tbl = games_per_cfg // n_tables
-            rem_tbl = games_per_cfg % n_tables
+            if use_exact_assises and reps_per_assise is not None:
+                base_per_tbl = reps_per_assise
+                rem_tbl = 0
+            else:
+                base_per_tbl = games_per_cfg // n_tables
+                rem_tbl = games_per_cfg % n_tables
 
             table_groups: list[tuple[bool, tuple[tuple[int, str, tuple[str, ...]], ...]]] = []
             idx_t = 0
             while idx_t < n_tables:
                 t_id_a, p_a = candidate_tables[idx_t]
                 if (
-                    idx_t + 1 < n_tables
+                    (not use_exact_assises)
+                    and idx_t + 1 < n_tables
                     and mirror_peuples(p_a) == candidate_tables[idx_t + 1][1]
                 ):
                     t_id_b, p_b = candidate_tables[idx_t + 1]
@@ -702,6 +998,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
 
             for var in profile_variants:
                 req_slot = var.get("required_active_slot")
+                req_any_slots: tuple[str, ...] = tuple(var.get("required_any_slots", ()))
                 rep_offset = 0
                 emitted_for_var = False
                 for is_mirror_pair, grp in table_groups:
@@ -710,11 +1007,21 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                         g_cnt = base_per_tbl + (1 if t_i < rem_tbl else 0)
                         if g_cnt <= 0:
                             continue
+                        if b_name == "B3" and b3_reps_cap is not None:
+                            g_cnt_eff = min(g_cnt, b3_reps_cap)
+                        else:
+                            g_cnt_eff = g_cnt
                         max_g_in_grp = max(max_g_in_grp, g_cnt)
-                        if req_slot is not None and req_slot not in _active_slots_for_peuples_tuple(
-                            peuples
-                        ):
+                        tbl_active_slots = _active_slots_for_peuples_tuple(peuples)
+                        if req_slot is not None and req_slot not in tbl_active_slots:
                             continue
+                        if req_any_slots and not (tbl_active_slots & set(req_any_slots)):
+                            continue
+                        if t_id in assise_meta_by_tid:
+                            assise_k, comp_k = assise_meta_by_tid[t_id]
+                        else:
+                            assise_k, _ = canonicalize_dihedral_assise(peuples)
+                            comp_k = f"N{n_pl}-{''.join(p for p in ('H', 'E', 'M', 'R', 'O', 'I') if p in peuples)}"
                         emitted_for_var = True
                         units.append(
                             {
@@ -725,12 +1032,21 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "profil_piste": CANONICAL_PROFIL_PISTE,
                                 "variant_idx": var["variant_idx"],
                                 "variant_id": var["variant_id"],
+                                "study_role": str(var.get("study_role", "baseline")),
+                                "study_group_id": str(var.get("study_group_id", "")),
+                                "active_slots_count": len(var.get("active_slots", ())),
                                 "compared_slots": var["compared_slots"],
                                 "tile_profiles": var["tile_profiles"],
                                 "micro_forks": is_micro_forks,
                                 "fork_selection_rollouts": fork_n_sel,
                                 "fork_eval_rollouts": fork_n_eval,
+                                "fork_families": fork_families,
+                                "include_v64_ockham_audit": include_v64_ockham_audit,
+                                "extract_remarkable_traces": extract_traces_enabled,
+                                "b3_config": dict(b3_config),
                                 "table_id": t_id,
+                                "assise_key": assise_k,
+                                "composition_key": comp_k,
                                 "peuples": peuples,
                                 "n_animaux_sauvages": sum(
                                     1 for p in peuples if p in ANIMAUX_SAUVAGES
@@ -745,7 +1061,7 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
                                 "mode": mode,
                                 "exp_seed": exp_seed,
                                 "rep_start": rep_offset,
-                                "n_games": g_cnt,
+                                "n_games": g_cnt_eff,
                             }
                         )
                     rep_offset += max_g_in_grp
@@ -763,11 +1079,22 @@ def resolve_manifest_plan(manifest: dict[str, Any]) -> dict[str, Any]:
         "reference_variant_id": reference_variant_id,
         "ab_tile_protocol": ab_tile_protocol,
         "ab_slots": tuple(ab_slots),
+        "modular_study_meta": modular_study_meta,
         "tested_tiles": tuple(tested_tiles_set),
         "varying_tiles": tuple(varying_tiles_set),
         "include_full_tile_metrics": include_full_tile_metrics,
+        "include_v64_ockham_audit": include_v64_ockham_audit,
+        "extract_remarkable_traces": {
+            "enabled": extract_traces_enabled,
+            "max_games": extract_traces_max_games,
+            "output_path": extract_traces_path,
+        },
         "micro_forks": is_micro_forks,
+        "fork_families": list(fork_families) if fork_families is not None else list(ALL_V6_4_FORK_FAMILIES),
+        "b3_config": dict(b3_config),
+        "b3_reps_cap": b3_reps_cap,
         "table_selection": table_selection,
+        "reps_per_assise": reps_per_assise,
         "games_per_configuration": games_per_cfg,
         "total_configurations": config_idx,
         "total_games": sum(int(u["n_games"]) for u in units),
@@ -789,6 +1116,13 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     is_micro_forks = bool(unit.get("micro_forks", False))
     fork_n_sel = int(unit.get("fork_selection_rollouts", 3))
     fork_n_eval = int(unit.get("fork_eval_rollouts", 4))
+    raw_ff = unit.get("fork_families")
+    fork_families = tuple(str(f) for f in raw_ff) if raw_ff is not None else None
+    include_v64_ockham = bool(unit.get("include_v64_ockham_audit", False))
+    extract_traces = bool(unit.get("extract_remarkable_traces", False))
+    b3_cfg: dict[str, Any] = dict(unit.get("b3_config") or {})
+    assise_key = str(unit.get("assise_key", ""))
+    composition_key = str(unit.get("composition_key", ""))
     n_animaux = int(
         unit.get("n_animaux_sauvages", sum(1 for p in peuples if p in ANIMAUX_SAUVAGES))
     )
@@ -847,6 +1181,9 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     ok_games_acc: dict[str, int] = {f"games_{k}": 0 for k in OCKHAM_COUNT_FIELDS}
     dil_sum_acc: dict[str, int] = {f"sum_{k}": 0 for k in DILEMMA_CHOICE_FIELDS}
 
+    v64_ockham = V64DecisionAuditRecorder() if include_v64_ockham else None
+    bm_tracker = RemarkableBookmarkTracker() if extract_traces else None
+
     fork_anchors = 0
     fork_anchors_missed = 0
     fork_diverged = 0
@@ -869,12 +1206,32 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
     fork_furt_rs_anchors = 0
     sum_delta_v_furt_rs = 0.0
     sum_sq_delta_v_furt_rs = 0.0
+    fork_furt_sent_anchors = 0
+    sum_delta_v_furt_sent = 0.0
+    sum_sq_delta_v_furt_sent = 0.0
     fork_4_1_piege_anchors = 0
     sum_delta_v_4_1_piege = 0.0
     sum_sq_delta_v_4_1_piege = 0.0
+    fork_6_1_enrac_anchors = 0
+    sum_delta_v_6_1_enrac = 0.0
+    sum_sq_delta_v_6_1_enrac = 0.0
     fork_eveil_anchors = 0
     sum_delta_v_eveil_vs_survival = 0.0
     sum_sq_delta_v_eveil_vs_survival = 0.0
+    fork_2_2_gpari_anchors = 0
+    sum_delta_v_2_2_gpari = 0.0
+    sum_sq_delta_v_2_2_gpari = 0.0
+    fork_2_1_chaman_anchors = 0
+    sum_delta_v_2_1_chaman_chosen = 0.0
+    sum_sq_delta_v_2_1_chaman_chosen = 0.0
+    sum_delta_v_2_1_chaman_tmc = 0.0
+    sum_sq_delta_v_2_1_chaman_tmc = 0.0
+    fork_alteration_anchors = 0
+    sum_delta_v_alteration = 0.0
+    sum_sq_delta_v_alteration = 0.0
+    fork_3_1_gicon_anchors = 0
+    sum_delta_v_3_1_gicon = 0.0
+    sum_sq_delta_v_3_1_gicon = 0.0
 
     for i in range(n_games):
         rep_id = rep_start + i
@@ -891,13 +1248,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
 
         if is_micro_forks:
             anchor_tour = 2 if (i % 2 == 0) else 3
-            cf = run_v6_1_causal_forks_on_config(
+            cf = run_v6_4_causal_forks_on_config(
                 cfg,
                 target_tour=anchor_tour,
                 is_b2=(bot_name != "B1"),
                 n_selection_rollouts=fork_n_sel,
                 n_eval_rollouts=fork_n_eval,
                 k_max_future=max(1, k_max),
+                fork_families=fork_families,
             )
             if cf.mf_2_2 is None:
                 fork_anchors_missed += 1
@@ -928,27 +1286,64 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
                 fork_furt_rs_anchors += 1
                 sum_delta_v_furt_rs += cf.delta_v_furt_rive_sabotage
                 sum_sq_delta_v_furt_rs += cf.delta_v_furt_rive_sabotage ** 2
+            if cf.has_furt_sentinelle_fork:
+                fork_furt_sent_anchors += 1
+                sum_delta_v_furt_sent += cf.delta_v_furt_sentinelle
+                sum_sq_delta_v_furt_sent += cf.delta_v_furt_sentinelle ** 2
             if cf.has_4_1_piege_fork:
                 fork_4_1_piege_anchors += 1
                 sum_delta_v_4_1_piege += cf.delta_v_4_1_pose_piege
                 sum_sq_delta_v_4_1_piege += cf.delta_v_4_1_pose_piege ** 2
+            if cf.has_6_1_enracinement_fork:
+                fork_6_1_enrac_anchors += 1
+                sum_delta_v_6_1_enrac += cf.delta_v_6_1_enracinement
+                sum_sq_delta_v_6_1_enrac += cf.delta_v_6_1_enracinement ** 2
             if cf.has_eveil_fork:
                 fork_eveil_anchors += 1
                 sum_delta_v_eveil_vs_survival += cf.delta_v_eveil_vs_survival
                 sum_sq_delta_v_eveil_vs_survival += cf.delta_v_eveil_vs_survival ** 2
+            if cf.has_2_2_gardien_pari_fork:
+                fork_2_2_gpari_anchors += 1
+                sum_delta_v_2_2_gpari += cf.delta_v_2_2_gardien_pari
+                sum_sq_delta_v_2_2_gpari += cf.delta_v_2_2_gardien_pari ** 2
+            if cf.has_2_1_chaman_fork:
+                fork_2_1_chaman_anchors += 1
+                sum_delta_v_2_1_chaman_chosen += cf.delta_v_2_1_chaman_chosen_vs_alt
+                sum_sq_delta_v_2_1_chaman_chosen += cf.delta_v_2_1_chaman_chosen_vs_alt ** 2
+                sum_delta_v_2_1_chaman_tmc += cf.delta_v_2_1_chaman_tambour_minus_chant
+                sum_sq_delta_v_2_1_chaman_tmc += cf.delta_v_2_1_chaman_tambour_minus_chant ** 2
+            if cf.has_alteration_fork:
+                fork_alteration_anchors += 1
+                sum_delta_v_alteration += cf.delta_v_alteration
+                sum_sq_delta_v_alteration += cf.delta_v_alteration ** 2
+            if cf.has_3_1_gardien_icone_fork:
+                fork_3_1_gicon_anchors += 1
+                sum_delta_v_3_1_gicon += cf.delta_v_3_1_gardien_icone
+                sum_sq_delta_v_3_1_gicon += cf.delta_v_3_1_gardien_icone ** 2
 
         trk = TelemetryTracker()
         st = GameState(cfg)
         if bot_name == "B0":
-            res = play_game_b0(st, max_steps=2000, telemetry=trk)
+            res = play_game_b0(st, max_steps=2000, telemetry=trk, on_decision=v64_ockham)
         elif bot_name == "B1":
-            res = play_game_b1(st, k_max_passes=k_max, max_steps=2000, telemetry=trk)
+            res = play_game_b1(st, k_max_passes=k_max, max_steps=2000, telemetry=trk, on_decision=v64_ockham)
         elif bot_name == "B2_OPEN":
-            res = play_game_b2_open(st, k_max_passes=k_max, max_steps=2000, telemetry=trk)
+            res = play_game_b2_open(
+                st, k_max_passes=k_max, max_steps=2000, telemetry=trk, on_decision=v64_ockham
+            )
         elif bot_name == "B3":
-            res = play_game_b3(st, k_max_passes=max(1, k_max), max_steps=2000, telemetry=trk)
+            res = play_game_b3(
+                st,
+                k_max_passes=max(1, k_max),
+                max_steps=2000,
+                telemetry=trk,
+                on_decision=v64_ockham,
+                **b3_cfg,
+            )
         else:
-            res = play_game_b2(st, k_max_passes=k_max, max_steps=2000, telemetry=trk)
+            res = play_game_b2(
+                st, k_max_passes=k_max, max_steps=2000, telemetry=trk, on_decision=v64_ockham
+            )
 
         rt = float(res.ratio_arbres)
         tf = int(res.tour_fin)
@@ -975,6 +1370,16 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
             cnt_reveil += 1
 
         ts = trk.summary()
+        if bm_tracker is not None:
+            bm_tracker.observe(
+                cfg=cfg,
+                res=res,
+                bot=bot_name,
+                variant_id=str(unit["variant_id"]),
+                chassis_id=int(unit["config_id"]),
+                cascade_max=int(ts.cascade_sweeps),
+                assise_key=assise_key,
+            )
         for slot_act, cnt_act in ts.tile_activations:
             tile_act_acc[slot_act] = tile_act_acc.get(slot_act, 0) + int(cnt_act)
         cnt_reveil_attempts += int(ts.reveil_attempts)
@@ -1029,11 +1434,16 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "p_max": CANONICAL_P_MAX,
         "variant_idx": int(unit["variant_idx"]),
         "variant_id": str(unit["variant_id"]),
+        "study_role": str(unit.get("study_role", "baseline")),
+        "study_group_id": str(unit.get("study_group_id", "")),
+        "active_slots_count": int(unit.get("active_slots_count", 30 if mode >= 3 else 0)),
         "compared_slots_json": json.dumps(unit["compared_slots"], sort_keys=True, ensure_ascii=False),
         "ratio_bp_counts_json": json.dumps(ratio_bp_counts, sort_keys=True),
         "rep_ratios_bp_json": json.dumps(rep_ratios_bp, separators=(",", ":")),
         "tile_activations_json": json.dumps(tile_act_acc, sort_keys=True, separators=(",", ":")),
         "table_id": str(unit["table_id"]),
+        "assise_key": assise_key,
+        "composition_key": composition_key,
         "peuples": "-".join(peuples),
         "n_animaux_sauvages": n_animaux,
         "has_insectes": has_insectes,
@@ -1093,6 +1503,14 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
         "sum_mid_combat": sum_mid_combat,
         "cell_wall_sec": round(wall_sec, 4),
     }
+    if v64_ockham is not None:
+        out_row["v64_dilemmas_json"] = json.dumps(
+            v64_ockham.to_compact_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        )
+    if bm_tracker is not None:
+        out_row["remarkable_bookmarks_json"] = json.dumps(
+            bm_tracker.to_json_list(), separators=(",", ":"), ensure_ascii=False
+        )
     if is_micro_forks:
         out_row.update(
             {
@@ -1118,12 +1536,32 @@ def _execute_manifest_unit(unit: dict[str, Any]) -> dict[str, Any]:
                 "fork_furt_rs_anchors": fork_furt_rs_anchors,
                 "sum_delta_v_furt_rs": round(sum_delta_v_furt_rs, 6),
                 "sum_sq_delta_v_furt_rs": round(sum_sq_delta_v_furt_rs, 6),
+                "fork_furt_sent_anchors": fork_furt_sent_anchors,
+                "sum_delta_v_furt_sent": round(sum_delta_v_furt_sent, 6),
+                "sum_sq_delta_v_furt_sent": round(sum_sq_delta_v_furt_sent, 6),
                 "fork_4_1_piege_anchors": fork_4_1_piege_anchors,
                 "sum_delta_v_4_1_piege": round(sum_delta_v_4_1_piege, 6),
                 "sum_sq_delta_v_4_1_piege": round(sum_sq_delta_v_4_1_piege, 6),
+                "fork_6_1_enrac_anchors": fork_6_1_enrac_anchors,
+                "sum_delta_v_6_1_enrac": round(sum_delta_v_6_1_enrac, 6),
+                "sum_sq_delta_v_6_1_enrac": round(sum_sq_delta_v_6_1_enrac, 6),
                 "fork_eveil_anchors": fork_eveil_anchors,
                 "sum_delta_v_eveil_vs_survival": round(sum_delta_v_eveil_vs_survival, 6),
                 "sum_sq_delta_v_eveil_vs_survival": round(sum_sq_delta_v_eveil_vs_survival, 6),
+                "fork_2_2_gpari_anchors": fork_2_2_gpari_anchors,
+                "sum_delta_v_2_2_gpari": round(sum_delta_v_2_2_gpari, 6),
+                "sum_sq_delta_v_2_2_gpari": round(sum_sq_delta_v_2_2_gpari, 6),
+                "fork_2_1_chaman_anchors": fork_2_1_chaman_anchors,
+                "sum_delta_v_2_1_chaman_chosen": round(sum_delta_v_2_1_chaman_chosen, 6),
+                "sum_sq_delta_v_2_1_chaman_chosen": round(sum_sq_delta_v_2_1_chaman_chosen, 6),
+                "sum_delta_v_2_1_chaman_tmc": round(sum_delta_v_2_1_chaman_tmc, 6),
+                "sum_sq_delta_v_2_1_chaman_tmc": round(sum_sq_delta_v_2_1_chaman_tmc, 6),
+                "fork_alteration_anchors": fork_alteration_anchors,
+                "sum_delta_v_alteration": round(sum_delta_v_alteration, 6),
+                "sum_sq_delta_v_alteration": round(sum_sq_delta_v_alteration, 6),
+                "fork_3_1_gicon_anchors": fork_3_1_gicon_anchors,
+                "sum_delta_v_3_1_gicon": round(sum_delta_v_3_1_gicon, 6),
+                "sum_sq_delta_v_3_1_gicon": round(sum_sq_delta_v_3_1_gicon, 6),
             }
         )
     out_row.update(def_attr_acc)
@@ -1146,6 +1584,67 @@ def _load_manifest_from_source(source: str) -> dict[str, Any]:
     return dict(json.loads(Path(source).read_text(encoding="utf-8")))
 
 
+def _unit_checkpoint_key(item: dict[str, Any]) -> tuple[int, str, str, str, int]:
+    """Clé déterministe d'identification d'une unité de simulation pour la reprise Spot sans doublon."""
+    return (
+        int(item["config_id"]),
+        str(item["variant_id"]),
+        str(item["table_id"]),
+        str(item["bot"]),
+        int(item["rep_start"]),
+    )
+
+
+def _save_checkpoint_records(
+    records: list[dict[str, Any]],
+    *,
+    local_ckpt_path: Path | None,
+    gcs_ckpt_object: str | None,
+) -> None:
+    if not records:
+        return
+    raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
+    compressed = gzip.compress(raw_jsonl)
+    if local_ckpt_path is not None:
+        local_ckpt_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_p = local_ckpt_path.with_suffix(".tmp")
+        tmp_p.write_bytes(compressed)
+        tmp_p.replace(local_ckpt_path)
+    elif gcs_ckpt_object is not None:
+        token = _fetch_gcp_access_token()
+        _upload_gcs_bytes(BUCKET_NAME, gcs_ckpt_object, compressed, token)
+
+
+def _load_checkpoint_records(
+    *,
+    local_ckpt_path: Path | None,
+    gcs_ckpt_object: str | None,
+) -> list[dict[str, Any]]:
+    raw_bytes: bytes | None = None
+    if local_ckpt_path is not None:
+        if local_ckpt_path.is_file():
+            raw_bytes = local_ckpt_path.read_bytes()
+    elif gcs_ckpt_object is not None:
+        try:
+            token = _fetch_gcp_access_token()
+            if _gcs_object_exists(BUCKET_NAME, gcs_ckpt_object, token):
+                raw_bytes = _download_gcs_bytes(BUCKET_NAME, gcs_ckpt_object, token)
+        except (OSError, ValueError, RuntimeError, urllib.error.URLError):
+            return []
+    if not raw_bytes:
+        return []
+    out: list[dict[str, Any]] = []
+    try:
+        text = gzip.decompress(raw_bytes).decode("utf-8")
+        for line in text.splitlines():
+            s = line.strip()
+            if s:
+                out.append(dict(json.loads(s)))
+    except (OSError, ValueError, TypeError):
+        return []
+    return out
+
+
 def run_campaign_manifest(
     *,
     manifest_source: str,
@@ -1154,34 +1653,175 @@ def run_campaign_manifest(
     task_count: int | None = None,
     workers: int | None = None,
     local_out_dir: str | None = None,
+    task_indices: tuple[int, ...] | None = None,
+    total_tasks: int | None = None,
+    skip_existing_shards: bool = False,
+    checkpoint_every: int = 20,
 ) -> int:
-    """Exécute un manifeste JSON `campaigns/<nom>.json` sur Cloud Run Jobs / Cloud Batch ou en local."""
-    t_idx = (
+    """Exécute un manifeste JSON `campaigns/<nom>.json` sur Cloud Batch Spot / Cloud Run ou en local.
+
+    Supporte la résilience Spot complète :
+    - `--task-indices` + `--total-tasks` : reprise ciblée des shards manquants par vagues,
+    - `--skip-existing-shards` : ignore instantanément un shard déjà écrit en GCS/local,
+    - `--checkpoint-every` + gestionnaire `SIGTERM` : sauvegarde incrémentale & reprise sans perte.
+    """
+    phys_idx = (
         task_index
         if task_index is not None
         else int(os.environ.get("CLOUD_RUN_TASK_INDEX", os.environ.get("BATCH_TASK_INDEX", "0")))
     )
-    t_cnt = (
+    phys_cnt = (
         task_count
         if task_count is not None
         else int(os.environ.get("CLOUD_RUN_TASK_COUNT", os.environ.get("BATCH_TASK_COUNT", "1")))
     )
+    if task_indices is not None:
+        if not (0 <= phys_idx < len(task_indices)):
+            print(
+                json.dumps(
+                    {
+                        "status": "CAMPAIGN_MANIFEST_SHARD_OUT_OF_RANGE",
+                        "phys_idx": phys_idx,
+                        "n_indices": len(task_indices),
+                    },
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
+            return 0
+        t_idx = int(task_indices[phys_idx])
+        t_cnt = int(total_tasks) if total_tasks is not None else max(phys_cnt, max(task_indices) + 1)
+    else:
+        t_idx = phys_idx
+        t_cnt = int(total_tasks) if total_tasks is not None else phys_cnt
+
     manifest = _load_manifest_from_source(manifest_source)
     plan = resolve_manifest_plan(manifest)
     campaign_name = str(plan["campaign_name"])
     prefix = gcs_prefix if gcs_prefix else f"campaigns/{campaign_name}"
 
+    shard_filename = f"shard_{t_idx:02d}.jsonl.gz"
+    local_shard_path = (Path(local_out_dir) / shard_filename) if local_out_dir is not None else None
+    gcs_shard_obj = None if local_out_dir is not None else f"{prefix.rstrip('/')}/{shard_filename}"
+    local_ckpt_path = (
+        (Path(local_out_dir) / "checkpoints" / f"ckpt_{t_idx:02d}.jsonl.gz")
+        if local_out_dir is not None
+        else None
+    )
+    gcs_ckpt_obj = (
+        None
+        if local_out_dir is not None
+        else f"{prefix.rstrip('/')}/checkpoints/ckpt_{t_idx:02d}.jsonl.gz"
+    )
+
+    if skip_existing_shards:
+        already_done = False
+        if local_shard_path is not None:
+            already_done = local_shard_path.is_file() and local_shard_path.stat().st_size > 0
+        elif gcs_shard_obj is not None:
+            token_chk = _fetch_gcp_access_token()
+            already_done = _gcs_object_exists(BUCKET_NAME, gcs_shard_obj, token_chk)
+        if already_done:
+            print(
+                json.dumps(
+                    {
+                        "status": "CAMPAIGN_MANIFEST_SHARD_SKIPPED_EXISTING",
+                        "campaign": campaign_name,
+                        "task_index": t_idx,
+                        "task_count": t_cnt,
+                        "shard": shard_filename,
+                    },
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
+            return 0
+
     all_units: list[dict[str, Any]] = list(plan["units"])
     my_units = [u for i, u in enumerate(all_units) if i % t_cnt == t_idx]
     n_procs = workers if workers is not None else max(1, os.cpu_count() or 1)
 
-    t0 = time.perf_counter()
-    if n_procs > 1 and len(my_units) > 1:
-        with multiprocessing.Pool(processes=min(n_procs, len(my_units))) as pool:
-            records = pool.map(_execute_manifest_unit, my_units)
-    else:
-        records = [_execute_manifest_unit(u) for u in my_units]
+    # Reprise depuis checkpoint éventuel (préemption Spot précédente)
+    records: list[dict[str, Any]] = []
+    done_keys: set[tuple[int, str, str, str, int]] = set()
+    if checkpoint_every > 0:
+        prev_recs = _load_checkpoint_records(
+            local_ckpt_path=local_ckpt_path,
+            gcs_ckpt_object=gcs_ckpt_obj,
+        )
+        for pr in prev_recs:
+            k_pr = _unit_checkpoint_key(pr)
+            if k_pr not in done_keys:
+                done_keys.add(k_pr)
+                records.append(pr)
 
+    remaining_units = [u for u in my_units if _unit_checkpoint_key(u) not in done_keys]
+
+    preempted = False
+    prev_sigterm = None
+
+    def _on_sigterm(_signum: int, _frame: Any) -> None:
+        nonlocal preempted
+        preempted = True
+
+    try:
+        prev_sigterm = signal.signal(signal.SIGTERM, _on_sigterm)
+    except (ValueError, OSError, AttributeError):
+        prev_sigterm = None
+
+    t0 = time.perf_counter()
+    new_since_ckpt = 0
+    try:
+        if n_procs > 1 and len(remaining_units) > 1:
+            with multiprocessing.Pool(processes=min(n_procs, len(remaining_units))) as pool:
+                for rec in pool.imap_unordered(_execute_manifest_unit, remaining_units):
+                    records.append(rec)
+                    new_since_ckpt += 1
+                    if checkpoint_every > 0 and new_since_ckpt >= checkpoint_every:
+                        _save_checkpoint_records(
+                            records, local_ckpt_path=local_ckpt_path, gcs_ckpt_object=gcs_ckpt_obj
+                        )
+                        new_since_ckpt = 0
+                    if preempted:
+                        pool.terminate()
+                        break
+        else:
+            for u in remaining_units:
+                if preempted:
+                    break
+                records.append(_execute_manifest_unit(u))
+                new_since_ckpt += 1
+                if checkpoint_every > 0 and new_since_ckpt >= checkpoint_every:
+                    _save_checkpoint_records(
+                        records, local_ckpt_path=local_ckpt_path, gcs_ckpt_object=gcs_ckpt_obj
+                    )
+                    new_since_ckpt = 0
+    finally:
+        if prev_sigterm is not None:
+            with contextlib.suppress(ValueError, OSError, AttributeError):
+                signal.signal(signal.SIGTERM, prev_sigterm)
+
+    if preempted:
+        _save_checkpoint_records(
+            records, local_ckpt_path=local_ckpt_path, gcs_ckpt_object=gcs_ckpt_obj
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "CAMPAIGN_MANIFEST_SHARD_PREEMPTED_CHECKPOINTED",
+                    "campaign": campaign_name,
+                    "task_index": t_idx,
+                    "completed_units": len(records),
+                    "total_units": len(my_units),
+                },
+                ensure_ascii=False,
+            ),
+            flush=True,
+        )
+        return 143
+
+    # Tri déterministe des enregistrements pour reproductibilité exacte même avec imap_unordered/reprise
+    records.sort(key=_unit_checkpoint_key)
     wall_sec = time.perf_counter() - t0
     task_games = sum(int(r["n_games"]) for r in records)
     task_gps = task_games / wall_sec if wall_sec > 0 else 0.0
@@ -1195,7 +1835,6 @@ def run_campaign_manifest(
         rec["task_games_per_sec"] = round(task_gps, 2)
         rec["python_impl"] = platform.python_implementation()
 
-    shard_filename = f"shard_{t_idx:02d}.jsonl.gz"
     if not records:
         print(
             json.dumps(
@@ -1214,15 +1853,19 @@ def run_campaign_manifest(
     raw_jsonl = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in records).encode("utf-8")
     compressed = gzip.compress(raw_jsonl)
 
-    if local_out_dir is not None:
-        out_path = Path(local_out_dir) / shard_filename
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_bytes(compressed)
-        dest_uri = str(out_path)
+    if local_shard_path is not None:
+        local_shard_path.parent.mkdir(parents=True, exist_ok=True)
+        local_shard_path.write_bytes(compressed)
+        if local_ckpt_path is not None and local_ckpt_path.is_file():
+            try:
+                local_ckpt_path.unlink()
+            except OSError:
+                pass
+        dest_uri = str(local_shard_path)
     else:
-        object_name = f"{prefix.rstrip('/')}/{shard_filename}"
+        assert gcs_shard_obj is not None
         token = _fetch_gcp_access_token()
-        _upload_gcs_bytes(BUCKET_NAME, object_name, compressed, token)
+        _upload_gcs_bytes(BUCKET_NAME, gcs_shard_obj, compressed, token)
         if t_idx == 0:
             _upload_worker_mobile_latest_html(
                 campaign_name,
@@ -1230,7 +1873,7 @@ def run_campaign_manifest(
                 tested_tiles=tuple(plan["tested_tiles"]),
                 token=token,
             )
-        dest_uri = f"gs://{BUCKET_NAME}/{object_name}"
+        dest_uri = f"gs://{BUCKET_NAME}/{gcs_shard_obj}"
 
     print(
         json.dumps(
@@ -1241,6 +1884,7 @@ def run_campaign_manifest(
                 "task_count": t_cnt,
                 "workers": n_procs,
                 "units": len(my_units),
+                "resumed_units": len(done_keys),
                 "games": task_games,
                 "wall_sec": round(wall_sec, 3),
                 "games_per_sec": round(task_gps, 1),
@@ -1254,7 +1898,7 @@ def run_campaign_manifest(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Amazonia Sim Lab PyPy Worker (Socle v6.1 & Mode 4)")
+    parser = argparse.ArgumentParser(description="Amazonia Sim Lab PyPy Worker (Socle v6.4 & Études Modulaires)")
     parser.add_argument(
         "--smoke-test",
         action="store_true",
@@ -1274,6 +1918,29 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--task-index", type=int, default=None)
     parser.add_argument("--task-count", type=int, default=None)
+    parser.add_argument(
+        "--task-indices",
+        type=str,
+        default=None,
+        help="Liste d'indices de shards logiques séparés par virgules (reprise Spot par vagues).",
+    )
+    parser.add_argument(
+        "--total-tasks",
+        type=int,
+        default=None,
+        help="Nombre total de shards logiques du run (pour --task-indices).",
+    )
+    parser.add_argument(
+        "--skip-existing-shards",
+        action="store_true",
+        help="Ignore le shard si le fichier final existe déjà.",
+    )
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=20,
+        help="Fréquence (en unités terminées) de sauvegarde du checkpoint Spot (0 = désactivé).",
+    )
     parser.add_argument("--workers", type=int, default=None)
     parser.add_argument("--local-out-dir", type=str, default=None)
 
@@ -1281,6 +1948,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.smoke_test:
         return run_smoke_test()
     if args.campaign_manifest:
+        parsed_indices: tuple[int, ...] | None = None
+        if args.task_indices:
+            parsed_indices = tuple(
+                int(tok.strip()) for tok in str(args.task_indices).split(",") if tok.strip()
+            )
         return run_campaign_manifest(
             manifest_source=args.campaign_manifest,
             gcs_prefix=args.gcs_prefix,
@@ -1288,6 +1960,10 @@ def main(argv: list[str] | None = None) -> int:
             task_count=args.task_count,
             workers=args.workers,
             local_out_dir=args.local_out_dir,
+            task_indices=parsed_indices,
+            total_tasks=args.total_tasks,
+            skip_existing_shards=bool(args.skip_existing_shards),
+            checkpoint_every=max(0, int(args.checkpoint_every)),
         )
     parser.print_help()
     return 1

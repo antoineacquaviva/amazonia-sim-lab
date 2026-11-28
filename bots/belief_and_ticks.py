@@ -8,6 +8,11 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from engine.core_engine import (
+    DEC_HUMAIN_CHAMAN_2_1,
+    DEC_MAMMIFERE_DUEL_2,
+    DEC_OISEAU_PLUME_2,
+    DEC_POSE_DEFENSEUR_1,
+    DEC_POSE_DEFENSEUR_2,
     advance_step2_to_2_2,
     apply_mammifere_duel_choice,
     apply_oiseau_plume_choice,
@@ -17,11 +22,15 @@ from engine.core_engine import (
     finish_step2_to_3_1,
     list_legal_targets,
 )
+from engine.primitives import DecisionRequest
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
     CANONICAL_DOTATION,
     CARD_ECAILLE,
     CARD_SABOTAGE,
+    CHAMAN_CHANT,
+    CHAMAN_NONE,
+    CHAMAN_TAMBOUR,
     DUEL_TERRITOIRE_TENU,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
@@ -54,10 +63,13 @@ from engine.state import (
 
 __all__ = (
     "BeliefSummary",
+    "DecisionCallback",
     "TargetFilter",
     "TargetScorer",
+    "any_tile_text_active",
     "build_belief_summary",
     "compute_private_urgency",
+    "is_tile_text_active",
     "order_seats_by_tick_and_urgency",
     "resolve_step2_2_from_state",
     "resolve_step2_full_with_ticks",
@@ -76,6 +88,22 @@ _MIN_2D6_PROBS: tuple[float, ...] = (
 
 TargetScorer = Callable[[PlayerObservation, GameConfig, "BeliefSummary", tuple[Any, ...], bool], float]
 TargetFilter = Callable[[tuple[Any, ...], bool], bool]
+DecisionCallback = Callable[[GameState, DecisionRequest, Any], None]
+
+
+def is_tile_text_active(cfg: GameConfig, tile_id: str | None) -> bool:
+    """Vrai si `tile_id` a son pouvoir texte actif (Mode >= 3 et profil non `NEUTRE`)."""
+    if cfg.mode < 3 or not tile_id:
+        return False
+    return cfg.profile_for_slot(tile_id) is not None
+
+
+def any_tile_text_active(cfg: GameConfig, tile_ids: tuple[str, ...] | None = None) -> bool:
+    """Vrai si au moins une tuile en jeu (`cfg.lisiere_slots` ou `tile_ids`) possède un texte actif."""
+    if cfg.mode < 3:
+        return False
+    slots = tile_ids if tile_ids is not None else cfg.lisiere_slots
+    return any(cfg.profile_for_slot(tid) is not None for tid in slots)
 
 
 @runtime_checkable
@@ -798,6 +826,8 @@ def _apply_step2_tick_accessories(
     target: tuple[Any, ...],
     obs: PlayerObservation,
     belief: BeliefSummary,
+    *,
+    on_decision: DecisionCallback | None = None,
 ) -> None:
     """Active les accessoires Step 2 (M Duel DEFI, O Plume de Vigie) de manière isolée sur `obs`."""
     cfg = state.cfg
@@ -808,15 +838,45 @@ def _apply_step2_tick_accessories(
         r_m, p_m = int(target[1]), int(target[2])
         if obs.duel_state != DUEL_TERRITOIRE_TENU and not obs.is_route(r_m, p_m):
             idx_m = r_m * MAX_P + (p_m - 1)
-            if belief.parcel_strike_prob[idx_m] >= 0.15 or obs.duel_state == 0:
+            chose_duel = belief.parcel_strike_prob[idx_m] >= 0.15 or obs.duel_state == 0
+            if on_decision is not None:
+                on_decision(
+                    state,
+                    DecisionRequest(
+                        seat,
+                        DEC_MAMMIFERE_DUEL_2,
+                        ("POSER_DUEL_DEFI", "PASSER"),
+                        {"tour": state.tour, "ray": r_m, "p": p_m},
+                    ),
+                    "POSER_DUEL_DEFI" if chose_duel else "PASSER",
+                )
+            if chose_duel:
                 apply_mammifere_duel_choice(state, True, r_m, p_m)
     elif p_code == "O" and not obs.oiseau_plume[3]:
         own_h = obs.hand_of(seat)
+        plume_choice: Any = "PASSER"
         if own_h.card is not None and 1 <= own_h.card <= 2 * obs.n_players:
             r_o, _ = unpack_machine_card(own_h.card)
-            apply_oiseau_plume_choice(state, (PLUME_CHAUD, PLUME_KIND_RAY, r_o))
+            plume_choice = (PLUME_CHAUD, PLUME_KIND_RAY, r_o)
         elif (not own_h.has_card) or own_h.card in (CARD_SABOTAGE, CARD_ECAILLE):
-            apply_oiseau_plume_choice(state, (PLUME_CALME, PLUME_KIND_RAY, seat))
+            plume_choice = (PLUME_CALME, PLUME_KIND_RAY, seat)
+        if on_decision is not None:
+            on_decision(
+                state,
+                DecisionRequest(
+                    seat,
+                    DEC_OISEAU_PLUME_2,
+                    (
+                        (PLUME_CHAUD, PLUME_KIND_RAY, seat),
+                        (PLUME_CALME, PLUME_KIND_RAY, seat),
+                        "PASSER",
+                    ),
+                    {"tour": state.tour},
+                ),
+                plume_choice,
+            )
+        if plume_choice != "PASSER":
+            apply_oiseau_plume_choice(state, plume_choice)
 
 
 def resolve_step2_2_from_state(
@@ -830,6 +890,7 @@ def resolve_step2_2_from_state(
     target_filter: TargetFilter | None = None,
     post_revision_hook: Callable[[GameState], int] | None = None,
     telemetry: Any | None = None,
+    on_decision: DecisionCallback | None = None,
 ) -> dict[str, int]:
     """Résout l'Étape 2.2 (pose initiale Ticks 1..3 + jusqu'à K_max passes de révision muette).
 
@@ -875,6 +936,17 @@ def resolve_step2_2_from_state(
                 fallback_if_empty=True,
             )
             if not legal_2:
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            (("POSER_DEFINITIF", ("PASSER_IMPASSE",)),),
+                            {"tour": state.tour, "step": "2.2", "phase": "init"},
+                        ),
+                        ("POSER_DEFINITIF", ("PASSER_IMPASSE",)),
+                    )
                 apply_step2_def2(
                     state,
                     s,
@@ -893,10 +965,23 @@ def resolve_step2_2_from_state(
                     sous_etape_salt=220 + current_tick,
                 )
                 act_kind = "POSER_REFLEXION" if max_passes > 0 else "POSER_DEFINITIF"
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            tuple((act_kind, t) for t in legal_2),
+                            {"tour": state.tour, "step": "2.2", "phase": "init"},
+                        ),
+                        (act_kind, target_2),
+                    )
                 apply_step2_def2(
                     state, s, (act_kind, target_2), check_legal=False, telemetry=telemetry
                 )
-                _apply_step2_tick_accessories(state, s, target_2, obs_s, bel_s)
+                _apply_step2_tick_accessories(
+                    state, s, target_2, obs_s, bel_s, on_decision=on_decision
+                )
             remaining.remove(s)
 
     # 2. Passes de révision 1..max_passes par gain marginal Delta_V_i > epsilon_r
@@ -965,6 +1050,17 @@ def resolve_step2_2_from_state(
                 sous_etape_salt=230 + pass_idx,
             )
             if best_alt_val - cur_val > eps_r:
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            tuple(("DEPLACER_REFLEXION", t) for t in legal_alt),
+                            {"tour": state.tour, "step": "2.2", "phase": "revision", "pass": pass_idx},
+                        ),
+                        ("DEPLACER_REFLEXION", best_alt),
+                    )
                 moved = apply_step2_def2(
                     state,
                     s,
@@ -973,7 +1069,9 @@ def resolve_step2_2_from_state(
                     telemetry=telemetry,
                 )
                 if moved:
-                    _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
+                    _apply_step2_tick_accessories(
+                        state, s, best_alt, obs_s, bel_s, on_decision=on_decision
+                    )
                     moved_in_pass += 1
                     total_rev_moves += 1
             else:
@@ -988,8 +1086,8 @@ def resolve_step2_2_from_state(
     # 3. Retrait propre en fin de passes « en réflexion » si un Réveil n'a pas atteint son quota Q
     #    (évite les Défenseurs orphelins inutiles, strictement sur observation publique PlayerObservation)
     # 3a. Retrait propre en fin de passes « en réflexion » pour le Pari d'activation des Gardiens :
-    #     en Mode 2 (Gardiens neutres), si l'équipe n'a pas réuni les N 2es Défenseurs sur la piste
-    #     (ou si on est au Tour 8), un pari isolé risque de renvoyer un Gardien en lisière sans gain :
+    #     sur tout Gardien sans texte actif (Mode 2 ou slot NEUTRE en Mode 3/4), un 2e pion ou un pari
+    #     sur un Gardien déjà Face 2 (ou au Tour 8) n'apporte aucun gain et risque l'échec :
     #     tout 2e Défenseur encore en réflexion se replie vers la meilleure cible hors GARDIEN_PARI.
     if max_passes > 0 and cfg.mode >= 2 and cfg.nb_animaux_sauvages >= 1:
         for s in range(n):
@@ -1002,8 +1100,9 @@ def resolve_step2_2_from_state(
             if pari_c <= 0:
                 continue
             need_gard_retreat = False
-            if cfg.mode == 2:
-                # En Mode 2 v6.4 (Éveil cumulatif A+1 Face 2, Tours 1..7) :
+            g_slot_c = obs_s.piste_gardiens[pari_c - 1]
+            if not is_tile_text_active(cfg, g_slot_c.tile_id):
+                # Gardien neutre (Mode 2 ou NEUTRE en Mode 3/4, Éveil cumulatif A+1 Face 2, Tours 1..7) :
                 # parier 1 pion sur un Gardien Face 1 le promeut vers Face 2 ; un 2e pion ou un pari
                 # sur un Gardien déjà Face 2 (ou au Tour 8) n'apporte aucun gain et risque l'échec.
                 g_face_c = obs_s.gardien_face_at_case(pari_c)
@@ -1048,6 +1147,17 @@ def resolve_step2_2_from_state(
                         is_first_defender=False,
                         sous_etape_salt=249,
                     )
+                    if on_decision is not None:
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_2,
+                                tuple(("DEPLACER_REFLEXION", t) for t in legal_non_pari),
+                                {"tour": state.tour, "step": "2.2", "phase": "retreat_gardien"},
+                            ),
+                            ("DEPLACER_REFLEXION", fallback_t),
+                        )
                     moved = apply_step2_def2(
                         state,
                         s,
@@ -1056,7 +1166,9 @@ def resolve_step2_2_from_state(
                         telemetry=telemetry,
                     )
                     if moved:
-                        _apply_step2_tick_accessories(state, s, fallback_t, obs_s, bel_s)
+                        _apply_step2_tick_accessories(
+                            state, s, fallback_t, obs_s, bel_s, on_decision=on_decision
+                        )
                         total_rev_moves += 1
 
     # 3b. Retrait propre en fin de passes « en réflexion » des Défenseurs restés seuls (1/2) sur un
@@ -1120,6 +1232,17 @@ def resolve_step2_2_from_state(
                     sous_etape_salt=253,
                 )
                 if fallback_sc - cur_sc_o > epsilon_base:
+                    if on_decision is not None:
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_2,
+                                tuple(("DEPLACER_REFLEXION", t) for t in legal_viable),
+                                {"tour": state.tour, "step": "2.2", "phase": "retreat_orphan"},
+                            ),
+                            ("DEPLACER_REFLEXION", fallback_t),
+                        )
                     moved = apply_step2_def2(
                         state,
                         s,
@@ -1128,7 +1251,9 @@ def resolve_step2_2_from_state(
                         telemetry=telemetry,
                     )
                     if moved:
-                        _apply_step2_tick_accessories(state, s, fallback_t, obs_s, bel_s)
+                        _apply_step2_tick_accessories(
+                            state, s, fallback_t, obs_s, bel_s, on_decision=on_decision
+                        )
                         total_rev_moves += 1
 
     if post_revision_hook is not None and max_passes > 0:
@@ -1214,6 +1339,7 @@ def resolve_step2_full_with_ticks(
     target_filter: TargetFilter | None = None,
     post_revision_hook: Callable[[GameState], int] | None = None,
     telemetry: Any | None = None,
+    on_decision: DecisionCallback | None = None,
 ) -> dict[str, int]:
     """Résout intégralement l'Étape 2 (2.1 en Ticks 1..3 puis 2.2 en Ticks 1..3 + révision)."""
     cfg = state.cfg
@@ -1250,6 +1376,17 @@ def resolve_step2_full_with_ticks(
                     fallback_if_empty=True,
                 )
                 if not legal_1:
+                    if on_decision is not None:
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_1,
+                                (("PASSER_IMPASSE",),),
+                                {"tour": state.tour, "step": "2.1"},
+                            ),
+                            ("PASSER_IMPASSE",),
+                        )
                     apply_step2_def1(
                         state, s, ("PASSER_IMPASSE",), check_legal=False, telemetry=telemetry
                     )
@@ -1263,8 +1400,45 @@ def resolve_step2_full_with_ticks(
                         is_first_defender=True,
                         sous_etape_salt=210 + current_tick,
                     )
+                    if on_decision is not None:
+                        if (
+                            cfg.accessories_enabled
+                            and cfg.peuples[s] == "H"
+                            and state.get_humain_chaman_archetype(0) == CHAMAN_NONE
+                        ):
+                            inferred_ch = (
+                                CHAMAN_TAMBOUR
+                                if (t_best[0] == "FORET" and int(t_best[1]) != s)
+                                else (
+                                    CHAMAN_CHANT
+                                    if t_best[0] == "REVE_ACTIVATION"
+                                    else CHAMAN_TAMBOUR
+                                )
+                            )
+                            on_decision(
+                                state,
+                                DecisionRequest(
+                                    s,
+                                    DEC_HUMAIN_CHAMAN_2_1,
+                                    (CHAMAN_TAMBOUR, CHAMAN_CHANT),
+                                    {"tour": state.tour, "step": "2.1"},
+                                ),
+                                inferred_ch,
+                            )
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_1,
+                                legal_1,
+                                {"tour": state.tour, "step": "2.1"},
+                            ),
+                            t_best,
+                        )
                     apply_step2_def1(state, s, t_best, check_legal=False, telemetry=telemetry)
-                    _apply_step2_tick_accessories(state, s, t_best, obs_s, bel_s)
+                    _apply_step2_tick_accessories(
+                        state, s, t_best, obs_s, bel_s, on_decision=on_decision
+                    )
                 rem_1.remove(s)
         advance_step2_to_2_2(state, telemetry=telemetry)
 
@@ -1279,5 +1453,6 @@ def resolve_step2_full_with_ticks(
             target_filter=target_filter,
             post_revision_hook=post_revision_hook,
             telemetry=telemetry,
+            on_decision=on_decision,
         )
     return {"passes_executed": 0, "revision_moves": 0}

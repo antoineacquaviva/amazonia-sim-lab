@@ -13,9 +13,11 @@ from typing import Any
 from bots.b2_rollouts import determinize_state_from_obs
 from bots.belief_and_ticks import (
     BeliefSummary,
+    DecisionCallback,
     _apply_step2_tick_accessories,
     build_belief_summary,
     compute_private_urgency,
+    is_tile_text_active,
     order_seats_by_tick_and_urgency,
     resolve_step2_full_with_ticks,
 )
@@ -42,6 +44,9 @@ from engine.primitives import (
 )
 from engine.rng import SRC_BOT_TIEBREAK, rand_u64
 from engine.state import (
+    CHAMAN_CHANT,
+    CHAMAN_NONE,
+    CHAMAN_TAMBOUR,
     LISIERE_CONSTRUCTED,
     LISIERE_UNCONSTRUCTED,
     MACHINE_ABATTEUSE,
@@ -52,6 +57,7 @@ from engine.state import (
     STEP_2_1_DEF1,
     STEP_2_2_DEF2,
     TRACK_LEN,
+    TRIG_RESONANCE,
     GameConfig,
     GameState,
     PlayerObservation,
@@ -486,6 +492,7 @@ def _resolve_step2_b3(
     horizon_turns: int = 1,
     max_steps: int = 2000,
     telemetry: Any | None = None,
+    on_decision: DecisionCallback | None = None,
 ) -> None:
     """Résout 2.1 + 2.2 avec passes B2 suivies d'une passe finale IS-MCTS déterminisée."""
     if k_max_passes <= 0:
@@ -496,6 +503,7 @@ def _resolve_step2_b3(
             epsilon_base=24.0,
             epsilon_step=12.0,
             telemetry=telemetry,
+            on_decision=on_decision,
         )
         return
 
@@ -524,6 +532,17 @@ def _resolve_step2_b3(
                 bel_s = build_belief_summary(obs_s, cfg)
                 legal_1 = list_legal_targets(state, s, is_first_defender=True)
                 if not legal_1:
+                    if on_decision is not None:
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_1,
+                                (("PASSER_IMPASSE",),),
+                                {"tour": state.tour, "step": "2.1"},
+                            ),
+                            ("PASSER_IMPASSE",),
+                        )
                     apply_step2_def1(
                         state, s, ("PASSER_IMPASSE",), check_legal=False, telemetry=telemetry
                     )
@@ -531,8 +550,45 @@ def _resolve_step2_b3(
                     t_best, _ = _pick_best_b2_target(
                         obs_s, cfg, bel_s, legal_1, is_first=True, salt_base=210 + current_tick
                     )
+                    if on_decision is not None:
+                        if (
+                            cfg.accessories_enabled
+                            and cfg.peuples[s] == "H"
+                            and state.get_humain_chaman_archetype(0) == CHAMAN_NONE
+                        ):
+                            inferred_ch = (
+                                CHAMAN_TAMBOUR
+                                if (t_best[0] == "FORET" and int(t_best[1]) != s)
+                                else (
+                                    CHAMAN_CHANT
+                                    if t_best[0] == "REVE_ACTIVATION"
+                                    else CHAMAN_TAMBOUR
+                                )
+                            )
+                            on_decision(
+                                state,
+                                DecisionRequest(
+                                    s,
+                                    DEC_HUMAIN_CHAMAN_2_1,
+                                    (CHAMAN_TAMBOUR, CHAMAN_CHANT),
+                                    {"tour": state.tour, "step": "2.1"},
+                                ),
+                                inferred_ch,
+                            )
+                        on_decision(
+                            state,
+                            DecisionRequest(
+                                s,
+                                DEC_POSE_DEFENSEUR_1,
+                                legal_1,
+                                {"tour": state.tour, "step": "2.1"},
+                            ),
+                            t_best,
+                        )
                     apply_step2_def1(state, s, t_best, check_legal=False, telemetry=telemetry)
-                    _apply_step2_tick_accessories(state, s, t_best, obs_s, bel_s)
+                    _apply_step2_tick_accessories(
+                        state, s, t_best, obs_s, bel_s, on_decision=on_decision
+                    )
                 rem_1.remove(s)
         advance_step2_to_2_2(state, telemetry=telemetry)
 
@@ -560,6 +616,17 @@ def _resolve_step2_b3(
             bel_s = build_belief_summary(obs_s, cfg)
             legal_2 = list_legal_targets(state, s, is_first_defender=False)
             if not legal_2:
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            (("POSER_DEFINITIF", ("PASSER_IMPASSE",)),),
+                            {"tour": state.tour, "step": "2.2", "phase": "init"},
+                        ),
+                        ("POSER_DEFINITIF", ("PASSER_IMPASSE",)),
+                    )
                 apply_step2_def2(
                     state,
                     s,
@@ -571,10 +638,23 @@ def _resolve_step2_b3(
                 t_2, _ = _pick_best_b2_target(
                     obs_s, cfg, bel_s, legal_2, is_first=False, salt_base=220 + current_tick
                 )
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            tuple(("POSER_REFLEXION", t) for t in legal_2),
+                            {"tour": state.tour, "step": "2.2", "phase": "init"},
+                        ),
+                        ("POSER_REFLEXION", t_2),
+                    )
                 apply_step2_def2(
                     state, s, ("POSER_REFLEXION", t_2), check_legal=False, telemetry=telemetry
                 )
-                _apply_step2_tick_accessories(state, s, t_2, obs_s, bel_s)
+                _apply_step2_tick_accessories(
+                    state, s, t_2, obs_s, bel_s, on_decision=on_decision
+                )
             rem_2.remove(s)
 
     # 3. Passes rapides heuristiques B2 (convergence coopérative sur signaux de table)
@@ -619,6 +699,17 @@ def _resolve_step2_b3(
                 obs_s, cfg, bel_s, alts, is_first=False, salt_base=230 + pass_idx
             )
             if alt_sc - cur_sc > eps_r:
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            tuple(("DEPLACER_REFLEXION", t) for t in alts),
+                            {"tour": state.tour, "step": "2.2", "phase": "revision", "pass": pass_idx},
+                        ),
+                        ("DEPLACER_REFLEXION", best_alt),
+                    )
                 if apply_step2_def2(
                     state,
                     s,
@@ -626,7 +717,9 @@ def _resolve_step2_b3(
                     check_legal=False,
                     telemetry=telemetry,
                 ):
-                    _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
+                    _apply_step2_tick_accessories(
+                        state, s, best_alt, obs_s, bel_s, on_decision=on_decision
+                    )
                     moved_cnt += 1
             else:
                 apply_step2_def2(
@@ -700,6 +793,17 @@ def _resolve_step2_b3(
                     break
 
             if (sum(diffs_km) / float(len(diffs_km))) > 0.012:
+                if on_decision is not None:
+                    on_decision(
+                        state,
+                        DecisionRequest(
+                            s,
+                            DEC_POSE_DEFENSEUR_2,
+                            tuple(("DEPLACER_REFLEXION", t) for t in alts),
+                            {"tour": state.tour, "step": "2.2", "phase": "mcts_revision"},
+                        ),
+                        ("DEPLACER_REFLEXION", best_alt),
+                    )
                 apply_step2_def2(
                     state,
                     s,
@@ -707,9 +811,11 @@ def _resolve_step2_b3(
                     check_legal=False,
                     telemetry=telemetry,
                 )
-                _apply_step2_tick_accessories(state, s, best_alt, obs_s, bel_s)
+                _apply_step2_tick_accessories(
+                    state, s, best_alt, obs_s, bel_s, on_decision=on_decision
+                )
 
-    # 5. Repli propre des pions restés orphelins (1/2 Furtivité/Lisière ou pari Gardien Mode 2 incomplet)
+    # 5. Repli propre des pions restés orphelins (1/2 Furtivité/Lisière ou pari Gardien neutre/Résonance)
     for s in range(n):
         if state.get_player_def_loc_raw(s, 1) == 0 or state.is_player_def2_definitif(s):
             continue
@@ -725,8 +831,27 @@ def _resolve_step2_b3(
             _, sl_o = cur_sp
             _, st_lo, nb_co = obs_s.lisiere_tile_info(int(sl_o))
             need_retreat = st_lo == LISIERE_UNCONSTRUCTED and nb_co == 1
-        elif cur_sp[0] == "GARDIEN_PARI" and cfg.mode == 2:
-            need_retreat = not (obs_s.tour < 8 and obs_s.total_gardien_pari_defenders() == n)
+        elif cur_sp[0] == "GARDIEN_PARI":
+            pari_c = int(cur_sp[1])
+            g_slot_c = obs_s.piste_gardiens[pari_c - 1]
+            if not is_tile_text_active(cfg, g_slot_c.tile_id):
+                g_face_c = obs_s.gardien_face_at_case(pari_c)
+                if (
+                    obs_s.tour >= 8
+                    or g_face_c >= 2
+                    or obs_s.gardien_pari_defenders(pari_c) >= 2
+                ):
+                    need_retreat = True
+            if pari_c == TRIG_RESONANCE:
+                res_bets = obs_s.gardien_pari_defenders(TRIG_RESONANCE)
+                distinct_other = sum(
+                    1
+                    for ck in (1, 2, 3, 4, 5)
+                    if obs_s.gardien_present_at_case(ck)
+                    and obs_s.gardien_pari_defenders(ck) >= 1
+                )
+                if distinct_other < res_bets:
+                    need_retreat = True
         if not need_retreat:
             continue
         viable = tuple(
@@ -749,10 +874,23 @@ def _resolve_step2_b3(
             fb_t, _ = _pick_best_b2_target(
                 obs_s, cfg, bel_s, viable, is_first=False, salt_base=253
             )
+            if on_decision is not None:
+                on_decision(
+                    state,
+                    DecisionRequest(
+                        s,
+                        DEC_POSE_DEFENSEUR_2,
+                        tuple(("DEPLACER_REFLEXION", t) for t in viable),
+                        {"tour": state.tour, "step": "2.2", "phase": "retreat"},
+                    ),
+                    ("DEPLACER_REFLEXION", fb_t),
+                )
             apply_step2_def2(
                 state, s, ("DEPLACER_REFLEXION", fb_t), check_legal=False, telemetry=telemetry
             )
-            _apply_step2_tick_accessories(state, s, fb_t, obs_s, bel_s)
+            _apply_step2_tick_accessories(
+                state, s, fb_t, obs_s, bel_s, on_decision=on_decision
+            )
 
     finish_step2_to_3_1(state, telemetry=telemetry)
 
@@ -769,6 +907,7 @@ def play_game_b3(
     max_steps: int = 2000,
     chassis_id: int = -1,
     telemetry: Any | None = None,
+    on_decision: DecisionCallback | None = None,
 ) -> GameOver:
     """Exécute une partie complète pilotée par B3 (Ticks 1..3 + révision IS-MCTS + Rolling Horizon)."""
     steps = 0
@@ -802,6 +941,7 @@ def play_game_b3(
                 horizon_turns=horizon_turns,
                 max_steps=max_steps,
                 telemetry=telemetry,
+                on_decision=on_decision,
             )
             continue
 
@@ -815,4 +955,6 @@ def play_game_b3(
             max_candidates=max_candidates,
             max_steps=max_steps,
         )
+        if on_decision is not None:
+            on_decision(state, out, choice)
         apply_choice(state, choice, telemetry=telemetry)
