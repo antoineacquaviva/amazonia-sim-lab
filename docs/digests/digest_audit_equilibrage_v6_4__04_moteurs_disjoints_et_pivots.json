@@ -1,0 +1,1074 @@
+{
+  "campaign": "audit_equilibrage_v6_4__04_moteurs_disjoints_et_pivots",
+  "description": "Tuiles à blanc sur les 197 assises (1 970 paires CRN/moteur) : 5 moteurs disjoints + 7 moteurs à tuiles-pivots + 6 rôles testés seuls et par ablation + synergie holistique",
+  "generated_at_utc": "2026-11-28T11:29:20Z",
+  "full_digest_path": "data/digests/digest_audit_equilibrage_v6_4__04_moteurs_disjoints_et_pivots.json",
+  "report_markdown_path": "docs/rapports/rapport_audit_equilibrage_v6_4__04_moteurs_disjoints_et_pivots.md",
+  "executive_summary": {
+    "campaign": "audit_equilibrage_v6_4__04_moteurs_disjoints_et_pivots",
+    "verdict": "A_SURVEILLER",
+    "alerts_counts": {
+      "danger": 0,
+      "warn": 2,
+      "info": 0
+    },
+    "total_games": 74860,
+    "mean_ratio_arbres": 0.6132,
+    "cvar20_ratio": 0.4232,
+    "endings_pct": {
+      "tour_8": 90.96,
+      "sommeil": 4.4,
+      "eveil": 4.65,
+      "effondrement": 0.0
+    },
+    "top_alerts": [
+      "Dispersion forte sur les assises (30.2 pts : N3-HMI=50.7% vs N6-HMEOIR=80.8%).",
+      "Ratio manipulation/décision élevé (2.57 > 1.8)."
+    ]
+  },
+  "alerts": [
+    {
+      "level": "warn",
+      "code": "DISPERSION_197_ASSISES",
+      "text": "Dispersion forte sur les assises (30.2 pts : N3-HMI=50.7% vs N6-HMEOIR=80.8%)."
+    },
+    {
+      "level": "warn",
+      "code": "MANIPULATION_ELEVEE",
+      "text": "Ratio manipulation/décision élevé (2.57 > 1.8)."
+    }
+  ],
+  "plan": {
+    "mode": 4,
+    "table_selection": "ALL_197_ASSISES",
+    "player_counts": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "bots": [
+      "B2"
+    ],
+    "bot": "B2",
+    "base_bundle_id": "STANDARD_A",
+    "micro_forks": false,
+    "fork_families": [
+      "CORE_2_1_2_2",
+      "FURTIVITE_SENTINELLES",
+      "EVEIL_A_PLUS_1",
+      "CHAMANES",
+      "ALTERATION",
+      "GARDIEN_ICONES"
+    ]
+  },
+  "totals": {
+    "total_games": 74860,
+    "n_shards": 24,
+    "n_cells": 7486,
+    "n_configurations": 152,
+    "mean_score_arbres": 30.094,
+    "mean_ratio_arbres": 0.6132,
+    "cvar20_ratio": 0.4232,
+    "game_cvar20_ratio": 0.4232,
+    "cvar20_ci95_low": 0.4151,
+    "cvar20_ci95_high": 0.4326,
+    "cvar20_bootstrap_level": "cluster_table",
+    "table_cvar20_ratio": 0.5018,
+    "mean_tours": 7.779,
+    "pct_tour_8": 90.96,
+    "pct_reve_rang_1": 4.4,
+    "pct_reveil_gardiens": 4.65,
+    "pct_effondrement": 0.0,
+    "count_reveil_attempts": 5605,
+    "count_reveil_failures": 2127,
+    "count_gardien_bets_won": 185139,
+    "count_gardien_bets_lost": 25424,
+    "count_bouclier_lisiere_saves": 11337,
+    "count_reves_activated": 379544,
+    "count_machines_cancelled_by_reve": 373321,
+    "count_machines_bypassed_inactive_reve": 125204,
+    "mean_power_tokens_end_act1": 7.18,
+    "mean_power_tokens_end_game": 6.399,
+    "count_charge_gains": 694849,
+    "count_furtivite_1_rive_turns": 231799,
+    "tested_tiles": [
+      "G1:A",
+      "G1:NEUTRE",
+      "G2:A",
+      "G2:NEUTRE",
+      "G3:A",
+      "G3:NEUTRE",
+      "G4:A",
+      "G4:NEUTRE",
+      "G5:A",
+      "G5:NEUTRE",
+      "G6:A",
+      "G6:NEUTRE",
+      "G7:A",
+      "G7:NEUTRE",
+      "G8:A",
+      "G8:NEUTRE",
+      "G9:A",
+      "G9:NEUTRE",
+      "G10:A",
+      "G10:NEUTRE",
+      "G11:A",
+      "G11:NEUTRE",
+      "G12:A",
+      "G12:NEUTRE",
+      "G13:A",
+      "G13:NEUTRE",
+      "G14:A",
+      "G14:NEUTRE",
+      "G15:A",
+      "G15:NEUTRE",
+      "R1:A",
+      "R1:NEUTRE",
+      "R2:A",
+      "R2:NEUTRE",
+      "R3:A",
+      "R3:NEUTRE",
+      "R4:A",
+      "R4:NEUTRE",
+      "R5:A",
+      "R5:NEUTRE",
+      "R6:A",
+      "R6:NEUTRE",
+      "R7:A",
+      "R7:NEUTRE",
+      "R8:A",
+      "R8:NEUTRE",
+      "R9:A",
+      "R9:NEUTRE",
+      "R10:A",
+      "R10:NEUTRE",
+      "M1:A",
+      "M1:NEUTRE",
+      "M2:A",
+      "M2:NEUTRE",
+      "M3:A",
+      "M3:NEUTRE",
+      "M4:A",
+      "M4:NEUTRE",
+      "M5:A",
+      "M5:NEUTRE"
+    ],
+    "parquet_archive": ".tmp_runs/campaigns/audit_equilibrage_v6_4__04_moteurs_disjoints_et_pivots/20261128_v64_full_c-04-moteurs-disjoints-e/cells.parquet"
+  },
+  "telemetry": {
+    "mean_mem_debt": 0.0,
+    "mean_active_laws": 0.005,
+    "max_active_laws": 1,
+    "mean_fiddliness_ops": 2.569,
+    "mean_cascade_sweeps": 0.0,
+    "mean_physical_ops": 540.585,
+    "mean_player_decisions": 219.082,
+    "mean_mid_combat_interrupts": 0.78
+  },
+  "by_bot": {
+    "B2": {
+      "n_games": 74860,
+      "mean_ratio_arbres": 0.6132,
+      "cvar20_ratio": 0.4232,
+      "mean_tours": 7.779,
+      "pct_tour_8": 90.96,
+      "pct_reve_rang_1": 4.4,
+      "pct_reveil_gardiens": 4.65,
+      "pct_effondrement": 0.0
+    }
+  },
+  "by_mode": [
+    {
+      "mode": 4,
+      "bot": "B2",
+      "n_games": 74860,
+      "mean_score_arbres": 30.094,
+      "mean_ratio_arbres": 0.6132,
+      "cvar20_ratio": 0.4232,
+      "mean_tours": 7.779,
+      "pct_tour_8": 90.96,
+      "pct_reve_rang_1": 4.4,
+      "count_reveil_attempts": 5605,
+      "count_reveil_failures": 2127,
+      "count_gardien_bets_won": 185139,
+      "count_gardien_bets_lost": 25424,
+      "count_bouclier_lisiere_saves": 11337,
+      "mean_power_tokens_end_act1": 7.18,
+      "mean_power_tokens_end_game": 6.399,
+      "count_charge_gains": 694849,
+      "count_furtivite_1_rive_turns": 231799,
+      "pct_reveil_gardiens": 4.65,
+      "table_cvar20_ratio": 0.5018,
+      "game_cvar20_ratio": 0.4232,
+      "cvar20_ci95_low": 0.4147,
+      "cvar20_ci95_high": 0.4327
+    }
+  ],
+  "by_n_players": [
+    {
+      "n_players": 3,
+      "n_games": 7600,
+      "mean_score_arbres": 17.588,
+      "mean_ratio_arbres": 0.5863,
+      "cvar20_ratio": 0.3638,
+      "mean_tours": 7.904,
+      "pct_tour_8": 95.88,
+      "pct_reve_rang_1": 0.57,
+      "count_reveil_attempts": 322,
+      "count_reveil_failures": 52,
+      "count_gardien_bets_won": 11332,
+      "count_gardien_bets_lost": 833,
+      "count_bouclier_lisiere_saves": 410,
+      "mean_power_tokens_end_act1": 4.779,
+      "mean_power_tokens_end_game": 3.534,
+      "count_charge_gains": 46821,
+      "count_furtivite_1_rive_turns": 19982,
+      "pct_reveil_gardiens": 3.55,
+      "table_cvar20_ratio": 0.4923,
+      "game_cvar20_ratio": 0.3638,
+      "cvar20_ci95_low": 0.3389,
+      "cvar20_ci95_high": 0.3972
+    },
+    {
+      "n_players": 4,
+      "n_games": 17100,
+      "mean_score_arbres": 23.318,
+      "mean_ratio_arbres": 0.583,
+      "cvar20_ratio": 0.3816,
+      "mean_tours": 7.87,
+      "pct_tour_8": 94.71,
+      "pct_reve_rang_1": 1.85,
+      "count_reveil_attempts": 744,
+      "count_reveil_failures": 156,
+      "count_gardien_bets_won": 30187,
+      "count_gardien_bets_lost": 3087,
+      "count_bouclier_lisiere_saves": 1449,
+      "mean_power_tokens_end_act1": 6.21,
+      "mean_power_tokens_end_game": 5.314,
+      "count_charge_gains": 135997,
+      "count_furtivite_1_rive_turns": 48698,
+      "pct_reveil_gardiens": 3.44,
+      "table_cvar20_ratio": 0.4772,
+      "game_cvar20_ratio": 0.3816,
+      "cvar20_ci95_low": 0.3684,
+      "cvar20_ci95_high": 0.3962
+    },
+    {
+      "n_players": 5,
+      "n_games": 27360,
+      "mean_score_arbres": 30.772,
+      "mean_ratio_arbres": 0.6154,
+      "cvar20_ratio": 0.4372,
+      "mean_tours": 7.763,
+      "pct_tour_8": 90.04,
+      "pct_reve_rang_1": 5.15,
+      "count_reveil_attempts": 2038,
+      "count_reveil_failures": 721,
+      "count_gardien_bets_won": 68356,
+      "count_gardien_bets_lost": 9932,
+      "count_bouclier_lisiere_saves": 4255,
+      "mean_power_tokens_end_act1": 7.365,
+      "mean_power_tokens_end_game": 6.663,
+      "count_charge_gains": 261049,
+      "count_furtivite_1_rive_turns": 87674,
+      "pct_reveil_gardiens": 4.81,
+      "table_cvar20_ratio": 0.5043,
+      "game_cvar20_ratio": 0.4372,
+      "cvar20_ci95_low": 0.4275,
+      "cvar20_ci95_high": 0.4454
+    },
+    {
+      "n_players": 6,
+      "n_games": 22800,
+      "mean_score_arbres": 38.531,
+      "mean_ratio_arbres": 0.6422,
+      "cvar20_ratio": 0.4733,
+      "mean_tours": 7.687,
+      "pct_tour_8": 87.59,
+      "pct_reve_rang_1": 6.69,
+      "count_reveil_attempts": 2501,
+      "count_reveil_failures": 1198,
+      "count_gardien_bets_won": 75264,
+      "count_gardien_bets_lost": 11572,
+      "count_bouclier_lisiere_saves": 5223,
+      "mean_power_tokens_end_act1": 8.49,
+      "mean_power_tokens_end_game": 7.85,
+      "count_charge_gains": 250982,
+      "count_furtivite_1_rive_turns": 75445,
+      "pct_reveil_gardiens": 5.71,
+      "table_cvar20_ratio": 0.5319,
+      "game_cvar20_ratio": 0.4733,
+      "cvar20_ci95_low": 0.4665,
+      "cvar20_ci95_high": 0.48
+    }
+  ],
+  "modular_study": {
+    "study_type": "MOTORS_BOTH",
+    "reference_bot": "B2",
+    "baseline_all_neutre_ratio": 0.51142,
+    "baseline_all_active_ratio": 0.67396,
+    "solo_vs_ecosystem": {},
+    "edges_2x2": {},
+    "motors_summary": {
+      "ESSAIM_NIDS": {
+        "motor_id": "ESSAIM_NIDS",
+        "slots": [
+          "G13",
+          "G14",
+          "G15",
+          "M1",
+          "M2",
+          "M3",
+          "M4",
+          "M5"
+        ],
+        "n_slots": 8,
+        "delta_solo": 0.08829,
+        "ci95_solo": [
+          0.07743,
+          0.09915
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.02312,
+        "ci95_ablation": [
+          0.01628,
+          0.02996
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.06517
+      },
+      "DUEL_TERRAIN_THERMIQUE": {
+        "motor_id": "DUEL_TERRAIN_THERMIQUE",
+        "slots": [
+          "G1",
+          "G2",
+          "G5",
+          "G7",
+          "G9",
+          "R3"
+        ],
+        "n_slots": 6,
+        "delta_solo": 0.02252,
+        "ci95_solo": [
+          0.01815,
+          0.02689
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": -0.00694,
+        "ci95_ablation": [
+          -0.01132,
+          -0.00257
+        ],
+        "p_ablation": 0.002143,
+        "synergy_inter_motors": -0.02946
+      },
+      "REDEPLOIEMENT_PERCHOIR_RELAIS": {
+        "motor_id": "REDEPLOIEMENT_PERCHOIR_RELAIS",
+        "slots": [
+          "G3",
+          "G4",
+          "G6",
+          "G11",
+          "R5"
+        ],
+        "n_slots": 5,
+        "delta_solo": 0.01105,
+        "ci95_solo": [
+          0.00713,
+          0.01496
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": -0.0066,
+        "ci95_ablation": [
+          -0.00979,
+          -0.00342
+        ],
+        "p_ablation": 7e-05,
+        "synergy_inter_motors": -0.01765
+      },
+      "SOMMEIL_REVES": {
+        "motor_id": "SOMMEIL_REVES",
+        "slots": [
+          "G8",
+          "G12",
+          "R1",
+          "R4",
+          "R6",
+          "R9"
+        ],
+        "n_slots": 6,
+        "delta_solo": 0.06036,
+        "ci95_solo": [
+          0.05136,
+          0.06936
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.02437,
+        "ci95_ablation": [
+          0.0181,
+          0.03064
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.03599
+      },
+      "ALTERATION_LOIS": {
+        "motor_id": "ALTERATION_LOIS",
+        "slots": [
+          "G10",
+          "R2",
+          "R7",
+          "R8",
+          "R10"
+        ],
+        "n_slots": 5,
+        "delta_solo": 0.09172,
+        "ci95_solo": [
+          0.08217,
+          0.10128
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.03974,
+        "ci95_ablation": [
+          0.03335,
+          0.04614
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.05198
+      },
+      "MOTEUR_SOMMEIL_REGLETTE": {
+        "motor_id": "MOTEUR_SOMMEIL_REGLETTE",
+        "slots": [
+          "G8",
+          "G11",
+          "G12",
+          "R1",
+          "R2",
+          "R3",
+          "R4",
+          "R7",
+          "R8",
+          "R9",
+          "R10",
+          "M5"
+        ],
+        "n_slots": 12,
+        "delta_solo": 0.144,
+        "ci95_solo": [
+          0.13413,
+          0.15386
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.07364,
+        "ci95_ablation": [
+          0.06553,
+          0.08174
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.07036
+      },
+      "MOTEUR_ALTERATION": {
+        "motor_id": "MOTEUR_ALTERATION",
+        "slots": [
+          "G8",
+          "G10",
+          "R2",
+          "R7",
+          "R8",
+          "R9",
+          "R10",
+          "M5"
+        ],
+        "n_slots": 8,
+        "delta_solo": 0.11592,
+        "ci95_solo": [
+          0.1059,
+          0.12594
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.06398,
+        "ci95_ablation": [
+          0.05632,
+          0.07164
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.05194
+      },
+      "MOTEUR_DUEL_TERRAIN": {
+        "motor_id": "MOTEUR_DUEL_TERRAIN",
+        "slots": [
+          "G1",
+          "G2",
+          "G4",
+          "G7",
+          "G13",
+          "R3",
+          "R7",
+          "M1"
+        ],
+        "n_slots": 8,
+        "delta_solo": 0.03217,
+        "ci95_solo": [
+          0.02692,
+          0.03743
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.0042,
+        "ci95_ablation": [
+          -0.00119,
+          0.00959
+        ],
+        "p_ablation": 0.128319,
+        "synergy_inter_motors": -0.02797
+      },
+      "MOTEUR_THERMIQUE_PIEGE_CROC": {
+        "motor_id": "MOTEUR_THERMIQUE_PIEGE_CROC",
+        "slots": [
+          "G1",
+          "G2",
+          "G5",
+          "G6",
+          "G7",
+          "G9",
+          "G10",
+          "G12",
+          "G14",
+          "R4",
+          "R5",
+          "R8",
+          "R9",
+          "R10",
+          "M2"
+        ],
+        "n_slots": 15,
+        "delta_solo": 0.13139,
+        "ci95_solo": [
+          0.12182,
+          0.14095
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.08515,
+        "ci95_ablation": [
+          0.07637,
+          0.09392
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.04624
+      },
+      "MOTEUR_PERCHOIR_REDEPLOIEMENT": {
+        "motor_id": "MOTEUR_PERCHOIR_REDEPLOIEMENT",
+        "slots": [
+          "G3",
+          "G4",
+          "G5",
+          "G6",
+          "G11",
+          "G15",
+          "R2",
+          "R3",
+          "R5",
+          "R9",
+          "M3",
+          "M4"
+        ],
+        "n_slots": 12,
+        "delta_solo": 0.0573,
+        "ci95_solo": [
+          0.05024,
+          0.06436
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.02063,
+        "ci95_ablation": [
+          0.01418,
+          0.02708
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.03667
+      },
+      "MOTEUR_CHAMANES_ANNULATION": {
+        "motor_id": "MOTEUR_CHAMANES_ANNULATION",
+        "slots": [
+          "G2",
+          "G7",
+          "G8",
+          "G9",
+          "G11",
+          "G12",
+          "R1",
+          "R2",
+          "R3",
+          "R5",
+          "R6",
+          "M4"
+        ],
+        "n_slots": 12,
+        "delta_solo": 0.02811,
+        "ci95_solo": [
+          0.02147,
+          0.03475
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": -0.00332,
+        "ci95_ablation": [
+          -0.00922,
+          0.00258
+        ],
+        "p_ablation": 0.271873,
+        "synergy_inter_motors": -0.03143
+      },
+      "MOTEUR_ESSAIM_NIDS": {
+        "motor_id": "MOTEUR_ESSAIM_NIDS",
+        "slots": [
+          "G13",
+          "G14",
+          "G15",
+          "R6",
+          "R10",
+          "M1",
+          "M2",
+          "M3",
+          "M4",
+          "M5"
+        ],
+        "n_slots": 10,
+        "delta_solo": 0.09927,
+        "ci95_solo": [
+          0.08779,
+          0.11076
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.03928,
+        "ci95_ablation": [
+          0.03151,
+          0.04704
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.05999
+      },
+      "ROLE_CATALYSEURS_EVEIL": {
+        "motor_id": "ROLE_CATALYSEURS_EVEIL",
+        "slots": [
+          "G1",
+          "G3",
+          "G4",
+          "G5",
+          "G6",
+          "G8",
+          "G9",
+          "G10",
+          "G11",
+          "G12",
+          "G13",
+          "G14",
+          "G15"
+        ],
+        "n_slots": 13,
+        "delta_solo": 0.05188,
+        "ci95_solo": [
+          0.04508,
+          0.05868
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": -0.00612,
+        "ci95_ablation": [
+          -0.01054,
+          -0.00171
+        ],
+        "p_ablation": 0.007136,
+        "synergy_inter_motors": -0.058
+      },
+      "ROLE_LEVIERS_REVE": {
+        "motor_id": "ROLE_LEVIERS_REVE",
+        "slots": [
+          "G8",
+          "R1",
+          "R4",
+          "R8",
+          "R9",
+          "R10"
+        ],
+        "n_slots": 6,
+        "delta_solo": 0.10062,
+        "ci95_solo": [
+          0.09011,
+          0.11112
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.04658,
+        "ci95_ablation": [
+          0.04004,
+          0.05313
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.05404
+      },
+      "ROLE_SYNERGIES_ENRACINEMENT": {
+        "motor_id": "ROLE_SYNERGIES_ENRACINEMENT",
+        "slots": [
+          "G7",
+          "G15",
+          "R1",
+          "R2"
+        ],
+        "n_slots": 4,
+        "delta_solo": 0.03451,
+        "ci95_solo": [
+          0.02897,
+          0.04004
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.01187,
+        "ci95_ablation": [
+          0.00662,
+          0.01711
+        ],
+        "p_ablation": 1.5e-05,
+        "synergy_inter_motors": -0.02264
+      },
+      "ROLE_LOIS_PASSIVES": {
+        "motor_id": "ROLE_LOIS_PASSIVES",
+        "slots": [
+          "R7",
+          "R8",
+          "M5"
+        ],
+        "n_slots": 3,
+        "delta_solo": 0.05652,
+        "ci95_solo": [
+          0.04941,
+          0.06363
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.01833,
+        "ci95_ablation": [
+          0.01328,
+          0.02339
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.03819
+      },
+      "ROLE_AUTONOMIE_A0": {
+        "motor_id": "ROLE_AUTONOMIE_A0",
+        "slots": [
+          "R1",
+          "R2",
+          "R6",
+          "R10",
+          "M4",
+          "M5"
+        ],
+        "n_slots": 6,
+        "delta_solo": 0.05522,
+        "ci95_solo": [
+          0.04555,
+          0.06489
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.02457,
+        "ci95_ablation": [
+          0.01809,
+          0.03105
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.03065
+      },
+      "ROLE_TWISTS_2K3": {
+        "motor_id": "ROLE_TWISTS_2K3",
+        "slots": [
+          "G2",
+          "G7",
+          "G12",
+          "R4",
+          "R10",
+          "M3"
+        ],
+        "n_slots": 6,
+        "delta_solo": 0.06763,
+        "ci95_solo": [
+          0.05824,
+          0.07701
+        ],
+        "p_solo": 0.0,
+        "delta_ablation": 0.01633,
+        "ci95_ablation": [
+          0.01034,
+          0.02232
+        ],
+        "p_ablation": 0.0,
+        "synergy_inter_motors": -0.0513
+      }
+    },
+    "subsets_summary": {},
+    "holistic_synergy": {
+      "total_ecosystem_gain": 0.16254,
+      "sum_5_disjoint_motors_solo": 0.27394,
+      "holistic_interaction": -0.1114
+    }
+  },
+  "digest_mode": "EXECUTIVE",
+  "assises_197_summary": {
+    "reference_bot": "B2",
+    "reference_variant": "ALL_ACTIVE",
+    "n_assises_covered": 197,
+    "n_compositions_covered": 42,
+    "by_n_players_spread": {
+      "3J": {
+        "n_assises": 20,
+        "min_ratio": 0.5067,
+        "max_ratio": 0.7767,
+        "spread_pts": 27.0,
+        "worst_assise": "N3-HMI",
+        "best_assise": "N3-ROI"
+      },
+      "4J": {
+        "n_assises": 45,
+        "min_ratio": 0.5275,
+        "max_ratio": 0.73,
+        "spread_pts": 20.25,
+        "worst_assise": "N4-HOMI",
+        "best_assise": "N4-MRIO"
+      },
+      "5J": {
+        "n_assises": 72,
+        "min_ratio": 0.534,
+        "max_ratio": 0.758,
+        "spread_pts": 22.4,
+        "worst_assise": "N5-HORMI",
+        "best_assise": "N5-HEOIR"
+      },
+      "6J": {
+        "n_assises": 60,
+        "min_ratio": 0.61,
+        "max_ratio": 0.8083,
+        "spread_pts": 19.83,
+        "worst_assise": "N6-HMIOER",
+        "best_assise": "N6-HMEOIR"
+      }
+    },
+    "worst_assises": [
+      {
+        "assise_key": "N3-HMI",
+        "composition_key": "N3-HMI",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5067,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N4-HOMI",
+        "composition_key": "N4-HMOI",
+        "n_players": 4,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5275,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N5-HORMI",
+        "composition_key": "N5-HMROI",
+        "n_players": 5,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.534,
+        "pct_tour_8": 70.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 30.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N4-HRMI",
+        "composition_key": "N4-HMRI",
+        "n_players": 4,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5375,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N3-HEM",
+        "composition_key": "N3-HEM",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.54,
+        "pct_tour_8": 80.0,
+        "pct_reve_rang_1": 10.0,
+        "pct_reveil_gardiens": 10.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N4-HMIO",
+        "composition_key": "N4-HMOI",
+        "n_players": 4,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.555,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N3-HMO",
+        "composition_key": "N3-HMO",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5567,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N3-HMR",
+        "composition_key": "N3-HMR",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5567,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N4-HMRI",
+        "composition_key": "N4-HMRI",
+        "n_players": 4,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.5575,
+        "pct_tour_8": 90.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 10.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N3-MRO",
+        "composition_key": "N3-MRO",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.56,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      }
+    ],
+    "best_assises": [
+      {
+        "assise_key": "N6-HMEOIR",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.8083,
+        "pct_tour_8": 60.0,
+        "pct_reve_rang_1": 40.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N3-ROI",
+        "composition_key": "N3-ROI",
+        "n_players": 3,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.7767,
+        "pct_tour_8": 100.0,
+        "pct_reve_rang_1": 0.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N6-HEOMIR",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.7717,
+        "pct_tour_8": 90.0,
+        "pct_reve_rang_1": 10.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N6-HEMOIR",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.7717,
+        "pct_tour_8": 90.0,
+        "pct_reve_rang_1": 10.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N6-HMEROI",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.7583,
+        "pct_tour_8": 90.0,
+        "pct_reve_rang_1": 10.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N5-HEOIR",
+        "composition_key": "N5-HEROI",
+        "n_players": 5,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.758,
+        "pct_tour_8": 80.0,
+        "pct_reve_rang_1": 20.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N6-HEMIOR",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.755,
+        "pct_tour_8": 60.0,
+        "pct_reve_rang_1": 40.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N5-HMEOR",
+        "composition_key": "N5-HEMRO",
+        "n_players": 5,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.754,
+        "pct_tour_8": 60.0,
+        "pct_reve_rang_1": 40.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N6-HRMEOI",
+        "composition_key": "N6-HEMROI",
+        "n_players": 6,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.7533,
+        "pct_tour_8": 90.0,
+        "pct_reve_rang_1": 10.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      },
+      {
+        "assise_key": "N5-HRIEO",
+        "composition_key": "N5-HEROI",
+        "n_players": 5,
+        "n_games": 10,
+        "mean_ratio_arbres": 0.752,
+        "pct_tour_8": 60.0,
+        "pct_reve_rang_1": 40.0,
+        "pct_reveil_gardiens": 0.0,
+        "pct_effondrement": 0.0
+      }
+    ]
+  }
+}

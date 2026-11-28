@@ -592,6 +592,121 @@ def build_executive_digest(
                 "flagged_false_dilemmas": v64_o.get("flagged_false_dilemmas", {}),
             }
 
+    if len(json.dumps(exec_d, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > max_bytes:
+        fk = exec_d.get("forks")
+        if isinstance(fk, dict) and "by_n_players" in fk:
+            fk_c = dict(fk)
+            fk_c.pop("by_n_players", None)
+            exec_d["forks"] = fk_c
+        exec_d.pop("by_mode", None)
+
+    if len(json.dumps(exec_d, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > max_bytes:
+        ms = exec_d.get("modular_study")
+        if isinstance(ms, dict):
+            ms_compact: dict[str, Any] = {
+                "study_type": ms.get("study_type"),
+                "reference_bot": ms.get("reference_bot"),
+                "baseline_all_neutre_ratio": ms.get("baseline_all_neutre_ratio"),
+                "baseline_all_active_ratio": ms.get("baseline_all_active_ratio"),
+            }
+            if ms.get("holistic_synergy") is not None:
+                ms_compact["holistic_synergy"] = ms["holistic_synergy"]
+            sve = ms.get("solo_vs_ecosystem") or {}
+            if sve:
+                ms_compact["solo_vs_ecosystem"] = {
+                    s: {
+                        k: v
+                        for k, v in row.items()
+                        if k in ("delta_solo", "delta_eco", "levier_synergique", "p_holm_eco")
+                    }
+                    for s, row in sve.items()
+                }
+            ed = ms.get("edges_2x2") or {}
+            if ed:
+                ms_compact["edges_2x2"] = {
+                    ek: {
+                        k: v
+                        for k, v in er.items()
+                        if k in ("slot_a", "slot_b", "interaction_2x2", "p_holm_interaction")
+                    }
+                    for ek, er in ed.items()
+                }
+            mot = ms.get("motors_summary") or {}
+            if mot:
+                ms_compact["motors_summary"] = {
+                    mk: {
+                        k: v
+                        for k, v in mr.items()
+                        if k in ("delta_solo", "delta_ablation", "synergy_inter_motors")
+                    }
+                    for mk, mr in mot.items()
+                }
+            exec_d["modular_study"] = ms_compact
+
+    # Inclusion prioritaire de `tile_metrics` compact pour les badges 30 tuiles dans Amazonia Doc Studio
+    if "tile_metrics" in enriched and isinstance(enriched["tile_metrics"], dict) and enriched["tile_metrics"]:
+        compact_tm = {
+            k: {
+                tk: tv
+                for tk, tv in v.items()
+                if tk
+                in (
+                    "slot",
+                    "profile",
+                    "ref_profile",
+                    "protocol",
+                    "ab_effect_estimable",
+                    "mean_delta_ratio",
+                    "ci95_low",
+                    "ci95_high",
+                    "activations_per_game",
+                    "low_activation_lt1",
+                    "significant",
+                    "n_tables",
+                    "alerts",
+                )
+                and tv is not None
+            }
+            for k, v in enriched["tile_metrics"].items()
+            if isinstance(v, dict)
+        }
+        cand = dict(exec_d)
+        cand["tile_metrics"] = compact_tm
+        if len(json.dumps(cand, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > max_bytes:
+            # Libérer de la place sur les annexes redondantes (liste complète replays / top-10 assises)
+            rem = cand.get("remarkable_traces")
+            if isinstance(rem, dict) and "games" in rem:
+                cand["remarkable_traces"] = {
+                    "path": rem.get("path"),
+                    "n_games": rem.get("n_games"),
+                    "n_decisions": rem.get("n_decisions"),
+                }
+            a197_c = cand.get("assises_197_summary")
+            if isinstance(a197_c, dict):
+                a197_trim = dict(a197_c)
+                a197_trim["worst_assises"] = list(a197_trim.get("worst_assises") or [])[:5]
+                a197_trim["best_assises"] = list(a197_trim.get("best_assises") or [])[:5]
+                cand["assises_197_summary"] = a197_trim
+        if len(json.dumps(cand, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) <= max_bytes:
+            exec_d = cand
+
+    if len(json.dumps(exec_d, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > max_bytes:
+        rem = exec_d.get("remarkable_traces")
+        if isinstance(rem, dict) and "games" in rem:
+            exec_d["remarkable_traces"] = {
+                "path": rem.get("path"),
+                "n_games": rem.get("n_games"),
+                "n_decisions": rem.get("n_decisions"),
+            }
+        a197_c = exec_d.get("assises_197_summary")
+        if isinstance(a197_c, dict):
+            a197_trim = dict(a197_c)
+            a197_trim["worst_assises"] = list(a197_trim.get("worst_assises") or [])[:5]
+            a197_trim["best_assises"] = list(a197_trim.get("best_assises") or [])[:5]
+            exec_d["assises_197_summary"] = a197_trim
+        if isinstance(exec_d.get("alerts"), list) and len(exec_d["alerts"]) > 25:
+            exec_d["alerts"] = exec_d["alerts"][:25]
+
     return exec_d
 
 
@@ -806,6 +921,15 @@ def render_campaign_markdown_report(
                     f"{_fmt_pct(mr.get('delta_ablation'), signed=True)} | {_fmt_pct(mr.get('synergy_inter_motors'), signed=True)} |"
                 )
             lines.append("")
+            hol = mod_study.get("holistic_synergy")
+            if isinstance(hol, dict):
+                lines.append(
+                    f"- **Synergie holistique (5 moteurs disjoints)** : gain total `ALL_ACTIVE - ALL_NEUTRE` = "
+                    f"{_fmt_pct(hol.get('total_ecosystem_gain'), signed=True)} | somme des 5 solos = "
+                    f"{_fmt_pct(hol.get('sum_5_disjoint_motors_solo'), signed=True)} | "
+                    f"interaction holistique = **{_fmt_pct(hol.get('holistic_interaction'), signed=True)}**"
+                )
+                lines.append("")
 
         subsets_res = mod_study.get("subsets_summary") or {}
         if subsets_res:

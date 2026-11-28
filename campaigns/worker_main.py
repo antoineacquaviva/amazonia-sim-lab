@@ -1756,6 +1756,15 @@ def run_campaign_manifest(
                 records.append(pr)
 
     remaining_units = [u for u in my_units if _unit_checkpoint_key(u) not in done_keys]
+    if n_procs > 1 and len(remaining_units) > 1:
+        # Ordonnancement LPT (Longest-Processing-Time-First) pour lisser la fin de shard
+        # sans aucun impact sur la reproductibilité (records est trié déterministiquement ensuite).
+        def _lpt_weight(u: dict[str, Any]) -> tuple[int, int]:
+            b_u = str(u.get("bot", "B2")).upper()
+            b_rank = 4 if b_u == "B3" else (3 if u.get("micro_forks") else (2 if b_u.startswith("B2") else (1 if b_u == "B1" else 0)))
+            return (b_rank, int(u.get("n_players", 4)) * int(u.get("n_games", 1)))
+
+        remaining_units.sort(key=_lpt_weight, reverse=True)
 
     preempted = False
     prev_sigterm = None

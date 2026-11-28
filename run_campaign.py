@@ -363,12 +363,13 @@ def _run_cloud_run_job(
 def _machine_resources_for_type(machine_type: str) -> tuple[int, int, int]:
     """Retourne `(cpu_milli, memory_mib, default_workers)` pour un type de VM Cloud Batch."""
     mt = machine_type.strip().lower()
+    is_highcpu = "highcpu" in mt
     if mt.endswith("-16"):
-        return 16000, 16384, 16
+        return 16000, (12288 if is_highcpu else 16384), 16
     if mt.endswith("-8"):
-        return 8000, 8192, 8
+        return 8000, (6144 if is_highcpu else 8192), 8
     if mt.endswith("-4"):
-        return 4000, 4096, 4
+        return 4000, (3072 if is_highcpu else 4096), 4
     return 4000, 4096, 4
 
 
@@ -386,11 +387,17 @@ def _build_cloud_batch_spec(
     task_indices: tuple[int, ...] | None = None,
     total_tasks: int | None = None,
     provisioning_model: str = "SPOT",
+    max_parallelism: int | None = None,
 ) -> dict[str, Any]:
     """Construit la spécification JSON Cloud Batch résiliente aux préemptions Spot."""
     cpu_milli, mem_mib, default_w = _machine_resources_for_type(machine_type)
     eff_w = max(1, int(workers) if workers is not None else default_w)
     eff_task_count = len(task_indices) if task_indices is not None else tasks
+    eff_parallelism = (
+        max(1, min(eff_task_count, int(max_parallelism)))
+        if max_parallelism is not None
+        else eff_task_count
+    )
     commands: list[str] = [
         f"--campaign-manifest={manifest_gcs_uri}",
         f"--gcs-prefix={gcs_prefix}",
@@ -425,7 +432,7 @@ def _build_cloud_batch_spec(
                     ],
                 },
                 "taskCount": eff_task_count,
-                "parallelism": eff_task_count,
+                "parallelism": eff_parallelism,
             }
         ],
         "allocationPolicy": {
@@ -473,6 +480,8 @@ def _run_cloud_batch_job(
     task_indices: tuple[int, ...] | None = None,
     total_tasks: int | None = None,
     wave_idx: int = 1,
+    provisioning_model: str = "SPOT",
+    max_parallelism: int | None = None,
 ) -> tuple[str, float]:
     ts = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
     wave_suffix = f"-w{wave_idx}" if wave_idx > 1 else ""
@@ -489,6 +498,8 @@ def _run_cloud_batch_job(
         checkpoint_every=checkpoint_every,
         task_indices=task_indices,
         total_tasks=total_tasks,
+        provisioning_model=provisioning_model,
+        max_parallelism=max_parallelism,
     )
     spec_path = run_dir / (f"batch_job_wave{wave_idx}.json" if wave_idx > 1 else "batch_job.json")
     spec_path.parent.mkdir(parents=True, exist_ok=True)
@@ -551,6 +562,8 @@ def _run_cloud_batch_with_spot_recovery(
     max_retry_count: int = 5,
     max_spot_waves: int = 4,
     checkpoint_every: int = 20,
+    provisioning_model: str = "SPOT",
+    max_parallelism: int | None = None,
 ) -> tuple[str, float]:
     """Orchestre jusqu'à `max_spot_waves` vagues Cloud Batch Spot ne relançant que les shards manquants."""
     state_path = run_dir / "run_state.json"
@@ -607,6 +620,8 @@ def _run_cloud_batch_with_spot_recovery(
                 task_indices=missing if is_partial else None,
                 total_tasks=tasks,
                 wave_idx=wave,
+                provisioning_model=provisioning_model,
+                max_parallelism=max_parallelism,
             )
             total_wall += w_sec
         except RuntimeError as exc:
@@ -3550,6 +3565,7 @@ def aggregate_campaign_duckdb(
                 rel_tr = trace_out_path.resolve().relative_to(ROOT.resolve()).as_posix()
             except ValueError:
                 rel_tr = trace_out_path.as_posix()
+            tr_meta["path"] = rel_tr
             tr_meta["traces_jsonl_path"] = rel_tr
             digest_payload["remarkable_traces"] = tr_meta
             digest_payload["traces_jsonl_path"] = rel_tr
@@ -3814,10 +3830,15 @@ def _execute_single_campaign(
         if args.backend == "auto"
         else str(args.backend)
     )
+    cfg_tasks = spot_cfg.get("tasks")
     tasks = (
         max(1, min(int(args.tasks), n_units))
         if args.tasks is not None
-        else _auto_task_count(n_units, total_games_planned, backend)
+        else (
+            max(1, min(int(cfg_tasks), n_units))
+            if cfg_tasks is not None and backend == "batch"
+            else _auto_task_count(n_units, total_games_planned, backend)
+        )
     )
     machine_type = (
         str(args.machine_type)
@@ -3841,6 +3862,14 @@ def _execute_single_campaign(
     )
     max_retry_count = int(spot_cfg.get("max_retry_count", 5))
     checkpoint_every = int(spot_cfg.get("checkpoint_every", 20))
+    provisioning_model = str(spot_cfg.get("provisioning_model", "SPOT")).strip().upper() or "SPOT"
+    raw_max_par = spot_cfg.get("max_parallelism")
+    max_parallelism = int(raw_max_par) if raw_max_par is not None else None
+    timeout_eff = (
+        int(args.timeout)
+        if int(args.timeout) != 1800
+        else int(spot_cfg.get("timeout_sec", args.timeout))
+    )
     image_uri = str(args.image_uri).strip() or IMAGE_URI
     run_id = (
         run_id_override.strip()
@@ -3921,7 +3950,7 @@ def _execute_single_campaign(
                 manifest_gcs_uri=manifest_gcs_uri,
                 gcs_prefix=gcs_prefix,
                 tasks=tasks,
-                timeout_sec=int(args.timeout),
+                timeout_sec=timeout_eff,
                 run_dir=run_dir,
                 image_uri=image_uri,
                 machine_type=machine_type,
@@ -3929,6 +3958,8 @@ def _execute_single_campaign(
                 max_retry_count=max_retry_count,
                 max_spot_waves=max_spot_waves,
                 checkpoint_every=checkpoint_every,
+                provisioning_model=provisioning_model,
+                max_parallelism=max_parallelism,
             )
         else:
             job_name, job_wall_sec = _run_cloud_run_job(
@@ -3938,7 +3969,7 @@ def _execute_single_campaign(
                 tasks=tasks,
                 cpu=str(args.cpu),
                 memory=str(args.memory),
-                timeout_sec=int(args.timeout),
+                timeout_sec=timeout_eff,
                 image_uri=image_uri,
             )
         print(f"Calcul Cloud ({backend}/{job_name}) terminé en {job_wall_sec:.2f}s murale.", flush=True)
@@ -4136,7 +4167,9 @@ def _execute_campaign_suite(
 
     gcloud_state: dict[str, Any] = {}
     stages_summary_rows: list[dict[str, Any]] = []
+    stage_digests: list[tuple[str, dict[str, Any]]] = []
     all_alerts: list[dict[str, str]] = []
+    seen_alert_keys: set[tuple[str, str]] = set()
     all_paths_to_stage: list[Path] = [manifest_path]
     total_games_suite = 0
     weighted_ratio_sum = 0.0
@@ -4181,6 +4214,7 @@ def _execute_campaign_suite(
             state_file.write_text(json.dumps(prev_state, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
             st_paths = [p for p in res["paths_to_stage"] if p != st_path]
 
+        stage_digests.append((st_name, st_digest))
         all_paths_to_stage.extend(st_paths)
         st_tot = st_digest.get("totals") or {}
         ng = int(st_tot.get("total_games", 0))
@@ -4197,13 +4231,17 @@ def _execute_campaign_suite(
         n_w = sum(1 for a in st_alerts if a.get("level") == "warn")
         for a in st_alerts:
             if a.get("level") in ("danger", "warn"):
-                all_alerts.append(
-                    {
-                        "level": str(a["level"]),
-                        "code": f"{_sanitize_gcp_name(st_name, 16).upper()}_{a.get('code', '')}",
-                        "text": f"[{st_name}] {a.get('text', '')}",
-                    }
-                )
+                base_code = str(a.get("code", ""))
+                dedup_key = (str(a["level"]), base_code)
+                if dedup_key not in seen_alert_keys:
+                    seen_alert_keys.add(dedup_key)
+                    all_alerts.append(
+                        {
+                            "level": str(a["level"]),
+                            "code": base_code or f"{_sanitize_gcp_name(st_name, 16).upper()}_ALERT",
+                            "text": f"[{st_name}] {a.get('text', '')}",
+                        }
+                    )
         stages_summary_rows.append(
             {
                 "stage_name": st_name,
@@ -4234,6 +4272,120 @@ def _execute_campaign_suite(
     n_wrn_tot = sum(1 for a in all_alerts if a.get("level") == "warn")
     n_inf_tot = sum(1 for a in all_alerts if a.get("level") == "info")
 
+    # Fusion des blocs analytiques clés issus des étapes dans le bilan maître unifié
+    merged_modular: dict[str, Any] = {
+        "study_type": "SUITE_MULTI_ETAPES",
+        "reference_bot": "B2",
+        "solo_vs_ecosystem": {},
+        "edges_2x2": {},
+        "motors_summary": {},
+        "subsets_summary": {},
+    }
+    has_merged_modular = False
+    merged_tile_act: dict[str, dict[str, Any]] = {}
+    master_extra: dict[str, Any] = {}
+
+    for _st_n, sd in stage_digests:
+        if "by_bot" in sd and isinstance(sd["by_bot"], dict) and len(sd["by_bot"]) > len(master_extra.get("by_bot") or {}):
+            master_extra["by_bot"] = sd["by_bot"]
+        if "b3_degenerate_audit" in sd and isinstance(sd["b3_degenerate_audit"], dict) and sd["b3_degenerate_audit"].get("enabled"):
+            master_extra["b3_degenerate_audit"] = sd["b3_degenerate_audit"]
+        if "assises_197_summary" in sd and isinstance(sd["assises_197_summary"], dict):
+            cur_a = master_extra.get("assises_197_summary") or {}
+            if int(sd["assises_197_summary"].get("n_assises_covered", 0)) >= int(cur_a.get("n_assises_covered", 0)) and (
+                not cur_a
+                or ("by_bot" in sd and len(sd["by_bot"]) >= len(master_extra.get("by_bot") or {}))
+            ):
+                master_extra["assises_197_summary"] = sd["assises_197_summary"]
+                if "by_n_players" in sd:
+                    master_extra["by_n_players"] = sd["by_n_players"]
+        if "telemetry" in sd and "telemetry" not in master_extra:
+            master_extra["telemetry"] = sd["telemetry"]
+        if "remarkable_traces" in sd and "remarkable_traces" not in master_extra:
+            master_extra["remarkable_traces"] = sd["remarkable_traces"]
+        if sd.get("traces_jsonl_path") and "traces_jsonl_path" not in master_extra:
+            master_extra["traces_jsonl_path"] = sd["traces_jsonl_path"]
+        if "forks" in sd and isinstance(sd["forks"], dict) and sd["forks"]:
+            master_extra["forks"] = sd["forks"]
+        if (
+            "ockham_razor" in sd
+            and isinstance(sd["ockham_razor"], dict)
+            and "ockham_razor" not in master_extra
+        ):
+            master_extra["ockham_razor"] = sd["ockham_razor"]
+        if isinstance(sd.get("tile_metrics"), dict):
+            for tk, tv in sd["tile_metrics"].items():
+                if tk not in merged_tile_act and isinstance(tv, dict):
+                    merged_tile_act[tk] = tv
+        ms_s = sd.get("modular_study")
+        if isinstance(ms_s, dict):
+            has_merged_modular = True
+            if ms_s.get("baseline_all_neutre_ratio") is not None and merged_modular.get("baseline_all_neutre_ratio") is None:
+                merged_modular["baseline_all_neutre_ratio"] = ms_s["baseline_all_neutre_ratio"]
+            if ms_s.get("baseline_all_active_ratio") is not None and merged_modular.get("baseline_all_active_ratio") is None:
+                merged_modular["baseline_all_active_ratio"] = ms_s["baseline_all_active_ratio"]
+            if ms_s.get("holistic_synergy") is not None:
+                merged_modular["holistic_synergy"] = ms_s["holistic_synergy"]
+            for s_k, s_v in (ms_s.get("solo_vs_ecosystem") or {}).items():
+                if isinstance(s_v, dict):
+                    merged_modular["solo_vs_ecosystem"].setdefault(s_k, {}).update(s_v)
+            for e_k, e_v in (ms_s.get("edges_2x2") or {}).items():
+                if isinstance(e_v, dict):
+                    merged_modular["edges_2x2"].setdefault(e_k, {}).update(e_v)
+            for m_k, m_v in (ms_s.get("motors_summary") or {}).items():
+                if isinstance(m_v, dict):
+                    merged_modular["motors_summary"].setdefault(m_k, {}).update(m_v)
+            for sub_k, sub_v in (ms_s.get("subsets_summary") or {}).items():
+                if isinstance(sub_v, dict):
+                    merged_modular["subsets_summary"].setdefault(sub_k, {}).update(sub_v)
+
+    if has_merged_modular:
+        master_extra["modular_study"] = merged_modular
+        # Enrichir `tile_metrics` pour l'affichage direct dans Amazonia Doc Studio (cartes 30 tuiles)
+        sve_m = merged_modular.get("solo_vs_ecosystem") or {}
+        if sve_m:
+            studio_tm: dict[str, dict[str, Any]] = {}
+            for slot_id, srow in sve_m.items():
+                tok = f"{slot_id}:A"
+                act_src = merged_tile_act.get(tok, {})
+                ci_e = srow.get("ci95_eco")
+                act_pg = act_src.get("activations_per_game")
+                p_h = srow.get("p_holm_eco")
+                p_hs = srow.get("p_holm_solo")
+                ds_v = srow.get("delta_solo")
+                de_v = srow.get("delta_eco")
+                ls_v = srow.get("levier_synergique")
+                is_sig = bool(
+                    (isinstance(p_h, (int, float)) and p_h < 0.05)
+                    or (isinstance(p_hs, (int, float)) and p_hs < 0.05)
+                )
+                t_alerts: list[str] = []
+                if isinstance(ds_v, (int, float)) and abs(ds_v) > 0.08:
+                    t_alerts.append(f"Solo {ds_v * 100:+.1f} pts")
+                if isinstance(de_v, (int, float)) and de_v < -0.005 and isinstance(p_h, (int, float)) and p_h < 0.05:
+                    t_alerts.append(f"Éco LOO {de_v * 100:+.1f} pts")
+                if isinstance(ls_v, (int, float)) and ls_v < -0.04:
+                    t_alerts.append(f"L_syn {ls_v * 100:+.1f} pts")
+                studio_tm[tok] = {
+                    "slot": slot_id,
+                    "profile": "A",
+                    "ref_profile": "NEUTRE",
+                    "protocol": "PAIRED_AB_ACTIVE_VS_NEUTRE",
+                    "ab_effect_estimable": de_v is not None,
+                    "mean_delta_ratio": de_v,
+                    "delta_solo": ds_v,
+                    "levier_synergique": ls_v,
+                    "ci95_low": ci_e[0] if isinstance(ci_e, list) and len(ci_e) == 2 else None,
+                    "ci95_high": ci_e[1] if isinstance(ci_e, list) and len(ci_e) == 2 else None,
+                    "holm_adjusted_p": p_h,
+                    "significant": is_sig,
+                    "n_tables": srow.get("n_paired_tables_eco", 0),
+                    "activations_per_game": act_pg,
+                    "low_activation_lt1": bool(not is_sig and isinstance(act_pg, (int, float)) and act_pg < 1.0),
+                    **({"alerts": t_alerts} if t_alerts else {}),
+                }
+            master_extra["tile_metrics"] = studio_tm
+
     master_payload: dict[str, Any] = {
         "campaign": suite_name,
         "description": str(suite_manifest.get("description", f"Suite orchestrée {suite_name}")).strip(),
@@ -4255,6 +4407,7 @@ def _execute_campaign_suite(
             "pct_reveil_gardiens": pe_m,
             "pct_effondrement": round(max(0.0, 100.0 - p8_m - ps_m - pe_m), 2),
         },
+        **master_extra,
         "stages_summary": stages_summary_rows,
         "alerts": all_alerts,
         "executive_summary": {

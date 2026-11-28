@@ -1,0 +1,118 @@
+{
+  "schema_version": "6.4",
+  "manifest_type": "campaign_suite",
+  "campaign_name": "audit_equilibrage_v6_4",
+  "description": "Grande campagne exhaustive d'audit et d'équilibrage v6.4 : 197 Assises B0..B3, 30 Tuiles Solo/LOO/L_syn (64/64), 15 Duos de lisière 2x2 (64/64), Moteurs Disjoints/Pivots/Rôles, Micro-Forks Causaux v6.4, Audit Ockham et Replays",
+  "seed": 20261128,
+  "player_counts": [3, 4, 5, 6],
+  "b3_config": {
+    "reps_cap_per_table": 12,
+    "n_determinizations": 3,
+    "max_determinizations": 6,
+    "max_candidates": 4,
+    "horizon_turns": 1
+  },
+  "spot_resilience": {
+    "machine_type": "c3-standard-4",
+    "workers": 4,
+    "tasks": 24,
+    "max_parallelism": 6,
+    "provisioning_model": "SPOT",
+    "timeout_sec": 3600,
+    "max_retry_count": 5,
+    "max_spot_waves": 5,
+    "checkpoint_every": 10
+  },
+  "report_output": {
+    "executive_max_bytes": 34000
+  },
+  "stages": [
+    {
+      "stage_name": "01_assises_197_b0_b3",
+      "description": "Couverture exhaustive des 197 assises canoniques (3J-6J) sur toute l'échelle B0..B3 (60 reps/assise B0..B2_OPEN, 12 reps/assise B3 IS-MCTS appariés CRN) + Audit Ockham + 14 Replays remarquables",
+      "mode": 4,
+      "table_selection": "ALL_197_ASSISES",
+      "reps_per_assise": 60,
+      "bots": ["B0", "B1", "B2", "B2_OPEN", "B3"],
+      "include_full_tile_metrics": true,
+      "include_v6_audit_blocks": true,
+      "include_v64_ockham_audit": true,
+      "extract_remarkable_traces": {
+        "enabled": true,
+        "max_games": 14
+      }
+    },
+    {
+      "stage_name": "02_solo_et_loo_30_tuiles",
+      "description": "Tuiles à blanc sur les 197 assises (64/64 assises exactes par tuile, 1 280 paires CRN/tuile) : plancher solo, retrait écosystème LOO et levier synergique L_syn des 30 tuiles",
+      "mode": 4,
+      "table_selection": "ALL_197_ASSISES",
+      "reps_per_assise": 20,
+      "bot": "B2",
+      "include_v64_ockham_audit": true,
+      "tile_study": {
+        "study_type": "SOLO_AND_ECOSYSTEM",
+        "slots": "ALL",
+        "active_profile": "A",
+        "filter_tables_by_presence": true
+      }
+    },
+    {
+      "stage_name": "03_carres_2x2_15_lisieres",
+      "description": "Tuiles à blanc sur les 197 assises (64/64 assises exactes par lisière, 1 280 quadruplets CRN/lisière) : carrés factoriels 2x2 des 15 duos de lisière",
+      "mode": 4,
+      "table_selection": "ALL_197_ASSISES",
+      "reps_per_assise": 20,
+      "bot": "B2",
+      "tile_study": {
+        "study_type": "EDGE_2X2",
+        "edges": "ALL",
+        "background": "ALL_NEUTRE",
+        "filter_tables_by_presence": true
+      }
+    },
+    {
+      "stage_name": "04_moteurs_disjoints_et_pivots",
+      "description": "Tuiles à blanc sur les 197 assises (1 970 paires CRN/moteur) : 5 moteurs disjoints + 7 moteurs à tuiles-pivots + 6 rôles testés seuls et par ablation + synergie holistique",
+      "mode": 4,
+      "table_selection": "ALL_197_ASSISES",
+      "reps_per_assise": 10,
+      "bot": "B2",
+      "tile_study": {
+        "study_type": "MOTORS_BOTH",
+        "motor_family": "ALL"
+      }
+    },
+    {
+      "stage_name": "05_micro_forks_causaux_v6_4",
+      "description": "Micro-forks causaux v6.4 sur les 197 assises (2 364 trajectoires CRN, sel=4/eval=6) : Furtivité, Sentinelles enracinées, Sabotage, Éveil cumulatif A+1, Chamanes, Altération et Icônes Gardiens",
+      "mode": 4,
+      "table_selection": "ALL_197_ASSISES",
+      "reps_per_assise": 12,
+      "bot": "B2",
+      "micro_forks": true,
+      "fork_selection_rollouts": 4,
+      "fork_eval_rollouts": 6,
+      "fork_families": [
+        "CORE_2_1_2_2",
+        "FURTIVITE_SENTINELLES",
+        "EVEIL_A_PLUS_1",
+        "CHAMANES",
+        "ALTERATION",
+        "GARDIEN_ICONES"
+      ],
+      "include_v64_ockham_audit": true,
+      "spot_resilience": {
+        "machine_type": "c3-standard-4",
+        "workers": 4,
+        "tasks": 24,
+        "max_parallelism": 6,
+        "provisioning_model": "SPOT",
+        "timeout_sec": 3600,
+        "max_retry_count": 5,
+        "max_spot_waves": 5,
+        "checkpoint_every": 2
+      }
+    }
+  ]
+}

@@ -296,6 +296,7 @@ class RemarkableGameBookmark:
     cascade_max: int = 0
     assise_key: str = ""
     max_revision_passes: int = 3
+    coordonnateur_initial: int = 0
     note: str = ""
 
     def to_json_dict(self) -> dict[str, Any]:
@@ -325,6 +326,7 @@ class RemarkableGameBookmark:
             cascade_max=int(raw.get("cascade_max", 0)),
             assise_key=str(raw.get("assise_key", "")),
             max_revision_passes=int(raw.get("max_revision_passes", 3)),
+            coordonnateur_initial=int(raw.get("coordonnateur_initial", 0)),
             note=str(raw.get("note", "")),
         )
 
@@ -383,6 +385,7 @@ class RemarkableBookmarkTracker:
                 cascade_max=cascade_max,
                 assise_key=assise_key,
                 max_revision_passes=cfg.max_revision_passes,
+                coordonnateur_initial=cfg.coordonnateur_initial,
             )
 
         # 1. Effondrement le plus brutal (score_arbres == 0) ou score le plus bas
@@ -437,26 +440,20 @@ def select_top_remarkable_bookmarks(
 
     selected: list[RemarkableGameBookmark] = []
     seen_ids: set[tuple[Any, ...]] = set()
-    # Tour 1 : prendre 1 champion par catégorie dans l'ordre prioritaire
-    for cat in REMARKABLE_CATEGORIES:
-        for bm in by_cat.get(cat, ()):
-            rid = bm.replay_identity()
-            if rid not in seen_ids:
-                seen_ids.add(rid)
-                selected.append(bm)
-                break
-        if len(selected) >= max_games:
-            return selected
-
-    # Tour 2 : compléter jusqu'à max_games avec les 2es champions
-    for cat in REMARKABLE_CATEGORIES:
-        for bm in by_cat.get(cat, ()):
+    # Sélection équilibrée en tourniquet (1 champion par catégorie à chaque passe jusqu'à max_games)
+    made_progress = True
+    while len(selected) < max_games and made_progress:
+        made_progress = False
+        for cat in REMARKABLE_CATEGORIES:
             if len(selected) >= max_games:
-                return selected
-            rid = bm.replay_identity()
-            if rid not in seen_ids:
-                seen_ids.add(rid)
-                selected.append(bm)
+                break
+            for bm in by_cat.get(cat, ()):
+                rid = bm.replay_identity()
+                if rid not in seen_ids:
+                    seen_ids.add(rid)
+                    selected.append(bm)
+                    made_progress = True
+                    break
     return selected
 
 
@@ -550,6 +547,7 @@ def extract_remarkable_traces_jsonl(
             peuples=bm.peuples,
             exp_seed=bm.exp_seed,
             rep_id=bm.rep_id,
+            coordonnateur_initial=bm.coordonnateur_initial,
             max_revision_passes=bm.max_revision_passes,
             tile_profiles=bm.tile_profiles,
         )

@@ -553,24 +553,49 @@ def build_b3_degenerate_audit(
                 if variant_tile_profiles_map
                 else ()
             )
+            best_idx = 0
+            best_game_m3 = m3
+            best_game_m2 = m2
+            bp3 = e3[2]
+            bp2 = e2[2]
+            if (
+                bp3 is not None
+                and bp2 is not None
+                and len(bp3) >= n_pair > 0
+                and len(bp2) >= n_pair
+            ):
+                best_diff_bp = bp3[0] - bp2[0]
+                for idx_r in range(1, n_pair):
+                    d_bp = bp3[idx_r] - bp2[idx_r]
+                    if d_bp > best_diff_bp:
+                        best_diff_bp = d_bp
+                        best_idx = idx_r
+                best_game_m3 = bp3[best_idx] / 10000.0
+                best_game_m2 = bp2[best_idx] / 10000.0
+            best_rep_id = int(r3.get("rep_start", 0)) + best_idx
+            n_pl_b3 = int(r3["n_players"])
             top_bm = RemarkableGameBookmark(
                 category="b3_vs_b2_outlier",
                 metric_value=round(delta_k, 5),
                 bot="B3",
                 variant_id=vid_s,
-                n_players=int(r3["n_players"]),
+                n_players=n_pl_b3,
                 mode=int(r3["mode"]),
                 peuples=peuples_t,
                 exp_seed=int(r3.get("exp_seed", 0)),
-                rep_id=int(r3.get("rep_start", 0)),
+                rep_id=best_rep_id,
                 chassis_id=int(r3.get("config_id", -1)),
                 tile_profiles=t_profs,
-                score_arbres=round(m3 * int(r3["n_players"]) * 10),
-                ratio_arbres=round(m3, 4),
+                score_arbres=round(best_game_m3 * n_pl_b3 * 10),
+                ratio_arbres=round(best_game_m3, 4),
                 cause_fin="B3_VS_B2_OUTLIER",
                 tour_fin=8,
                 assise_key=ak,
-                note=f"B3={m3*100:.1f}% vs B2={m2*100:.1f}% ({delta_k*100:+.1f} pts)",
+                coordonnateur_initial=best_rep_id % n_pl_b3,
+                note=(
+                    f"assise B3={m3*100:.1f}% vs B2={m2*100:.1f}% ({delta_k*100:+.1f} pts) | "
+                    f"partie rep={best_rep_id}: B3={best_game_m3*100:.1f}% vs B2={best_game_m2*100:.1f}%"
+                ),
             )
 
     st_fmt = _format_cluster_ci_stats(paired_diff_cluster_ci95(diffs_by_cluster))
