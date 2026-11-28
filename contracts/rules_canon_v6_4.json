@@ -4,7 +4,7 @@
     "schema_version": "6.4.0",
     "date_consolidation": "2026-11-27",
     "statut": "SSOT_V6_4_ACTIVE",
-    "kernel_sync_status": "PENDING_KERNEL_V6_4",
+    "kernel_sync_status": "SEALED_V6_4_ACTIVE_VERIFIED",
     "cadrage_source": "docs/cadrage_v6_4.md",
     "description": "Contrat formel typé unique (SSOT) de la cible consolidée v6.4 : 9 évolutions Cœur zéro-mémoire, 6 Verbes du Cœur, Asymétrie Hybride 3+3 épurée, Enracinement sur Rive Sabotage (Effet Sentinelle) et Canon de 30 tuiles affinées Passe 2."
   },

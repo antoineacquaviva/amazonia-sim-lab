@@ -29,7 +29,7 @@ from campaigns.designs import (
     sequential_halving_select,
 )
 from engine.core_engine import (
-    DEC_MIGRATION_INSECTE_4_3,
+    DEC_DEPLOIEMENT_NID_4_2,
     apply_choice,
     resolve_single_machine_attack,
     step_until_decision,
@@ -37,15 +37,17 @@ from engine.core_engine import (
 from engine.primitives import DecisionRequest, prim_mod_seuil
 from engine.state import (
     CARD_SABOTAGE,
+    FACE_DEFINITIF,
     LISIERE_CONSTRUCTED,
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
     STEP_2_1_DEF1,
     STEP_3_2_REVEAL,
-    STEP_4_3_MIGRATION,
+    STEP_4_2_NIDS,
     STEP_5_1_TACTIQUES,
     TACTIQUES_SPEC,
+    TILE_R_BASE,
     GameConfig,
     GameState,
     machine_card_code,
@@ -142,20 +144,20 @@ def test_b1_law_forgetting_and_b2_economie_graph_sabotage_decay() -> None:
     assert seen_res == set(ALL_ACTIVE_RESOURCES)
     assert "RES_APPRENTISSAGE" not in seen_res
 
-    # Comptage de lois passives Canon 0 (M2:A sur R-I et M3:A sur I-O), et bruit B1 softmax tau_b1
+    # Comptage de lois passives Canon v6.4 (R7:A sur E-M et M5:A sur I-E), et bruit B1 softmax tau_b1
     cfg_laws = GameConfig(
         n_players=4,
         mode=3,
-        peuples=("R", "I", "O", "M"),
-        tile_profiles=(("M2", "A"), ("M3", "A")),
+        peuples=("M", "E", "I", "O"),
+        tile_profiles=(("R7", "A"), ("M5", "A")),
         exp_seed=9191,
         rep_id=1,
     )
     st_laws = GameState(cfg_laws)
-    for tid in ("M2", "M3"):
-        slot_idx = st_laws.find_lisiere_slot_by_tile_id(tid)
-        assert slot_idx is not None
-        st_laws.set_lisiere_tile_state(slot_idx, LISIERE_CONSTRUCTED, 0)
+    st_laws.set_tactique_at_rank(2, TILE_R_BASE + 7)
+    slot_m5 = st_laws.find_lisiere_slot_by_tile_id("M5")
+    assert slot_m5 is not None
+    st_laws.set_lisiere_tile_state(slot_m5, LISIERE_CONSTRUCTED, 0)
     obs_laws = st_laws.get_observation(0)
     assert count_active_laws_from_obs(obs_laws, cfg_laws) == 2
     assert score_target_b1.softmax_tau > 0.0
@@ -197,21 +199,17 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     state = GameState(cfg)
     trk = TelemetryTracker()
 
-    # 1) Règle spéciale 4.3 : déplacer 1 Insecte = exactement +3 ops physiques ; RESTER = 0 op !
-    state.set_parcel_insectes(0, 2, 2)
-    state.step = STEP_4_3_MIGRATION
+    # 1) Déploiement direct 4.2 (v6.4 sans Migration 4.3) : chaque Insecte produit et posé consomme >= 1 op physique
+    state.set_parcel_nid(3, 2, 1)
+    state.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
+    state.step = STEP_4_2_NIDS
     req_m1 = step_until_decision(state, telemetry=trk)
     assert isinstance(req_m1, DecisionRequest)
-    assert req_m1.decision_type == DEC_MIGRATION_INSECTE_4_3
+    assert req_m1.decision_type == DEC_DEPLOIEMENT_NID_4_2
     ops_before_move = trk.total_physical_ops
-    apply_choice(state, ("FORET", 0, 3), telemetry=trk)
-    assert trk.total_physical_ops - ops_before_move == 3
-
-    req_m2 = step_until_decision(state, telemetry=trk)
-    assert isinstance(req_m2, DecisionRequest)
-    ops_before_stay = trk.total_physical_ops
-    apply_choice(state, ("RESTER",), telemetry=trk)
-    assert trk.total_physical_ops - ops_before_stay == 0
+    apply_choice(state, ("FORET", 3, 3), telemetry=trk)
+    assert trk.total_physical_ops - ops_before_move >= 1
+    assert state.get_parcel_insectes(3, 3) == 1
 
     # 2) Cascades & mid_combat_interrupts en Mode 2 (Pari Gardiens + Résonance en case 6 v6.2)
     state.set_gardien_at_case(1, 9, face=1)
@@ -225,7 +223,7 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     resolve_single_machine_attack(state, 0, MACHINE_ABATTEUSE, TACTIQUES_SPEC[1], telemetry=trk)
 
     snap_mid = trk.summary()
-    assert snap_mid.cascade_sweeps >= 1
+    assert snap_mid.cascade_sweeps == 0
     assert snap_mid.mid_combat_interrupts == 2  # Gardien case 1 + Gardien case 6 durant 5.1 !
 
     # 3) mem_debt_score : 1 modificateur transitoire traversant 3.2 -> 4.1 -> ... -> 6.2
@@ -234,7 +232,7 @@ def test_telemetry_4_cognitive_sensors_and_4_3_three_ops_rule() -> None:
     prim_mod_seuil(st_mem, -1, ray=0, p=2)
     st_mem.step = STEP_3_2_REVEAL
     _ = step_until_decision(st_mem, telemetry=trk_mem)
-    assert trk_mem.summary().mem_debt_score >= 7
+    assert trk_mem.summary().mem_debt_score >= 6
 
     # 4) Partie complète B1 et B2 en Mode 2 avec télémétrie active
     trk_game = TelemetryTracker()

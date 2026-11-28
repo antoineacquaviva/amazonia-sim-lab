@@ -206,10 +206,10 @@ def determinize_state_from_obs(
             det_perchoir_card = int(keyed_pool[cursor_k][2])
             cursor_k += 1
 
-    # Masquage strict du Dé d'Envol de O lorsque paravents fermés et observateur != O
+    # Masquage strict du choix de dé de O lorsque paravents fermés et observateur != O
     seat_o = cfg.seat_of_peuple("O")
     if not obs.paravents_ouverts and seat_o is not None and seat != seat_o:
-        det.set_oiseau_de_envol(0, False)
+        det.set_oiseau_chose_d2(False)
 
     # 4. Reconstruire la pioche restante exacte (Machines + Sabotages + Écailles hors mains et Perchoir)
     orig_sab_deck = obs.sabotage_deck_count
@@ -306,22 +306,15 @@ def evaluate_turn_state_trees(state: GameState) -> float:
             elif st_l == LISIERE_ROOTED:
                 rinfo = state.get_slot_rooted_info(slot_idx)
                 if rinfo is not None:
-                    r_rt, p_rt, f_rt, _ = rinfo
-                    if p_rt > 0 and not state.is_route_forestiere(r_rt, p_rt):
-                        souches_rt = state.get_parcel_souches(r_rt, p_rt)
-                        tid_rt = cfg.lisiere_slots[slot_idx]
-                        cap_rt = 2 if f_rt == 2 else 1
-                        if tid_rt == "M5":
-                            cap_rt += state.get_parcel_insectes(r_rt, p_rt)
-                        assets += 0.85 * float(min(souches_rt, cap_rt))
-                        if tid_rt == "R6":
-                            for pn in (
-                                state.next_non_razed_towards_border(r_rt, p_rt),
-                                state.next_non_razed_towards_heart(r_rt, p_rt),
-                            ):
-                                if pn is not None and state.get_parcel_souches(r_rt, pn) >= 1:
-                                    assets += 0.85
-                                    break
+                    r_rt, _, tier_rt, _ = rinfo
+                    souches_ray = sum(
+                        state.get_parcel_souches(r_rt, p_s)
+                        for p_s in range(1, p_max + 1)
+                        if not state.is_route_forestiere(r_rt, p_s)
+                    )
+                    assets += 0.85 * float(min(souches_ray, tier_rt))
+                    if rem_turns > 0:
+                        assets += 0.35
         for rk in range(TRACK_LEN):
             if is_reve_code(state.get_tactique_at_rank(rk)):
                 assets += 0.35 * float(TRACK_LEN - rk) / float(TRACK_LEN)

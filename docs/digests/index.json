@@ -2,6 +2,14 @@
   "schema_version": "1.0",
   "digests": [
     {
+      "id": "calibration_canon_v6_4_197",
+      "label": "Calibration exhaustive v6.4.0 sur les 197 assises canoniques (42 compositions, N=3..6, PyPy 3.11 local 0 €) : Lot 0 vs Canon v6.4 (30 tuiles actives), progression B0 < B1 < B2 (Lot 0 : 32,87 % < 46,16 % < 58,37 % ; Canon v6.4 : 41,65 % < 56,44 % < 67,29 %, lift pur B2 +8,63 pts ± 1,29), fins B2 Canon v6.4 (TOUR_8 78,05 % / SOMMEIL 19,16 % / EVEIL 2,79 %), activité Furtivité (Rive Piège 0,74/p · 91,2 % / Rive Sabotage 2,30/p · 58,2 %), 30/30 tuiles construites et activées, mem_debt=0, law_stack_max=1. (2758 parties)",
+      "file": "calibration_canon_v6_4_197.json",
+      "campaign": "calibration_canon_v6_4_197",
+      "generated_at_utc": "2026-11-28T07:41:03Z",
+      "total_games": 2758
+    },
+    {
       "id": "forks_causalite_v6_1",
       "label": "Campagne Micro de forks contrefactuels appariés (CRN) du socle scellé v6.1 (Mode 2, B2, chassis_id = 24 / config_index_192 = 5, SINGLE_STRIKE, N=3..6, 120 trajectoires/table = 480 trajectoires) : mesure l'impact marginal causal exact (Delta V ± IC 95 %) sur (1) la 1re pose 2.1 (B2 vs B0 Réflexe, et DEF1 sur Rêve en 2.1 vs sans Rêve 2.1), (2) la 2e pose 2.2 (K=3 vs K=0 vs paravents ouverts : valeur de la révision muette et coût du silence), (3) les binômes Furtivité « Chaud vs Calme » (Rive Piège et Rive Sabotage vs contrefactuels purs dès 2.1), (4) la pose du Piège autonome en 4.1 par le propriétaire du rayon, (5) les tentatives d'Éveil 100 % Gardiens vs survie, et (6) le duel plein-match CRN CHARGE_GAIN FRAPPE_NON_PAREE vs DEGAT_EFFECTIF. (480 parties)",
       "file": "digest_forks_causalite_v6_1.json",

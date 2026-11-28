@@ -8,12 +8,12 @@ from engine.core_engine import (
     DEC_BOUCLIER_LISIERE_5_3,
     DEC_CHOIX_CASE_GARDIEN,
     DEC_CHOIX_CIBLE_REVE_3_2,
+    DEC_DEPLOIEMENT_NID_4_2,
     DEC_ENRACINEMENT_6_1,
     DEC_HUMAIN_CHAMAN_2_1,
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MAMMIFERE_DUEL_2,
-    DEC_MIGRATION_INSECTE_4_3,
-    DEC_OISEAU_DE_ENVOL_1_3,
+    DEC_OISEAU_CHOIX_DE_1_3,
     DEC_OISEAU_PERCHOIR_1_1,
     DEC_OISEAU_PLUME_2,
     DEC_ORDRE_CONSTRUCTION_3_1,
@@ -23,6 +23,7 @@ from engine.core_engine import (
     DEC_POSE_PIEGE_FURTIVITE_4_1,
     DEC_REPTILE_POSE_CROC_3_2,
     DEC_REVISION_DEFENSEUR_2,
+    DEC_SABOTAGE_CIBLE_3_2,
     apply_choice,
     step_until_decision,
 )
@@ -409,8 +410,8 @@ class BotB0:
                     best_c = cand_c
             return best_c
 
-        if dtype == DEC_OISEAU_DE_ENVOL_1_3:
-            # Choisit le rang qui tombe sur un Rêve ou qui déclenche le moins de frappes
+        if dtype == DEC_OISEAU_CHOIX_DE_1_3:
+            # Choisit le dé (D1 ou D2) qui tombe sur un Rêve ou déclenche le moins de frappes
             best_rk = opts[0]
             best_sc_rk = -10**9
             for rk in opts:
@@ -427,6 +428,19 @@ class BotB0:
                     best_sc_rk = sc_rk
                     best_rk = rk
             return best_rk
+
+        if dtype == DEC_SABOTAGE_CIBLE_3_2:
+            best_m = opts[0]
+            best_sc_m = (-1, -1, -1, -1)
+            for cand in opts:
+                r_m, mt_m = int(cand[0]), int(cand[1])
+                pos_m, _ = obs.machine_pos_status(r_m, mt_m)
+                r_tok = obs.machines[r_m * 2 + mt_m].rouges
+                key_m = (1 if r_tok >= 1 else 0, r_tok, pos_m, 1 if mt_m == MACHINE_BULLDOZER else 0)
+                if key_m > best_sc_m:
+                    best_sc_m = key_m
+                    best_m = cand
+            return best_m
 
         if dtype == DEC_HUMAIN_CHAMAN_2_1:
             own_hand = obs.hand_of(obs.observer_seat)
@@ -507,20 +521,35 @@ class BotB0:
             if obs.tour < 7:
                 return "PASSER" if "PASSER" in opts else opts[0]
             reves_on = sum(1 for c_r in range(1, TRACK_LEN + 1) if obs.reve_at_case(c_r) > 0)
+            ray_souches = sum(
+                obs.parcel_souches(obs.observer_seat, p_s)
+                for p_s in range(1, cfg.p_max + 1)
+                if not obs.is_route(obs.observer_seat, p_s)
+            )
             best_root: Any = "PASSER" if "PASSER" in opts else opts[0]
             best_sc_rt = 0
             for opt in opts:
                 if opt == "PASSER":
                     continue
-                sl_idx, p_rt = int(opt[0]), int(opt[1])
+                sl_idx = int(opt)
                 tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
-                fam_rt, _, _ = SYNERGY_META[tid_rt]
-                if fam_rt == FAMILLE_REVE and obs.tour == 7 and reves_on >= max(1, cfg.total_reves_partie - 1):
+                fam_rt, _, num_rt = SYNERGY_META[tid_rt]
+                if (
+                    fam_rt == FAMILLE_REVE
+                    and tid_rt != "R1"
+                    and obs.tour == 7
+                    and reves_on >= max(1, cfg.total_reves_partie - 1)
+                ):
                     continue
-                souches = obs.parcel_souches(obs.observer_seat, p_rt)
-                if souches <= 0:
+                if ray_souches <= 0:
                     continue
-                sc_rt = souches * 100 + p_rt * 10
+                tier = 1
+                if tid_rt.startswith("G"):
+                    for g_sl in obs.piste_gardiens:
+                        if g_sl.gardien_num == num_rt and g_sl.face == 2:
+                            tier = 2
+                            break
+                sc_rt = min(ray_souches, tier) * 100 + (30 if obs.tour == 8 else 10)
                 if sc_rt > best_sc_rt:
                     best_sc_rt = sc_rt
                     best_root = opt
@@ -664,9 +693,9 @@ class BotB0:
                         best_lib = opt
             return best_lib
 
-        if dtype == DEC_MIGRATION_INSECTE_4_3:
-            src = decision.context.get("source", ("FORET", 0, 1))
-            src_kind, _, src_p = src
+        if dtype == DEC_DEPLOIEMENT_NID_4_2:
+            nid_r = int(decision.context.get("ray", 0))
+            nid_p = int(decision.context.get("p", 1))
             m_mask = _active_machine_mask(obs)
             best_mv = opts[0]
             best_sc = -1
@@ -682,14 +711,12 @@ class BotB0:
                     sc = 420 if (is_tactique_code(t_code) and t_bugs == 0) else 220
                 elif mk == "FORET":
                     dst_r, dst_p = int(mv[1]), int(mv[2])
-                    if obs.mode >= 2 and src_kind == "FORET" and dst_p > int(src_p):
-                        sc = 300
-                    elif m_mask & (1 << (dst_r * MAX_P + (dst_p - 1))):
-                        sc = 250
+                    if m_mask & (1 << (dst_r * MAX_P + (dst_p - 1))):
+                        sc = 320
+                    elif dst_r == nid_r and dst_p == nid_p and obs.parcel_insectes(nid_r, nid_p) < 2:
+                        sc = 280
                     else:
-                        sc = 80
-                elif mk == "RESTER":
-                    sc = 150
+                        sc = 120
 
                 if sc > best_sc:
                     best_sc = sc

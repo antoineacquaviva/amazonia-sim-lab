@@ -64,7 +64,7 @@ from engine.state import (
     STEP_3_1_CONSTRUCT,
     STEP_3_2_REVEAL,
     STEP_4_1_FURTIVITE,
-    STEP_4_3_MIGRATION,
+    STEP_4_2_NIDS,
     STEP_5_2_RATISSAGE,
     STEP_5_3_END_CHECK,
     STEP_6_2_EVOLUTION,
@@ -180,7 +180,8 @@ def test_v6_1_piege_no_stacking_persistence_nid_traversal_and_route_clear() -> N
     st.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
     st.place_defender_furtivite(0, 0, 0, FURT_RIVE_PIEGE, FACE_DEFINITIF)
     st.place_defender_furtivite(1, 0, 0, FURT_RIVE_PIEGE, FACE_DEFINITIF)
-    st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3
+    st.set_parcel_nid(3, 2, 1)  # Ancre 4.2
+    st.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st.step = STEP_4_1_FURTIVITE
     req = step_until_decision(st)
     # Aucune DecisionRequest POSE_PIEGE_FURTIVITE_4_1 : posé directement sur l'unique parcelle libre (0, 4) !
@@ -264,9 +265,10 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     st.place_defender_gardien_pari(3, 5, FACE_DEFINITIF)
     st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)  # Sera déviée 5 -> 6
     st.set_player_hand(1, machine_card_code(1, MACHINE_BULLDOZER), 6, 6, 6, 0)  # Non déviée sur 6
-    st.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_parcel_insectes(3, 1, 1)
+    st.set_player_hand(2, 0, 0, 0, 0, 0)
+    st.set_player_hand(3, 0, 0, 0, 0, 0)
+    st.set_parcel_nid(3, 2, 1)
+    st.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
 
     st.step = STEP_3_2_REVEAL
     req = step_until_decision(st)
@@ -279,7 +281,7 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     assert st.has_gardien_opened_this_turn(4) is True
 
     # B) Surplus de Défenseurs : 2 Défenseurs (2.1 + 2.2) sur un Rêve face à 1 seule machine ->
-    #    1 seul Défenseur consommé, 1 reste non consommé, et 6.2 rend proprement tous les Défenseurs
+    #    tous couchés à plat après résolution (v6.4 INV-15), et 6.2 rend proprement tous les Défenseurs
     st_sur = GameState(cfg)
     st_sur.tour = 2
     st_sur.set_tactique_at_rank(5, TILE_R_BASE + 1)
@@ -287,13 +289,13 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     st_sur.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=1)
     st_sur.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st_sur.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
+        st_sur.set_player_hand(s, 0, 0, 0, 0, 0)
     st_sur.step = STEP_3_2_REVEAL
     _run_step_3_2(st_sur)
     while st_sur._continuation:
         assert _advance_continuation(st_sur) is None
-    assert st_sur.count_reve_activation_consumed_at_case(6) == 1
-    assert st_sur.count_reve_activation_defenders_at_case(6) == 1
+    assert st_sur.count_reve_activation_consumed_at_case(6) == 2
+    assert st_sur.count_reve_activation_defenders_at_case(6) == 0
     st_sur.step = STEP_6_2_EVOLUTION
     _ = step_until_decision(st_sur)
     assert st_sur.count_reve_activation_consumed_at_case(6) == 0
@@ -313,8 +315,9 @@ def test_v6_1_strict_partition_3_2_bug_onto_defended_reve_1_vs_2_cards_and_surpl
     st_t1.place_defender_gardien_pari(1, 4, FACE_DEFINITIF)
     st_t1.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st_t1.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_t1.set_parcel_insectes(3, 1, 1)
+        st_t1.set_player_hand(s, 0, 0, 0, 0, 0)
+    st_t1.set_parcel_nid(3, 2, 1)
+    st_t1.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_t1.step = STEP_3_1_CONSTRUCT
     _ = step_until_decision(st_t1)
     # Le Rêve a été construit en case 6 en 3.1, mais sans Défenseur dessus -> inerte en 3.2, 4. Rêve NON allumé !
@@ -361,13 +364,16 @@ def test_v6_1_6j_eveil_unlocked_by_2_1_reve_lighting_case_5() -> None:
     st.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
     st.set_player_hand(2, machine_card_code(2, MACHINE_ABATTEUSE), 2, 2, 2, 0)
     st.set_player_hand(3, machine_card_code(3, MACHINE_ABATTEUSE), 6, 6, 6, 0)
-    st.set_player_hand(4, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_player_hand(5, CARD_SABOTAGE, 0, 0, 0, 0)
+    st.set_player_hand(4, 0, 0, 0, 0, 0)
+    st.set_player_hand(5, 0, 0, 0, 0, 0)
 
     trk = TelemetryTracker()
     trk.on_reveil_attempt(st)
     st.step = STEP_3_2_REVEAL
     req = step_until_decision(st, telemetry=trk)
+    while isinstance(req, DecisionRequest) and req.decision_type == "SABOTAGE_CIBLE_3_2":
+        apply_choice(st, req.options[0], telemetry=trk)
+        req = step_until_decision(st, telemetry=trk)
     assert isinstance(req, DecisionRequest) and "M_PLUS_1" in req.options
     apply_choice(st, "M_PLUS_1", telemetry=trk)
 
@@ -408,10 +414,11 @@ def test_v6_1_furtivite_ratissage_plus_card_and_independence_from_bug_and_reve()
     st.place_defender_furtivite(2, 1, 1, FURT_RIVE_SABOTAGE, FACE_DEFINITIF)
 
     st.set_player_hand(0, machine_card_code(0, MACHINE_BULLDOZER), 5, 5, 5, 0)
-    st.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3
+    st.set_player_hand(1, 0, 0, 0, 0, 0)
+    st.set_player_hand(2, 0, 0, 0, 0, 0)
+    st.set_player_hand(3, 0, 0, 0, 0, 0)
+    st.set_parcel_nid(3, 2, 1)  # Ancre 4.2
+    st.place_defender_foret(3, 1, 3, 2, FACE_DEFINITIF)
 
     trk = TelemetryTracker()
     st.step = STEP_3_2_REVEAL
@@ -435,10 +442,11 @@ def test_v6_1_furtivite_ratissage_plus_card_and_independence_from_bug_and_reve()
     assert ts.ok_sabotage_acquired == 1
     assert ts.ok_furt_rive_sabotage_lost == 1
 
-    # B) Migration 4.3 : aucune option FURTIVITE proposée
+    # B) Déploiement direct de Nid 4.2 : aucune option FURTIVITE proposée
     st_mig = GameState(cfg)
-    st_mig.set_parcel_insectes(3, 2, 1)
-    st_mig.step = STEP_4_3_MIGRATION
+    st_mig.set_parcel_nid(3, 2, 1)
+    st_mig.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
+    st_mig.step = STEP_4_2_NIDS
     req_mig = step_until_decision(st_mig)
     assert isinstance(req_mig, DecisionRequest)
     assert all(opt[0] != "FURTIVITE" for opt in req_mig.options)

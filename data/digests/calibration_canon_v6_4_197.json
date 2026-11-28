@@ -1,0 +1,3186 @@
+{
+  "meta": {
+    "schema_version": "6.4.0",
+    "campaign": "calibration_canon_v6_4_197",
+    "generated_at_utc": "2026-11-28T07:41:03Z",
+    "runtime": "PyPy 3.11.17",
+    "exp_seed": 20260640,
+    "reps_per_assise": 4,
+    "b2_lot0_control_reps_per_assise": 2,
+    "b1_canon_reps_per_assise": 2,
+    "b0_reps_per_assise": 1,
+    "gardien_reve_rollouts": 4,
+    "total_assises": 197,
+    "total_compositions": 42,
+    "games_b0_lot0": 197,
+    "games_b0_canon_v6_4": 197,
+    "games_b1_lot0": 788,
+    "games_b1_canon_v6_4": 394,
+    "games_b2_lot0_control": 394,
+    "games_b2_canon_v6_4": 788,
+    "total_games": 2758,
+    "elapsed_seconds": 427.51
+  },
+  "by_n_players": {
+    "3J": {
+      "assises_count": 20,
+      "compositions_count": 20,
+      "b0_lot0": {
+        "games": 20,
+        "mean_ratio_arbres": 0.3283,
+        "mean_score_arbres": 9.85,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 2.75,
+        "mean_rooted_tiles": 0.85,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 20,
+        "mean_ratio_arbres": 0.3933,
+        "mean_score_arbres": 11.8,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 2.95,
+        "mean_rooted_tiles": 0.95,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.3,
+          "mean_sabotage_acquired": 0.25
+        }
+      },
+      "b1_lot0": {
+        "games": 80,
+        "mean_ratio_arbres": 0.4988,
+        "mean_score_arbres": 14.96,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.84,
+        "mean_rooted_tiles": 3.98,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.625,
+          "mean_rive_sabotage_exec_per_game": 0.425,
+          "mean_rive_piege_lost_per_game": 0.062,
+          "mean_rive_sabotage_lost_per_game": 0.175,
+          "rive_piege_success_rate_pct": 90.9,
+          "rive_sabotage_success_rate_pct": 70.8,
+          "mean_furt_1_rive_turns": 0.988,
+          "mean_furt_multi_rive_turns": 0.062,
+          "mean_pieges_placed": 0.625,
+          "mean_pieges_triggered": 0.625,
+          "mean_sabotage_acquired": 0.425
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 40,
+        "mean_ratio_arbres": 0.5892,
+        "mean_score_arbres": 17.68,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 5.83,
+        "mean_rooted_tiles": 4.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.45,
+          "mean_rive_sabotage_exec_per_game": 0.75,
+          "mean_rive_piege_lost_per_game": 0.1,
+          "mean_rive_sabotage_lost_per_game": 0.225,
+          "rive_piege_success_rate_pct": 81.8,
+          "rive_sabotage_success_rate_pct": 76.9,
+          "mean_furt_1_rive_turns": 1.075,
+          "mean_furt_multi_rive_turns": 0.125,
+          "mean_pieges_placed": 0.45,
+          "mean_pieges_triggered": 1.15,
+          "mean_sabotage_acquired": 1.525
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 80,
+        "mean_ratio_arbres": 0.6387,
+        "mean_score_arbres": 19.16,
+        "mean_tour_fin": 7.89,
+        "endings_pct": {
+          "TOUR_8": 95.0,
+          "SOMMEIL": 2.5,
+          "EVEIL": 2.5
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 3.52,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.512,
+          "mean_rive_sabotage_exec_per_game": 2.062,
+          "mean_rive_piege_lost_per_game": 0.013,
+          "mean_rive_sabotage_lost_per_game": 1.512,
+          "rive_piege_success_rate_pct": 97.6,
+          "rive_sabotage_success_rate_pct": 57.7,
+          "mean_furt_1_rive_turns": 2.45,
+          "mean_furt_multi_rive_turns": 0.113,
+          "mean_pieges_placed": 0.625,
+          "mean_pieges_triggered": 1.6,
+          "mean_sabotage_acquired": 3.188
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.14,
+        "se_inter_assise": 0.0247,
+        "ci95_half": 0.0484,
+        "mean_trees": 4.2,
+        "compositions_b2_gt_b1": 17,
+        "compositions_total": 20,
+        "assises_b2_gt_b1": 18,
+        "assises_total": 20
+      },
+      "b2_lot0_control": {
+        "paired_games": 40,
+        "b2_lot0": {
+          "games": 40,
+          "mean_ratio_arbres": 0.5758,
+          "mean_score_arbres": 17.27,
+          "mean_tour_fin": 7.97,
+          "endings_pct": {
+            "TOUR_8": 97.5,
+            "SOMMEIL": 2.5,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 3.6,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.625,
+            "mean_rive_sabotage_exec_per_game": 1.85,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.15,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 61.7,
+            "mean_furt_1_rive_turns": 2.3,
+            "mean_furt_multi_rive_turns": 0.175,
+            "mean_pieges_placed": 0.625,
+            "mean_pieges_triggered": 0.625,
+            "mean_sabotage_acquired": 1.85
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6417,
+        "b2_lot0_mean_ratio": 0.5758,
+        "pure_canon_v6_4_lift_at_b2": 0.0658,
+        "pure_lift_se_inter_assise": 0.0197,
+        "pure_lift_ci95_half": 0.0385
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3283,
+        "lot0_b1_mean_ratio": 0.4988,
+        "lot0_b2_mean_ratio": 0.5758,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.3933,
+        "canon_v6_4_b1_mean_ratio": 0.5892,
+        "canon_v6_4_b2_mean_ratio": 0.6387,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "4J": {
+      "assises_count": 45,
+      "compositions_count": 15,
+      "b0_lot0": {
+        "games": 45,
+        "mean_ratio_arbres": 0.3061,
+        "mean_score_arbres": 12.24,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 4.93,
+        "mean_rooted_tiles": 1.84,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.044,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.044,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.044,
+          "mean_pieges_triggered": 0.044,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 45,
+        "mean_ratio_arbres": 0.3889,
+        "mean_score_arbres": 15.56,
+        "mean_tour_fin": 7.98,
+        "endings_pct": {
+          "TOUR_8": 97.78,
+          "SOMMEIL": 2.22,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 5.24,
+        "mean_rooted_tiles": 1.69,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.556,
+          "mean_sabotage_acquired": 0.533
+        }
+      },
+      "b1_lot0": {
+        "games": 180,
+        "mean_ratio_arbres": 0.4317,
+        "mean_score_arbres": 17.27,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 7.86,
+        "mean_rooted_tiles": 5.27,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.183,
+          "mean_rive_sabotage_exec_per_game": 0.506,
+          "mean_rive_piege_lost_per_game": 0.117,
+          "mean_rive_sabotage_lost_per_game": 0.339,
+          "rive_piege_success_rate_pct": 91.0,
+          "rive_sabotage_success_rate_pct": 59.9,
+          "mean_furt_1_rive_turns": 1.561,
+          "mean_furt_multi_rive_turns": 0.128,
+          "mean_pieges_placed": 1.183,
+          "mean_pieges_triggered": 1.139,
+          "mean_sabotage_acquired": 0.506
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 90,
+        "mean_ratio_arbres": 0.5228,
+        "mean_score_arbres": 20.91,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 7.86,
+        "mean_rooted_tiles": 5.38,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.922,
+          "mean_rive_sabotage_exec_per_game": 0.833,
+          "mean_rive_piege_lost_per_game": 0.178,
+          "mean_rive_sabotage_lost_per_game": 0.367,
+          "rive_piege_success_rate_pct": 83.8,
+          "rive_sabotage_success_rate_pct": 69.4,
+          "mean_furt_1_rive_turns": 1.478,
+          "mean_furt_multi_rive_turns": 0.244,
+          "mean_pieges_placed": 0.922,
+          "mean_pieges_triggered": 1.633,
+          "mean_sabotage_acquired": 1.744
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 180,
+        "mean_ratio_arbres": 0.6393,
+        "mean_score_arbres": 25.57,
+        "mean_tour_fin": 7.85,
+        "endings_pct": {
+          "TOUR_8": 93.33,
+          "SOMMEIL": 5.56,
+          "EVEIL": 1.11
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 7.95,
+        "mean_rooted_tiles": 4.77,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.522,
+          "mean_rive_sabotage_exec_per_game": 2.394,
+          "mean_rive_piege_lost_per_game": 0.017,
+          "mean_rive_sabotage_lost_per_game": 1.722,
+          "rive_piege_success_rate_pct": 96.9,
+          "rive_sabotage_success_rate_pct": 58.2,
+          "mean_furt_1_rive_turns": 2.661,
+          "mean_furt_multi_rive_turns": 0.228,
+          "mean_pieges_placed": 0.639,
+          "mean_pieges_triggered": 1.906,
+          "mean_sabotage_acquired": 4.033
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.2076,
+        "se_inter_assise": 0.0133,
+        "ci95_half": 0.0261,
+        "mean_trees": 8.31,
+        "compositions_b2_gt_b1": 15,
+        "compositions_total": 15,
+        "assises_b2_gt_b1": 45,
+        "assises_total": 45
+      },
+      "b2_lot0_control": {
+        "paired_games": 90,
+        "b2_lot0": {
+          "games": 90,
+          "mean_ratio_arbres": 0.5636,
+          "mean_score_arbres": 22.54,
+          "mean_tour_fin": 7.96,
+          "endings_pct": {
+            "TOUR_8": 97.78,
+            "SOMMEIL": 2.22,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 7.9,
+          "mean_rooted_tiles": 4.9,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 1.122,
+            "mean_rive_sabotage_exec_per_game": 1.667,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.356,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 55.1,
+            "mean_furt_1_rive_turns": 2.644,
+            "mean_furt_multi_rive_turns": 0.144,
+            "mean_pieges_placed": 1.122,
+            "mean_pieges_triggered": 1.089,
+            "mean_sabotage_acquired": 1.667
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6417,
+        "b2_lot0_mean_ratio": 0.5636,
+        "pure_canon_v6_4_lift_at_b2": 0.0781,
+        "pure_lift_se_inter_assise": 0.0161,
+        "pure_lift_ci95_half": 0.0316
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3061,
+        "lot0_b1_mean_ratio": 0.4317,
+        "lot0_b2_mean_ratio": 0.5636,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.3889,
+        "canon_v6_4_b1_mean_ratio": 0.5228,
+        "canon_v6_4_b2_mean_ratio": 0.6393,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "5J": {
+      "assises_count": 72,
+      "compositions_count": 6,
+      "b0_lot0": {
+        "games": 72,
+        "mean_ratio_arbres": 0.3219,
+        "mean_score_arbres": 16.1,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.79,
+        "mean_rooted_tiles": 1.97,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.042,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.042,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.042,
+          "mean_pieges_triggered": 0.042,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 72,
+        "mean_ratio_arbres": 0.4119,
+        "mean_score_arbres": 20.6,
+        "mean_tour_fin": 7.99,
+        "endings_pct": {
+          "TOUR_8": 98.61,
+          "SOMMEIL": 1.39,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 6.01,
+        "mean_rooted_tiles": 1.96,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.056,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.056,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.056,
+          "mean_pieges_triggered": 0.708,
+          "mean_sabotage_acquired": 0.778
+        }
+      },
+      "b1_lot0": {
+        "games": 288,
+        "mean_ratio_arbres": 0.4629,
+        "mean_score_arbres": 23.15,
+        "mean_tour_fin": 7.98,
+        "endings_pct": {
+          "TOUR_8": 98.96,
+          "SOMMEIL": 0.0,
+          "EVEIL": 1.04
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 9.85,
+        "mean_rooted_tiles": 6.66,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.236,
+          "mean_rive_sabotage_exec_per_game": 0.76,
+          "mean_rive_piege_lost_per_game": 0.135,
+          "mean_rive_sabotage_lost_per_game": 0.399,
+          "rive_piege_success_rate_pct": 90.1,
+          "rive_sabotage_success_rate_pct": 65.6,
+          "mean_furt_1_rive_turns": 1.757,
+          "mean_furt_multi_rive_turns": 0.219,
+          "mean_pieges_placed": 1.236,
+          "mean_pieges_triggered": 1.194,
+          "mean_sabotage_acquired": 0.76
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 144,
+        "mean_ratio_arbres": 0.5672,
+        "mean_score_arbres": 28.36,
+        "mean_tour_fin": 7.94,
+        "endings_pct": {
+          "TOUR_8": 97.22,
+          "SOMMEIL": 2.08,
+          "EVEIL": 0.69
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.9,
+        "mean_rooted_tiles": 6.74,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.965,
+          "mean_rive_sabotage_exec_per_game": 1.104,
+          "mean_rive_piege_lost_per_game": 0.201,
+          "mean_rive_sabotage_lost_per_game": 0.354,
+          "rive_piege_success_rate_pct": 82.7,
+          "rive_sabotage_success_rate_pct": 75.7,
+          "mean_furt_1_rive_turns": 1.688,
+          "mean_furt_multi_rive_turns": 0.299,
+          "mean_pieges_placed": 0.979,
+          "mean_pieges_triggered": 1.979,
+          "mean_sabotage_acquired": 2.472
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 288,
+        "mean_ratio_arbres": 0.6799,
+        "mean_score_arbres": 33.99,
+        "mean_tour_fin": 7.49,
+        "endings_pct": {
+          "TOUR_8": 76.74,
+          "SOMMEIL": 21.53,
+          "EVEIL": 1.74
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.84,
+        "mean_rooted_tiles": 5.33,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.812,
+          "mean_rive_sabotage_exec_per_game": 2.306,
+          "mean_rive_piege_lost_per_game": 0.09,
+          "mean_rive_sabotage_lost_per_game": 1.712,
+          "rive_piege_success_rate_pct": 90.0,
+          "rive_sabotage_success_rate_pct": 57.4,
+          "mean_furt_1_rive_turns": 2.653,
+          "mean_furt_multi_rive_turns": 0.382,
+          "mean_pieges_placed": 1.146,
+          "mean_pieges_triggered": 2.535,
+          "mean_sabotage_acquired": 4.385
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.2169,
+        "se_inter_assise": 0.0089,
+        "ci95_half": 0.0174,
+        "mean_trees": 10.85,
+        "compositions_b2_gt_b1": 6,
+        "compositions_total": 6,
+        "assises_b2_gt_b1": 72,
+        "assises_total": 72
+      },
+      "b2_lot0_control": {
+        "paired_games": 144,
+        "b2_lot0": {
+          "games": 144,
+          "mean_ratio_arbres": 0.5722,
+          "mean_score_arbres": 28.61,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 9.63,
+          "mean_rooted_tiles": 6.24,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 2.076,
+            "mean_rive_sabotage_exec_per_game": 1.41,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.167,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 54.7,
+            "mean_furt_1_rive_turns": 3.264,
+            "mean_furt_multi_rive_turns": 0.208,
+            "mean_pieges_placed": 2.076,
+            "mean_pieges_triggered": 1.972,
+            "mean_sabotage_acquired": 1.41
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6744,
+        "b2_lot0_mean_ratio": 0.5722,
+        "pure_canon_v6_4_lift_at_b2": 0.1022,
+        "pure_lift_se_inter_assise": 0.0113,
+        "pure_lift_ci95_half": 0.0221
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3219,
+        "lot0_b1_mean_ratio": 0.4629,
+        "lot0_b2_mean_ratio": 0.5722,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.4119,
+        "canon_v6_4_b1_mean_ratio": 0.5672,
+        "canon_v6_4_b2_mean_ratio": 0.6799,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "6J": {
+      "assises_count": 60,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 60,
+        "mean_ratio_arbres": 0.3539,
+        "mean_score_arbres": 21.23,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 7.28,
+        "mean_rooted_tiles": 2.45,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.117,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.117,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.117,
+          "mean_pieges_triggered": 0.083,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 60,
+        "mean_ratio_arbres": 0.4503,
+        "mean_score_arbres": 27.02,
+        "mean_tour_fin": 7.93,
+        "endings_pct": {
+          "TOUR_8": 95.0,
+          "SOMMEIL": 5.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 7.62,
+        "mean_rooted_tiles": 2.45,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.167,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.167,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.167,
+          "mean_pieges_triggered": 1.267,
+          "mean_sabotage_acquired": 1.183
+        }
+      },
+      "b1_lot0": {
+        "games": 240,
+        "mean_ratio_arbres": 0.4701,
+        "mean_score_arbres": 28.21,
+        "mean_tour_fin": 7.98,
+        "endings_pct": {
+          "TOUR_8": 99.17,
+          "SOMMEIL": 0.42,
+          "EVEIL": 0.42
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 11.88,
+        "mean_rooted_tiles": 8.11,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.429,
+          "mean_rive_sabotage_exec_per_game": 0.85,
+          "mean_rive_piege_lost_per_game": 0.204,
+          "mean_rive_sabotage_lost_per_game": 0.55,
+          "rive_piege_success_rate_pct": 87.5,
+          "rive_sabotage_success_rate_pct": 60.7,
+          "mean_furt_1_rive_turns": 1.967,
+          "mean_furt_multi_rive_turns": 0.258,
+          "mean_pieges_placed": 1.429,
+          "mean_pieges_triggered": 1.371,
+          "mean_sabotage_acquired": 0.85
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 120,
+        "mean_ratio_arbres": 0.5839,
+        "mean_score_arbres": 35.03,
+        "mean_tour_fin": 7.92,
+        "endings_pct": {
+          "TOUR_8": 95.0,
+          "SOMMEIL": 3.33,
+          "EVEIL": 1.67
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 11.92,
+        "mean_rooted_tiles": 7.89,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.233,
+          "mean_rive_sabotage_exec_per_game": 1.433,
+          "mean_rive_piege_lost_per_game": 0.2,
+          "mean_rive_sabotage_lost_per_game": 0.517,
+          "rive_piege_success_rate_pct": 86.0,
+          "rive_sabotage_success_rate_pct": 73.5,
+          "mean_furt_1_rive_turns": 2.033,
+          "mean_furt_multi_rive_turns": 0.45,
+          "mean_pieges_placed": 1.25,
+          "mean_pieges_triggered": 2.5,
+          "mean_sabotage_acquired": 3.158
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 240,
+        "mean_ratio_arbres": 0.701,
+        "mean_score_arbres": 42.06,
+        "mean_tour_fin": 7.21,
+        "endings_pct": {
+          "TOUR_8": 62.5,
+          "SOMMEIL": 32.08,
+          "EVEIL": 5.42
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 11.57,
+        "mean_rooted_tiles": 5.62,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.896,
+          "mean_rive_sabotage_exec_per_game": 2.308,
+          "mean_rive_piege_lost_per_game": 0.108,
+          "mean_rive_sabotage_lost_per_game": 1.583,
+          "rive_piege_success_rate_pct": 89.2,
+          "rive_sabotage_success_rate_pct": 59.3,
+          "mean_furt_1_rive_turns": 2.558,
+          "mean_furt_multi_rive_turns": 0.483,
+          "mean_pieges_placed": 1.258,
+          "mean_pieges_triggered": 2.575,
+          "mean_sabotage_acquired": 4.8
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.2308,
+        "se_inter_assise": 0.0088,
+        "ci95_half": 0.0172,
+        "mean_trees": 13.85,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 60,
+        "assises_total": 60
+      },
+      "b2_lot0_control": {
+        "paired_games": 120,
+        "b2_lot0": {
+          "games": 120,
+          "mean_ratio_arbres": 0.615,
+          "mean_score_arbres": 36.9,
+          "mean_tour_fin": 7.99,
+          "endings_pct": {
+            "TOUR_8": 99.17,
+            "SOMMEIL": 0.83,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 11.25,
+          "mean_rooted_tiles": 6.97,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 2.217,
+            "mean_rive_sabotage_exec_per_game": 1.45,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.3,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 52.7,
+            "mean_furt_1_rive_turns": 3.408,
+            "mean_furt_multi_rive_turns": 0.225,
+            "mean_pieges_placed": 2.217,
+            "mean_pieges_triggered": 2.033,
+            "mean_sabotage_acquired": 1.45
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6951,
+        "b2_lot0_mean_ratio": 0.615,
+        "pure_canon_v6_4_lift_at_b2": 0.0801,
+        "pure_lift_se_inter_assise": 0.0098,
+        "pure_lift_ci95_half": 0.0192
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3539,
+        "lot0_b1_mean_ratio": 0.4701,
+        "lot0_b2_mean_ratio": 0.615,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.4503,
+        "canon_v6_4_b1_mean_ratio": 0.5839,
+        "canon_v6_4_b2_mean_ratio": 0.701,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "GLOBAL_197": {
+      "assises_count": 197,
+      "compositions_count": 42,
+      "b0_lot0": {
+        "games": 197,
+        "mean_ratio_arbres": 0.3287,
+        "mean_score_arbres": 16.15,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.74,
+        "mean_rooted_tiles": 1.97,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.061,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.061,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.061,
+          "mean_pieges_triggered": 0.051,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 197,
+        "mean_ratio_arbres": 0.4165,
+        "mean_score_arbres": 20.51,
+        "mean_tour_fin": 7.97,
+        "endings_pct": {
+          "TOUR_8": 97.46,
+          "SOMMEIL": 2.54,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 6.02,
+        "mean_rooted_tiles": 1.94,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.071,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.071,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.071,
+          "mean_pieges_triggered": 0.802,
+          "mean_sabotage_acquired": 0.792
+        }
+      },
+      "b1_lot0": {
+        "games": 788,
+        "mean_ratio_arbres": 0.4616,
+        "mean_score_arbres": 22.51,
+        "mean_tour_fin": 7.99,
+        "endings_pct": {
+          "TOUR_8": 99.37,
+          "SOMMEIL": 0.13,
+          "EVEIL": 0.51
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 9.61,
+        "mean_rooted_tiles": 6.51,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.221,
+          "mean_rive_sabotage_exec_per_game": 0.695,
+          "mean_rive_piege_lost_per_game": 0.145,
+          "mean_rive_sabotage_lost_per_game": 0.409,
+          "rive_piege_success_rate_pct": 89.4,
+          "rive_sabotage_success_rate_pct": 63.0,
+          "mean_furt_1_rive_turns": 1.698,
+          "mean_furt_multi_rive_turns": 0.194,
+          "mean_pieges_placed": 1.221,
+          "mean_pieges_triggered": 1.178,
+          "mean_sabotage_acquired": 0.695
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 394,
+        "mean_ratio_arbres": 0.5644,
+        "mean_score_arbres": 27.61,
+        "mean_tour_fin": 7.95,
+        "endings_pct": {
+          "TOUR_8": 97.46,
+          "SOMMEIL": 1.78,
+          "EVEIL": 0.76
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.63,
+        "mean_rooted_tiles": 6.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.985,
+          "mean_rive_sabotage_exec_per_game": 1.107,
+          "mean_rive_piege_lost_per_game": 0.185,
+          "mean_rive_sabotage_lost_per_game": 0.393,
+          "rive_piege_success_rate_pct": 84.2,
+          "rive_sabotage_success_rate_pct": 73.8,
+          "mean_furt_1_rive_turns": 1.683,
+          "mean_furt_multi_rive_turns": 0.315,
+          "mean_pieges_placed": 0.995,
+          "mean_pieges_triggered": 1.975,
+          "mean_sabotage_acquired": 2.419
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 788,
+        "mean_ratio_arbres": 0.6729,
+        "mean_score_arbres": 33.02,
+        "mean_tour_fin": 7.53,
+        "endings_pct": {
+          "TOUR_8": 78.05,
+          "SOMMEIL": 19.16,
+          "EVEIL": 2.79
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 9.55,
+        "mean_rooted_tiles": 5.11,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.741,
+          "mean_rive_sabotage_exec_per_game": 2.302,
+          "mean_rive_piege_lost_per_game": 0.071,
+          "mean_rive_sabotage_lost_per_game": 1.655,
+          "rive_piege_success_rate_pct": 91.2,
+          "rive_sabotage_success_rate_pct": 58.2,
+          "mean_furt_1_rive_turns": 2.605,
+          "mean_furt_multi_rive_turns": 0.35,
+          "mean_pieges_placed": 1.011,
+          "mean_pieges_triggered": 2.308,
+          "mean_sabotage_acquired": 4.31
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.2112,
+        "se_inter_assise": 0.006,
+        "ci95_half": 0.0117,
+        "mean_trees": 10.51,
+        "compositions_b2_gt_b1": 39,
+        "compositions_total": 42,
+        "assises_b2_gt_b1": 195,
+        "assises_total": 197
+      },
+      "b2_lot0_control": {
+        "paired_games": 394,
+        "b2_lot0": {
+          "games": 394,
+          "mean_ratio_arbres": 0.5837,
+          "mean_score_arbres": 28.6,
+          "mean_tour_fin": 7.98,
+          "endings_pct": {
+            "TOUR_8": 98.98,
+            "SOMMEIL": 1.02,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 9.36,
+          "mean_rooted_tiles": 5.89,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 1.754,
+            "mean_rive_sabotage_exec_per_game": 1.525,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.249,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 55.0,
+            "mean_furt_1_rive_turns": 3.069,
+            "mean_furt_multi_rive_turns": 0.195,
+            "mean_pieges_placed": 1.754,
+            "mean_pieges_triggered": 1.652,
+            "mean_sabotage_acquired": 1.525
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6699,
+        "b2_lot0_mean_ratio": 0.5837,
+        "pure_canon_v6_4_lift_at_b2": 0.0863,
+        "pure_lift_se_inter_assise": 0.0066,
+        "pure_lift_ci95_half": 0.0129
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3287,
+        "lot0_b1_mean_ratio": 0.4616,
+        "lot0_b2_mean_ratio": 0.5837,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.4165,
+        "canon_v6_4_b1_mean_ratio": 0.5644,
+        "canon_v6_4_b2_mean_ratio": 0.6729,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    }
+  },
+  "benchmarks": {
+    "N3-HEI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.3,
+        "mean_score_arbres": 9.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 1.0,
+        "mean_rooted_tiles": 0.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.3,
+        "mean_score_arbres": 9.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 1.0,
+        "mean_rooted_tiles": 0.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.425,
+        "mean_score_arbres": 12.75,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.5,
+        "mean_rooted_tiles": 2.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.75,
+          "mean_rive_sabotage_exec_per_game": 0.5,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.25,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 66.7,
+          "mean_furt_1_rive_turns": 1.25,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.75,
+          "mean_pieges_triggered": 0.75,
+          "mean_sabotage_acquired": 0.5
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.4167,
+        "mean_score_arbres": 12.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.0,
+        "mean_rooted_tiles": 2.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.5,
+          "mean_rive_sabotage_lost_per_game": 0.5,
+          "rive_piege_success_rate_pct": 50.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.5,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 0.5,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.6,
+        "mean_score_arbres": 18.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 3.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 1.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.25,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 80.0,
+          "mean_furt_1_rive_turns": 1.5,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 0.5,
+          "mean_sabotage_acquired": 1.0
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.175,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 5.25,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.4667,
+          "mean_score_arbres": 14.0,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 3.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.5,
+            "mean_rive_sabotage_exec_per_game": 1.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.5,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 40.0,
+            "mean_furt_1_rive_turns": 1.5,
+            "mean_furt_multi_rive_turns": 0.0,
+            "mean_pieges_placed": 0.5,
+            "mean_pieges_triggered": 0.5,
+            "mean_sabotage_acquired": 1.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.5167,
+        "b2_lot0_mean_ratio": 0.4667,
+        "pure_canon_v6_4_lift_at_b2": 0.05,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3,
+        "lot0_b1_mean_ratio": 0.425,
+        "lot0_b2_mean_ratio": 0.4667,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.3,
+        "canon_v6_4_b1_mean_ratio": 0.4167,
+        "canon_v6_4_b2_mean_ratio": 0.6,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "N3-ERI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.1667,
+        "mean_score_arbres": 5.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 2.0,
+        "mean_rooted_tiles": 0.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.2667,
+        "mean_score_arbres": 8.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 2.0,
+        "mean_rooted_tiles": 0.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.4417,
+        "mean_score_arbres": 13.25,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 3.75,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.75,
+          "mean_rive_sabotage_exec_per_game": 0.5,
+          "mean_rive_piege_lost_per_game": 0.25,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 75.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 1.0,
+          "mean_furt_multi_rive_turns": 0.25,
+          "mean_pieges_placed": 0.75,
+          "mean_pieges_triggered": 0.75,
+          "mean_sabotage_acquired": 0.5
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.65,
+        "mean_score_arbres": 19.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 4.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 1.0,
+          "mean_rive_piege_lost_per_game": 0.5,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 1.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 1.5,
+          "mean_sabotage_acquired": 2.0
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.6167,
+        "mean_score_arbres": 18.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 3.25,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 2.25,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 3.25,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 40.9,
+          "mean_furt_1_rive_turns": 2.75,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 3.0,
+          "mean_sabotage_acquired": 5.5
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.175,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 5.25,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.5833,
+          "mean_score_arbres": 17.5,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 3.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.0,
+            "mean_rive_sabotage_exec_per_game": 1.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 0.0,
+            "rive_piege_success_rate_pct": 0.0,
+            "rive_sabotage_success_rate_pct": 100.0,
+            "mean_furt_1_rive_turns": 1.0,
+            "mean_furt_multi_rive_turns": 0.0,
+            "mean_pieges_placed": 0.0,
+            "mean_pieges_triggered": 0.0,
+            "mean_sabotage_acquired": 1.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6,
+        "b2_lot0_mean_ratio": 0.5833,
+        "pure_canon_v6_4_lift_at_b2": 0.0167,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.1667,
+        "lot0_b1_mean_ratio": 0.4417,
+        "lot0_b2_mean_ratio": 0.5833,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.2667,
+        "canon_v6_4_b1_mean_ratio": 0.65,
+        "canon_v6_4_b2_mean_ratio": 0.6167,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": false
+      }
+    },
+    "N3-HER": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.3,
+        "mean_score_arbres": 9.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 4.0,
+        "mean_rooted_tiles": 2.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.3,
+        "mean_score_arbres": 9.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 4.0,
+        "mean_rooted_tiles": 2.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.6333,
+        "mean_score_arbres": 19.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.75,
+        "mean_rooted_tiles": 2.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.25,
+          "mean_rive_sabotage_exec_per_game": 0.25,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 0.5,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.25,
+          "mean_pieges_triggered": 0.25,
+          "mean_sabotage_acquired": 0.25
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.55,
+        "mean_score_arbres": 16.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 2.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.0,
+          "mean_rive_sabotage_exec_per_game": 0.5,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 1.5,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 1.0,
+          "mean_pieges_triggered": 2.5,
+          "mean_sabotage_acquired": 2.0
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.6417,
+        "mean_score_arbres": 19.25,
+        "mean_tour_fin": 7.5,
+        "endings_pct": {
+          "TOUR_8": 75.0,
+          "SOMMEIL": 25.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 1.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 1.75,
+          "mean_rive_piege_lost_per_game": 0.25,
+          "mean_rive_sabotage_lost_per_game": 2.0,
+          "rive_piege_success_rate_pct": 66.7,
+          "rive_sabotage_success_rate_pct": 46.7,
+          "mean_furt_1_rive_turns": 2.25,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 2.0,
+          "mean_sabotage_acquired": 4.75
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.0083,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 0.25,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.55,
+          "mean_score_arbres": 16.5,
+          "mean_tour_fin": 7.5,
+          "endings_pct": {
+            "TOUR_8": 50.0,
+            "SOMMEIL": 50.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 2.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.0,
+            "mean_rive_sabotage_exec_per_game": 1.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 2.5,
+            "rive_piege_success_rate_pct": 0.0,
+            "rive_sabotage_success_rate_pct": 28.6,
+            "mean_furt_1_rive_turns": 1.0,
+            "mean_furt_multi_rive_turns": 0.0,
+            "mean_pieges_placed": 0.0,
+            "mean_pieges_triggered": 0.0,
+            "mean_sabotage_acquired": 1.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.5,
+        "b2_lot0_mean_ratio": 0.55,
+        "pure_canon_v6_4_lift_at_b2": -0.05,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.3,
+        "lot0_b1_mean_ratio": 0.6333,
+        "lot0_b2_mean_ratio": 0.55,
+        "lot0_monotone_b0_lt_b1_lt_b2": false,
+        "canon_v6_4_b0_mean_ratio": 0.3,
+        "canon_v6_4_b1_mean_ratio": 0.55,
+        "canon_v6_4_b2_mean_ratio": 0.6417,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "N3-MOI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.1667,
+        "mean_score_arbres": 5.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 2.0,
+        "mean_rooted_tiles": 1.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.1667,
+        "mean_score_arbres": 5.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 2.0,
+        "mean_rooted_tiles": 1.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.4333,
+        "mean_score_arbres": 13.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.25,
+        "mean_rooted_tiles": 4.75,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.75,
+          "mean_rive_sabotage_exec_per_game": 0.25,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.25,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 50.0,
+          "mean_furt_1_rive_turns": 1.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.75,
+          "mean_pieges_triggered": 0.75,
+          "mean_sabotage_acquired": 0.25
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.6833,
+        "mean_score_arbres": 20.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 5.5,
+        "mean_rooted_tiles": 5.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 1.5,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 1.5,
+          "mean_furt_multi_rive_turns": 0.5,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 0.5,
+          "mean_sabotage_acquired": 1.5
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.7333,
+        "mean_score_arbres": 22.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 5.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.0,
+          "mean_rive_sabotage_exec_per_game": 2.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.75,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 72.7,
+          "mean_furt_1_rive_turns": 3.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 1.0,
+          "mean_pieges_triggered": 1.0,
+          "mean_sabotage_acquired": 2.0
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.3,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 9.0,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.6833,
+          "mean_score_arbres": 20.5,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 6.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.5,
+            "mean_rive_sabotage_exec_per_game": 3.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.5,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 66.7,
+            "mean_furt_1_rive_turns": 2.5,
+            "mean_furt_multi_rive_turns": 1.0,
+            "mean_pieges_placed": 0.5,
+            "mean_pieges_triggered": 0.5,
+            "mean_sabotage_acquired": 3.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.8667,
+        "b2_lot0_mean_ratio": 0.6833,
+        "pure_canon_v6_4_lift_at_b2": 0.1833,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.1667,
+        "lot0_b1_mean_ratio": 0.4333,
+        "lot0_b2_mean_ratio": 0.6833,
+        "lot0_monotone_b0_lt_b1_lt_b2": true,
+        "canon_v6_4_b0_mean_ratio": 0.1667,
+        "canon_v6_4_b1_mean_ratio": 0.6833,
+        "canon_v6_4_b2_mean_ratio": 0.7333,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    },
+    "N3-MRO": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.5,
+        "mean_score_arbres": 15.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 3.0,
+        "mean_rooted_tiles": 2.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.5,
+        "mean_score_arbres": 15.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 3.0,
+        "mean_rooted_tiles": 2.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.5417,
+        "mean_score_arbres": 16.25,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 6.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.5,
+          "mean_rive_sabotage_exec_per_game": 0.5,
+          "mean_rive_piege_lost_per_game": 0.25,
+          "mean_rive_sabotage_lost_per_game": 0.25,
+          "rive_piege_success_rate_pct": 66.7,
+          "rive_sabotage_success_rate_pct": 66.7,
+          "mean_furt_1_rive_turns": 1.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.5,
+          "mean_pieges_triggered": 0.5,
+          "mean_sabotage_acquired": 0.5
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.6,
+        "mean_score_arbres": 18.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 6.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 1.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.5,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 66.7,
+          "mean_furt_1_rive_turns": 1.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 1.0
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.5333,
+        "mean_score_arbres": 16.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 6.0,
+        "mean_rooted_tiles": 6.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.0,
+          "mean_rive_sabotage_exec_per_game": 2.75,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 1.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 73.3,
+          "mean_furt_1_rive_turns": 3.5,
+          "mean_furt_multi_rive_turns": 0.25,
+          "mean_pieges_placed": 1.25,
+          "mean_pieges_triggered": 2.0,
+          "mean_sabotage_acquired": 2.75
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": -0.0083,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": -0.25,
+        "compositions_b2_gt_b1": 0,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 0,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.4833,
+          "mean_score_arbres": 14.5,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 6.0,
+          "mean_rooted_tiles": 6.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 0.0,
+            "mean_rive_sabotage_exec_per_game": 3.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.5,
+            "rive_piege_success_rate_pct": 0.0,
+            "rive_sabotage_success_rate_pct": 66.7,
+            "mean_furt_1_rive_turns": 2.5,
+            "mean_furt_multi_rive_turns": 0.5,
+            "mean_pieges_placed": 0.0,
+            "mean_pieges_triggered": 0.0,
+            "mean_sabotage_acquired": 3.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.4667,
+        "b2_lot0_mean_ratio": 0.4833,
+        "pure_canon_v6_4_lift_at_b2": -0.0167,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.5,
+        "lot0_b1_mean_ratio": 0.5417,
+        "lot0_b2_mean_ratio": 0.4833,
+        "lot0_monotone_b0_lt_b1_lt_b2": false,
+        "canon_v6_4_b0_mean_ratio": 0.5,
+        "canon_v6_4_b1_mean_ratio": 0.6,
+        "canon_v6_4_b2_mean_ratio": 0.5333,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": false
+      }
+    },
+    "N6-HEMROI": {
+      "assises_count": 1,
+      "compositions_count": 1,
+      "b0_lot0": {
+        "games": 1,
+        "mean_ratio_arbres": 0.5667,
+        "mean_score_arbres": 34.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 10.0,
+        "mean_rooted_tiles": 3.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b0_canon_v6_4": {
+        "games": 1,
+        "mean_ratio_arbres": 0.55,
+        "mean_score_arbres": 33.0,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 12.0,
+        "mean_rooted_tiles": 5.0,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 0.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 0.0,
+          "mean_furt_1_rive_turns": 0.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 0.0
+        }
+      },
+      "b1_lot0": {
+        "games": 4,
+        "mean_ratio_arbres": 0.5083,
+        "mean_score_arbres": 30.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 0,
+        "mean_built_tiles": 12.0,
+        "mean_rooted_tiles": 9.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.25,
+          "mean_rive_sabotage_exec_per_game": 0.75,
+          "mean_rive_piege_lost_per_game": 0.25,
+          "mean_rive_sabotage_lost_per_game": 1.25,
+          "rive_piege_success_rate_pct": 83.3,
+          "rive_sabotage_success_rate_pct": 37.5,
+          "mean_furt_1_rive_turns": 2.0,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 1.25,
+          "mean_pieges_triggered": 1.25,
+          "mean_sabotage_acquired": 0.75
+        }
+      },
+      "b1_canon_v6_4": {
+        "games": 2,
+        "mean_ratio_arbres": 0.625,
+        "mean_score_arbres": 37.5,
+        "mean_tour_fin": 8.0,
+        "endings_pct": {
+          "TOUR_8": 100.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 0.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 12.0,
+        "mean_rooted_tiles": 8.5,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 0.0,
+          "mean_rive_sabotage_exec_per_game": 1.5,
+          "mean_rive_piege_lost_per_game": 0.5,
+          "mean_rive_sabotage_lost_per_game": 0.0,
+          "rive_piege_success_rate_pct": 0.0,
+          "rive_sabotage_success_rate_pct": 100.0,
+          "mean_furt_1_rive_turns": 1.5,
+          "mean_furt_multi_rive_turns": 0.0,
+          "mean_pieges_placed": 0.0,
+          "mean_pieges_triggered": 0.0,
+          "mean_sabotage_acquired": 1.5
+        }
+      },
+      "b2_canon_v6_4": {
+        "games": 4,
+        "mean_ratio_arbres": 0.7042,
+        "mean_score_arbres": 42.25,
+        "mean_tour_fin": 6.5,
+        "endings_pct": {
+          "TOUR_8": 50.0,
+          "SOMMEIL": 0.0,
+          "EVEIL": 50.0
+        },
+        "mem_debt_max": 0,
+        "mem_debt_sum": 0,
+        "law_stack_max": 1,
+        "mean_built_tiles": 10.5,
+        "mean_rooted_tiles": 5.75,
+        "furtivite_activity": {
+          "mean_rive_piege_exec_per_game": 1.25,
+          "mean_rive_sabotage_exec_per_game": 1.0,
+          "mean_rive_piege_lost_per_game": 0.0,
+          "mean_rive_sabotage_lost_per_game": 2.0,
+          "rive_piege_success_rate_pct": 100.0,
+          "rive_sabotage_success_rate_pct": 33.3,
+          "mean_furt_1_rive_turns": 2.0,
+          "mean_furt_multi_rive_turns": 0.25,
+          "mean_pieges_placed": 2.5,
+          "mean_pieges_triggered": 3.5,
+          "mean_sabotage_acquired": 1.0
+        }
+      },
+      "delta_b2_canon_v6_4_minus_b1_lot0": {
+        "mean_ratio": 0.1958,
+        "se_inter_assise": 0.0,
+        "ci95_half": 0.0,
+        "mean_trees": 11.75,
+        "compositions_b2_gt_b1": 1,
+        "compositions_total": 1,
+        "assises_b2_gt_b1": 1,
+        "assises_total": 1
+      },
+      "b2_lot0_control": {
+        "paired_games": 2,
+        "b2_lot0": {
+          "games": 2,
+          "mean_ratio_arbres": 0.5917,
+          "mean_score_arbres": 35.5,
+          "mean_tour_fin": 8.0,
+          "endings_pct": {
+            "TOUR_8": 100.0,
+            "SOMMEIL": 0.0,
+            "EVEIL": 0.0
+          },
+          "mem_debt_max": 0,
+          "mem_debt_sum": 0,
+          "law_stack_max": 0,
+          "mean_built_tiles": 11.5,
+          "mean_rooted_tiles": 8.0,
+          "furtivite_activity": {
+            "mean_rive_piege_exec_per_game": 2.5,
+            "mean_rive_sabotage_exec_per_game": 1.0,
+            "mean_rive_piege_lost_per_game": 0.0,
+            "mean_rive_sabotage_lost_per_game": 1.0,
+            "rive_piege_success_rate_pct": 100.0,
+            "rive_sabotage_success_rate_pct": 50.0,
+            "mean_furt_1_rive_turns": 3.0,
+            "mean_furt_multi_rive_turns": 0.5,
+            "mean_pieges_placed": 2.5,
+            "mean_pieges_triggered": 2.5,
+            "mean_sabotage_acquired": 1.0
+          }
+        },
+        "b2_canon_v6_4_matched_mean_ratio": 0.6667,
+        "b2_lot0_mean_ratio": 0.5917,
+        "pure_canon_v6_4_lift_at_b2": 0.075,
+        "pure_lift_se_inter_assise": 0.0,
+        "pure_lift_ci95_half": 0.0
+      },
+      "progression_b0_b1_b2": {
+        "lot0_b0_mean_ratio": 0.5667,
+        "lot0_b1_mean_ratio": 0.5083,
+        "lot0_b2_mean_ratio": 0.5917,
+        "lot0_monotone_b0_lt_b1_lt_b2": false,
+        "canon_v6_4_b0_mean_ratio": 0.55,
+        "canon_v6_4_b1_mean_ratio": 0.625,
+        "canon_v6_4_b2_mean_ratio": 0.7042,
+        "canon_v6_4_monotone_b0_lt_b1_lt_b2": true
+      }
+    }
+  },
+  "empirical_tree_bareme": {
+    "b2_canon_v6_4": {
+      "arm": "b2_canon_v6_4",
+      "tour8_only": false,
+      "observations": 788,
+      "r2_within_assise": 0.3898,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.234,
+          "se_trees": 0.057,
+          "ci95_low": 0.123,
+          "ci95_high": 0.345,
+          "mean_count_per_game": 6.236
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -0.434,
+          "se_trees": 0.099,
+          "ci95_low": -0.628,
+          "ci95_high": -0.24,
+          "mean_count_per_game": 2.308
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": 0.422,
+          "se_trees": 0.196,
+          "ci95_low": 0.038,
+          "ci95_high": 0.806,
+          "mean_count_per_game": 0.567
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 0.651,
+          "se_trees": 0.066,
+          "ci95_low": 0.522,
+          "ci95_high": 0.781,
+          "mean_count_per_game": 6.91
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.913,
+          "se_trees": 0.064,
+          "ci95_low": 0.787,
+          "ci95_high": 1.039,
+          "mean_count_per_game": 5.515
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.379,
+          "se_trees": 0.162,
+          "ci95_low": -0.698,
+          "ci95_high": -0.061,
+          "mean_count_per_game": 1.029
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.168,
+          "se_trees": 0.098,
+          "ci95_low": -0.025,
+          "ci95_high": 0.361,
+          "mean_count_per_game": 3.093
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": -0.939,
+          "se_trees": 0.341,
+          "ci95_low": -1.608,
+          "ci95_high": -0.271,
+          "mean_count_per_game": 9.546
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 0.731,
+          "se_trees": 0.132,
+          "ci95_low": 0.471,
+          "ci95_high": 0.99,
+          "mean_count_per_game": 5.107
+        },
+        "controle_tour_fin": {
+          "marginal_trees_ols": -2.486,
+          "se_trees": 0.411,
+          "ci95_low": -3.292,
+          "ci95_high": -1.68,
+          "mean_count_per_game": 7.527
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 0.861,
+          "mean_repousse_arbres_per_game": 4.398,
+          "mean_rooted_tiles_per_game": 5.107
+        }
+      }
+    },
+    "b2_canon_v6_4_tour8_only": {
+      "arm": "b2_canon_v6_4",
+      "tour8_only": true,
+      "observations": 615,
+      "r2_within_assise": 0.4088,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.298,
+          "se_trees": 0.064,
+          "ci95_low": 0.172,
+          "ci95_high": 0.424,
+          "mean_count_per_game": 6.611
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -0.349,
+          "se_trees": 0.112,
+          "ci95_low": -0.569,
+          "ci95_high": -0.129,
+          "mean_count_per_game": 2.441
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": 0.64,
+          "se_trees": 0.214,
+          "ci95_low": 0.221,
+          "ci95_high": 1.06,
+          "mean_count_per_game": 0.633
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 0.7,
+          "se_trees": 0.077,
+          "ci95_low": 0.548,
+          "ci95_high": 0.851,
+          "mean_count_per_game": 6.901
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.938,
+          "se_trees": 0.072,
+          "ci95_low": 0.797,
+          "ci95_high": 1.08,
+          "mean_count_per_game": 5.841
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.271,
+          "se_trees": 0.191,
+          "ci95_low": -0.646,
+          "ci95_high": 0.104,
+          "mean_count_per_game": 1.135
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.224,
+          "se_trees": 0.124,
+          "ci95_low": -0.02,
+          "ci95_high": 0.468,
+          "mean_count_per_game": 3.089
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": -0.823,
+          "se_trees": 1.07,
+          "ci95_low": -2.921,
+          "ci95_high": 1.275,
+          "mean_count_per_game": 9.42
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 0.848,
+          "se_trees": 0.214,
+          "ci95_low": 0.429,
+          "ci95_high": 1.266,
+          "mean_count_per_game": 6.114
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 0.859,
+          "mean_repousse_arbres_per_game": 5.252,
+          "mean_rooted_tiles_per_game": 6.114
+        }
+      }
+    },
+    "b1_lot0": {
+      "arm": "b1_lot0",
+      "tour8_only": false,
+      "observations": 788,
+      "r2_within_assise": 0.432,
+      "items": {
+        "parade_classique": {
+          "marginal_trees_ols": 0.323,
+          "se_trees": 0.054,
+          "ci95_low": 0.217,
+          "ci95_high": 0.429,
+          "mean_count_per_game": 13.156
+        },
+        "piege_declenche": {
+          "marginal_trees_ols": -1.085,
+          "se_trees": 0.154,
+          "ci95_low": -1.387,
+          "ci95_high": -0.783,
+          "mean_count_per_game": 1.178
+        },
+        "parade_avec_insectes": {
+          "marginal_trees_ols": -0.126,
+          "se_trees": 0.276,
+          "ci95_low": -0.668,
+          "ci95_high": 0.415,
+          "mean_count_per_game": 0.322
+        },
+        "reve_annulation": {
+          "marginal_trees_ols": 0.961,
+          "se_trees": 0.068,
+          "ci95_low": 0.828,
+          "ci95_high": 1.093,
+          "mean_count_per_game": 4.73
+        },
+        "sabotage_revele": {
+          "marginal_trees_ols": 0.681,
+          "se_trees": 0.13,
+          "ci95_low": 0.426,
+          "ci95_high": 0.937,
+          "mean_count_per_game": 0.562
+        },
+        "insecte_deviation_de": {
+          "marginal_trees_ols": -0.193,
+          "se_trees": 0.107,
+          "ci95_low": -0.404,
+          "ci95_high": 0.018,
+          "mean_count_per_game": 2.873
+        },
+        "gardien_ouverture": {
+          "marginal_trees_ols": 0.934,
+          "se_trees": 0.394,
+          "ci95_low": 0.162,
+          "ci95_high": 1.706,
+          "mean_count_per_game": 0.176
+        },
+        "tuile_construite": {
+          "marginal_trees_ols": -0.057,
+          "se_trees": 0.425,
+          "ci95_low": -0.89,
+          "ci95_high": 0.775,
+          "mean_count_per_game": 9.608
+        },
+        "enracinement_tuile": {
+          "marginal_trees_ols": 1.626,
+          "se_trees": 0.214,
+          "ci95_low": 1.207,
+          "ci95_high": 2.046,
+          "mean_count_per_game": 6.511
+        },
+        "controle_tour_fin": {
+          "marginal_trees_ols": -5.995,
+          "se_trees": 1.198,
+          "ci95_low": -8.344,
+          "ci95_high": -3.646,
+          "mean_count_per_game": 7.987
+        },
+        "repousse_finale_directe_par_enracinement": {
+          "direct_trees_per_rooted_tile": 0.684,
+          "mean_repousse_arbres_per_game": 4.453,
+          "mean_rooted_tiles_per_game": 6.511
+        }
+      }
+    }
+  },
+  "tile_leaderboard": {
+    "all_30_tiles": [
+      {
+        "tile_id": "G1",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 195,
+        "root_rate": 0.7617,
+        "activations_total": 198,
+        "activations_per_eligible": 0.773,
+        "mean_delta_b2_minus_b1_present": 0.2016,
+        "mean_delta_when_built": 0.2016,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2016,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0963,
+        "profitability_index": 21.71
+      },
+      {
+        "tile_id": "R3",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 671,
+        "activations_per_eligible": 2.621,
+        "mean_delta_b2_minus_b1_present": 0.1963,
+        "mean_delta_when_built": 0.1963,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.1963,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0797,
+        "profitability_index": 24.87
+      },
+      {
+        "tile_id": "R4",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 449,
+        "activations_per_eligible": 1.754,
+        "mean_delta_b2_minus_b1_present": 0.2226,
+        "mean_delta_when_built": 0.2226,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2226,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0876,
+        "profitability_index": 25.77
+      },
+      {
+        "tile_id": "R5",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 801,
+        "activations_per_eligible": 3.129,
+        "mean_delta_b2_minus_b1_present": 0.2068,
+        "mean_delta_when_built": 0.2068,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2068,
+        "pure_canon_v6_4_lift_at_b2_present": 0.066,
+        "profitability_index": 26.94
+      },
+      {
+        "tile_id": "R7",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 2,
+        "root_rate": 0.0078,
+        "activations_total": 606,
+        "activations_per_eligible": 2.367,
+        "mean_delta_b2_minus_b1_present": 0.2214,
+        "mean_delta_when_built": 0.2214,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2214,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0832,
+        "profitability_index": 26.88
+      },
+      {
+        "tile_id": "R8",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 4,
+        "root_rate": 0.0156,
+        "activations_total": 530,
+        "activations_per_eligible": 2.07,
+        "mean_delta_b2_minus_b1_present": 0.2079,
+        "mean_delta_when_built": 0.2079,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2079,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0763,
+        "profitability_index": 24.94
+      },
+      {
+        "tile_id": "R9",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 3,
+        "root_rate": 0.0117,
+        "activations_total": 792,
+        "activations_per_eligible": 3.094,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2249,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2249,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0921,
+        "profitability_index": 28.68
+      },
+      {
+        "tile_id": "M2",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 215,
+        "root_rate": 0.8398,
+        "activations_total": 1548,
+        "activations_per_eligible": 6.047,
+        "mean_delta_b2_minus_b1_present": 0.2502,
+        "mean_delta_when_built": 0.2502,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2502,
+        "pure_canon_v6_4_lift_at_b2_present": 0.116,
+        "profitability_index": 37.12
+      },
+      {
+        "tile_id": "G10",
+        "eligible_games": 256,
+        "built_games": 255,
+        "build_rate": 0.9961,
+        "rooted_games": 174,
+        "root_rate": 0.6797,
+        "activations_total": 423,
+        "activations_per_eligible": 1.652,
+        "mean_delta_b2_minus_b1_present": 0.2079,
+        "mean_delta_when_built": 0.2075,
+        "mean_delta_when_not_built": 0.32,
+        "build_lift_ratio": -0.1125,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0763,
+        "profitability_index": 23.97
+      },
+      {
+        "tile_id": "G14",
+        "eligible_games": 256,
+        "built_games": 255,
+        "build_rate": 0.9961,
+        "rooted_games": 207,
+        "root_rate": 0.8086,
+        "activations_total": 105,
+        "activations_per_eligible": 0.41,
+        "mean_delta_b2_minus_b1_present": 0.2502,
+        "mean_delta_when_built": 0.2505,
+        "mean_delta_when_not_built": 0.1833,
+        "build_lift_ratio": 0.0672,
+        "pure_canon_v6_4_lift_at_b2_present": 0.116,
+        "profitability_index": 25.77
+      },
+      {
+        "tile_id": "R2",
+        "eligible_games": 256,
+        "built_games": 255,
+        "build_rate": 0.9961,
+        "rooted_games": 11,
+        "root_rate": 0.043,
+        "activations_total": 574,
+        "activations_per_eligible": 2.242,
+        "mean_delta_b2_minus_b1_present": 0.1999,
+        "mean_delta_when_built": 0.1998,
+        "mean_delta_when_not_built": 0.22,
+        "build_lift_ratio": -0.0202,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0765,
+        "profitability_index": 24.39
+      },
+      {
+        "tile_id": "R10",
+        "eligible_games": 256,
+        "built_games": 255,
+        "build_rate": 0.9961,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 686,
+        "activations_per_eligible": 2.68,
+        "mean_delta_b2_minus_b1_present": 0.2294,
+        "mean_delta_when_built": 0.2295,
+        "mean_delta_when_not_built": 0.1833,
+        "build_lift_ratio": 0.0462,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0925,
+        "profitability_index": 28.22
+      },
+      {
+        "tile_id": "M5",
+        "eligible_games": 256,
+        "built_games": 255,
+        "build_rate": 0.9961,
+        "rooted_games": 202,
+        "root_rate": 0.7891,
+        "activations_total": 1427,
+        "activations_per_eligible": 5.574,
+        "mean_delta_b2_minus_b1_present": 0.2294,
+        "mean_delta_when_built": 0.2295,
+        "mean_delta_when_not_built": 0.2,
+        "build_lift_ratio": 0.0295,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0925,
+        "profitability_index": 34.01
+      },
+      {
+        "tile_id": "R1",
+        "eligible_games": 256,
+        "built_games": 254,
+        "build_rate": 0.9922,
+        "rooted_games": 198,
+        "root_rate": 0.7734,
+        "activations_total": 409,
+        "activations_per_eligible": 1.598,
+        "mean_delta_b2_minus_b1_present": 0.1999,
+        "mean_delta_when_built": 0.1998,
+        "mean_delta_when_not_built": 0.21,
+        "build_lift_ratio": -0.0102,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0765,
+        "profitability_index": 23.02
+      },
+      {
+        "tile_id": "M4",
+        "eligible_games": 256,
+        "built_games": 254,
+        "build_rate": 0.9922,
+        "rooted_games": 216,
+        "root_rate": 0.8438,
+        "activations_total": 1190,
+        "activations_per_eligible": 4.648,
+        "mean_delta_b2_minus_b1_present": 0.1953,
+        "mean_delta_when_built": 0.1953,
+        "mean_delta_when_not_built": 0.2,
+        "build_lift_ratio": -0.0047,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0523,
+        "profitability_index": 28.67
+      },
+      {
+        "tile_id": "G2",
+        "eligible_games": 256,
+        "built_games": 253,
+        "build_rate": 0.9883,
+        "rooted_games": 192,
+        "root_rate": 0.75,
+        "activations_total": 171,
+        "activations_per_eligible": 0.668,
+        "mean_delta_b2_minus_b1_present": 0.2016,
+        "mean_delta_when_built": 0.2013,
+        "mean_delta_when_not_built": 0.2239,
+        "build_lift_ratio": -0.0226,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0963,
+        "profitability_index": 21.23
+      },
+      {
+        "tile_id": "G7",
+        "eligible_games": 256,
+        "built_games": 253,
+        "build_rate": 0.9883,
+        "rooted_games": 199,
+        "root_rate": 0.7773,
+        "activations_total": 49,
+        "activations_per_eligible": 0.191,
+        "mean_delta_b2_minus_b1_present": 0.1963,
+        "mean_delta_when_built": 0.1968,
+        "mean_delta_when_not_built": 0.1522,
+        "build_lift_ratio": 0.0446,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0797,
+        "profitability_index": 19.83
+      },
+      {
+        "tile_id": "M1",
+        "eligible_games": 256,
+        "built_games": 253,
+        "build_rate": 0.9883,
+        "rooted_games": 206,
+        "root_rate": 0.8047,
+        "activations_total": 1116,
+        "activations_per_eligible": 4.359,
+        "mean_delta_b2_minus_b1_present": 0.1976,
+        "mean_delta_when_built": 0.1968,
+        "mean_delta_when_not_built": 0.2667,
+        "build_lift_ratio": -0.0698,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0922,
+        "profitability_index": 28.17
+      },
+      {
+        "tile_id": "G5",
+        "eligible_games": 256,
+        "built_games": 252,
+        "build_rate": 0.9844,
+        "rooted_games": 189,
+        "root_rate": 0.7383,
+        "activations_total": 197,
+        "activations_per_eligible": 0.77,
+        "mean_delta_b2_minus_b1_present": 0.2086,
+        "mean_delta_when_built": 0.208,
+        "mean_delta_when_not_built": 0.2467,
+        "build_lift_ratio": -0.0387,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0883,
+        "profitability_index": 22.01
+      },
+      {
+        "tile_id": "G11",
+        "eligible_games": 256,
+        "built_games": 252,
+        "build_rate": 0.9844,
+        "rooted_games": 174,
+        "root_rate": 0.6797,
+        "activations_total": 179,
+        "activations_per_eligible": 0.699,
+        "mean_delta_b2_minus_b1_present": 0.2068,
+        "mean_delta_when_built": 0.2059,
+        "mean_delta_when_not_built": 0.2617,
+        "build_lift_ratio": -0.0557,
+        "pure_canon_v6_4_lift_at_b2_present": 0.066,
+        "profitability_index": 21.67
+      },
+      {
+        "tile_id": "G8",
+        "eligible_games": 256,
+        "built_games": 250,
+        "build_rate": 0.9766,
+        "rooted_games": 190,
+        "root_rate": 0.7422,
+        "activations_total": 138,
+        "activations_per_eligible": 0.539,
+        "mean_delta_b2_minus_b1_present": 0.2214,
+        "mean_delta_when_built": 0.2213,
+        "mean_delta_when_not_built": 0.2278,
+        "build_lift_ratio": -0.0065,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0832,
+        "profitability_index": 22.69
+      },
+      {
+        "tile_id": "G9",
+        "eligible_games": 256,
+        "built_games": 250,
+        "build_rate": 0.9766,
+        "rooted_games": 154,
+        "root_rate": 0.6016,
+        "activations_total": 244,
+        "activations_per_eligible": 0.953,
+        "mean_delta_b2_minus_b1_present": 0.2226,
+        "mean_delta_when_built": 0.2234,
+        "mean_delta_when_not_built": 0.1917,
+        "build_lift_ratio": 0.0317,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0876,
+        "profitability_index": 23.72
+      },
+      {
+        "tile_id": "G3",
+        "eligible_games": 256,
+        "built_games": 246,
+        "build_rate": 0.9609,
+        "rooted_games": 189,
+        "root_rate": 0.7383,
+        "activations_total": 103,
+        "activations_per_eligible": 0.402,
+        "mean_delta_b2_minus_b1_present": 0.2243,
+        "mean_delta_when_built": 0.2264,
+        "mean_delta_when_not_built": 0.173,
+        "build_lift_ratio": 0.0534,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0976,
+        "profitability_index": 22.56
+      },
+      {
+        "tile_id": "R6",
+        "eligible_games": 256,
+        "built_games": 246,
+        "build_rate": 0.9609,
+        "rooted_games": 5,
+        "root_rate": 0.0195,
+        "activations_total": 365,
+        "activations_per_eligible": 1.426,
+        "mean_delta_b2_minus_b1_present": 0.1953,
+        "mean_delta_when_built": 0.1962,
+        "mean_delta_when_not_built": 0.1733,
+        "build_lift_ratio": 0.0229,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0523,
+        "profitability_index": 21.7
+      },
+      {
+        "tile_id": "G6",
+        "eligible_games": 256,
+        "built_games": 245,
+        "build_rate": 0.957,
+        "rooted_games": 186,
+        "root_rate": 0.7266,
+        "activations_total": 175,
+        "activations_per_eligible": 0.684,
+        "mean_delta_b2_minus_b1_present": 0.2086,
+        "mean_delta_when_built": 0.2062,
+        "mean_delta_when_not_built": 0.2603,
+        "build_lift_ratio": -0.0541,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0883,
+        "profitability_index": 21.11
+      },
+      {
+        "tile_id": "G15",
+        "eligible_games": 256,
+        "built_games": 245,
+        "build_rate": 0.957,
+        "rooted_games": 191,
+        "root_rate": 0.7461,
+        "activations_total": 94,
+        "activations_per_eligible": 0.367,
+        "mean_delta_b2_minus_b1_present": 0.2471,
+        "mean_delta_when_built": 0.2507,
+        "mean_delta_when_not_built": 0.1655,
+        "build_lift_ratio": 0.0853,
+        "pure_canon_v6_4_lift_at_b2_present": 0.1105,
+        "profitability_index": 24.73
+      },
+      {
+        "tile_id": "G4",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 190,
+        "root_rate": 0.7422,
+        "activations_total": 47,
+        "activations_per_eligible": 0.184,
+        "mean_delta_b2_minus_b1_present": 0.2243,
+        "mean_delta_when_built": 0.2252,
+        "mean_delta_when_not_built": 0.2121,
+        "build_lift_ratio": 0.0131,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0976,
+        "profitability_index": 21.22
+      },
+      {
+        "tile_id": "G13",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 162,
+        "root_rate": 0.6328,
+        "activations_total": 130,
+        "activations_per_eligible": 0.508,
+        "mean_delta_b2_minus_b1_present": 0.1976,
+        "mean_delta_when_built": 0.1986,
+        "mean_delta_when_not_built": 0.1851,
+        "build_lift_ratio": 0.0136,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0922,
+        "profitability_index": 19.41
+      },
+      {
+        "tile_id": "M3",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 183,
+        "root_rate": 0.7148,
+        "activations_total": 750,
+        "activations_per_eligible": 2.93,
+        "mean_delta_b2_minus_b1_present": 0.2471,
+        "mean_delta_when_built": 0.2512,
+        "mean_delta_when_not_built": 0.1957,
+        "build_lift_ratio": 0.0555,
+        "pure_canon_v6_4_lift_at_b2_present": 0.1105,
+        "profitability_index": 29.12
+      },
+      {
+        "tile_id": "G12",
+        "eligible_games": 256,
+        "built_games": 235,
+        "build_rate": 0.918,
+        "rooted_games": 187,
+        "root_rate": 0.7305,
+        "activations_total": 101,
+        "activations_per_eligible": 0.395,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2251,
+        "mean_delta_when_not_built": 0.2232,
+        "build_lift_ratio": 0.0019,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0921,
+        "profitability_index": 21.45
+      }
+    ],
+    "top_5_most_built_profitable": [
+      {
+        "tile_id": "M2",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 215,
+        "root_rate": 0.8398,
+        "activations_total": 1548,
+        "activations_per_eligible": 6.047,
+        "mean_delta_b2_minus_b1_present": 0.2502,
+        "mean_delta_when_built": 0.2502,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2502,
+        "pure_canon_v6_4_lift_at_b2_present": 0.116,
+        "profitability_index": 37.12
+      },
+      {
+        "tile_id": "R9",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 3,
+        "root_rate": 0.0117,
+        "activations_total": 792,
+        "activations_per_eligible": 3.094,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2249,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2249,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0921,
+        "profitability_index": 28.68
+      },
+      {
+        "tile_id": "R4",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 0,
+        "root_rate": 0.0,
+        "activations_total": 449,
+        "activations_per_eligible": 1.754,
+        "mean_delta_b2_minus_b1_present": 0.2226,
+        "mean_delta_when_built": 0.2226,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2226,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0876,
+        "profitability_index": 25.77
+      },
+      {
+        "tile_id": "R7",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 2,
+        "root_rate": 0.0078,
+        "activations_total": 606,
+        "activations_per_eligible": 2.367,
+        "mean_delta_b2_minus_b1_present": 0.2214,
+        "mean_delta_when_built": 0.2214,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2214,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0832,
+        "profitability_index": 26.88
+      },
+      {
+        "tile_id": "R8",
+        "eligible_games": 256,
+        "built_games": 256,
+        "build_rate": 1.0,
+        "rooted_games": 4,
+        "root_rate": 0.0156,
+        "activations_total": 530,
+        "activations_per_eligible": 2.07,
+        "mean_delta_b2_minus_b1_present": 0.2079,
+        "mean_delta_when_built": 0.2079,
+        "mean_delta_when_not_built": 0.0,
+        "build_lift_ratio": 0.2079,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0763,
+        "profitability_index": 24.94
+      }
+    ],
+    "flop_5_underplayed": [
+      {
+        "tile_id": "G12",
+        "eligible_games": 256,
+        "built_games": 235,
+        "build_rate": 0.918,
+        "rooted_games": 187,
+        "root_rate": 0.7305,
+        "activations_total": 101,
+        "activations_per_eligible": 0.395,
+        "mean_delta_b2_minus_b1_present": 0.2249,
+        "mean_delta_when_built": 0.2251,
+        "mean_delta_when_not_built": 0.2232,
+        "build_lift_ratio": 0.0019,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0921,
+        "profitability_index": 21.45
+      },
+      {
+        "tile_id": "G4",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 190,
+        "root_rate": 0.7422,
+        "activations_total": 47,
+        "activations_per_eligible": 0.184,
+        "mean_delta_b2_minus_b1_present": 0.2243,
+        "mean_delta_when_built": 0.2252,
+        "mean_delta_when_not_built": 0.2121,
+        "build_lift_ratio": 0.0131,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0976,
+        "profitability_index": 21.22
+      },
+      {
+        "tile_id": "G13",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 162,
+        "root_rate": 0.6328,
+        "activations_total": 130,
+        "activations_per_eligible": 0.508,
+        "mean_delta_b2_minus_b1_present": 0.1976,
+        "mean_delta_when_built": 0.1986,
+        "mean_delta_when_not_built": 0.1851,
+        "build_lift_ratio": 0.0136,
+        "pure_canon_v6_4_lift_at_b2_present": 0.0922,
+        "profitability_index": 19.41
+      },
+      {
+        "tile_id": "M3",
+        "eligible_games": 256,
+        "built_games": 237,
+        "build_rate": 0.9258,
+        "rooted_games": 183,
+        "root_rate": 0.7148,
+        "activations_total": 750,
+        "activations_per_eligible": 2.93,
+        "mean_delta_b2_minus_b1_present": 0.2471,
+        "mean_delta_when_built": 0.2512,
+        "mean_delta_when_not_built": 0.1957,
+        "build_lift_ratio": 0.0555,
+        "pure_canon_v6_4_lift_at_b2_present": 0.1105,
+        "profitability_index": 29.12
+      },
+      {
+        "tile_id": "G15",
+        "eligible_games": 256,
+        "built_games": 245,
+        "build_rate": 0.957,
+        "rooted_games": 191,
+        "root_rate": 0.7461,
+        "activations_total": 94,
+        "activations_per_eligible": 0.367,
+        "mean_delta_b2_minus_b1_present": 0.2471,
+        "mean_delta_when_built": 0.2507,
+        "mean_delta_when_not_built": 0.1655,
+        "build_lift_ratio": 0.0853,
+        "pure_canon_v6_4_lift_at_b2_present": 0.1105,
+        "profitability_index": 24.73
+      }
+    ]
+  }
+}

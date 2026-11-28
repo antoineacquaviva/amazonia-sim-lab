@@ -93,6 +93,7 @@ _CANON_TOKEN_TO_RES: dict[str, str] = {
     "SABOTAGE": "RES_DILUTION_SABOTAGE",
     "ECAILLE": "RES_DILUTION_SABOTAGE",
     "SOUCHE": "RES_SOUCHE",
+    "ARBRE": "RES_ARBRE",
     "ALTEREE": "RES_POSITION_MACHINE",
     "RECUL": "RES_POSITION_MACHINE",
     "CALE": "RES_POSITION_MACHINE",
@@ -219,6 +220,10 @@ def derive_economie_bot(
             outputs.append(trig_resonance)
 
     if "REPOUSSE_FINALE" in tags or "enraciné" in texte_lower and "arbre debout" in texte_lower:
+        outputs.append("RES_ARBRE")
+
+    if "ENRACINEMENT" in tags and "souche" in texte_lower:
+        inputs.append("RES_SOUCHE")
         outputs.append("RES_ARBRE")
 
     if "SABOTAGE" in tags or "ECAILLE" in tags:
@@ -661,7 +666,7 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
     tiles_v63: dict[str, Any] = json.loads(TILES_V6_3_CONTRACT_PATH.read_text(encoding="utf-8"))
 
     existing_changelog = _extract_existing_changelog(OUT_DOCS_JS)
-    spec_formelle, catalog_doc, amazonia_js, tiles = compile_studio_payloads(
+    spec_formelle, catalog_doc, amazonia_js, _tiles = compile_studio_payloads(
         rules,
         invariants,
         raw_tiles,
@@ -727,43 +732,46 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
     lock_payload: dict[str, Any] = {
         "studio_version": "v6.4",
         "schema_version": str(rules_v64["meta"]["schema_version"]),
-        "runtime_bundle_version": str(rules["meta"]["schema_version"]),
+        "runtime_bundle_version": str(rules_v64["meta"]["schema_version"]),
         "files": studio_sha256,
         "contracts": contracts_sha256,
     }
     _write_json(OUT_STUDIO_LOCK, lock_payload)
 
-    # 3. Construction de data/spec_bundle_v6_0.json (runtime PyPy v6.2 sanctuarisé jusqu'au Jalon 4)
-    trigger_codes = rules["supports_fixes"]["piste_gardiens"]["codes_internes"]
-    catalogue_bundle = copy.deepcopy(tiles["tuiles_ciblees"])
+    # 3. Construction de data/spec_bundle_v6_0.json (runtime PyPy v6.4 actif & graphe economie_bot 30 tuiles v6.4)
+    from scripts.tiles_v6_3_schema import adapt_tiles_contract_for_studio
+
+    adapted_v64_tiles = adapt_tiles_contract_for_studio(tiles_v64)
+    trigger_codes = rules_v64["supports_fixes"]["piste_gardiens"]["codes_internes"]
+    catalogue_bundle = copy.deepcopy(adapted_v64_tiles["tuiles_ciblees"])
     for slot in catalogue_bundle.values():
         for prof in slot["profils"].values():
             prof["economie_bot"] = derive_economie_bot(slot, prof, trigger_codes=trigger_codes)
 
-    reglette = rules["supports_fixes"]["reglette_tactiques"]
-    ratissage = rules["seuil_ratissage_cibles_et_contacts"]["ratissage"]
-    sac = rules["materiel_fini_reversible"]["sac_opaque_et_jetons"]
-    chassis = rules["chassis_canonique"]
+    reglette = rules_v64["supports_fixes"]["reglette_tactiques"]
+    ratissage = rules_v64["seuil_ratissage_cibles_et_contacts"]["ratissage"]
+    sac = rules_v64["materiel_fini_reversible"]["sac_opaque_et_jetons"]
+    chassis = rules_v64["chassis_canonique"]
 
     bundle: dict[str, Any] = {
         "meta": {
-            "schema_version": str(rules["meta"]["schema_version"]),
-            "source_studio_version": "v6.2",
-            "kernel_runtime_status": str(rules["meta"]["kernel_sync_status"]),
+            "schema_version": str(rules_v64["meta"]["schema_version"]),
+            "source_studio_version": "v6.4",
+            "kernel_runtime_status": str(rules_v64["meta"]["kernel_sync_status"]),
             "studio_sha256": studio_sha256,
             "contracts_sha256": contracts_sha256,
             "total_emplacements": len(catalogue_bundle),
             "total_profils": sum(len(s["profils"]) for s in catalogue_bundle.values()),
         },
-        "peuples": copy.deepcopy(rules["peuples"]),
-        "matrice_paires": copy.deepcopy(rules["matrice_paires"]),
+        "peuples": copy.deepcopy(rules_v64["peuples"]),
+        "matrice_paires": copy.deepcopy(rules_v64["matrice_paires"]),
         "chassis_canonique": copy.deepcopy(chassis),
-        "chassis_axes": copy.deepcopy(rules["chassis_axes_studio"]),
+        "chassis_axes": copy.deepcopy(rules_v64["chassis_axes_studio"]),
         "topologies": {
-            "validees": copy.deepcopy(spec_formelle["architecture_reference"]["topologies_validees"]),
-            "details_seuil_et_dotation": copy.deepcopy(catalog_doc["topologies"]),
-            "reserves_materiel": spec_formelle["architecture_reference"]["reserves_materiel"],
-            "plafond_repousse_parcelle": spec_formelle["architecture_reference"][
+            "validees": copy.deepcopy(spec_formelle_v64["architecture_reference"]["topologies_validees"]),
+            "details_seuil_et_dotation": copy.deepcopy(catalog_v64["topologies"]),
+            "reserves_materiel": spec_formelle_v64["architecture_reference"]["reserves_materiel"],
+            "plafond_repousse_parcelle": spec_formelle_v64["architecture_reference"][
                 "plafond_repousse_parcelle"
             ],
             "repousse_finale_base": int(chassis["repousse_finale_base"]),
@@ -772,12 +780,12 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
         "reglette_tactiques_reversible": {
             k: copy.deepcopy(v) for k, v in reglette.items() if k != "tactiques"
         },
-        "piste_gardiens": copy.deepcopy(rules["supports_fixes"]["piste_gardiens"]),
+        "piste_gardiens": copy.deepcopy(rules_v64["supports_fixes"]["piste_gardiens"]),
         "machine_damage_rules": {
             "placement_initial_canonique": str(chassis["placement_initial_machines"]),
             "piege_autonome_portee": str(chassis["piege_autonome_portee"]),
             "seuil_parade": copy.deepcopy(
-                rules["seuil_ratissage_cibles_et_contacts"]["seuil_parade"]
+                rules_v64["seuil_ratissage_cibles_et_contacts"]["seuil_parade"]
             ),
             "ABATTEUSE": {
                 "coupe_tous_les_arbres": True,
@@ -790,11 +798,10 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
             },
             "repousse_finale_base": int(chassis["repousse_finale_base"]),
             "enracinement_volontaire": copy.deepcopy(
-                rules["enracinement_volontaire"]["calibrage"]
+                rules_v64["enracinement_volontaire"]["calibrage"]
             ),
             "ratissage": copy.deepcopy(ratissage),
         },
-        # Shim de clé `machine_deck_rules` conservé pour compatibilité tests/digest jusqu'au Jalon 4
         "machine_deck_rules": {
             "support_physique": str(sac["support"]),
             "jetons_machine_par_rayon": int(sac["jetons_machine_par_rayon"]),
@@ -804,17 +811,17 @@ def build_all_artifacts(tiles_contract_path: Path | None = None) -> dict[str, An
             "sabotage_ecailles_max": int(sac["sabotage_ecailles_max"]),
             "sabotage_effet_propre": sac["sabotage_effet_propre"],
             "lancer_des_universel": bool(
-                rules["materiel_fini_reversible"]["lancer_de_des_universel"][
+                rules_v64["materiel_fini_reversible"]["lancer_de_des_universel"][
                     "tous_les_joueurs_lancent"
                 ]
             ),
             "remise_sac_etape": "MENAGE",
             "penurie_ordre": str(sac["penurie_ordre"]),
         },
-        "accessoires_3_plus_3": copy.deepcopy(rules["accessoires_3_plus_3"]),
-        "enracinement_volontaire": copy.deepcopy(rules["enracinement_volontaire"]),
-        "step_arbitrages_map": copy.deepcopy(spec_formelle["step_arbitrages_map"]),
-        "spec_formelle_v6_0": spec_formelle,
+        "accessoires_3_plus_3": copy.deepcopy(rules_v64["accessoires_3_plus_3"]),
+        "enracinement_volontaire": copy.deepcopy(rules_v64["enracinement_volontaire"]),
+        "step_arbitrages_map": copy.deepcopy(spec_formelle_v64["step_arbitrages_map"]),
+        "spec_formelle_v6_0": spec_formelle_v64,
         "catalogue_tuiles": catalogue_bundle,
     }
     _write_json(OUT_SPEC_BUNDLE, bundle)

@@ -1,4 +1,4 @@
-"""Bus des 7 Primitives Formelles actives v6.2, structures de décision/fin et registre de hooks Mode 4."""
+"""Bus des 7 Primitives Formelles, 6 Verbes du Cœur v6.4, structures de décision/fin et registre de hooks Mode 4."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ from engine.state import (
     STEP_3_2_REVEAL,
     SYNERGY_META,
     TACTIQUES_SPEC,
+    TILE_R_BASE,
     TRACK_LEN,
     TRIG_INSECTE,
     TRIG_PIEGEAGE,
@@ -34,6 +35,7 @@ from engine.state import (
     GameState,
     is_reve_code,
     is_tactique_code,
+    machine_card_code,
 )
 
 __all__ = (
@@ -46,14 +48,19 @@ __all__ = (
     "HOOK_2_1_DEBUT",
     "HOOK_2_1_PORTEE_DEF1",
     "HOOK_3_1_CONSTRUCTION",
+    "HOOK_3_2_APRES_DEVIATION",
     "HOOK_3_2_APRES_REVELATION",
+    "HOOK_3_2_CALE_REVEAL",
+    "HOOK_3_2_ECAILLE_REVELEE",
     "HOOK_3_2_OUVERTURE_REVE",
     "HOOK_3_2_REVELATION",
     "HOOK_4_1_FURTIVITE",
     "HOOK_4_2_NID_APRES_PROD",
+    "HOOK_4_2_NID_AVANT_PROD",
     "HOOK_4_3_MIGRATION_DESTS",
     "HOOK_5_3_PRE_RETRAIT",
     "HOOK_5_APRES_PARADE_PIEGE",
+    "HOOK_5_BOURBIER_CHECK",
     "HOOK_5_CIBLAGE_MACHINE",
     "HOOK_5_CONTACT_NID",
     "HOOK_5_DEBUT",
@@ -64,11 +71,14 @@ __all__ = (
     "HOOK_5_PARADE_CLASSIQUE",
     "HOOK_5_PARADE_HARPIE",
     "HOOK_5_PARADE_JAGUAR",
+    "HOOK_5_PARADE_PONTE",
+    "HOOK_5_PARADE_SOLDATS",
     "HOOK_5_SEUIL_PARADE",
     "HOOK_5_TERRASSEMENT",
     "HOOK_EFFECT_RESUME",
     "HOOK_ENRACINEMENT",
     "HOOK_GARDIEN_OUVERTURE",
+    "HOOK_MACHINE_RECUL",
     "HOOK_REPOUSSE_FINALE",
     "PRIM_CREATION_ENTITE",
     "PRIM_DEPLACEMENT",
@@ -91,6 +101,8 @@ __all__ = (
     "list_targeted_parcels",
     "prim_creation_entite",
     "prim_deplacement",
+    "prim_deplacement_nid",
+    "prim_insecte_take_with_priming",
     "prim_mod_loi_du_coeur",
     "prim_mod_puissance",
     "prim_mod_seuil",
@@ -99,6 +111,12 @@ __all__ = (
     "push_continuation_sequence",
     "push_effect_decision",
     "register_tile",
+    "verb_alterer",
+    "verb_etouffer",
+    "verb_glisser_reve",
+    "verb_reculer",
+    "verb_refroidir",
+    "verb_semer_au_sac",
 )
 
 # Causes canoniques de fin de partie
@@ -109,7 +127,7 @@ CAUSE_REVEIL_GARDIENS: str = "REVEIL_GARDIENS"
 # Type canonique de décision émise par un effet de tuile
 DEC_EFFET_TUILE: str = "EFFET_TUILE"
 
-# Les 7 Primitives Formelles actives v6.2 / Mode 4
+# Les 7 Primitives Formelles actives v6.4 / Mode 4
 PRIM_MOD_SEUIL: str = "MOD_SEUIL"
 PRIM_CREATION_ENTITE: str = "CREATION_ENTITE"
 PRIM_DEPLACEMENT: str = "DEPLACEMENT"
@@ -128,24 +146,31 @@ ALL_PRIMITIVES: tuple[str, ...] = (
     PRIM_MOD_LOI_DU_COEUR,
 )
 
-# Fenêtres / Hooks du bus d'exécution (Panier 2 : prises d'accroche Mode 4 préservées + v6.2)
+# Fenêtres / Hooks du bus d'exécution v6.4
 HOOK_1_3_LECTURE_DE: str = "HOOK_1_3_LECTURE_DE"
 HOOK_2_1_DEBUT: str = "HOOK_2_1_DEBUT"
 HOOK_2_1_PORTEE_DEF1: str = "HOOK_2_1_PORTEE_DEF1"
 HOOK_3_1_CONSTRUCTION: str = "HOOK_3_1_CONSTRUCTION"
 HOOK_3_2_REVELATION: str = "HOOK_3_2_REVELATION"
+HOOK_3_2_CALE_REVEAL: str = "HOOK_3_2_CALE_REVEAL"
+HOOK_3_2_ECAILLE_REVELEE: str = "HOOK_3_2_ECAILLE_REVELEE"
+HOOK_3_2_APRES_DEVIATION: str = "HOOK_3_2_APRES_DEVIATION"
 HOOK_3_2_OUVERTURE_REVE: str = "HOOK_3_2_OUVERTURE_REVE"
 HOOK_3_2_APRES_REVELATION: str = "HOOK_3_2_APRES_REVELATION"
 HOOK_GARDIEN_OUVERTURE: str = "HOOK_GARDIEN_OUVERTURE"
 HOOK_4_1_FURTIVITE: str = "HOOK_4_1_FURTIVITE"
+HOOK_4_2_NID_AVANT_PROD: str = "HOOK_4_2_NID_AVANT_PROD"
 HOOK_4_2_NID_APRES_PROD: str = "HOOK_4_2_NID_APRES_PROD"
 HOOK_4_3_MIGRATION_DESTS: str = "HOOK_4_3_MIGRATION_DESTS"
 HOOK_5_DEBUT: str = "HOOK_5_DEBUT"
 HOOK_5_ORDRE_RAYON: str = "HOOK_5_ORDRE_RAYON"
 HOOK_5_CIBLAGE_MACHINE: str = "HOOK_5_CIBLAGE_MACHINE"
+HOOK_5_BOURBIER_CHECK: str = "HOOK_5_BOURBIER_CHECK"
 HOOK_5_LAW_QUERY: str = "HOOK_5_LAW_QUERY"
 HOOK_5_PARADE_JAGUAR: str = "HOOK_5_PARADE_JAGUAR"
 HOOK_5_PARADE_HARPIE: str = "HOOK_5_PARADE_HARPIE"
+HOOK_5_PARADE_PONTE: str = "HOOK_5_PARADE_PONTE"
+HOOK_5_PARADE_SOLDATS: str = "HOOK_5_PARADE_SOLDATS"
 HOOK_5_SEUIL_PARADE: str = "HOOK_5_SEUIL_PARADE"
 HOOK_5_DEFENSE_PARCELLE: str = "HOOK_5_DEFENSE_PARCELLE"
 HOOK_5_APRES_PARADE_PIEGE: str = "HOOK_5_APRES_PARADE_PIEGE"
@@ -154,6 +179,7 @@ HOOK_5_TERRASSEMENT: str = "HOOK_5_TERRASSEMENT"
 HOOK_5_CONTACT_NID: str = "HOOK_5_CONTACT_NID"
 HOOK_5_FIN_ATTAQUE_MACHINE: str = "HOOK_5_FIN_ATTAQUE_MACHINE"
 HOOK_5_3_PRE_RETRAIT: str = "HOOK_5_3_PRE_RETRAIT"
+HOOK_MACHINE_RECUL: str = "HOOK_MACHINE_RECUL"
 HOOK_ENRACINEMENT: str = "HOOK_ENRACINEMENT"
 HOOK_REPOUSSE_FINALE: str = "HOOK_REPOUSSE_FINALE"
 HOOK_EFFECT_RESUME: str = "HOOK_EFFECT_RESUME"
@@ -316,7 +342,9 @@ def _is_slot_in_play_for_hook(
     meta = SYNERGY_META.get(slot_id)
     if meta is None:
         return False
-    if hook_name in (HOOK_ENRACINEMENT, HOOK_REPOUSSE_FINALE):
+    if hook_name in (HOOK_ENRACINEMENT, HOOK_REPOUSSE_FINALE) or (
+        slot_id == "R2" and hook_name == HOOK_3_2_REVELATION
+    ):
         l_slot = state.find_lisiere_slot_by_tile_id(slot_id)
         if l_slot is not None and state.is_slot_rooted(l_slot):
             return True
@@ -819,14 +847,14 @@ def prim_partage_info_etat_gardien(
         # Glisse 1 Défenseur dans son encoche latérale (jusqu'en 6.2) ;
         # le passage Face 1 -> Face 2 a lieu en 5.3 si le pari est gagné.
         _record_phys_ops(state, 1)
+        state.mark_gardien_opened_this_turn(case_1_6)
 
-        # INV-09 : Résonance en 6e position avec compteur individuel sans écrasement (anti-boucle strict sur 6) :
-        # chaque autre Gardien distinct qui s'active pour la 1re fois du tour incrémente TRIG_RESONANCE (6) de +1.
+        # INV-09 v6.4 : Résonance (6e position) s'allume UNIQUEMENT si cette vraie activation
+        # vide le dessus du Gardien (dernier pari glissé en encoche), jamais depuis Résonance elle-même.
         should_light_res = False
         if case_1_6 != TRIG_RESONANCE:
-            first_open = not state.has_gardien_opened_this_turn(case_1_6)
-            state.mark_gardien_opened_this_turn(case_1_6)
-            should_light_res = first_open
+            if state.count_gardien_pari_defenders_at_case(case_1_6) == 0:
+                should_light_res = True
         else:
             trk_res = _get_active_telemetry()
             if trk_res is not None:
@@ -862,6 +890,10 @@ def prim_partage_info_etat_gardien(
         if g_num == 0:
             return False
         state.set_gardien_at_case(case_1_6, 0, 1)
+        if g_num == 7:
+            state.clear_all_bourbiers()
+        elif g_num == 9:
+            state.clear_all_cales()
         l_slot = state.find_lisiere_slot_by_tile_id(f"G{g_num}")
         if l_slot is not None:
             st, _ = state.get_lisiere_tile_state(l_slot)
@@ -891,17 +923,240 @@ def prim_mod_loi_du_coeur(state: GameState, law_id: str, *, active: bool = True)
     return active
 
 
+# ---------------------------------------------------------------------------
+# Les 6 Verbes du Cœur v6.4 & Primitives natives Essaim (INV-21)
+# ---------------------------------------------------------------------------
+
+
+def verb_refroidir(state: GameState, ray: int, m_type: int, count: int = 1) -> int:
+    """Verbe 1 (Refroidir) : retourne jusqu'à `count` jetons Rouges existants en Bleus Surchauffe (−1).
+
+    Fonctionne sur machine mobile OU en Ratissage ; jamais de Bleu posé à sec depuis la réserve (INV-02).
+    """
+    pos, st, _ = state.get_machine_pos_status(ray, m_type)
+    if st == MACHINE_STATUS_RETIRED or pos == 0 or count <= 0:
+        return 0
+    rouges, _ = state.get_machine_tokens(ray, m_type)
+    converted = min(count, rouges)
+    if converted <= 0:
+        return 0
+    prim_mod_puissance(state, ray, m_type, flip_rouge_to_bleu=converted)
+    return converted
+
+
+def verb_alterer(state: GameState, ray: int, m_type: int) -> bool:
+    """Verbe 2 (Altérer) : pose 1 jeton d'Altération sur une machine mobile sans Altération (jamais Ratissage)."""
+    pos, st, _ = state.get_machine_pos_status(ray, m_type)
+    if st != MACHINE_STATUS_NORMAL or pos == 0:
+        return False
+    if state.has_machine_alteration(ray, m_type):
+        return False
+    prim_creation_entite(state, "ALTERATION", ray=ray, m_type=m_type)
+    return True
+
+
+def verb_reculer(state: GameState, ray: int, m_type: int) -> bool:
+    """Verbe 3 (Reculer) : déplace une machine mobile d'1 parcelle vers la bordure en sautant les Routes.
+
+    Sans effet sur une machine en Ratissage ou déjà sur la 1re parcelle ; déclenche `HOOK_MACHINE_RECUL` (R7).
+    """
+    pos, st, _ = state.get_machine_pos_status(ray, m_type)
+    if st != MACHINE_STATUS_NORMAL or pos <= 1:
+        return False
+    dst_p = state.next_non_razed_towards_border(ray, pos)
+    if dst_p is None:
+        return False
+    moved = prim_deplacement(
+        state,
+        "MACHINE",
+        src_ray=ray,
+        src_p=pos,
+        dst_ray=ray,
+        dst_p=dst_p,
+        m_type=m_type,
+    )
+    if moved:
+        dispatch_hook(
+            state,
+            HOOK_MACHINE_RECUL,
+            {"ray": ray, "m_type": m_type, "old_pos": pos, "new_pos": dst_p},
+        )
+    return moved
+
+
+def verb_etouffer(
+    state: GameState, ray: int, m_type: int, *, seat: int | None = None
+) -> bool:
+    """Verbe 4 (Étouffer) : neutralise toute l'activation restante de la machine à ce tour (90° + dé retiré).
+
+    Couvre aussi bien une machine mobile (jeton incliné à 90° et dé retiré de 1..6) qu'une machine en
+    Ratissage (tournée à 90° sur place jusqu'au ménage, INV-08 / INV-12).
+    """
+    pos, st, _ = state.get_machine_pos_status(ray, m_type)
+    if st == MACHINE_STATUS_RETIRED or pos == 0:
+        return False
+    already = state.is_machine_etouffee_this_turn(ray, m_type)
+    state.mark_machine_etouffee_this_turn(ray, m_type)
+    if st == MACHINE_STATUS_NORMAL:
+        target_code = machine_card_code(ray, m_type)
+        holder = seat
+        if holder is None:
+            for s in range(state.cfg.n_players):
+                c_code, _, _, _, _ = state.get_player_hand(s)
+                if c_code == target_code:
+                    holder = s
+                    break
+        if holder is not None:
+            c_code, d1, d2, lec_m, bound_t = state.get_player_hand(holder)
+            if c_code == target_code and bound_t != 0:
+                state.set_player_hand(holder, c_code, d1, d2, lec_m, 0)
+    if not already:
+        _record_phys_ops(state, 1)
+    return not already
+
+
+def verb_semer_au_sac(
+    state: GameState, token_type: str = "SABOTAGE", count: int = 1
+) -> int:
+    """Verbe 5 (Semer au sac) : glisse `count` jetons (SABOTAGE ou ECAILLE) au sac sans allumer d'icône."""
+    assert count >= 1
+    if token_type == "SABOTAGE":
+        prim_creation_entite(state, "SABOTAGE", count=count, light_trigger=False)
+        return count
+    if token_type == "ECAILLE":
+        before = state.count_total_ecailles_in_play()
+        prim_creation_entite(state, "ECAILLE", count=count, light_trigger=False)
+        return max(0, state.count_total_ecailles_in_play() - before)
+    raise ValueError(f"verb_semer_au_sac type inconnu : {token_type}")
+
+
+def verb_glisser_reve(
+    state: GameState,
+    rank_0_5: int,
+    *,
+    dst_rank_0_5: int | None = None,
+    push_block: bool = False,
+) -> int | None:
+    """Verbe 6 (Glisser un Rêve) : déplace un Rêve sur la Réglette avec ses Défenseurs (debout/couchés)."""
+    assert 0 <= rank_0_5 < TRACK_LEN
+    if not is_reve_code(state.get_tactique_at_rank(rank_0_5)):
+        return None
+    if dst_rank_0_5 is not None:
+        if state.move_reve_to_free_rank(rank_0_5, dst_rank_0_5):
+            _record_phys_ops(state, 1)
+            return dst_rank_0_5
+        return None
+    if push_block:
+        new_r = state.shift_reve_block_left(rank_0_5)
+        if new_r is not None:
+            _record_phys_ops(state, 1)
+        return new_r
+    new_r = state.slide_reve_1_free_left(rank_0_5)
+    if new_r is not None:
+        _record_phys_ops(state, 1)
+    return new_r
+
+
+def prim_deplacement_nid(
+    state: GameState, m_num: int, dst_ray: int, dst_p: int
+) -> bool:
+    """Déménagement unifié d'un Nid (INV-21) : emporte tous ses Insectes, Défenseurs et son éventuelle ponte."""
+    pos_info = state.get_nid_position(m_num)
+    if pos_info is None:
+        return False
+    src_ray, src_p, active = pos_info
+    if (src_ray, src_p) == (dst_ray, dst_p):
+        return False
+    if state.is_route_forestiere(dst_ray, dst_p):
+        return False
+    existing_nid, _ = state.get_parcel_nid(dst_ray, dst_p)
+    if existing_nid != 0:
+        return False
+    # Déplacement du Nid (la ponte G14 est indexée par m_num et suit automatiquement)
+    state.set_parcel_nid(dst_ray, dst_p, m_num, active_ce_tour=active)
+    # Transport simultané de tous les Insectes de la parcelle
+    ins = state.get_parcel_insectes(src_ray, src_p)
+    if ins > 0:
+        state.set_parcel_insectes(src_ray, src_p, 0)
+        state.set_parcel_insectes(dst_ray, dst_p, min(255, state.get_parcel_insectes(dst_ray, dst_p) + ins))
+    # Transport simultané de tous les Défenseurs de la parcelle
+    for s_id, d_id in state.list_defenders_on_parcel(src_ray, src_p):
+        state.place_defender_foret(s_id, d_id, dst_ray, dst_p, FACE_DEFINITIF)
+    _record_phys_ops(state, 1)
+    return True
+
+
+def prim_insecte_take_with_priming(
+    state: GameState, src: tuple[Any, ...]
+) -> tuple[bool, int]:
+    """Prélève 1 Insecte depuis `src` (ou réserve si 0 Insecte en jeu — Amorçage natif INV-21).
+
+    Retourne `(ok, colonie_case_or_0)` où `colonie_case_or_0` vaut `1..6` si prélevé sur une icône Gardien.
+    """
+    if not state.cfg.has_insectes_peuple:
+        return False, 0
+    tag = src[0]
+    if tag == "RESERVE":
+        if state.count_total_insects_on_board() == 0:
+            _record_phys_ops(state, 1)
+            return True, 0
+        return False, 0
+    if tag == "PARCEL":
+        r, p = int(src[1]), int(src[2])
+        cur = state.get_parcel_insectes(r, p)
+        if cur <= 0:
+            return False, 0
+        state.set_parcel_insectes(r, p, cur - 1)
+        _record_phys_ops(state, 1)
+        return True, 0
+    if tag == "BUG":
+        c = int(src[1])
+        cur = state.get_bugs_at_case(c)
+        if cur <= 0:
+            return False, 0
+        state.set_bugs_at_case(c, cur - 1)
+        _record_phys_ops(state, 1)
+        return True, 0
+    if tag == "COLONIE":
+        c = int(src[1])
+        cur = state.get_colonie_at_case(c)
+        if cur <= 0:
+            return False, 0
+        state.set_colonie_at_case(c, cur - 1)
+        _record_phys_ops(state, 1)
+        return True, c
+    if tag == "PASSENGER":
+        r, mt = int(src[1]), int(src[2])
+        cur = state.get_machine_passenger_insects(r, mt)
+        if cur <= 0:
+            return False, 0
+        state.set_machine_passenger_insects(r, mt, cur - 1)
+        _record_phys_ops(state, 1)
+        return True, 0
+    return False, 0
+
+
+def _is_curupira_reverse_rank(state: GameState, rank_1_6: int) -> bool:
+    """Vrai si R7 (Le Curupira) siège activement au rang `rank_1_6` (marche à reculons)."""
+    if state.cfg.mode < 4 or state.cfg.profile_for_slot("R7") is None:
+        return False
+    return state.get_tactique_at_rank(rank_1_6 - 1) == TILE_R_BASE + 7
+
+
 def list_targeted_parcels(state: GameState) -> tuple[tuple[int, int], ...]:
-    """Retourne toutes les « parcelles ciblées » actuelles, incluant les Ratissages n'ayant pas encore frappé (INV-12)."""
+    """Retourne toutes les « parcelles ciblées » actuelles (hors machines Étouffées, incluant Ratissages, INV-12)."""
     targeted: set[tuple[int, int]] = set()
     n = state.cfg.n_players
 
-    # 1. Machines normales révélées et non encore résolues (non annulées, non altérées)
+    # 1. Machines normales révélées et non encore résolues (non Étouffées, non annulées, non altérées)
     for s in range(n):
         if state.was_seat_altered_this_turn(s) or state.was_seat_cancelled_by_reve_this_turn(s):
             continue
         card, _, _, lec_m, bound_t = state.get_player_hand(s)
         if not (1 <= card <= 12):
+            continue
+        r, mt = (card - 1) // 2, (card - 1) % 2
+        if state.is_machine_etouffee_this_turn(r, mt):
             continue
         if is_tactique_code(bound_t):
             t_code = bound_t
@@ -909,24 +1164,30 @@ def list_targeted_parcels(state: GameState) -> tuple[tuple[int, int], ...]:
             t_code = lec_m
         else:
             continue
-        r, mt = (card - 1) // 2, (card - 1) % 2
         pos, st, _ = state.get_machine_pos_status(r, mt)
         _, _, attacked = state.get_machine_turn_stats(r, mt)
         if st != MACHINE_STATUS_NORMAL or pos == 0 or attacked:
             continue
+        rev_dev = _is_curupira_reverse_rank(state, t_code)
         spec = TACTIQUES_SPEC[t_code]
         for c_type in spec.cibles:
             if c_type == "SUR_PLACE":
                 if not state.is_route_forestiere(r, pos):
                     targeted.add((r, pos))
             elif c_type == "DEVANT":
-                p_dev = state.next_non_razed_towards_heart(r, pos)
+                p_dev = (
+                    state.next_non_razed_towards_border(r, pos)
+                    if rev_dev
+                    else state.next_non_razed_towards_heart(r, pos)
+                )
                 if p_dev is not None:
                     targeted.add((r, p_dev))
 
-    # 2. Machines en Ratissage n'ayant pas encore frappé ce tour (INV-12)
+    # 2. Machines en Ratissage non Étouffées n'ayant pas encore frappé ce tour (INV-12)
     for r in range(n):
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            if state.is_machine_etouffee_this_turn(r, mt):
+                continue
             pos, st, _ = state.get_machine_pos_status(r, mt)
             _, _, attacked = state.get_machine_turn_stats(r, mt)
             if (
@@ -947,7 +1208,7 @@ def list_machines_targeting_parcel(
     *,
     mobile_only: bool = False,
 ) -> tuple[tuple[int, int], ...]:
-    """Retourne les machines `(ray, m_type)` n'ayant pas encore frappé qui visent actuellement `(ray, p)`."""
+    """Retourne les machines `(ray, m_type)` non Étouffées n'ayant pas encore frappé qui visent `(ray, p)`."""
     matched: list[tuple[int, int]] = []
     n = state.cfg.n_players
     seen: set[tuple[int, int]] = set()
@@ -958,26 +1219,31 @@ def list_machines_targeting_parcel(
         card, _, _, lec_m, bound_t = state.get_player_hand(s)
         if not (1 <= card <= 12):
             continue
+        r, mt = (card - 1) // 2, (card - 1) % 2
+        if r != ray or state.is_machine_etouffee_this_turn(r, mt):
+            continue
         if is_tactique_code(bound_t):
             t_code = bound_t
         elif state.step == STEP_3_2_REVEAL and 1 <= lec_m <= TRACK_LEN:
             t_code = lec_m
         else:
             continue
-        r, mt = (card - 1) // 2, (card - 1) % 2
-        if r != ray:
-            continue
         pos, st, _ = state.get_machine_pos_status(r, mt)
         _, _, attacked = state.get_machine_turn_stats(r, mt)
         if st != MACHINE_STATUS_NORMAL or pos == 0 or attacked:
             continue
+        rev_dev = _is_curupira_reverse_rank(state, t_code)
         spec = TACTIQUES_SPEC[t_code]
         hits = False
         for c_type in spec.cibles:
             if c_type == "SUR_PLACE" and pos == p and not state.is_route_forestiere(r, pos):
                 hits = True
             elif c_type == "DEVANT":
-                p_dev = state.next_non_razed_towards_heart(r, pos)
+                p_dev = (
+                    state.next_non_razed_towards_border(r, pos)
+                    if rev_dev
+                    else state.next_non_razed_towards_heart(r, pos)
+                )
                 if p_dev == p:
                     hits = True
         if hits and (r, mt) not in seen:
@@ -986,6 +1252,8 @@ def list_machines_targeting_parcel(
 
     if not mobile_only:
         for mt in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER):
+            if state.is_machine_etouffee_this_turn(ray, mt):
+                continue
             pos, st, _ = state.get_machine_pos_status(ray, mt)
             _, _, attacked = state.get_machine_turn_stats(ray, mt)
             if (

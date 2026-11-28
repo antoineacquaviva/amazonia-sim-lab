@@ -35,7 +35,7 @@ const RULES_CANON_V6_4 = {
     "schema_version": "6.4.0",
     "date_consolidation": "2026-11-27",
     "statut": "SSOT_V6_4_ACTIVE",
-    "kernel_sync_status": "PENDING_KERNEL_V6_4",
+    "kernel_sync_status": "SEALED_V6_4_ACTIVE_VERIFIED",
     "cadrage_source": "docs/cadrage_v6_4.md",
     "description": "Contrat formel typé unique (SSOT) de la cible consolidée v6.4 : 9 évolutions Cœur zéro-mémoire, 6 Verbes du Cœur, Asymétrie Hybride 3+3 épurée, Enracinement sur Rive Sabotage (Effet Sentinelle) et Canon de 30 tuiles affinées Passe 2."
   },
@@ -1234,8 +1234,8 @@ const CANON_V6_4 = {
     "schema_version": "6.4.0",
     "socle_verrouille": "6.4.0",
     "cadrage_source": "docs/cadrage_v6_4.md",
-    "etape_active": "JALON_2_PASSE_2_AFFINEE",
-    "statut_global": "PANEL_30_AFFINE",
+    "etape_active": "JALON_5_ENCODAGE_30_TUILES_V6_4",
+    "statut_global": "ACTIVE_VERIFIED",
     "genere_le": "2026-11-27",
     "slots_count": 30,
     "c02_supprime": true,
@@ -1412,18 +1412,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G1_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Duel face Défi sur M·2 ; Jaguar F1 pose le Croc (pris en réserve Reptile) sur M·2 ; la frappe parée par le Croc allume Piégeage et retourne nativement le Duel sur Territoire tenu."
         },
         {
           "id": "G1_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Jaguar F2 déplace Duel + Croc sur une parcelle ciblée d’un rayon voisin ; la machine parée par le Croc est immédiatement Refroidie (1 Rouge → Bleu)."
         }
       ],
       "heuristique_bot": "Prioritaire dès qu’une parcelle ciblée porte le Duel ou une attaque à fort Seuil ; en Face 2, combine Piégeage en boucle et Refroidissement sur machine chargée.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G2": {
       "id": "G2",
@@ -1508,18 +1508,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G2_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Abatteuse en Ratissage sur la dernière parcelle portant Territoire tenu : Anaconda F1 la sort du Ratissage, remet son jeton au sac et la fait Reculer d’1 parcelle."
         },
         {
           "id": "G2_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Anaconda F2 sur une mobile active visant la parcelle du Duel : la machine est Étouffée (jeton à 90°, dé retiré) et Recule d’1 parcelle."
         }
       ],
       "heuristique_bot": "Prioritaire dès qu’une machine entre en Ratissage sur une parcelle défendue ou tenue par le Duel ; en Face 2, neutralise directement la mobile la plus dangereuse.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G3": {
       "id": "G3",
@@ -1606,18 +1606,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G3_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Saut de lisière F1 : un Défenseur sur la Rive Sabotage de O traverse directement sur une parcelle à Arbre debout de M pour compléter une Parade."
         },
         {
           "id": "G3_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Atèle F2 avec Perchoir au pied d’un rayon voisin : 1 pas avant, traversée entre cimes, puis 1 pas après pour atteindre exactement la parcelle menacée."
         }
       ],
       "heuristique_bot": "Évalue chaque Défenseur excédentaire ou sur Rive déjà gagnée/perdue pour compléter une Parade à manque de 1 ou sécuriser une Rive 2/2.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G4": {
       "id": "G4",
@@ -1701,18 +1701,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G4_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Ara F1 sur Résonance (position 6) choisit un Gardien sur Insecte (position 5, directement voisine) : 1 pari glisse sans pouvoir ni Résonance, et Second cri est gratuit pour un second Gardien."
         },
         {
           "id": "G4_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Ara F2 active en relais un Gardien sur son dernier pari : ce Gardien résout son pouvoir, vide son dessus et allume Résonance."
         }
       ],
       "heuristique_bot": "Maximise le taux de passage Face 2 des Gardiens en piste ; privilégie un premier choix sur une icône adjacente à l’Ara pour obtenir le Second cri gratuitement.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G5": {
       "id": "G5",
@@ -1796,18 +1796,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G5_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Perchoir pointant le rang 4 : Iguane F1 pose 1 Piège sur la parcelle ciblée par la machine du rang 4 ; si elle porte un Bleu, boire ce Bleu pose aussi le Croc de la réserve."
         },
         {
           "id": "G5_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Iguane F2 pose Piège + Croc sur deux parcelles ciblées de son choix, puis boit 1 Bleu pour effectuer un second plongeon."
         }
       ],
       "heuristique_bot": "Cible les parcelles à plus fort Seuil sans Défenseur ; boit un Bleu uniquement sur une machine déjà piégée ou facile à parer afin de multiplier les déclenchements de Piégeage.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G6": {
       "id": "G6",
@@ -1895,18 +1895,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G6_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Toucan F1 assis sur Parade Refroidit la machine à 1 Rouge sous le Perchoir : elle passe à 0 Rouge et Cri de vapeur allume Piégeage (à droite de Parade, hors Résonance)."
         },
         {
           "id": "G6_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Toucan F2 Refroidit partout une machine portant 1 Rouge et 1 Bleu : elle passe à 0 Rouge et 2 Bleus, est immédiatement Étouffée et déclenche Cri de vapeur."
         }
       ],
       "heuristique_bot": "Siège idéal sur Parade pour maximiser les icônes à droite ; priorise les machines à 1 Rouge (Cri de vapeur immédiat) ou à 1 Rouge + 1 Bleu en Face 2 (Étouffement).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G7": {
       "id": "G7",
@@ -2005,18 +2005,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G7_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Route en M·2 portant le Duel (Bourbier F1) : une machine en M·1 qui doit frapper Devant (M·3) ou avancer par-dessus M·2 voit cette frappe/avancée annulée et le Duel rentre en réserve."
         },
         {
           "id": "G7_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Tapir F2 avec Duel face Territoire tenu en Bourbier : la machine enlisée est Refroidie (ou Recule d’1) et le Duel bascule sur Défi au lieu de rentrer en réserve."
         }
       ],
       "heuristique_bot": "Prioritaire dès qu’une Route sépare une machine d’une parcelle riche en Arbres ; en absence de Route utile, Frayer sécurise Territoire tenu sur un Chamane.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G8": {
       "id": "G8",
@@ -2101,18 +2101,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G8_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Boto F1 Glisse un Rêve du rang 5 au rang 4 libre (emportant ses Défenseurs) ; sans Rêve déplaçable, il Altère 1 machine mobile depuis la réserve Entités."
         },
         {
           "id": "G8_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Boto F2 fait plonger un Rêve du rang 4 par-dessus un Rêve au rang 3 pour atterrir au rang 2 libre."
         }
       ],
       "heuristique_bot": "Levier majeur du Sommeil quand E joue sans H ; fait converger les Rêves à gauche dès l’Acte 1, sinon pose des Altérations.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G9": {
       "id": "G9",
@@ -2199,18 +2199,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G9_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Caïman F1 pose la cale sous l’Abatteuse du rayon du Tambour : elle ne peut pas entrer en Ratissage et sa révélation au tour suivant rallume Sabotage."
         },
         {
           "id": "G9_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Caïman F2 : lorsque la machine calée est révélée à l’ouverture, Sabotage s’allume et la machine est Étouffée (jeton à 90°, dé retiré)."
         }
       ],
       "heuristique_bot": "Pose la cale en priorité sur une machine proche de la dernière parcelle (anti-Ratissage) ou sur la plus chargée en Rouges en Face 2.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G10": {
       "id": "G10",
@@ -2299,18 +2299,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G10_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Matamata F1 Sème 1 Écaille au sac et choisit Happer : le Croc de la réserve Reptile se poste sur une parcelle ciblée, prêt à rallumer Piégeage."
         },
         {
           "id": "G10_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Matamata F2 Sème 1 Écaille, repositionne le Croc depuis une parcelle non ciblée vers une cible (Happer) et Altère 1 machine mobile (Envoûter)."
         }
       ],
       "heuristique_bot": "Sème des Écailles tôt pour gonfler le sac ; en Face 1, choisit Happer dès qu’une cible menacée peut rallumer Piégeage, sinon Envoûter.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G11": {
       "id": "G11",
@@ -2402,18 +2402,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G11_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Harpie F1 recycle 1 Oiseau couché en attente et choisit Saisir sur le rang 5 pointé par le Perchoir : la mobile du rang 5 est Étouffée jusqu’au ménage."
         },
         {
           "id": "G11_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Harpie F2 saisit une mobile au rang 2 (miroir du Perchoir au rang 5), puis porte le Chant depuis sa parcelle visée debout sur un Rêve au rang 5."
         }
       ],
       "heuristique_bot": "Privilégie le recyclage d’un Oiseau couché en attente ou libéré ; choisit Saisir sur la mobile la plus létale du rang du Perchoir (et miroir en F2), sinon Fondre pour boucler une Parade.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G12": {
       "id": "G12",
@@ -2503,18 +2503,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G12_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Porteur d’Abatteuse (dés 2 et 5, retenu 2, écarté 5) alors qu’un Rêve défendu siège au rang 5 : Ibijau F1 déplace son dé du rang 2 au rang 5 où le Rêve l’Étouffe."
         },
         {
           "id": "G12_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Ibijau F2 relit un dé ignoré (4) d’un porteur de Sabotage pour amener une mobile sur le Rêve du rang 4 ; Étouffée, elle permet de Glisser ce Rêve au rang 3 libre."
         }
       ],
       "heuristique_bot": "Priorise tout déplacement amenant une mobile sur un Rêve défendu encore debout (ou hors d’un rang 3/6 En avançant) ; en F2, exploite les dés ignorés des Sabotages.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G13": {
       "id": "G13",
@@ -2601,18 +2601,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G13_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Nid à 2 Insectes : Tamanoir F1 en défausse 1 et ajoute 2 Insectes de la réserve (le Nid passe à 3 Insectes) ; sans Nid à ≥ 2, pose 1 Insecte de la réserve."
         },
         {
           "id": "G13_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Tamanoir F2 éventre un Nid à 2 Insectes et projette les 2 Insectes de la riposte sur une parcelle ciblée adjacente portant le Duel face Défi."
         }
       ],
       "heuristique_bot": "Eventre en priorité un Nid à ≥ 2 Insectes adjacent à une parcelle ciblée (en F2) ou sur le point de produire ; sinon utilise le repli réserve pour porter un Nid à 2 Insectes.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G14": {
       "id": "G14",
@@ -2700,18 +2700,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G14_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Téju F1 glisse 1 Écaille sous un Nid ; une frappe sur ce Nid fait éclore le Croc de la réserve (parade + Piégeage + Croc revient en réserve + Écaille Semée au sac)."
         },
         {
           "id": "G14_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Téju F2 entretient 2 pontes simultanées et fait éclore le Croc même s’il était posté sur une autre parcelle, avant qu’il regagne normalement la réserve."
         }
       ],
       "heuristique_bot": "Pose une ponte dès qu’un Nid est à portée de frappe ; sans Nid libre, Sème une Écaille et poste le Croc directement sur la parcelle la plus menacée de R ou I.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "G15": {
       "id": "G15",
@@ -2805,18 +2805,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "G15_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Colibri F1 prélève 1 Insecte posé sur l’icône d’un Gardien en piste et le dépose sur une parcelle menacée : 1 pari de ce Gardien glisse en encoche sans pouvoir ni Résonance."
         },
         {
           "id": "G15_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Colibri F2 transporte 2 Insectes : le premier arrive sur un Nid (+1 Insecte produit), le second est déposé sur le rang pointé par le Perchoir de Vigie."
         }
       ],
       "heuristique_bot": "Priorise le prélèvement sur une icône de Gardien ayant un pari bloqué ; en Face 2, pollinise les Nids à 1 Insecte et alimente le rang pointé par le Perchoir.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R1": {
       "id": "R1",
@@ -2898,18 +2898,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R1_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Liane défendue au rang 2 par le Tambour, Rêve Entités non défendu au rang 5 : la Liane tire ce Rêve au rang 3 puis Écho chamane passe le Tambour debout au rang 3 pour le résoudre aussitôt."
         },
         {
           "id": "R1_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Liane enracinée sur la Rive Sabotage de H : elle apporte l’Effet Sentinelle permanent sans fermer la victoire par Sommeil Profond."
         }
       ],
       "heuristique_bot": "Défendue en priorité avec le Tambour dès qu’un Rêve Entités non défendu siège à sa droite ; candidate sûre à l’Enracinement en fin de partie sans bloquer le Sommeil.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R2": {
       "id": "R2",
@@ -2993,18 +2993,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R2_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Fleuve défendu : une mobile perd son Altération à l’ouverture et retourne son jeton face cachée (compte 0 en Furtivité), permettant de gagner la Rive Sabotage à 0 machine visible."
         },
         {
           "id": "R2_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Enraciné sur la Rive Sabotage de E alors qu’une machine de E est altérée : carte tournée à 90° (Gué marqué), retournant 2 Souches en Arbres au décompte final + Effet Sentinelle permanent."
         }
       ],
       "heuristique_bot": "Défendu dès que E vise la Rive Sabotage ou veut relever un Tambour en attente ; s’enracine au Tour 5–7 dès qu’une machine de E porte une Altération (Gué marqué).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R3": {
       "id": "R3",
@@ -3082,13 +3082,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R3_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Vision défendue par le Tambour : après avoir Étouffé la machine du rang, le Tambour bondit sur une parcelle ciblée en emportant le jeton Duel (Écho chamane)."
         }
       ],
       "heuristique_bot": "Défendue en priorité par le Tambour pour obtenir un double service (Étouffement à l’ouverture + Parade avec Duel repositionné aux attaques).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R4": {
       "id": "R4",
@@ -3167,13 +3167,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R4_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Pirogue-Anaconda en queue au rang 5 avec deux Rêves aux rangs 2 et 4 : Poussée Glisse les trois Rêves aux rangs 1, 3 et 4 et Sème 1 Écaille au sac."
         }
       ],
       "heuristique_bot": "Défendue en queue de convoi pour compacter vers le Sommeil tout en enrichissant le sac en Écailles.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R5": {
       "id": "R5",
@@ -3252,18 +3252,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R5_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Ciel défendu par le Chant au rang 2 avec Perchoir au rang 5 : la mobile du rang 5 bascule seule sur son miroir au rang 2 où le Rêve l’Étouffe aussitôt."
         },
         {
           "id": "R5_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Ciel défendu par le Tambour échange deux mobiles entre les rangs 3 et 6 et Refroidit celle qui porte 1 Rouge."
         }
       ],
       "heuristique_bot": "Défendu avec Chant (bascule solo vers ce Rêve ou un Rêve à droite) ou Tambour (échange + Refroidissement d’une machine à Rouge).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R6": {
       "id": "R6",
@@ -3345,18 +3345,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R6_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Tucandeira défendue par le Chant au rang 4 : cueille 1 Insecte de H et le défausse pour Étouffer une machine mobile au rang 5 adjacent (Écho chamane)."
         },
         {
           "id": "R6_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Tucandeira défendue par le Tambour avec 0 Insecte en jeu : amorçage natif en réserve, puis chaque Insecte défaussé Étouffe +1 machine du rang."
         }
       ],
       "heuristique_bot": "Défendue par le Chant pour couvrir 3 rangs (rang ±1) avec un seul Défenseur + Insectes, ou par le Tambour pour nettoyer un encombrement de 2–3 machines sur le même rang.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R7": {
       "id": "R7",
@@ -3436,18 +3436,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R7_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Curupira non défendu au rang 3 : une machine au rang 3 frappe derrière et Recule hors de la parcelle du Duel face Défi, le retournant sur Territoire tenu."
         },
         {
           "id": "R7_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Curupira défendu au rang 4 : la mobile Étouffée par ce Rêve reçoit en outre 1 jeton d’Altération de la réserve Entités."
         }
       ],
       "heuristique_bot": "Positionné sur un rang En avançant (3 ou 6) pour casser l’avancée sans Défenseur ; défendu lorsqu’une mobile critique doit être à la fois Étouffée et Altérée.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R8": {
       "id": "R8",
@@ -3533,18 +3533,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R8_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Une Écaille est révélée à l’ouverture : La Mue d’obsidienne (même non défendue) Glisse 1 Rêve d’1 rang libre à gauche et Refroidit 1 machine à Rouge."
         },
         {
           "id": "R8_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "La Mue d’obsidienne défendue à l’ouverture : après ses annulations, elle Glisse 1 Rêve d’1 rang libre à gauche et Altère 1 machine mobile."
         }
       ],
       "heuristique_bot": "Levier passif très rentable avec les Écailles semées par R ; privilégie Refroidir sur menace immédiate à fort Seuil, sinon Altérer pour préparer le tour suivant.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R9": {
       "id": "R9",
@@ -3626,18 +3626,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R9_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Matinta défendue au rang 4 avec Perchoir pointant le rang 2 libre : elle vole au rang 2, Étouffe la mobile présente et choisit Maudire pour l’Altérer."
         },
         {
           "id": "R9_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Matinta choisit Siffler dans la brume en retirant 2 Altérations en jeu : elle Glisse 2 Rêves d’1 rang libre à gauche et Refroidit chaque machine réveillée portant un Rouge."
         }
       ],
       "heuristique_bot": "Vole vers le rang du Perchoir pour Étouffer la cible ; choisit Siffler dans la brume dès que 1–2 Altérations sont mûres pour fermer le Sommeil ou Refroidir.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "R10": {
       "id": "R10",
@@ -3728,13 +3728,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "R10_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Table {H, E, I} : La Transe de la Ruche vagabonde Glisse un Rêve à gauche puis téléporte un Nid avec son Défenseur et ses 2 Insectes sur la parcelle menacée d’un autre rayon et Refroidit le Bulldozer sur place."
         }
       ],
       "heuristique_bot": "Exploite Envol de la Ruche pour projeter un Nid défendu sur une parcelle critique (ou la dernière parcelle d’un rayon pour débloquer le déploiement sur la Réglette).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "M1": {
       "id": "M1",
@@ -3811,18 +3811,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "M1_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "2 passagers embarqués sur le Bulldozer : quand il frappe la parcelle du Duel face Défi (1 Défenseur, Seuil 3), les 2 passagers sautent, parent la frappe (icône Insecte) et retournent nativement le Duel sur Territoire tenu."
         },
         {
           "id": "M1_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Un passager non dépensé descend au ménage sur la dernière parcelle atteinte par sa machine."
         }
       ],
       "heuristique_bot": "Embarque 1–2 Insectes sur la machine la plus menaçante du rayon I ou voisin dès que le Nid conserve 2 Insectes (ou qu’une parade critique manque de 1–2).",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "M2": {
       "id": "M2",
@@ -3898,18 +3898,18 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "M2_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Abatteuse en Assaut à Seuil 4 sur le Nid sans Défenseur : 2 Insectes défaussés parent seuls la frappe et allument l’icône Insecte."
         },
         {
           "id": "M2_T2",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Production défendue sans machine présente : 1 Écaille de la réserve Reptile est Semée au sac."
         }
       ],
       "heuristique_bot": "Défendue tôt pour Semer des Écailles au sac et maintenir ≥ 2 Insectes capables de parer seuls un Assaut à haut Seuil.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "M3": {
       "id": "M3",
@@ -3989,13 +3989,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "M3_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Bivouac défendu en I·1 avec Perchoir au pied du rayon O voisin : il avance de 2 parcelles vers O avec son Défenseur et ses Insectes, produit, puis envoie 2 Insectes en Front de raid."
         }
       ],
       "heuristique_bot": "Suit le Perchoir de Vigie ou la plus forte pression machine pour repositionner un Défenseur + Nid + Front de raid en une seule Production.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "M4": {
       "id": "M4",
@@ -4075,13 +4075,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "M4_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Après construction d’un Rêve (2 bâtisseurs couchés), Le Rucher des Mélipones défendu défausse 1 Insecte pour relever 1 bâtisseur actif sur la parcelle du Tambour."
         }
       ],
       "heuristique_bot": "Prioritaire les tours de construction ; relève en priorité un bâtisseur vers la parcelle menacée du Tambour ou du Nid.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     },
     "M5": {
       "id": "M5",
@@ -4164,13 +4164,13 @@ const CANON_V6_4 = {
       "temoins": [
         {
           "id": "M5_T1",
-          "statut": "A_CODER",
+          "statut": "OK",
           "resume": "Le Mycélium luminescent défendu envoie 1 Insecte sur le rang 4 (Filaments oniriques) ; au tour suivant, la déviation ±1 vers un Rêve au rang 3 Altère la machine et recycle l’Insecte sur ce Nid (< 2)."
         }
       ],
       "heuristique_bot": "Défendu dès que possible pour alimenter les rangs adjacents aux Rêves en Insectes ; déclenche le recyclage automatique sur toute déviation vers un Rêve.",
-      "engine_sync_status": "REFINED_V6_4",
-      "statut_conception": "PASSE_2_AFFINE"
+      "engine_sync_status": "ACTIVE_VERIFIED",
+      "statut_conception": "VALIDE_V6_4"
     }
   }
 };

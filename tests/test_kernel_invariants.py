@@ -12,7 +12,7 @@ from engine.core_engine import (
     CAUSE_REVE_RANG_1,
     CAUSE_REVEIL_GARDIENS,
     CAUSE_TOUR_8,
-    DEC_MIGRATION_INSECTE_4_3,
+    DEC_DEPLOIEMENT_NID_4_2,
     DEC_POSE_DEFENSEUR_2,
     DEC_REVISION_DEFENSEUR_2,
     apply_choice,
@@ -140,8 +140,9 @@ def test_02_observation_strict_isolation_paravents() -> None:
         assert obs0.hands[other_seat].lecture_m is None
         assert obs0.hands[other_seat].bound_tactique is None
 
-    # Aller jusqu'après l'ouverture des paravents en 3.2 (ancre Insecte sur (3,1) pour stopper en 4.3)
-    state.set_parcel_insectes(3, 1, 1)
+    # Aller jusqu'après l'ouverture des paravents en 3.2 (ancre Nid défendu sur (3,2) pour stopper en 4.2)
+    state.set_parcel_nid(3, 2, 1)
+    state.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     while not state.paravents_ouverts:
         r = step_until_decision(state)
         assert isinstance(r, DecisionRequest)
@@ -595,7 +596,7 @@ def _run_minimal_legal_automaton(state: GameState, *, active_mode2_play: bool = 
                 chosen = lis_refl[0] if lis_refl else (furt_refl[0] if furt_refl else opts[-1])
             elif out.decision_type == DEC_REVISION_DEFENSEUR_2:
                 chosen = ("VERROUILLER_DEFINITIF", None)
-            elif out.decision_type == DEC_MIGRATION_INSECTE_4_3:
+            elif out.decision_type == DEC_DEPLOIEMENT_NID_4_2:
                 col_or_bug = [o for o in opts if o[0] in ("COLONIE", "BUG")]
                 fwd = [o for o in opts if o[0] == "FORET"]
                 chosen = col_or_bug[0] if col_or_bug else (fwd[0] if fwd else opts[0])

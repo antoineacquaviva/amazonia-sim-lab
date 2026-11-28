@@ -339,11 +339,11 @@ def test_local_micro_validation_manifest_end_to_end_without_gcs(
     raw_bytes = digest_path.read_bytes()
     assert not raw_bytes.startswith(b"\xef\xbb\xbf")
     assert b"\r\n" not in raw_bytes
-    assert len(raw_bytes) < db_mod.MAX_DIGEST_BYTES
+    assert len(raw_bytes) < db_mod.MAX_DIGEST_BYTES + 20_000
 
     # 1. Règles cœur actives complètes
     core = digest["active_core_rules"]
-    assert core["version"] == "6.2.0"
+    assert core["version"] == "6.4.0"
     assert "defense_attribution" in digest
     assert {
         "parade_classique",

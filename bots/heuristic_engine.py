@@ -31,12 +31,12 @@ from engine.core_engine import (
     DEC_BOUCLIER_LISIERE_5_3,
     DEC_CHOIX_CASE_GARDIEN,
     DEC_CHOIX_CIBLE_REVE_3_2,
+    DEC_DEPLOIEMENT_NID_4_2,
     DEC_ENRACINEMENT_6_1,
     DEC_HUMAIN_CHAMAN_2_1,
     DEC_LIBERATION_BATISSEUR_3_1,
     DEC_MAMMIFERE_DUEL_2,
-    DEC_MIGRATION_INSECTE_4_3,
-    DEC_OISEAU_DE_ENVOL_1_3,
+    DEC_OISEAU_CHOIX_DE_1_3,
     DEC_OISEAU_PERCHOIR_1_1,
     DEC_OISEAU_PLUME_2,
     DEC_ORDRE_ATTAQUE_5_1,
@@ -49,6 +49,7 @@ from engine.core_engine import (
     DEC_POSE_PIEGE_FURTIVITE_4_1,
     DEC_REPTILE_POSE_CROC_3_2,
     DEC_REVISION_DEFENSEUR_2,
+    DEC_SABOTAGE_CIBLE_3_2,
     apply_choice,
     step_until_decision,
 )
@@ -675,31 +676,23 @@ def _score_effect_option(
     *,
     is_b2: bool,
 ) -> float:
-    """Évalue une option de `DEC_EFFET_TUILE` (Canon 0 v6.2 — 30 tuiles + Bug B) sur `PlayerObservation`."""
+    """Évalue une option de `DEC_EFFET_TUILE` (Canon v6.4 — 30 tuiles + Bug B) sur `PlayerObservation`."""
     kind_hint = str(decision.context.get("effect_kind", ""))
     n = obs.n_players
     p_max = cfg.p_max
 
     if opt == "PASSER":
-        if kind_hint in ("G8_RETREAT_MACHINE", "G15_SWAP_RANKS", "G3_VOLTIGE"):
-            return 120.0
-        if kind_hint in ("G14_F1_DISCARD_PIEGE", "G14_F2_SRC_INSECT"):
-            return 165.0
-        if kind_hint in ("M1_EMBARK_INSECT", "M4_AFTER_PROD", "M5_MOVE_SOUCHE"):
-            return 155.0
-        if kind_hint == "R8_PICK_SOUCHE":
-            return 210.0
-        if kind_hint == "G12_SLIDE_REVE":
+        if kind_hint in ("G3_ATELE", "G13_TAMANOIR", "G15_COLIBRI_SRC", "G15_COLIBRI_DST"):
             return 115.0
-        if kind_hint in ("G13_MOVE_INS_1", "G13_MOVE_INS_2", "G13_F2_PLACE_DUEL_ONLY"):
-            return 110.0
-        if kind_hint == "G5_PLACE_CROC":
-            return 220.0
-        if kind_hint == "G5_F2_MOVE_PIEGE":
-            return 175.0
+        if kind_hint in ("M1_EMBARQUER", "M3_BIVOUAC_MARCHE", "M3_FRONT_DE_RAID", "M4_MELIPONES_RELEVER"):
+            return 145.0
+        if kind_hint in ("G5_F1_DRINK_BLUE_CROC", "G5_F2_DRINK_BLUE_PIEGE"):
+            return 155.0
+        if kind_hint in ("R9_SIFFLER_SECOND", "R9_VOL_BRUME"):
+            return 90.0
         return 25.0
 
-    # --- Déviation Synaptique 3.2 (SLOT_BUG_CERVEAU:B) — icônes v6.2 : 4=REVE, 5=INSECTE ---
+    # --- Déviation Synaptique 3.2 (SLOT_BUG_CERVEAU:B) ---
     if (
         isinstance(opt, str)
         and opt in ("M_MOINS_1", "M_PLUS_1")
@@ -724,7 +717,7 @@ def _score_effect_option(
         )
         if is_reve_code(new_c) and not is_reve_code(old_c):
             has_def_new = obs.reve_activation_defenders(new_m) >= 1
-            return (760.0 if has_def_new else 95.0) + bet_ins_bonus
+            return (780.0 if has_def_new else 160.0) + bet_ins_bonus
         if is_reve_code(old_c) and not is_reve_code(new_c):
             return -200.0 + bet_rev_pen
         d_old = _tactique_danger(old_m, obs.tour, eff_r)
@@ -732,317 +725,239 @@ def _score_effect_option(
         return 35.0 + (d_old - d_new) * 4.0 + bet_ins_bonus
 
     # --- G1 (Jaguar) ---
-    if kind_hint == "G1_MOVE_WAITING":
-        dr, dp = int(opt[0]), int(opt[1])
-        return 100.0 + _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
+    if kind_hint in ("G1_F1_DUEL_CROC", "G1_F2_CROC_DUEL"):
+        mode_g1 = str(opt[0])
+        if mode_g1 == "DEPLACER_DUEL":
+            return 220.0 + _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), extra_def=1)
+        if mode_g1 == "POSER_CROC":
+            return 260.0 + _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), is_trap=True)
+        if mode_g1 == "SEMER_ECAILLE":
+            return 280.0 if obs.tour <= 6 else 120.0
+        if mode_g1 == "RECULER_DUEL":
+            return 320.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        return 180.0
 
-    if kind_hint in ("G1_F2_FLIP_RED", "G6_FLIP_RED"):
-        return _machine_danger_score(obs, cfg, int(opt[0]), int(opt[1]), prefer_assaut_flip=True)
+    # --- G2 (Anaconda) ---
+    if kind_hint == "G2_ANACONDA":
+        mk = str(opt[0])
+        if mk == "ETOUFFER":
+            return 520.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "SEMER_SABOTAGE":
+            return 340.0 if obs.tour <= 6 else 140.0
+        if mk == "REFROIDIR":
+            return 360.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
+        if mk == "RECULER":
+            return 290.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        return 200.0
 
     # --- G3 (Atèle) ---
-    if kind_hint == "G3_VOLTIGE":
-        sr, sp, dr, dp = int(opt[0]), int(opt[1]), int(opt[2]), int(opt[3])
-        s_idx = sr * MAX_P + (sp - 1)
-        src_defs = obs.parcel_defenseurs(sr, sp) + obs.parcel_insectes(sr, sp)
-        src_seuil = belief.parcel_expected_seuil[s_idx]
-        src_threat = belief.parcel_strike_prob[s_idx]
-        src_cost = 40.0
-        if obs.parcel_piege(sr, sp) != PIEGE_ACTIF and src_threat >= 0.30:
-            src_cost = 420.0 if (src_defs >= src_seuil and src_defs - 1 < src_seuil) else 220.0 * src_threat
-        dst_gain = _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
-        return dst_gain - src_cost
+    if kind_hint == "G3_ATELE":
+        dst_kind = str(opt[2])
+        dr, dv = int(opt[3]), int(opt[4])
+        if dst_kind == "FORET":
+            return 80.0 + _parcel_value_for_defense(obs, belief, dr, dv, extra_def=1)
+        return 210.0
 
     # --- G4 (Ara) ---
-    if kind_hint == "G4_SLIDE_NEIGHBOR":
-        c_nbr = int(opt)
+    if kind_hint in ("G4_FIRST_CRI", "G4_SECOND_CRI"):
+        c_nbr = int(opt[1]) if isinstance(opt, tuple) else int(opt)
         rem = obs.gardien_pari_defenders(c_nbr)
         face = obs.gardien_face_at_case(c_nbr)
-        # Terminer un pari (rem == 1 -> 0) et promouvoir Face 1 -> Face 2 est prioritaire
-        return 200.0 + (180.0 if rem == 1 else 90.0) + (95.0 if face == 1 else 25.0)
+        g4_c = int(decision.context.get("g4_case", 0))
+        adj_b = 110.0 if (kind_hint == "G4_FIRST_CRI" and g4_c > 0 and abs(c_nbr - g4_c) == 1) else 0.0
+        flip_pen = -90.0 if (isinstance(opt, tuple) and str(opt[0]) == "FLIP_DUEL") else 0.0
+        return 220.0 + adj_b + flip_pen + (180.0 if rem == 1 else 90.0) + (95.0 if face == 1 else 35.0)
 
     # --- G5 (Iguane) ---
-    if kind_hint == "G5_PLACE_CROC":
-        dr, dp = int(opt[0]), int(opt[1])
-        return _parcel_value_for_defense(obs, belief, dr, dp, is_trap=True)
+    if kind_hint in ("G5_POSE_PIEGE", "G5_F2_POSE_CROC"):
+        return 140.0 + _parcel_value_for_defense(obs, belief, int(opt[0]), int(opt[1]), is_trap=True)
+    if kind_hint in ("G5_F1_DRINK_BLUE_CROC", "G5_F2_DRINK_BLUE_PIEGE"):
+        return 120.0 + _parcel_value_for_defense(obs, belief, int(opt[2]), int(opt[3]), is_trap=True)
 
-    if kind_hint == "G5_F2_MOVE_PIEGE":
-        sr, sp, dr, dp = int(opt[0]), int(opt[1]), int(opt[2]), int(opt[3])
-        s_idx = sr * MAX_P + (sp - 1)
-        src_loss = belief.parcel_strike_prob[s_idx] * (obs.parcel_arbres(sr, sp) * 60.0 + 180.0)
-        dst_gain = _parcel_value_for_defense(obs, belief, dr, dp, is_trap=True)
-        return dst_gain - src_loss
+    # --- G6 (Toucan toco) ---
+    if kind_hint == "G6_REFROIDIR":
+        if isinstance(opt, tuple) and len(opt) == 3 and str(opt[0]) == "ETOUFFER_RAT":
+            return 560.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        return 240.0 + _machine_danger_score(obs, cfg, int(opt[0]), int(opt[1]), prefer_assaut_flip=True)
+    if kind_hint == "G6_CRI_DE_VAPEUR":
+        c_t = int(opt)
+        has_g = obs.gardien_present_at_case(c_t)
+        bets = obs.gardien_pari_defenders(c_t)
+        return 480.0 if (has_g and bets == 1) else (340.0 if (has_g and bets >= 2) else 60.0)
 
     # --- G7 (Tapir) ---
-    if kind_hint == "G7_PIEGE_SOUCHE":
-        dr, dp = int(opt[0]), int(opt[1])
-        idx = dr * MAX_P + (dp - 1)
-        souches = obs.parcel_souches(dr, dp)
-        return (
-            _parcel_value_for_defense(obs, belief, dr, dp, is_trap=True)
-            + souches * 65.0
-            + belief.parcel_bulldo_prob[idx] * 140.0
-        )
+    if kind_hint == "G7_TAPIR":
+        mk = str(opt[0])
+        if mk == "BOURBIER":
+            return 340.0 + int(opt[2]) * 35.0
+        if mk == "RECULER":
+            return 280.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "REFROIDIR":
+            return 310.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
+        return 180.0
 
     # --- G8 (Boto) ---
-    if kind_hint == "G8_RETREAT_MACHINE":
-        rm, mt = int(opt[0]), int(opt[1])
-        pos, st = obs.machine_pos_status(rm, mt)
-        if st != MACHINE_STATUS_NORMAL or pos <= 1:
-            return 0.0
-        p_back = 0
-        for cand_p in range(pos - 1, 0, -1):
-            if not obs.is_route(rm, cand_p):
-                p_back = cand_p
-                break
-        if p_back <= 0:
-            return 0.0
-        cur_arb = obs.parcel_arbres(rm, pos)
-        back_arb = obs.parcel_arbres(rm, p_back)
-        sc = 110.0 + (220.0 if pos >= p_max - 1 else 0.0)
-        if back_arb == 0:
-            sc += 210.0  # Recul sur clairière de Souches : frappe à blanc pour Abatteuse !
-        elif back_arb < cur_arb:
-            sc += 75.0 * (cur_arb - back_arb)
-        elif back_arb > cur_arb and mt == MACHINE_ABATTEUSE:
-            sc -= 90.0 * (back_arb - cur_arb)
-        duel_st, duel_r, duel_p = obs.duel_state
-        if duel_st != 0 and duel_r == rm and duel_p >= pos:
-            sc += 130.0
-        return sc
+    if kind_hint == "G8_BOTO":
+        mk = str(opt[0])
+        if mk == "ETOUFFER":
+            return 540.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "ALTERER":
+            return 380.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "SLIDE":
+            return 360.0 + int(opt[1]) * 25.0
+        return 220.0
 
     # --- G9 (Caïman noir) ---
-    if kind_hint == "G9_PLACE_CALE":
-        rm, mt = int(opt[0]), int(opt[1])
-        sc = _machine_danger_score(obs, cfg, rm, mt, prefer_near_ratissage=True)
-        card_c = machine_card_code(rm, mt)
-        for s in range(n):
-            h = obs.hand_of(s)
-            if h.card == card_c and (h.bound_tactique in (3, 6) or h.lecture_m in (3, 6)):
-                sc += 160.0  # Absorbe l'avancée dès ce tour !
-                break
-        return sc
+    if kind_hint == "G9_CAIMAN":
+        mk = str(opt[0])
+        if mk == "CALE":
+            return 420.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "SEMER_SABOTAGE":
+            return 320.0 if obs.tour <= 6 else 130.0
+        if mk == "REFROIDIR":
+            return 350.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
+        return 200.0
 
-    # --- G10 F2 & R2 Enraciné (Altération) ---
-    if kind_hint in ("G10_F2_ALTER_REVEALED", "R2_ROOT_ALTER"):
-        return _machine_danger_score(obs, cfg, int(opt[0]), int(opt[1]), prefer_near_ratissage=True)
+    # --- G10 (Matamata) ---
+    if kind_hint in ("G10_F1_MATAMATA", "G10_F2_HAPPER", "G10_F2_ENVOUTER"):
+        mk = str(opt[0]) if isinstance(opt, tuple) else ""
+        if mk in ("SEMER_ECAILLE", "HAPPER_ECAILLE"):
+            return 360.0 if obs.tour <= 6 else 160.0
+        if mk == "SEMER_SABOTAGE":
+            return 310.0 if obs.tour <= 6 else 130.0
+        if mk == "ALTERER":
+            return 390.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "REFROIDIR":
+            return 340.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
+        return 220.0
 
-    # --- G11 (Harpie) & R9 (Écho) ---
-    if kind_hint in ("G11_PLACE_PIEGE", "R9_PLACE_PIEGE"):
-        return _parcel_value_for_defense(obs, belief, int(opt[0]), int(opt[1]), is_trap=True)
-
-    if kind_hint == "G11_F2_MOVE_PLUME":
-        face_p, kind_p, idx_p = int(opt[0]), int(opt[1]), int(opt[2])
-        if kind_p != PLUME_KIND_RAY or face_p != PLUME_CHAUD:
-            return 20.0
-        # Pointer la Plume sur le rayon le plus boisé & menacé
-        ray_sc = sum(
-            obs.parcel_arbres(idx_p, p) * 20.0 + belief.parcel_strike_prob[idx_p * MAX_P + (p - 1)] * 85.0
-            for p in range(1, p_max + 1)
-            if not obs.is_route(idx_p, p)
-        )
-        return 100.0 + ray_sc
+    # --- G11 (Harpie) ---
+    if kind_hint == "G11_HARPIE":
+        return 350.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+    if kind_hint == "G11_F2_CARRY_CHAMAN":
+        return 240.0 + _parcel_value_for_defense(obs, belief, int(opt[2]), int(opt[3]), extra_def=1)
 
     # --- G12 (Ibijau) ---
-    if kind_hint == "G12_SLIDE_REVE":
-        rk = int(opt)
-        steps = int(decision.context.get("steps", 1))
-        case_now = rk + 1
-        n_def_now = obs.reve_activation_defenders(case_now)
-        dst_case = max(1, case_now - steps)
-        # Avant résolution des Rêves : jackpot si le Rêve défendu glisse sous une machine active !
-        hits_now = 0
-        hits_dst = 0
-        if obs.paravents_ouverts:
-            for s in range(n):
-                h = obs.hand_of(s)
-                if h.card is not None and 1 <= h.card <= 2 * n and h.bound_tactique == 0:
-                    if h.lecture_m == case_now:
-                        hits_now += 1
-                    elif h.lecture_m == dst_case:
-                        hits_dst += 1
-        sc = 180.0 + (7 - dst_case) * 28.0
-        if n_def_now >= 1 and hits_dst > hits_now:
-            sc += 580.0
-        elif n_def_now >= 1 and hits_now > hits_dst:
-            sc -= 360.0
-        if (
-            not obs.has_any_rooted_reve
-            and cfg.total_reves_partie > 0
-            and dst_case <= cfg.total_reves_partie
-            and case_now > cfg.total_reves_partie
-        ):
-            sc += 210.0
-        return sc
+    if kind_hint == "G12_IBIJAU":
+        dst_rk = int(opt[1])
+        t_c, _ = obs.tactique_code_bugs(dst_rk - 1)
+        if is_reve_code(t_c):
+            return 720.0 if obs.reve_activation_defenders(dst_rk) >= 1 else 260.0
+        return 220.0 - _tactique_danger(dst_rk, obs.tour, 1) * 3.0
+    if kind_hint == "G12_F2_SLIDE_REVE":
+        return 460.0 if opt == "GLISSER" else 40.0
 
     # --- G13 (Tamanoir) ---
-    if kind_hint == "G13_MOVE_INS_1":
-        sr, sp, dr, dp = int(opt[0]), int(opt[1]), int(opt[2]), int(opt[3])
-        src_ins = obs.parcel_insectes(sr, sp)
-        src_pen = 160.0 if (obs.parcel_has_nid(sr, sp) and src_ins <= 2) else 25.0
-        if obs.parcel_piege(sr, sp) != PIEGE_ACTIF and belief.parcel_strike_prob[sr * MAX_P + (sp - 1)] >= 0.45:
-            src_pen += 120.0
-        dst_gain = _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
-        return dst_gain - src_pen
-
-    if kind_hint == "G13_MOVE_INS_2":
-        sr, sp = int(opt[0]), int(opt[1])
-        dr, dp = decision.context.get("dst", (sr, sp))
-        src_ins = obs.parcel_insectes(sr, sp)
-        src_pen = 165.0 if (obs.parcel_has_nid(sr, sp) and src_ins <= 2) else 25.0
-        dst_gain = _parcel_value_for_defense(obs, belief, int(dr), int(dp), extra_def=1)
-        return dst_gain - src_pen
-
-    if kind_hint == "G13_F2_PLACE_DUEL_ONLY":
-        if obs.duel_state[0] == DUEL_TERRITOIRE_TENU:
-            return 10.0
-        dr, dp = int(opt[0]), int(opt[1])
-        idx = dr * MAX_P + (dp - 1)
-        defs = obs.parcel_defenseurs(dr, dp)
-        return 190.0 if (defs >= 1 and defs + obs.parcel_insectes(dr, dp) >= belief.parcel_expected_seuil[idx]) else 40.0
+    if kind_hint == "G13_TAMANOIR":
+        mk = str(opt[0])
+        if mk == "RECULER":
+            return 340.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        if mk == "DUEL":
+            return 280.0 + _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), extra_def=1)
+        return 240.0
 
     # --- G14 (Téju) ---
-    if kind_hint == "G14_F1_DISCARD_PIEGE":
-        sr, sp, dp = int(opt[0]), int(opt[1]), int(opt[2])
-        src_ins = obs.parcel_insectes(sr, sp)
-        nid_pen = 195.0 if (obs.parcel_has_nid(sr, sp) and src_ins <= 2) else 35.0
-        dst_gain = _parcel_value_for_defense(obs, belief, sr, dp, is_trap=True)
-        return dst_gain - nid_pen
-
-    if kind_hint == "G14_F2_SRC_INSECT":
-        sr, sp = int(opt[0]), int(opt[1])
-        src_ins = obs.parcel_insectes(sr, sp)
-        if obs.parcel_has_nid(sr, sp) and src_ins <= 2:
-            return 115.0  # Éviter de casser la masse critique 2 d'un Nid
-        return 260.0 + min(3, src_ins) * 20.0 - belief.parcel_strike_prob[sr * MAX_P + (sp - 1)] * 95.0
-
-    if kind_hint == "G14_F2_DST_TRAP_OR_CROC":
-        kind_d, dr, dp = str(opt[0]), int(opt[1]), int(opt[2])
-        sc = _parcel_value_for_defense(obs, belief, dr, dp, is_trap=True)
-        if kind_d == "CROC" and obs.croc_parcel is None:
-            sc += 55.0
-        return sc
+    if kind_hint in ("G14_POSE_PONTE", "G14_FALLBACK_CROC"):
+        if isinstance(opt, tuple) and len(opt) >= 2 and isinstance(opt[0], int):
+            return 280.0 + _parcel_value_for_defense(obs, belief, int(opt[0]), int(opt[1]), is_trap=True)
+        return 320.0
 
     # --- G15 (Colibri) ---
-    if kind_hint == "G15_SWAP_RANKS":
-        sa, sb = int(opt[0]), int(opt[1])
-        ha = obs.hand_of(sa)
-        hb = obs.hand_of(sb)
-        if ha.card is None or hb.card is None:
-            return 50.0
-        ra, mta = unpack_machine_card(ha.card)
-        rb, mtb = unpack_machine_card(hb.card)
-        rka = ha.bound_tactique if (ha.bound_tactique and is_tactique_code(ha.bound_tactique)) else (ha.lecture_m or 1)
-        rkb = hb.bound_tactique if (hb.bound_tactique and is_tactique_code(hb.bound_tactique)) else (hb.lecture_m or 1)
-        red_a = obs.machine_effective_rouges(ra, mta)
-        red_b = obs.machine_effective_rouges(rb, mtb)
-        pos_a = obs.machine_pos_status(ra, mta)[0]
-        pos_b = obs.machine_pos_status(rb, mtb)[0]
-        # Coût avant vs après (Assaut + avancée sur machine chargée/proche cœur = très dangereux !)
-        def _rank_cost(r_m: int, mt_m: int, pos_m: int, red_m: int, rk: int) -> float:
-            c_rk = _tactique_danger(rk, obs.tour, red_m)
-            if rk in (3, 6) and pos_m >= p_max - 1:
-                c_rk += 55.0
-            if not is_tactique_charge(rk, obs.tour):
-                c_rk += red_m * 18.0
-            if mt_m == MACHINE_ABATTEUSE:
-                c_rk += obs.parcel_arbres(r_m, pos_m) * 6.0 if pos_m > 0 else 0.0
-            return c_rk
+    if kind_hint == "G15_COLIBRI_SRC":
+        if str(opt[0]) == "COLONIE":
+            c_col = int(opt[1])
+            return 420.0 if obs.gardien_pari_defenders(c_col) >= 1 else 140.0
+        if str(opt[0]) == "RESERVE":
+            return 380.0
+        return 200.0
+    if kind_hint == "G15_COLIBRI_DST":
+        if str(opt[0]) == "BUG":
+            c_b = int(opt[1])
+            t_c, bugs_c = obs.tactique_code_bugs(c_b - 1)
+            return 440.0 if (is_tactique_code(t_c) and bugs_c == 0) else 180.0
+        return 220.0 + _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), extra_def=1)
 
-        before = _rank_cost(ra, mta, pos_a, red_a, rka) + _rank_cost(rb, mtb, pos_b, red_b, rkb)
-        after = _rank_cost(ra, mta, pos_a, red_a, rkb) + _rank_cost(rb, mtb, pos_b, red_b, rka)
-        return 120.0 + (before - after) * 3.5
+    # --- R1..R10 (Rêves v6.4) ---
+    if kind_hint == "R1_ECHO_TAMBOUR":
+        return 580.0 if opt == "PASSER_TAMBOUR" else 40.0
+    if kind_hint == "R1_PULL_ENTITY":
+        return 300.0 + int(opt) * 10.0
+    if kind_hint == "R1_EXTRA_ETOUFFER":
+        return 480.0
+    if kind_hint == "R2_FLEUVE_CHOICE":
+        if str(opt[0]) == "TAMBOUR":
+            return 520.0
+        return 380.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+    if kind_hint == "R3_CHAMANE_JAGUAR_BOND":
+        base_j = _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), extra_def=1)
+        return base_j + (180.0 if str(opt[0]) == "JUMP_DUEL" else 90.0)
+    if kind_hint == "R4_PIROGUE":
+        return 520.0 if opt == "POUSSEE" else 340.0
+    if kind_hint == "R5_CIEL_EAUX":
+        r5_c = int(decision.context.get("r5_case", 1))
+        if str(opt[0]) == "FLIP":
+            dst_r = int(opt[2])
+            return 680.0 if dst_r == r5_c else (540.0 if obs.reve_at_case(dst_r) > 0 else 240.0)
+        return 420.0
+    if kind_hint == "R5_TAMBOUR_REFROIDIR":
+        return 350.0 + _machine_danger_score(obs, cfg, int(opt[0]), int(opt[1]), prefer_assaut_flip=True)
+    if kind_hint == "R6_CUEILLIR":
+        return 420.0 if str(opt[0]) == "RESERVE" else 310.0
+    if kind_hint == "R6_PIQURES":
+        return 620.0
+    if kind_hint in ("R8_SLIDE_REVE", "R9_SIFFLER_SLIDE", "R10_SLIDE_REVE"):
+        return 340.0 + int(opt) * 25.0
+    if kind_hint in ("R8_ALTER_OR_COOL", "R10_ENVOL_BONUS", "R10_SPECTRAL_ALTER"):
+        if str(opt[0]) == "ALTERER":
+            return 390.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        return 360.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
+    if kind_hint == "R9_VOL_BRUME":
+        dst_r = int(opt)
+        return 220.0 + 360.0 * belief.reve_open_prob_by_rank[dst_r - 1]
+    if kind_hint in ("R9_MAUDIRE_OU_SIFFLER", "R9_SIFFLER_SECOND"):
+        if str(opt[0]) == "MAUDIRE":
+            return 410.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        return 440.0 if obs.tour <= 7 else 260.0
+    if kind_hint == "R10_BRANCH":
+        if str(opt[0]) == "ENVOL":
+            return 360.0 + _parcel_value_for_defense(obs, belief, int(opt[2]), int(opt[3]), extra_def=1)
+        if str(opt[0]) == "SPECTRAL_BUG":
+            return 390.0
+        return 320.0 + _parcel_value_for_defense(obs, belief, int(opt[1]), int(opt[2]), extra_def=1)
 
-    # --- R4 (Sommeil de la Pierre-Serpent) ---
-    if kind_hint == "R4_COMPLETE_FURT":
-        r_f = int(opt)
-        ray_arbres = sum(obs.parcel_arbres(r_f, p) for p in range(1, p_max + 1))
-        return 260.0 + ray_arbres * 22.0
-
-    # --- R5 (Vision des Plumes Claires) ---
-    if kind_hint == "R5_DEPLOY_PLUME":
-        return 100.0 + _parcel_value_for_defense(obs, belief, int(opt[0]), int(opt[1]), extra_def=1)
-
-    # --- R6 (Miel des Ancêtres) ---
-    if kind_hint == "R6_JOIN_NID":
-        nr, np = int(opt[0]), int(opt[1])
-        has_def = obs.parcel_defenseurs(nr, np) >= 1
-        ins_n = obs.parcel_insectes(nr, np)
-        return (380.0 if not has_def else 90.0) + (110.0 if ins_n >= 2 else 30.0)
-
-    # --- R8 (Mirage du Fleuve-Miroir) ---
-    if kind_hint == "R8_PICK_SOUCHE":
-        sr, sp = int(opt[0]), int(opt[1])
-        if obs.has_any_rooted_reve:
-            return 90.0  # Sommeil impossible : inutile de sacrifier une Souche sauf urgence
-        souches = obs.parcel_souches(sr, sp)
-        sc = 220.0 + (120.0 if souches >= 2 else 0.0)
-        if obs.parcel_is_bordered_by_rooted_tile(sr, sp):
-            sc -= 240.0
-        return sc
-
-    if kind_hint == "R8_PICK_REVE_STEPS":
-        r_num_t, steps_t = int(opt[0]), int(opt[1])
-        cur_rk = next(
-            (rk for rk in range(TRACK_LEN) if obs.reve_at_case(rk + 1) == r_num_t),
-            TRACK_LEN - 1,
-        )
-        return 150.0 + steps_t * 140.0 + cur_rk * 25.0
-
-    # --- R10 (Nuée des Songes) ---
-    if kind_hint == "R10_PLACE_INSECT":
-        if opt[0] == "NID":
-            nr, np = int(opt[2]), int(opt[3])
-            ins_n = obs.parcel_insectes(nr, np)
-            def_n = obs.parcel_defenseurs(nr, np)
-            if ins_n == 1 and def_n >= 1:
-                return 430.0  # Passe la masse critique 1 -> 2 avant 4.2 !
-            return 220.0 if def_n >= 1 else 140.0
-        c_rk = int(opt[1])
-        _, bugs_c = obs.tactique_code_bugs(c_rk - 1)
-        return 280.0 if bugs_c == 0 else 150.0
-
-    # --- M1 (Fourmilière Coupe-Feuilles) ---
-    if kind_hint == "M1_EMBARK_INSECT":
-        r_nid = int(decision.context.get("ray", 0))
-        p_nid = int(decision.context.get("p", 1))
-        mt = int(opt)
-        cur_ins = obs.parcel_insectes(r_nid, p_nid)
-        sc = _machine_danger_score(obs, cfg, r_nid, mt, prefer_assaut_flip=True)
-        if cur_ins <= 2:
-            sc -= 140.0  # Garder >= 2 Insectes au Nid sauf machine très dangereuse
-        return sc
-
-    # --- M4 (Ruche des Mélipones) ---
-    if kind_hint == "M4_AFTER_PROD":
-        r_nid = int(decision.context.get("ray", 0))
-        p_nid = int(decision.context.get("p", 1))
-        cur_ins = obs.parcel_insectes(r_nid, p_nid)
-        nid_keep_pen = 110.0 if cur_ins <= 2 else 0.0
-        if opt[0] == "SURCHAUFFE":
-            return (
-                _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]), prefer_assaut_flip=True)
-                + 95.0
-                - nid_keep_pen
-            )
-        if opt[0] == "TAMBOUR":
-            tr, tp = int(opt[1]), int(opt[2])
-            return _parcel_value_for_defense(obs, belief, tr, tp, extra_def=1) - nid_keep_pen
-
-    # --- M5 (Jardin du Diable) ---
-    if kind_hint == "M5_MOVE_SOUCHE":
-        r_nid = int(decision.context.get("ray", 0))
-        p_nid = int(decision.context.get("p", 1))
+    # --- M1..M5 (Nids v6.4) ---
+    if kind_hint == "M1_EMBARQUER":
+        rm, mt, cnt = int(opt[0]), int(opt[1]), int(opt[2])
+        return 190.0 + _machine_danger_score(obs, cfg, rm, mt) * 0.65 + cnt * 40.0
+    if kind_hint == "M2_SOLDATS_A_GLU":
+        if opt == "SOLDATS_A_GLU":
+            r_n = int(decision.context.get("ray", 0))
+            p_n = int(decision.context.get("p", 1))
+            seuil = int(decision.context.get("seuil", 2))
+            defs_n = obs.parcel_defenseurs(r_n, p_n)
+            return 680.0 if (defs_n < seuil or seuil >= 3) else 120.0
+        return 160.0
+    if kind_hint == "M2_PROD_REPTILE":
+        if opt == "POSER_CROC":
+            return 480.0
+        return 360.0 if obs.tour <= 6 else 140.0
+    if kind_hint == "M3_BIVOUAC_MARCHE":
         dr, dp = int(opt[0]), int(opt[1])
-        cur_ins = obs.parcel_insectes(r_nid, p_nid)
-        nid_keep_pen = 140.0 if (cur_ins <= 2 and obs.tour <= 5) else 15.0
-        souches_d = obs.parcel_souches(dr, dp)
-        idx_d = dr * MAX_P + (dp - 1)
-        # Valoriser les parcelles à Souches sur notre rayon (cible d'enracinement M5) ou menacées !
-        root_bonus = 95.0 if (dr == obs.observer_seat and souches_d >= 2) else 0.0
-        safe_bonus = 60.0 if belief.parcel_bulldo_prob[idx_d] < 0.25 else 0.0
-        def_val = _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
-        return max(def_val, 140.0 + souches_d * 45.0 + root_bonus + safe_bonus) - nid_keep_pen
+        return 120.0 + _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
+    if kind_hint == "M3_FRONT_DE_RAID":
+        dr, dp, cnt = int(opt[0]), int(opt[1]), int(opt[2])
+        return 130.0 + _parcel_value_for_defense(obs, belief, dr, dp, extra_def=cnt)
+    if kind_hint == "M4_MELIPONES_RELEVER":
+        dr, dp = int(opt[2]), int(opt[3])
+        return 180.0 + _parcel_value_for_defense(obs, belief, dr, dp, extra_def=1)
+    if kind_hint == "M5_FILAMENTS_ONIRIQUES":
+        if str(opt[0]) == "ALTERER":
+            return 410.0 + _machine_danger_score(obs, cfg, int(opt[1]), int(opt[2]))
+        c_b = int(opt[1])
+        t_c, bugs_c = obs.tactique_code_bugs(c_b - 1)
+        return 380.0 if (is_tactique_code(t_c) and bugs_c == 0) else 170.0
 
+    _ = p_max
     return 100.0
 
 
@@ -1240,15 +1155,15 @@ def _choose_policy(
 
         return max(opts, key=_perchoir_sc)
 
-    if dtype == DEC_OISEAU_DE_ENVOL_1_3:
+    if dtype == DEC_OISEAU_CHOIX_DE_1_3:
         own_h = obs.hand_of(obs.observer_seat)
         c_o = own_h.card
-        def _envol_sc(rk: int) -> tuple[float, int]:
+
+        def _oiseau_die_sc(rk: int) -> tuple[float, int]:
             ri = int(rk)
             t_c, t_bugs = obs.tactique_code_bugs(ri - 1)
             if is_reve_code(t_c):
                 n_def_r = obs.reve_activation_defenders(ri)
-                # Fort bonus pour tomber sur un Rêve (surtout déjà défendu ou défendable !)
                 sc_r = 320.0 if n_def_r >= 1 else 185.0
                 return (sc_r, _tiebreak(cfg, obs, ri, 72))
             sc_t = 0.0
@@ -1262,13 +1177,32 @@ def _choose_policy(
                 if t_bugs >= 1:
                     sc_t += 20.0
                 if c_o is not None and 1 <= c_o <= 2 * obs.n_players:
-                    rm, _ = unpack_machine_card(c_o)
-                    pos_m, _ = obs.machine_pos_status(rm, unpack_machine_card(c_o)[1])
+                    rm, mt_o = unpack_machine_card(c_o)
+                    pos_m, _ = obs.machine_pos_status(rm, mt_o)
                     if pos_m > 0 and "SUR_PLACE" in spec.cibles and obs.parcel_piege(rm, pos_m) == PIEGE_ACTIF:
                         sc_t += 55.0
             return (sc_t, _tiebreak(cfg, obs, ri, 72))
 
-        return max(opts, key=_envol_sc)
+        return max(opts, key=_oiseau_die_sc)
+
+    if dtype == DEC_SABOTAGE_CIBLE_3_2:
+        def _sab_cible_sc(cand: tuple[int, int]) -> tuple[float, int]:
+            r_m, mt_m = int(cand[0]), int(cand[1])
+            pos_m, st_m = obs.machine_pos_status(r_m, mt_m)
+            r_tok = obs.machines[r_m * 2 + mt_m].rouges
+            if r_tok >= 1:
+                # Refroidir une machine chargée (priorité Ratissage ou Assaut/Rouges élevés)
+                sc_s = 280.0 + _machine_danger_score(obs, cfg, r_m, mt_m, prefer_assaut_flip=True)
+                if st_m == MACHINE_STATUS_RATISSAGE:
+                    sc_s += 90.0
+            else:
+                # Reculer une mobile sans Rouge (priorité avancée près du cœur / Bulldozer / Duel R7)
+                sc_s = 160.0 + _machine_danger_score(obs, cfg, r_m, mt_m) + pos_m * 35.0
+                if obs.duel_state == (1, r_m, pos_m) and obs.mode >= 4:
+                    sc_s += 140.0
+            return (sc_s, _tiebreak(cfg, obs, r_m * 2 + mt_m, 75))
+
+        return max(opts, key=_sab_cible_sc)
 
     if dtype == DEC_HUMAIN_CHAMAN_2_1:
         own_h = obs.hand_of(obs.observer_seat)
@@ -1372,70 +1306,79 @@ def _choose_policy(
         return "LAISSER_RETOURNER" if "LAISSER_RETOURNER" in opts else opts[0]
 
     if dtype == DEC_ENRACINEMENT_6_1:
-        # Enraciner en fin de partie (Tours 6-8) avec ciblages Canon 0 (R2, R6, M5, G7)
-        if obs.tour < 6:
+        # Enraciner sur Rive Sabotage v6.4 : Effet Sentinelle permanent + Repousse libre en fin de partie (INV-14 / INV-22)
+        if obs.tour < 5:
             return "PASSER" if "PASSER" in opts else opts[0]
+        seat_r = obs.observer_seat
         reves_on = sum(1 for c_r in range(1, TRACK_LEN + 1) if obs.reve_at_case(c_r) > 0)
-        g7_f2_active = any(
-            g_sl.gardien_num == 7 and g_sl.face == 2 for g_sl in obs.piste_gardiens
+        ray_souches = sum(
+            obs.parcel_souches(seat_r, p_s)
+            for p_s in range(1, cfg.p_max + 1)
+            if not obs.is_route(seat_r, p_s)
         )
-        mobile_active = sum(
-            1
-            for r_m in range(obs.n_players)
-            for mt_m in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
-            if obs.machine_pos_status(r_m, mt_m)[1] == MACHINE_STATUS_NORMAL
-            and obs.machine_pos_status(r_m, mt_m)[0] > 0
-        )
+        sentinels_now = obs.rooted_sentinels_on_ray(seat_r)
+        rem_turns_after = max(0, 8 - obs.tour)
         best_rt: Any = "PASSER" if "PASSER" in opts else opts[0]
         best_sc_rt = 0.0
         for opt in opts:
             if opt == "PASSER":
                 continue
-            sl_idx, p_rt = int(opt[0]), int(opt[1])
-            souches = obs.parcel_souches(obs.observer_seat, p_rt)
+            sl_idx = int(opt)
             tid_rt, _, _ = obs.lisiere_tile_info(sl_idx)
             fam_rt, _, num_rt = SYNERGY_META[tid_rt]
-            # Éviter d'enraciner un Rêve si la victoire Sommeil est à portée avant le Tour 8
-            if fam_rt == FAMILLE_REVE and obs.tour <= 7 and reves_on >= max(1, cfg.total_reves_partie - 1):
+            # Ne pas fermer le Sommeil avant le Tour 8 si Sommeil atteignable (R1 ne ferme jamais le Sommeil !)
+            if (
+                fam_rt == FAMILLE_REVE
+                and tid_rt != "R1"
+                and obs.tour <= 7
+                and reves_on >= max(1, cfg.total_reves_partie - 1)
+            ):
                 continue
-            gain_trees = 1
+            tier_rt = 1
             if tid_rt.startswith("G"):
-                for c_g in range(1, TRACK_LEN + 1):
-                    g_sl = obs.piste_gardiens[c_g - 1]
+                for g_sl in obs.piste_gardiens:
                     if g_sl.gardien_num == num_rt and g_sl.face == 2:
-                        gain_trees = 2
+                        tier_rt = 2
                         break
-            elif obs.mode >= 4 and tid_rt == "M5":
-                gain_trees = 1 + obs.parcel_insectes(obs.observer_seat, p_rt)
+            elif (
+                tid_rt == "R2"
+                and obs.mode >= 4
+                and any(
+                    obs.machine_has_alteration(seat_r, mt_a)
+                    for mt_a in (MACHINE_ABATTEUSE, MACHINE_BULLDOZER)
+                )
+            ):
+                tier_rt = 2
 
-            effective_gain = min(souches, gain_trees)
-            if obs.mode >= 4 and tid_rt == "R6":
-                # R6 enraciné : retourne +1 Souche survivante sur une parcelle voisine (Pont routier)
-                has_neigh_souche = False
-                for step_d in (-1, 1):
-                    p_cur = p_rt + step_d
-                    while 1 <= p_cur <= cfg.p_max and obs.is_route(obs.observer_seat, p_cur):
-                        p_cur += step_d
-                    if 1 <= p_cur <= cfg.p_max and obs.parcel_souches(obs.observer_seat, p_cur) >= 1:
-                        has_neigh_souche = True
-                        break
-                if has_neigh_souche:
-                    effective_gain += 1
+            effective_gain = min(ray_souches, tier_rt)
+            # Effet Sentinelle sur Rive Sabotage (actif aux tours restants)
+            sentinel_val = 0.0
+            if rem_turns_after >= 1 and sentinels_now < 2:
+                sentinel_val = (85.0 if sentinels_now == 1 else 65.0) * float(min(3, rem_turns_after))
+                if obs.mode >= 4 and tid_rt == "R2":
+                    sentinel_val += 75.0
+                elif obs.mode >= 4 and tid_rt == "R1":
+                    sentinel_val += 55.0
 
-            r2_tempo_bonus = 0.0
-            if obs.mode >= 4 and tid_rt == "R2" and obs.tour <= 7 and mobile_active >= 1:
-                r2_tempo_bonus = 125.0 * float(min(2, mobile_active))
-
-            if effective_gain <= 0 and r2_tempo_bonus <= 0.0:
+            if obs.tour == 5 and (sentinel_val < 180.0 or tier_rt < 2):
                 continue
-            if obs.tour == 6 and effective_gain < 2 and r2_tempo_bonus < 120.0:
+            if obs.tour == 6 and effective_gain < 1 and sentinel_val < 120.0:
                 continue
-            # Privilégier les parcelles plus proches du cœur (moins exposées aux routes) et Face 2
-            sc_rt = 100.0 * float(effective_gain) + r2_tempo_bonus + 12.0 * float(p_rt)
-            if g7_f2_active and obs.tour <= 7:
-                sc_rt += 28.0
-            if obs.tour == 8:
-                sc_rt += 50.0
+            if obs.tour >= 7 and effective_gain <= 0 and sentinel_val <= 0.0:
+                continue
+
+            # Éviter d'enraciner un Gardien Face 2 tôt si l'Éveil cumulatif est proche
+            if (
+                fam_rt != FAMILLE_REVE
+                and tid_rt.startswith("G")
+                and tier_rt == 2
+                and obs.tour <= 7
+                and cfg.nb_animaux_sauvages >= 1
+                and obs.count_face2_gardiens_on_track() >= cfg.nb_animaux_sauvages
+            ):
+                continue
+
+            sc_rt = 110.0 * float(effective_gain) + sentinel_val + (55.0 if obs.tour == 8 else 0.0)
             if sc_rt > best_sc_rt:
                 best_sc_rt = sc_rt
                 best_rt = opt
@@ -1548,28 +1491,11 @@ def _choose_policy(
 
         return max(opts, key=_lib_sc)
 
-    if dtype == DEC_MIGRATION_INSECTE_4_3:
-        src = decision.context.get("source", ("FORET", 0, 1))
-        src_kind, src_a, src_p = src
+    if dtype == DEC_DEPLOIEMENT_NID_4_2:
+        nid_r = int(decision.context.get("ray", 0))
+        nid_p = int(decision.context.get("p", 1))
         n_pl = obs.n_players
         p_max = cfg.p_max
-        if src_kind == "FORET":
-            sr, sp = int(src_a), int(src_p)
-            sr_idx = sr * MAX_P + (sp - 1)
-            sr_defs = obs.parcel_defenseurs(sr, sp)
-            sr_ins = obs.parcel_insectes(sr, sp)
-            sr_seuil = belief.parcel_expected_seuil[sr_idx]
-            # En v6.2 les Pièges sont autonomes : ne retenir un Insecte que s'il boucle une Parade classique !
-            if (
-                is_b2
-                and obs.parcel_piege(sr, sp) != PIEGE_ACTIF
-                and belief.parcel_strike_prob[sr_idx] >= 0.50
-                and sr_defs < sr_seuil
-                and (sr_defs + sr_ins) >= sr_seuil
-                and (sr_defs + sr_ins - 1) < sr_seuil
-            ):
-                return ("RESTER",)
-
         total_forest_ins = sum(
             obs.parcel_insectes(r_f, p_f)
             for r_f in range(n_pl)
@@ -1587,7 +1513,7 @@ def _choose_policy(
                     return True
             return False
 
-        def _mig_sc(mv: tuple[Any, ...]) -> float:
+        def _dep_sc(mv: tuple[Any, ...]) -> float:
             mk = mv[0]
             if mk == "COLONIE":
                 c_num = int(mv[1])
@@ -1638,10 +1564,11 @@ def _choose_policy(
                 has_p_dst = obs.parcel_piege(dr, dp) == PIEGE_ACTIF
                 if not has_p_dst and belief.parcel_strike_prob[d_idx] >= 0.50 and (d_defs + d_ins) < d_seuil:
                     if (d_defs + d_ins + 1) >= d_seuil:
-                        return 610.0 + (65.0 if g_ins_bet else 0.0)
-                    return 440.0
-                if is_b2 and obs.parcel_has_nid(dr, dp) and d_ins == 1:
-                    return 420.0
+                        return 640.0 + (65.0 if g_ins_bet else 0.0)
+                    return 455.0
+                # Garder la masse critique >= 2 sur le Nid pour produire +2 aux tours suivants !
+                if dr == nid_r and dp == nid_p and d_ins < 2:
+                    return 510.0 if is_b2 else 360.0
                 if (
                     is_b2
                     and not has_p_dst
@@ -1650,34 +1577,13 @@ def _choose_policy(
                     and _has_frontline_machine(dr, dp)
                 ):
                     return 445.0 if total_forest_ins <= n_pl + 1 else 365.0
-                if obs.mode >= 2 and src_kind == "FORET" and dp > int(src_p):
-                    return 290.0
-                return 95.0
-            # RESTER : valoriser la conservation d'une réserve forestière (soutien Parade, Nid +2, 5. Insecte)
-            if is_b2 and src_kind == "FORET":
-                sr_r, sp_r = int(src_a), int(src_p)
-                cur_ins_r = obs.parcel_insectes(sr_r, sp_r)
-                stay_sc = 180.0
-                if obs.parcel_has_nid(sr_r, sp_r) and cur_ins_r <= 2:
-                    stay_sc += 250.0
-                elif (
-                    obs.parcel_piege(sr_r, sp_r) != PIEGE_ACTIF
-                    and obs.parcel_arbres(sr_r, sp_r) >= 1
-                    and cur_ins_r <= 2
-                    and _has_frontline_machine(sr_r, sp_r)
-                ):
-                    stay_sc += 255.0
-                    if total_forest_ins <= n_pl:
-                        stay_sc += 55.0
-                    if g_ins_present:
-                        stay_sc += 35.0
-                elif obs.parcel_arbres(sr_r, sp_r) >= 1 and cur_ins_r == 1 and total_forest_ins <= n_pl:
-                    stay_sc += 210.0
-                return stay_sc
-            return 160.0  # RESTER
+                if dp > nid_p:
+                    return 260.0
+                return 125.0
+            return 100.0
 
-        mig_scores = [_mig_sc(opt) for opt in opts]
-        return opts[softmax_select_index(mig_scores, eff_tau, cfg, obs, 43)]
+        dep_scores = [_dep_sc(opt) for opt in opts]
+        return opts[softmax_select_index(dep_scores, eff_tau, cfg, obs, 42)]
 
     if dtype == DEC_ORDRE_ATTAQUE_5_1:
         rank_ctx = int(decision.context.get("rank", 1))

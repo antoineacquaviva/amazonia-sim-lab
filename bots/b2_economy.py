@@ -1254,13 +1254,15 @@ def score_furtivite_marginal_trees(
         return 0.0
     raw_d_rv = obs.furtivite_ray_rive_defs(ray, rive)
     d_rv = max(0, raw_d_rv - 1) if is_held else raw_d_rv
-    if d_rv >= 2:
+    sentinels = obs.rooted_sentinels_on_ray(ray) if rive == FURT_RIVE_SABOTAGE else 0
+    cap_rv = max(0, 2 - sentinels)
+    if d_rv >= cap_rv:
         return 0.0
     if res_val is None or trig_vals is None:
         res_val, trig_vals = compute_b2_resource_and_trigger_values_trees(obs, cfg, belief, weights)
 
     d_other = obs.furtivite_ray_rive_defs(ray, 1 - rive)
-    partner_ready = d_rv == 1
+    partner_ready = (d_rv + sentinels) == 1
 
     other_completed_rives = 0
     other_open_rives = 0
@@ -1268,8 +1270,9 @@ def score_furtivite_marginal_trees(
         for rv2 in (FURT_RIVE_PIEGE, FURT_RIVE_SABOTAGE):
             if r2 == ray and rv2 == rive:
                 continue
-            cnt2 = obs.furtivite_ray_rive_defs(r2, rv2)
-            if cnt2 == 2:
+            s2 = obs.rooted_sentinels_on_ray(r2) if rv2 == FURT_RIVE_SABOTAGE else 0
+            cnt2 = obs.furtivite_ray_rive_defs(r2, rv2) + s2
+            if cnt2 >= 2:
                 other_completed_rives += 1
             elif cnt2 == 1:
                 other_open_rives += 1
@@ -1308,7 +1311,7 @@ def score_furtivite_marginal_trees(
             return weights.furt_piege_signal_base + p_m2 * (0.45 * trap_v) + (-0.10 if is_held else 0.0)
         return 0.25
 
-    # Rive Sabotage
+    # Rive Sabotage (v6.4 : Sabotage différé à intérêts composés + Effet Sentinelle des Enracinements)
     sab_cnt = obs.sabotage_deck_count + obs.sabotage_pending_count
     if obs.tour >= 8 or p_m0 < 0.24 or sab_cnt >= 3:
         return 0.20
@@ -1326,7 +1329,7 @@ def score_furtivite_marginal_trees(
     elif obs.gardien_pari_enabled and sab_cnt == 0 and obs.tour <= 5:
         prep_trig3 += 0.55
 
-    gross_sab = res_val["RES_DILUTION_SABOTAGE"] * sab_stock_mult * (0.72 + 0.80 * p_next_draw) + prep_trig3
+    gross_sab = (res_val["RES_DILUTION_SABOTAGE"] * 1.18) * sab_stock_mult * (0.72 + 0.80 * p_next_draw) + prep_trig3
     action_v = max(0.0, p_m0 * gross_sab - (1.0 - p_m0) * weights.furt_sab_waste_penalty)
     if action_v <= 0.08:
         return 0.32
@@ -1338,11 +1341,12 @@ def score_furtivite_marginal_trees(
         scarcity += weights.furt_scarcity_other_rive
     if not partner_ready and other_open_rives >= 1:
         scarcity += weights.furt_scarcity_open
-    if not ray_undef_2_1 and not is_first_defender:
+    if not ray_undef_2_1 and not is_first_defender and sentinels == 0:
         scarcity += 0.45
 
     if partner_ready:
-        return max(0.45, weights.furt_sab_complete_base + 1.25 * action_v - scarcity + (0.35 if is_held else 0.0))
+        sent_b = 0.45 if sentinels >= 1 else 0.0
+        return max(0.45, weights.furt_sab_complete_base + 1.25 * action_v + sent_b - scarcity + (0.35 if is_held else 0.0))
 
     held_adj = -0.10 if is_held else 0.0
     if not is_first_defender:
@@ -1502,7 +1506,7 @@ def score_gardien_pari_marginal_trees(
     is_held: bool = False,
     weights: B2Weights = DEFAULT_B2_WEIGHTS,
 ) -> float:
-    """Valeur en équivalent-arbres d'un pari Gardien `('GARDIEN_PARI', case_c)`."""
+    """Valeur en équivalent-arbres d'un pari Gardien `('GARDIEN_PARI', case_c)` (v6.4 Éveil cumulatif A+1 Face 2)."""
     if not obs.gardien_pari_enabled or not obs.gardien_present_at_case(case_c):
         return 0.0
 
@@ -1513,39 +1517,38 @@ def score_gardien_pari_marginal_trees(
     if allies_on_case >= GARDIEN_BET_CAP:
         return 0.0
 
-    eveil_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=True)
-    n = obs.n_players
-    allies_g = max(0, obs.total_gardien_pari_defenders() - (1 if own_pari_case > 0 else 0))
-    unplaced_allies = max(0, (n - 1) - allies_g)
+    g_face = obs.gardien_face_at_case(case_c)
+    if obs.mode == 2 and (obs.tour >= 8 or g_face >= 2 or allies_on_case >= 1):
+        return 0.05
 
-    total_slots_cap = 0
-    total_non_res_cap = 0.0
+    eveil_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=True)
+    cur_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=False)
+    n = obs.n_players
+    req_eveil = cfg.nb_animaux_sauvages + 1
+    face2_now = obs.count_face2_gardiens_on_track()
+    other_f1_bet = sum(
+        1
+        for ck in range(1, TRACK_LEN + 1)
+        if ck != case_c
+        and obs.gardien_present_at_case(ck)
+        and obs.gardien_face_at_case(ck) == 1
+        and max(0, obs.gardien_pari_defenders(ck) - (1 if own_pari_case == ck else 0)) >= 1
+    )
+
     distinct_other_cap = 0.0
     distinct_other_bet_exp = 0.0
-    has_other_empty_supported = False
     for c_k in (1, 2, 3, 4, 5):
         if obs.gardien_present_at_case(c_k):
-            total_slots_cap += GARDIEN_BET_CAP
             t_k = eveil_trigs[c_k - 1]
-            total_non_res_cap += min(float(GARDIEN_BET_CAP), t_k)
             distinct_other_cap += min(1.0, t_k)
             bets_k = max(0, obs.gardien_pari_defenders(c_k) - (1 if own_pari_case == c_k else 0))
             if bets_k >= 1:
                 distinct_other_bet_exp += min(1.0, t_k)
-            elif c_k != case_c and t_k >= 0.85:
-                has_other_empty_supported = True
 
-    has_res = obs.gardien_present_at_case(TRIG_RESONANCE)
-    if has_res:
-        total_slots_cap += GARDIEN_BET_CAP
-    res_cap = min(float(GARDIEN_BET_CAP), distinct_other_cap) if has_res else 0.0
-    total_gardien_cap = total_non_res_cap + res_cap
-
-    exp_for_case = (
-        min(distinct_other_cap, distinct_other_bet_exp + 0.80 * unplaced_allies)
-        if case_c == TRIG_RESONANCE
-        else eveil_trigs[case_c - 1]
-    )
+    if case_c == TRIG_RESONANCE:
+        exp_for_case = min(distinct_other_cap, distinct_other_bet_exp)
+    else:
+        exp_for_case = max(eveil_trigs[case_c - 1], cur_trigs[case_c - 1])
     needed = allies_on_case + 1
 
     total_init = max(1, n * sum(CANONICAL_DOTATION))
@@ -1553,88 +1556,51 @@ def score_gardien_pari_marginal_trees(
     tree_ratio = cur_arbres / total_init
     bouclier_safety = weights.gardien_bouclier_trees if obs.piste_colonie[case_c - 1] >= 1 else 0.0
 
-    sup_tol = 0.28 if n >= 5 else 0.18
-    cap_tol = 0.65 if n >= 5 else 0.40
+    sup_tol = 0.25 if n >= 5 else 0.18
     supported = exp_for_case >= (float(needed) - sup_tol)
     marginally_supported = exp_for_case >= (float(needed) - (sup_tol + 0.25))
-    eveil_feasible = (
-        obs.tour <= 7 and total_slots_cap >= n and total_gardien_cap >= (n - cap_tol)
-    )
 
-    total_rat = sum(1 for m in obs.machines if m.status == MACHINE_STATUS_RATISSAGE)
-    total_red = sum(
-        obs.machine_effective_rouges(m.ray, m.m_type)
-        for m in obs.machines
-        if m.status != MACHINE_STATUS_RETIRED and m.position > 0
-    )
-
-    eveil_mult = 1.0
-    if n <= 4:
-        high_pressure = total_rat >= 1 or total_red >= (n + 2) or obs.tour >= 6
-        if (not high_pressure) and (
-            (obs.tour <= 3 and tree_ratio < 0.88)
-            or (tree_ratio < 0.58 and obs.tour <= 5)
-            or (allies_g == 0 and exp_for_case < (float(needed) + 0.05))
-        ):
-            eveil_feasible = False
-        else:
-            eveil_mult = weights.eveil_n34_caution_mult if (not high_pressure and obs.tour <= 5) else 0.96
-    else:
-        rem_turns = max(0, 8 - obs.tour)
-        eveil_mult = weights.eveil_n56_mult + 0.05 * min(3, rem_turns)
-
-    base_gp = 0.18
-    if eveil_feasible:
-        pen = 0.0
-        if case_c == TRIG_RESONANCE and distinct_other_bet_exp < (float(needed) - 0.15) and distinct_other_cap > distinct_other_bet_exp + 0.35:
-            pen += 0.40
-        if allies_on_case >= 1 and has_other_empty_supported:
-            pen += 0.32
-        margin_b = 0.20 * max(0.0, min(1.5, exp_for_case - float(needed)))
-
+    base_gp = 0.15
+    if obs.tour <= 7 and cfg.nb_animaux_sauvages >= 1 and g_face == 1 and allies_on_case == 0:
+        will_win_eveil_now = (face2_now + 1 + other_f1_bet) >= req_eveil
+        eveil_mult = weights.eveil_n56_mult if n >= 5 else 1.0
         if supported:
-            if allies_g >= n - 1:
-                base = weights.eveil_finish_trees + weights.eveil_tree_ratio_scale * tree_ratio
-                base_gp = max(0.35, base * eveil_mult + margin_b + bouclier_safety - pen)
-            elif allies_g >= 1:
-                prog = allies_g / max(1, n - 1)
-                base = (
-                    weights.eveil_progress_trees
-                    + 2.00 * prog
-                    + 0.72 * weights.eveil_tree_ratio_scale * tree_ratio
+            if will_win_eveil_now:
+                base_gp = (
+                    (weights.eveil_finish_trees + weights.eveil_tree_ratio_scale * tree_ratio)
+                    * eveil_mult
+                    + bouclier_safety
                 )
-                base_gp = max(0.35, base * eveil_mult + margin_b + bouclier_safety - pen)
-            elif belief.drew_sabotage_or_none or total_gardien_cap >= (n + 0.05) or obs.tour >= 4:
-                base = weights.eveil_start_trees + 0.75 * weights.eveil_tree_ratio_scale * tree_ratio
-                base_gp = max(0.35, base * eveil_mult + margin_b + bouclier_safety - pen)
-        elif marginally_supported and allies_g >= max(2, n - 2):
-            base = 0.84 * weights.eveil_finish_trees + 0.75 * weights.eveil_tree_ratio_scale * tree_ratio
-            base_gp = max(0.35, base * eveil_mult + margin_b + bouclier_safety - pen)
-    if base_gp <= 0.25 and obs.mode >= 3:
-        cur_trigs = estimate_expected_gardien_triggers(obs, cfg, belief, for_eveil=False)
-        cur_exp = (
-            min(distinct_other_cap, distinct_other_bet_exp)
-            if case_c == TRIG_RESONANCE
-            else cur_trigs[case_c - 1]
-        )
-        if cur_exp >= (float(needed) + 0.05):
-            g_face = obs.gardien_face_at_case(case_c)
-            face_b = weights.gardien_mode4_face1_bonus if g_face == 1 else 0.15
-            base_gp = weights.gardien_mode4_probable_trees + face_b + bouclier_safety
-        elif cur_exp >= (float(needed) - 0.20):
-            base_gp = weights.gardien_mode4_marginal_trees + bouclier_safety
-        else:
-            base_gp = 0.22
+            else:
+                prog = float(face2_now + 1) / float(max(1, req_eveil))
+                base_gp = (
+                    (
+                        weights.eveil_start_trees
+                        + 1.65 * prog
+                        + 0.65 * weights.eveil_tree_ratio_scale * tree_ratio
+                    )
+                    * eveil_mult
+                    + bouclier_safety
+                )
+        elif marginally_supported and (will_win_eveil_now or obs.mode >= 3):
+            base_gp = weights.eveil_progress_trees * 0.72 + 0.40 * tree_ratio + bouclier_safety
+
+    if obs.mode >= 3:
+        if exp_for_case >= (float(needed) + 0.02):
+            face_b = weights.gardien_mode4_face1_bonus if g_face == 1 else 0.75
+            mode4_v = weights.gardien_mode4_probable_trees + face_b + bouclier_safety
+            if face2_now >= req_eveil and obs.tour <= 7 and exp_for_case < float(needed) + 0.35:
+                mode4_v *= 0.35
+            base_gp = max(base_gp, mode4_v)
+        elif exp_for_case >= (float(needed) - 0.20):
+            base_gp = max(base_gp, weights.gardien_mode4_marginal_trees + bouclier_safety)
 
     if is_held:
-        tot_on_track = obs.total_gardien_pari_defenders()
-        if obs.tour <= 7 and tot_on_track >= n:
-            return base_gp + 3.60
-        if obs.tour <= 7 and tot_on_track >= 2:
-            return base_gp + 0.40
+        if obs.tour <= 7 and g_face == 1 and supported:
+            return base_gp + 0.45
         if obs.mode >= 3 and base_gp >= weights.gardien_mode4_marginal_trees:
             return base_gp + 0.20
-        return base_gp - 0.75
+        return base_gp - 0.55
     return base_gp
 
 

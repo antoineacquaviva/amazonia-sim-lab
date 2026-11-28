@@ -117,24 +117,25 @@ def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
     st.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
     st.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
 
-    # 1er déclenchement case 1 -> ouvre case 1 -> allume 6 -> ouvre case 6 (anti-boucle : 6 éteinte)
-    st.light_trigger(1)
-    assert sweep_gardiens(st) == 2
-    assert st.count_gardien_pari_defenders_at_case(1) == 1
-    assert st.count_gardien_pari_consumed_at_case(1) == 1
-    assert st.count_gardien_pari_defenders_at_case(6) == 1
-    assert st.count_gardien_pari_consumed_at_case(6) == 1
-    assert not st.is_trigger_lit(6)
-
-    # 2e déclenchement case 1 : même autre Gardien -> ne ré-allume PAS 6. Résonance (DISTINCT_OPEN_1 natif)
+    # 1er déclenchement case 1 (2 -> 1 pari restant) : dessus non vidé -> ouvre 1 seul Gardien, 6 non allumée
     st.light_trigger(1)
     assert sweep_gardiens(st) == 1
+    assert st.count_gardien_pari_defenders_at_case(1) == 1
+    assert st.count_gardien_pari_consumed_at_case(1) == 1
+    assert st.count_gardien_pari_defenders_at_case(6) == 2
+    assert st.count_gardien_pari_consumed_at_case(6) == 0
+    assert not st.is_trigger_lit(6)
+
+    # 2e déclenchement case 1 (1 -> 0 dernier pari glissé !) -> allume 6. Résonance -> ouvre case 6 (anti-boucle : 6 éteinte)
+    st.light_trigger(1)
+    assert sweep_gardiens(st) == 2
     assert st.count_gardien_pari_defenders_at_case(1) == 0
     assert st.count_gardien_pari_consumed_at_case(1) == 2
     assert st.count_gardien_pari_defenders_at_case(6) == 1
     assert st.count_gardien_pari_consumed_at_case(6) == 1
+    assert not st.is_trigger_lit(6)
 
-    # Un 2e autre Gardien distinct (case 2) allume 6. Résonance !
+    # Un 2e autre Gardien (case 2, 1 -> 0 dernier pari !) allume 6. Résonance et consomme son 2e pari !
     st.set_gardien_at_case(2, 3, face=1)
     st.set_player_def_loc_raw(0, 1, 0)
     st.place_defender_gardien_pari(0, 2, FACE_DEFINITIF)
@@ -175,26 +176,25 @@ def test_gardien_two_def_antiloop_and_partial_failure_returns_lisiere() -> None:
 
 
 def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
-    """Éveil 100 % Gardiens : réussit si les N Défenseurs sont sur Gardiens et 0 restant ; rejeté si >= 1 sur Rêve."""
-    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))
+    """Éveil cumulatif v6.4 (INV-10) : >= A+1 Gardiens Face 2 en piste ET 0 pari Gardien perdu à ce tour (Tour 8 prioritaire)."""
+    cfg = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "H"))  # A = 3 -> seuil A + 1 = 4 Face 2
 
-    # Cas A : 3 Défenseurs sur Gardiens + 1 Défenseur sur un Rêve -> Éveil REJETÉ
+    # Cas A : seulement 2 Gardiens Face 2 (< 4) -> Éveil REJETÉ même si un Rêve est activé
     st_rej = GameState(cfg)
     st_rej.tour = 3
     st_rej.set_gardien_at_case(1, 1, face=1)
     st_rej.set_gardien_at_case(6, 2, face=1)
     st_rej.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_rej.set_player_hand(0, 1, 6, 6, 6, 0)
-    st_rej.set_player_hand(1, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_rej.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_rej.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_rej.set_player_hand(1, 0, 0, 0, 0, 0)
+    st_rej.set_player_hand(2, 0, 0, 0, 0, 0)
+    st_rej.set_player_hand(3, 0, 0, 0, 0, 0)
 
     st_rej.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st_rej.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
     st_rej.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
     st_rej.place_defender_reve_activation(3, 6, FACE_DEFINITIF)
 
-    assert st_rej.is_eveil_attempt_eligible() is False
     st_rej.step = STEP_3_2_REVEAL
     _run_step_3_2(st_rej)
     from engine.core_engine import _advance_continuation
@@ -202,7 +202,6 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     while st_rej._continuation:
         assert _advance_continuation(st_rej) is None
     assert st_rej.total_reve_activation_consumed() == 1
-    assert st_rej.total_reve_activation_remaining() == 0
     st_rej.light_trigger(1)
     sweep_gardiens(st_rej)
     st_rej.light_trigger(1)
@@ -214,14 +213,15 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     res_rej = step_until_decision(st_rej)
     assert not isinstance(res_rej, GameOver)
 
-    # Cas B : les N=4 Défenseurs engagés sur la Piste des Gardiens -> Éveil RÉUSSI + télémétrie
+    # Cas B : 4 Gardiens en piste (2 déjà Face 2 + 2 Face 1 gagnant leur pari en 5.3 -> 4 Face 2 >= A+1, 0 pari perdu) -> Éveil RÉUSSI !
     st_ok = GameState(cfg)
     st_ok.tour = 3
     st_ok.set_gardien_at_case(1, 1, face=1)
     st_ok.set_gardien_at_case(2, 3, face=1)
-    st_ok.set_gardien_at_case(6, 2, face=1)
+    st_ok.set_gardien_at_case(3, 4, face=2)
+    st_ok.set_gardien_at_case(6, 2, face=2)
     for s in range(4):
-        st_ok.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
+        st_ok.set_player_hand(s, 0, 0, 0, 0, 0)
     st_ok.place_defender_gardien_pari(0, 1, FACE_REFLEXION)
     st_ok.place_defender_gardien_pari(1, 2, FACE_REFLEXION)
     st_ok.place_defender_gardien_pari(2, 6, FACE_REFLEXION)
@@ -238,7 +238,6 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     sweep_gardiens(st_ok, telemetry=trk)
     assert st_ok.total_gardien_pari_consumed() == 4
     assert st_ok.total_gardien_pari_remaining() == 0
-    assert st_ok.is_eveil_gardiens_victory() is True
 
     trk.on_step_transition(st_ok, STEP_2_2_DEF2, STEP_5_1_TACTIQUES)
     st_ok.step = STEP_5_3_END_CHECK
@@ -255,19 +254,13 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
     assert ts.rs_def_reve == 0
     assert ts.rs_trig6_lit == 1
 
-    # Cas C : Priorité absolue à CAUSE_TOUR_8 au Tour 8
+    # Cas C : Priorité absolue à CAUSE_TOUR_8 au Tour 8 même avec >= A+1 Face 2
     st_t8 = GameState(cfg)
     st_t8.tour = 8
-    st_t8.set_gardien_at_case(1, 1, face=1)
-    st_t8.set_gardien_at_case(6, 2, face=1)
-    st_t8.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(2, 6, FACE_DEFINITIF)
-    st_t8.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
-    st_t8.light_trigger(1)
-    sweep_gardiens(st_t8)
-    st_t8.light_trigger(1)
-    sweep_gardiens(st_t8)
+    st_t8.set_gardien_at_case(1, 1, face=2)
+    st_t8.set_gardien_at_case(2, 3, face=2)
+    st_t8.set_gardien_at_case(3, 4, face=2)
+    st_t8.set_gardien_at_case(6, 2, face=2)
     st_t8.step = STEP_5_3_END_CHECK
     res_t8 = step_until_decision(st_t8)
     assert isinstance(res_t8, GameOver)
@@ -275,7 +268,7 @@ def test_eveil_100_pourcent_gardiens_rejet_reve_et_priorite_tour8() -> None:
 
 
 def test_reve_pure_blocking_mode_2_clear_rank_only() -> None:
-    """v6.2 Mode 2 : blocage (1 Déf = 1 machine annulée avec choix propriétaire sur surcharge, 4. Rêve allumé)."""
+    """v6.4 Mode 2 : blocage (1 Déf = 1 machine annulée avec choix propriétaire sur surcharge, 4. Rêve allumé)."""
     from engine.core_engine import _advance_continuation
 
     cfg_ex = GameConfig(n_players=3, mode=2, peuples=("M", "H", "I"))
@@ -286,7 +279,7 @@ def test_reve_pure_blocking_mode_2_clear_rank_only() -> None:
     st_blk.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_blk.set_player_hand(0, 1, 6, 6, 6, 0)
     st_blk.set_player_hand(1, 3, 6, 6, 6, 0)
-    st_blk.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_blk.set_player_hand(2, 0, 0, 0, 0, 0)
     st_blk.place_defender_reve_activation(0, 6, FACE_DEFINITIF)
     st_blk.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
 
@@ -310,7 +303,7 @@ def test_reve_pure_blocking_mode_2_clear_rank_only() -> None:
     st_blk2.set_tactique_at_rank(5, TILE_R_BASE + 3)
     st_blk2.set_player_hand(0, 1, 6, 6, 6, 0)
     st_blk2.set_player_hand(1, 3, 6, 6, 6, 0)
-    st_blk2.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
+    st_blk2.set_player_hand(2, 0, 0, 0, 0, 0)
     st_blk2.place_defender_reve_activation(0, 6, FACE_DEFINITIF, def_idx=0)
     st_blk2.place_defender_reve_activation(1, 6, FACE_DEFINITIF, def_idx=1)
     st_blk2.place_defender_gardien_pari(2, 4, FACE_DEFINITIF)
@@ -361,7 +354,8 @@ def test_digest_aggregator_cross_tabs_and_reveil_anatomy(
     assert "v5.4.1" not in fins_5_3
     assert "Gardien Face 2" not in fins_5_3
     assert "mobilisation croisée" not in fins_5_3.lower()
-    assert "100 % piste des gardiens" in fins_5_3.lower()
+    assert "module gardiens" in fins_5_3.lower()
+    assert "cumulatif en piste" in fins_5_3.lower()
 
     formatted = _format_reveil_anatomy_row(
         {

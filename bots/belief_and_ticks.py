@@ -1002,11 +1002,17 @@ def resolve_step2_2_from_state(
             if pari_c <= 0:
                 continue
             need_gard_retreat = False
-            g_tot = obs_s.total_gardien_pari_defenders()
-            eveil_valid = obs_s.tour < 8 and g_tot == n
-            if cfg.mode == 2 and not eveil_valid:
-                # En Mode 2 neutre, parier n'a de sens que pour l'Éveil 100 % Gardiens (Tours 1..7)
-                need_gard_retreat = True
+            if cfg.mode == 2:
+                # En Mode 2 v6.4 (Éveil cumulatif A+1 Face 2, Tours 1..7) :
+                # parier 1 pion sur un Gardien Face 1 le promeut vers Face 2 ; un 2e pion ou un pari
+                # sur un Gardien déjà Face 2 (ou au Tour 8) n'apporte aucun gain et risque l'échec.
+                g_face_c = obs_s.gardien_face_at_case(pari_c)
+                if (
+                    obs_s.tour >= 8
+                    or g_face_c >= 2
+                    or obs_s.gardien_pari_defenders(pari_c) >= 2
+                ):
+                    need_gard_retreat = True
             if pari_c == TRIG_RESONANCE:
                 res_bets = obs_s.gardien_pari_defenders(TRIG_RESONANCE)
                 distinct_other_cases = sum(

@@ -18,7 +18,6 @@ from engine.state import (
     STEP_3_2_REVEAL,
     STEP_4_1_FURTIVITE,
     STEP_4_2_NIDS,
-    STEP_4_3_MIGRATION,
     STEP_5_1_TACTIQUES,
     STEP_5_3_END_CHECK,
     STEP_6_2_EVOLUTION,
@@ -1027,7 +1026,7 @@ class TelemetryTracker:
         """Accumule `mem_debt_score` à chaque sous-étape traversée au sein d'un tour."""
         if prev_step == STEP_4_1_FURTIVITE and next_step == STEP_4_2_NIDS:
             self.on_furtivite_step_end()
-        if prev_step == STEP_4_2_NIDS and next_step == STEP_4_3_MIGRATION:
+        if prev_step == STEP_4_2_NIDS and next_step == STEP_5_1_TACTIQUES:
             for nid_num in range(1, 6):
                 if state.get_nid_position(nid_num) is not None:
                     self.record_tile_activation(f"M{nid_num}", 1)

@@ -23,10 +23,8 @@ from engine.core_engine import (
 from engine.effects.registry import list_registered_tiles
 from engine.primitives import (
     DEC_EFFET_TUILE,
-    HOOK_4_2_NID_APRES_PROD,
     DecisionRequest,
     GameOver,
-    dispatch_hook,
     prim_permutation_piste,
 )
 from engine.state import (
@@ -35,7 +33,6 @@ from engine.state import (
     MACHINE_ABATTEUSE,
     MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
-    MACHINE_STATUS_RATISSAGE,
     PIEGE_ACTIF,
     PLUME_CHAUD,
     PLUME_KIND_RAY,
@@ -100,7 +97,7 @@ def test_v5_5_all_30_active_tiles_and_native_migrations_registered() -> None:
     assert expected_migrations <= registered
 
     bundle = load_spec_bundle()
-    assert bundle["meta"]["schema_version"] == "6.2.0"
+    assert bundle["meta"]["schema_version"] == "6.4.0"
     assert len(bundle["catalogue_tuiles"]) == 30
     for slot_id, prof in expected_30:
         assert slot_id in bundle["catalogue_tuiles"]
@@ -113,7 +110,7 @@ def test_v5_5_all_30_active_tiles_and_native_migrations_registered() -> None:
 
 
 def test_v5_5_double_activation_g9_a_and_face2_only_in_5_3_on_bet_won() -> None:
-    """Double activation sur Gardien Canon 0 (G2:A Anaconda) & passage Face 2 uniquement en 5.3."""
+    """Double activation sur Gardien Canon v6.4 (G10:A Matamata) & passage Face 2 uniquement en 5.3."""
     cfg = GameConfig(
         n_players=4,
         mode=4,
@@ -122,41 +119,33 @@ def test_v5_5_double_activation_g9_a_and_face2_only_in_5_3_on_bet_won() -> None:
     )
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(3, 2, face=1)  # G2:A (paire R-E) sur case 3 (Sabotage)
+    st.set_gardien_at_case(3, 10, face=1)  # G10:A Matamata (paire R-E) sur case 3 (Sabotage)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
     st.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
-    sab_before = st.sabotage_pending_count
+    ec_before = st.ecaille_deck_count + st.ecaille_pending_count
 
-    # 1re ouverture F1 -> +1 Sabotage en attente, reste Face 1, n'allume PAS le déclencheur 3
+    # 1re ouverture F1 -> +1 Écaille au sac, reste Face 1, n'allume PAS le déclencheur 3
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
-    assert st.sabotage_pending_count == sab_before + 1
-    assert st.get_gardien_at_case(3) == (2, 1)
+    _resolve_pending_decisions(st)
+    assert (st.ecaille_deck_count + st.ecaille_pending_count) == ec_before + 1
+    assert st.get_gardien_at_case(3) == (10, 1)
     assert st.count_gardien_pari_defenders_at_case(3) == 1
     assert not st.is_trigger_lit(3)
 
-    # 2e ouverture F1 (2e Défenseur glissé) -> +1 Sabotage en attente, reste Face 1 jusqu'en 5.3
+    # 2e ouverture F1 (2e Défenseur glissé) -> +1 Écaille au sac, reste Face 1 jusqu'en 5.3
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
-    assert st.sabotage_pending_count == sab_before + 2
-    assert st.get_gardien_at_case(3) == (2, 1)
+    _resolve_pending_decisions(st)
+    assert (st.ecaille_deck_count + st.ecaille_pending_count) == ec_before + 2
+    assert st.get_gardien_at_case(3) == (10, 1)
     assert st.count_gardien_pari_defenders_at_case(3) == 0
 
     # Étape 5.3 : pari gagné -> reste en piste et passe Face 2 !
     st.step = STEP_5_3_END_CHECK
     res_53 = step_until_decision(st)
     assert not isinstance(res_53, GameOver)
-    assert st.get_gardien_at_case(3) == (2, 2)
-
-    # Tour suivant en Face 2 avec Territoire tenu : +3 Sabotage au sac !
-    st.set_duel_defi(0, 1)
-    st.flip_duel_to_territoire_tenu()
-    st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
-    sab_f2 = st.sabotage_pending_count
-    st.light_trigger(3)
-    assert sweep_gardiens(st) == 1
-    assert st.sabotage_pending_count == sab_f2 + 3
-    assert st.get_gardien_at_case(3) == (2, 2)
+    assert st.get_gardien_at_case(3) == (10, 2)
 
 
 def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None:
@@ -169,8 +158,8 @@ def test_v5_5_double_bet_lost_saved_by_bouclier_keeps_face1_no_upgrade() -> None
     assert cfg.profile_for_slot("SLOT_COLONISATION_GARDIENS") == "B"
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(1, 6, face=1)  # G6:A (paire R-O) sur case 1
-    st.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
+    st.set_gardien_at_case(1, 6, face=1)  # G6:A Toucan toco (paire O-R) sur case 1
+    st.set_oiseau_perchoir_signal(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=2, bleus=0)
     # Pari à 2 Défenseurs + 1 Insecte Bouclier sur la case 1
@@ -211,19 +200,18 @@ def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
     _, _, _, new_m, new_bound = st6.get_player_hand(0)
     assert (new_m, new_bound) == (5, 5)
 
-    # --- G8:A (Boto) : double activation recule l'Abatteuse deux fois (p3 -> p1) ---
+    # --- G2:A (Anaconda) : double activation Recule l'Abatteuse ciblant une parcelle défendue (p3 -> p1) ---
     cfg8 = GameConfig(n_players=4, mode=4, peuples=("M", "H", "R", "E"), exp_seed=5504)
     st8 = GameState(cfg8)
     st8.step = STEP_5_1_TACTIQUES
     st8.paravents_ouverts = True
-    st8.set_gardien_at_case(1, 8, face=2)
-    st8.set_duel_defi(0, 3)
-    st8.flip_duel_to_territoire_tenu()
+    st8.set_gardien_at_case(1, 2, face=1)
+    st8.place_defender_foret(0, 0, 0, 3, FACE_DEFINITIF)
+    st8.place_defender_foret(1, 0, 0, 3, FACE_DEFINITIF)
+    st8.place_defender_foret(2, 0, 0, 2, FACE_DEFINITIF)
+    st8.place_defender_foret(3, 0, 0, 2, FACE_DEFINITIF)
     st8.set_machine_pos_status(0, MACHINE_ABATTEUSE, 3, MACHINE_STATUS_NORMAL)
-    st8.set_machine_pos_status(0, MACHINE_BULLDOZER, 0, 2)
-    for r in range(1, 4):
-        st8.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
-        st8.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
+    st8.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 1, 4, 1, 1)
     st8.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st8.place_defender_gardien_pari(1, 1, FACE_DEFINITIF)
 
@@ -235,12 +223,12 @@ def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
     _resolve_pending_decisions(st8)
     assert st8.get_machine_pos_status(0, MACHINE_ABATTEUSE)[0] == 1
 
-    # --- G11:A Face 2 (Chouette) : double activation pose 2 Pièges distincts sur parcelles ciblées du rayon Plume ---
+    # --- G5:A Face 2 (Iguane vert) : double activation pose 2 Pièges distincts sur parcelles ciblées du rayon ---
     cfg11 = GameConfig(n_players=4, mode=4, peuples=("M", "R", "O", "H"), exp_seed=5505)
     st11 = GameState(cfg11)
     st11.paravents_ouverts = True
-    st11.set_gardien_at_case(1, 11, face=2)
-    st11.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
+    st11.set_gardien_at_case(1, 5, face=2)
+    st11.set_oiseau_perchoir_signal(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st11.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st11.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 3, 3, 3, 3)  # T3 : SUR_PLACE (p1) + DEVANT (p2)
     st11.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
@@ -249,7 +237,6 @@ def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
     st11.light_trigger(1)
     assert sweep_gardiens(st11) == 1
     _resolve_pending_decisions(st11, prefer_non_pass=True)
-    st11.set_oiseau_plume(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st11.light_trigger(1)
     assert sweep_gardiens(st11) == 1
     _resolve_pending_decisions(st11, prefer_non_pass=True)
@@ -259,21 +246,21 @@ def test_v5_5_double_activation_g6_a_g8_a_and_g11_a_f2() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Partition stricte des déclencheurs sur effets de tuiles & M2/M4 Canon 0
+# 3. Partition stricte des déclencheurs sur effets de tuiles & M2/M4 Canon v6.4
 # ---------------------------------------------------------------------------
 
 
 def test_v5_5_tile_effects_strict_trigger_partition_and_m2_physical_red() -> None:
-    # Table H-M-I-R : H-M (G7) et M-I (G13) sont présents.
-    cfg = GameConfig(n_players=4, mode=4, peuples=("H", "M", "I", "R"), exp_seed=5506)
+    # Table O-M-I-R : R-O (G5 Iguane) et M-I (G13 Tamanoir) sont présents.
+    cfg = GameConfig(n_players=4, mode=4, peuples=("O", "M", "I", "R"), exp_seed=5506)
     st = GameState(cfg)
     st.paravents_ouverts = True
 
-    # G7:A pose un Piège sur une parcelle ciblée à Souche sans allumer le déclencheur 2
-    st.set_parcel_arbres_souches(0, 1, 1, 1)
+    # G5:A pose un Piège sur une parcelle ciblée du rayon Perchoir sans allumer le déclencheur 2 (Piégeage)
+    st.set_oiseau_perchoir_signal(PLUME_CHAUD, PLUME_KIND_RAY, 0)
     st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 1, 1, 1, 1)
-    st.set_gardien_at_case(1, 7, face=1)
+    st.set_gardien_at_case(1, 5, face=1)
     st.place_defender_gardien_pari(0, 1, FACE_DEFINITIF)
     st.triggers_lit = 0
     st.light_trigger(1)
@@ -282,38 +269,17 @@ def test_v5_5_tile_effects_strict_trigger_partition_and_m2_physical_red() -> Non
     assert st.get_parcel_piege(0, 1) == PIEGE_ACTIF
     assert not st.is_trigger_lit(2)
 
-    # G13:A F1 déplace 1 Insecte de (0,2) vers la parcelle ciblée (0,1) sans allumer le déclencheur 5 (Insecte)
-    st.set_parcel_insectes(0, 2, 1)
+    # G13:A F1 éventre un Nid >= 2 (-1/+2 Insectes) sans allumer le déclencheur 5 (Insecte)
+    st.set_parcel_nid(2, 2, 1)
+    st.set_parcel_insectes(2, 2, 2)
     st.set_gardien_at_case(3, 13, face=1)
     st.place_defender_gardien_pari(1, 3, FACE_DEFINITIF)
     st.triggers_lit = 0
     st.light_trigger(3)
     assert sweep_gardiens(st) == 1
     _resolve_pending_decisions(st)
-    assert st.get_parcel_insectes(0, 1) == 1
+    assert st.get_parcel_insectes(2, 2) == 3
     assert not st.is_trigger_lit(5)
-
-    # M4:A (paire H-I active) ignore une machine en Ratissage avec 0 rouge physique et retourne 1 rouge sur Bulldozer
-    cfg_m4 = GameConfig(n_players=3, mode=4, peuples=("H", "I", "R"), exp_seed=5506)
-    st_m4 = GameState(cfg_m4)
-    st_m4.set_parcel_nid(1, 1, 4)
-    st_m4.set_parcel_insectes(1, 1, 1)
-    st_m4.set_machine_pos_status(0, MACHINE_ABATTEUSE, 4, MACHINE_STATUS_RATISSAGE)
-    st_m4.set_machine_tokens(0, MACHINE_ABATTEUSE, rouges=0, bleus=0)
-    st_m4.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
-    st_m4.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=0, bleus=0)
-    for r in range(1, 3):
-        st_m4.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
-        st_m4.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
-    dispatch_hook(st_m4, HOOK_4_2_NID_APRES_PROD, {"m_num": 4, "ray": 1, "p": 1})
-    _resolve_pending_decisions(st_m4, prefer_non_pass=False)
-    assert st_m4.get_machine_tokens(0, MACHINE_ABATTEUSE) == (0, 0)
-
-    # Avec 1 rouge physique sur le Bulldozer -> M4:A propose FLIP_RED et retourne (1, 0) -> (0, 1)
-    st_m4.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=1, bleus=0)
-    dispatch_hook(st_m4, HOOK_4_2_NID_APRES_PROD, {"m_num": 4, "ray": 1, "p": 1})
-    _resolve_pending_decisions(st_m4, prefer_non_pass=True)
-    assert st_m4.get_machine_tokens(0, MACHINE_BULLDOZER) == (0, 1)
 
 
 # ---------------------------------------------------------------------------
@@ -337,19 +303,21 @@ def test_v5_5_defense_attribution_exact_counters() -> None:
     st_32.set_player_hand(1, machine_card_code(1, MACHINE_ABATTEUSE), 5, 6, 5, 0)
     st_32.set_player_hand(2, machine_card_code(2, MACHINE_BULLDOZER), 2, 1, 2, 0)
     st_32.set_player_hand(3, 0, 0, 0, 0, 0)
-    # Ancre 4.3 pour stopper juste après 3.2
-    st_32.set_parcel_insectes(3, 1, 1)
+    # Ancre Nid 4.2 pour stopper juste après 3.2
+    st_32.set_parcel_nid(3, 2, 1)
+    st_32.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_32.step = STEP_3_2_REVEAL
 
     trk_32 = TelemetryTracker()
-    st_32.step = STEP_3_2_REVEAL
     res = step_until_decision(st_32, telemetry=trk_32)
+    while isinstance(res, DecisionRequest) and res.decision_type == "SABOTAGE_CIBLE_3_2":
+        apply_choice(st_32, res.options[0], telemetry=trk_32)
+        res = step_until_decision(st_32, telemetry=trk_32)
     # Bug B propose de dévier le dé M=2 du siège 2 (option 1 = non-PASSER)
     assert isinstance(res, DecisionRequest) and res.decision_type == DEC_EFFET_TUILE
     non_pass = [opt for opt in res.options if opt != "PASSER"]
     assert non_pass
     apply_choice(st_32, non_pass[0], telemetry=trk_32)
-    # v6.1 : blocage pur automatique (CLEAR_RANK_ONLY) sur R1 (case 5), stoppe à l'ancre 4.3
     _ = step_until_decision(st_32, telemetry=trk_32)
 
     ts_32 = trk_32.summary()
@@ -489,7 +457,7 @@ def test_local_mode4_multibot_micro_run_digest_has_32_tiles_and_defense_attribut
         job_wall_sec=1.0,
     )
     assert digest_path.exists() and prompt_path.exists() and parquet_path.exists()
-    assert digest["active_core_rules"]["version"] == "6.2.0"
+    assert digest["active_core_rules"]["version"] == "6.4.0"
     assert digest["totals"]["total_games"] == 3 * 2 * 20  # 120 parties
 
     # 1. Section defense_attribution complète + ventilation par bot (B0, B1, B2)

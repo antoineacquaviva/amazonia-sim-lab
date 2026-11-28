@@ -21,7 +21,6 @@ from campaigns.worker_main import resolve_manifest_plan, run_campaign_manifest
 from engine.core_engine import apply_choice, step_until_decision
 from engine.primitives import DecisionRequest
 from engine.state import (
-    CARD_SABOTAGE,
     FACE_DEFINITIF,
     MACHINE_ABATTEUSE,
     MACHINE_STATUS_NORMAL,
@@ -54,14 +53,15 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     st_inert.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_inert.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st_inert.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_inert.set_parcel_insectes(3, 1, 1)
+        st_inert.set_player_hand(s, 0, 0, 0, 0, 0)
+    st_inert.set_parcel_nid(3, 2, 1)
+    st_inert.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_inert.step = STEP_3_2_REVEAL
     _ = step_until_decision(st_inert)
     assert st_inert.has_gardien_opened_this_turn(4) is False
     assert st_inert.count_gardien_pari_defenders_at_case(4) == 1
 
-    # 2) v6.2 (INV-15 / C3-04) : carte déviée par Bug vers un Rêve défendu et annulée -> allume 5. Insecte ET 4. Rêve !
+    # 2) v6.4 (INV-15) : carte déviée par Bug vers un Rêve défendu et annulée -> allume 5. Insecte ET 4. Rêve !
     st_bug = GameState(cfg)
     st_bug.tour = 2
     st_bug.set_tactique_at_rank(5, TILE_R_BASE + 1)
@@ -74,8 +74,9 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     st_bug.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_bug.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 5, 5, 5, 0)
     for s in (1, 2, 3):
-        st_bug.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_bug.set_parcel_insectes(3, 1, 1)
+        st_bug.set_player_hand(s, 0, 0, 0, 0, 0)
+    st_bug.set_parcel_nid(3, 2, 1)
+    st_bug.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_bug.step = STEP_3_2_REVEAL
     req_bug = step_until_decision(st_bug)
     assert isinstance(req_bug, DecisionRequest)
@@ -95,8 +96,9 @@ def test_v6_1_reve_5_trigger_actif_and_partition() -> None:
     st_act.set_machine_pos_status(0, MACHINE_ABATTEUSE, 1, MACHINE_STATUS_NORMAL)
     st_act.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st_act.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_act.set_parcel_insectes(3, 1, 1)
+        st_act.set_player_hand(s, 0, 0, 0, 0, 0)
+    st_act.set_parcel_nid(3, 2, 1)
+    st_act.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_act.step = STEP_3_2_REVEAL
     _ = step_until_decision(st_act)
     assert st_act.has_gardien_opened_this_turn(4) is True

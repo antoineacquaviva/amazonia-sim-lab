@@ -19,8 +19,8 @@ def test_spec_bundle_structure_and_counts() -> None:
     assert BUNDLE_PATH.exists(), "data/spec_bundle_v6_0.json manquant"
     bundle = json.loads(BUNDLE_PATH.read_text(encoding="utf-8"))
 
-    assert bundle["meta"]["schema_version"] == "6.2.0"
-    assert bundle["meta"]["source_studio_version"] == "v6.2"
+    assert bundle["meta"]["schema_version"] == "6.4.0"
+    assert bundle["meta"]["source_studio_version"] == "v6.4"
     assert len(bundle["chassis_axes"]) == 6
     placement_ax = next(ax for ax in bundle["chassis_axes"] if ax["key"] == "Placement_Initial_Machines")
     assert placement_ax["defaultVal"] == "BULLDOZER_P1_ABATTEUSE_P2"

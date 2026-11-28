@@ -1,7 +1,7 @@
 {
   "studio_version": "v6.4",
   "schema_version": "6.4.0",
-  "runtime_bundle_version": "6.2.0",
+  "runtime_bundle_version": "6.4.0",
   "files": {
     "catalog_v6_0.json": {
       "sha256": "87d0fe077616576cb916f8fd16fb999522b82a429c31ee2bd8488a0a9751e0a5",
@@ -39,8 +39,8 @@
       "source": "docs/data/spec_formelle_v6_4.json"
     },
     "canon_v6_4_data.js": {
-      "sha256": "c9fe8d5b58382d95f5a93a781fd131750c42f65a33d1eaa57b0d56f2c1d6070d",
-      "bytes": 381309,
+      "sha256": "613525ff9481f22bd821900e71eef254d94b0823aa34458374fd28bfe4c6395c",
+      "bytes": 381055,
       "source": "docs/data/canon_v6_4_data.js"
     }
   },
@@ -61,8 +61,8 @@
       "source": "contracts/tiles_canon_v6_2.json"
     },
     "rules_canon_v6_4.json": {
-      "sha256": "e602de9741bab40497c678ee4d57258f804f57202632eb31d4bc577eb0b42fa0",
-      "bytes": 56820,
+      "sha256": "8baea01d108fb4c43f02e49ef1b6b2ab61044015091aefc4d84cfb5700c5b33d",
+      "bytes": 56828,
       "source": "contracts/rules_canon_v6_4.json"
     },
     "physical_and_edge_invariants_v6_4.json": {
@@ -71,8 +71,8 @@
       "source": "contracts/physical_and_edge_invariants_v6_4.json"
     },
     "tiles_canon_v6_4.json": {
-      "sha256": "161507e68e577498fe5e32dd9da270ddc1dbf40c8a56694c896bddd1e4705971",
-      "bytes": 143316,
+      "sha256": "08c96fd00c5abb67600e6e9c799872da0b45a79522c4b05d837da501b93439a0",
+      "bytes": 143054,
       "source": "contracts/tiles_canon_v6_4.json"
     },
     "tiles_canon_v6_3.json": {

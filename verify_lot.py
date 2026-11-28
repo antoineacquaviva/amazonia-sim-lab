@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parent
 CONTRACTS_DIR = ROOT / "contracts"
 LOCKS_FILE = CONTRACTS_DIR / "kernel_locks.sha256"
 SOCLE_V6_2_LOCKS_FILE = CONTRACTS_DIR / "v6_2_socle_locks.sha256"
+SOCLE_V6_4_LOCKS_FILE = CONTRACTS_DIR / "v6_4_socle_locks.sha256"
 RULES_CANON_FILE = CONTRACTS_DIR / "rules_canon_v6_2.json"
 INVARIANTS_FILE = CONTRACTS_DIR / "physical_and_edge_invariants.json"
 TILES_CANON_FILE = CONTRACTS_DIR / "tiles_canon_v6_2.json"
@@ -263,12 +264,14 @@ def _verify_sha256_lock_file(lock_file: Path) -> int:
 
 
 def verify_kernel_locks() -> None:
-    """Vérifie les empreintes SHA-256 du noyau (`kernel_locks.sha256`) et du socle v6.2 (`v6_2_socle_locks.sha256`)."""
+    """Vérifie les empreintes SHA-256 du noyau (`kernel_locks.sha256`) et des socles v6.2 & v6.4."""
     n_kernel = _verify_sha256_lock_file(LOCKS_FILE)
-    n_socle = _verify_sha256_lock_file(SOCLE_V6_2_LOCKS_FILE)
+    n_socle_62 = _verify_sha256_lock_file(SOCLE_V6_2_LOCKS_FILE)
+    n_socle_64 = _verify_sha256_lock_file(SOCLE_V6_4_LOCKS_FILE)
     print(
-        f"[1/10] kernel_locks.sha256 ({n_kernel} fichiers noyau) + "
-        f"v6_2_socle_locks.sha256 ({n_socle} contrats v6.2 sanctuarisés intacts) : OK"
+        f"[1/10] kernel_locks.sha256 ({n_kernel} fichiers noyau v6.4) + "
+        f"v6_2_socle_locks.sha256 ({n_socle_62} archives v6.2 intactes) + "
+        f"v6_4_socle_locks.sha256 ({n_socle_64} contrats SSOT v6.4 scellés) : OK"
     )
 
 
@@ -575,6 +578,27 @@ def verify_tiles_canon() -> None:
     if audit_v64["verdict_global"] != "OK":
         errors.extend(f"audit_197[v6.4]: {e}" for e in audit_v64["errors"])
 
+    from scripts.tiles_v6_3_schema import adapt_tiles_contract_for_studio
+
+    v64_adapted_tiles = adapt_tiles_contract_for_studio(v64_doc)["tuiles_ciblees"]
+    v64_verified_handlers, v64_noop_errors = check_active_tile_handlers_non_noop(v64_adapted_tiles)
+    errors.extend(v64_noop_errors)
+    if v64_verified_handlers != 30:
+        errors.append(
+            f"Nombre de profils v6.4 ACTIVE_VERIFIED invalide : attendu 30, obtenu {v64_verified_handlers}"
+        )
+    v64_witnesses_total = 0
+    v64_witnesses_ok = 0
+    for sid64, t64 in sorted((v64_doc.get("tuiles_ciblees") or {}).items()):
+        if t64.get("engine_sync_status") != "ACTIVE_VERIFIED":
+            errors.append(f"tiles_canon_v6_4.json.{sid64}: engine_sync_status != ACTIVE_VERIFIED")
+        for w in t64.get("temoins") or []:
+            v64_witnesses_total += 1
+            if w.get("statut") == "OK":
+                v64_witnesses_ok += 1
+            else:
+                errors.append(f"tiles_canon_v6_4.json.{sid64}.{w.get('id')}: statut != OK")
+
     # Répertoire multi-panels (`contracts/panels/`) : JSON bien formé requis, audit diagnostic non bloquant
     panels_summary = "0 panel"
     if not PANELS_DIR.is_dir():
@@ -601,8 +625,8 @@ def verify_tiles_canon() -> None:
     v63_mode = "DRAFT_V6_3" if v63_is_draft else "STRICT_V6_3"
     print(
         f"[5/10] Linter Tuiles + Audit 197 (M1..M4 + I01..I07) + Schémas v6.3 & v6.4 "
-        f"({len(canon_tiles)} slots, C02 purgé, {verified_handlers}/30 ACTIVE_VERIFIED, "
-        f"0 no-op, {v63_mode}, STRICT_V6_4, {panels_summary}) : OK"
+        f"({len(canon_tiles)} slots, C02 purgé, {v64_verified_handlers}/30 v6.4 ACTIVE_VERIFIED, "
+        f"{v64_witnesses_ok}/{v64_witnesses_total} témoins OK, 0 no-op, {v63_mode}, STRICT_V6_4, {panels_summary}) : OK"
     )
 
 
@@ -767,12 +791,13 @@ def verify_studio_coherence() -> None:
             f"(obtenu {len(v64_js_meta.get('slots_v64', []))}/{len(v64_js_meta.get('slots_v63', []))})"
         )
 
-    # 1. Cohérence spec_formelle_v6_0.json <-> bundle (runtime PyPy v6.2 sanctuarisé Phase A)
-    if bundle.get("spec_formelle_v6_0") != spec_doc:
+    # 1. Cohérence spec_formelle_v6_4.json <-> bundle (runtime PyPy v6.4 actif)
+    if bundle.get("spec_formelle_v6_0") != spec_v64_doc:
         errors.append(
-            "Désynchronisation entre docs/data/spec_formelle_v6_0.json et "
+            "Désynchronisation entre docs/data/spec_formelle_v6_4.json et "
             "data/spec_bundle_v6_0.json['spec_formelle_v6_0']"
         )
+    _ = spec_doc  # Archive v6.2 toujours présente dans docs/data/spec_formelle_v6_0.json
 
     from engine.state import CANONICAL_DOTATION, CANONICAL_PROFIL_PISTE, TACTIQUES_SPEC
 
@@ -890,6 +915,60 @@ def run_tool(step_label: str, cmd: list[str]) -> None:
     subprocess.run(cmd, cwd=ROOT, check=True)
 
 
+def run_pytest_parallel() -> None:
+    """Exécute 100 % des fichiers `tests/test_*.py` en parallèle multi-cœurs (stdlib pure)."""
+    test_files = sorted(
+        (ROOT / "tests").rglob("test_*.py"),
+        key=lambda p: p.stat().st_size,
+        reverse=True,
+    )
+    n_workers = min(4, max(1, os.cpu_count() or 1))
+    if n_workers <= 1 or len(test_files) < 2:
+        run_tool("[9/10] pytest", [sys.executable, "-m", "pytest", "-q"])
+        return
+
+    buckets: list[list[str]] = [[] for _ in range(min(n_workers, len(test_files)))]
+    for idx, tf in enumerate(test_files):
+        buckets[idx % len(buckets)].append(str(tf.relative_to(ROOT)))
+
+    print(
+        f"[9/10] pytest -> {len(test_files)} fichiers sur {len(buckets)} workers ({sys.executable})",
+        flush=True,
+    )
+    procs: list[tuple[int, subprocess.Popen[str]]] = []
+    for wid, b_files in enumerate(buckets):
+        cmd = [sys.executable, "-m", "pytest", "-q", *b_files]
+        procs.append(
+            (
+                wid,
+                subprocess.Popen(
+                    cmd,
+                    cwd=ROOT,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                ),
+            )
+        )
+
+    failures: list[tuple[int, int, str]] = []
+    for wid, proc in procs:
+        out, _ = proc.communicate()
+        rc = proc.returncode
+        summary_line = next(
+            (ln.strip() for ln in reversed(out.splitlines()) if ln.strip()),
+            f"rc={rc}",
+        )
+        print(f"  [pytest worker {wid + 1}/{len(buckets)}] {summary_line}", flush=True)
+        if rc != 0:
+            failures.append((wid, rc, out))
+
+    if failures:
+        for wid, rc, out in failures:
+            print(f"--- ÉCHEC pytest worker {wid + 1} (rc={rc}) ---\n{out}", flush=True)
+        raise SystemExit(1)
+
+
 def main() -> int:
     verify_kernel_locks()
     verify_effects_ast()
@@ -899,7 +978,7 @@ def main() -> int:
     verify_global_anti_vestiges()
     run_tool("[7/10] ruff", [sys.executable, "-m", "ruff", "check", "."])
     run_tool("[8/10] pyright", [sys.executable, "-m", "pyright"])
-    run_tool("[9/10] pytest", [sys.executable, "-m", "pytest", "-q"])
+    run_pytest_parallel()
     uv_bin = _find_uv()
     run_tool(
         "[10/10] PyPy Invariant Fuzzer",

@@ -83,7 +83,12 @@ class BoundAttackInvariantTracker(TelemetryTracker):
                 self.checked_bindings += 1
                 pos, st, _ = state.get_machine_pos_status(ray, mt)
                 _, _, attacked = state.get_machine_turn_stats(ray, mt)
-                if not attacked and st != MACHINE_STATUS_RETIRED and pos > 0:
+                if (
+                    not attacked
+                    and st != MACHINE_STATUS_RETIRED
+                    and pos > 0
+                    and not state.is_machine_etouffee_this_turn(ray, mt)
+                ):
                     msg = (
                         f"Invariant 3.2->5.2 violé : tour={b_tour}, ray={ray}, m_type={mt}, "
                         f"bound_t=T{bound_t}, pos={pos}, status={st}, attacked={attacked}"
@@ -132,15 +137,19 @@ def _check_board_invariants(state: GameState) -> None:
                 if cfg.mode >= 2:
                     assert state.get_parcel_nid(r, p)[0] == 0, "Nid sur Route Forestière"
 
-        # Furtivité v6.2 par rayon (rives 0=Piège et 1=Sabotage sur p=1 ; aucune occupation sur p>=2 ni Insectes)
+        # Furtivité v6.4 par rayon (rives 0=Piège et 1=Sabotage sur p=1 ; Sentinelles Enracinées sur Rive Sabotage)
         d_piege = state.get_furtivite_nb_def_rive(r, 1, FURT_RIVE_PIEGE)
         d_sab = state.get_furtivite_nb_def_rive(r, 1, FURT_RIVE_SABOTAGE)
+        sentinels = state.count_rooted_sentinels_on_ray(r)
         assert 0 <= d_piege <= 2, f"Plus de 2 Défenseurs Rive Piège sur rayon {r} : {d_piege}"
-        assert 0 <= d_sab <= 2, f"Plus de 2 Défenseurs Rive Sabotage sur rayon {r} : {d_sab}"
+        assert 0 <= sentinels <= 2, f"Plus de 2 Sentinelles Rive Sabotage sur rayon {r} : {sentinels}"
+        assert 0 <= d_sab + sentinels <= 2, (
+            f"Plus de 2 places occupées sur Rive Sabotage rayon {r} : def={d_sab}, sentinels={sentinels}"
+        )
         if not state.is_ray_furtivite_open(r) and state.step <= 31:
             assert d_piege == 0 and d_sab == 0, f"Défenseurs en Furtivité sur rayon rasé {r}"
         for p in range(1, p_max + 1):
-            assert state.get_furtivite_insectes(r, p) == 0, "Insecte en Furtivité (interdit en v6.2)"
+            assert state.get_furtivite_insectes(r, p) == 0, "Insecte en Furtivité (interdit en v6.4)"
             if p >= 2:
                 assert state.get_furtivite_slots(r, p) == (0, 0, 0, 0)
 
@@ -160,7 +169,7 @@ def _check_board_invariants(state: GameState) -> None:
                     f"Insecte passager sur ({r},{mt}) sans Peuple I"
                 )
 
-    # INV-20 : plafond physique des 4 Écailles & confidentialité absolue du Perchoir Oiseau (hors révélation R9)
+    # INV-20 : plafond physique des 4 Écailles & confidentialité absolue du Perchoir Oiseau
     assert state.count_total_ecailles_in_play() <= MAX_ECAILLES, "Plus de 4 Écailles en jeu"
     seat_o = cfg.seat_of_peuple("O")
     if (
@@ -174,9 +183,9 @@ def _check_board_invariants(state: GameState) -> None:
                     "Fuite du Perchoir Oiseau dans get_observation()"
                 )
 
-    # INV-22 : cohérence physique des tuiles enracinées
-    for _slot_idx, _tid, r_root, p_root, tier_s in state.list_rooted_tiles():
-        assert 0 <= r_root < n and 1 <= p_root <= p_max
+    # INV-22 : cohérence physique des tuiles enracinées (100 % sur la Rive Sabotage, slot_on_rive in {0, 1})
+    for _slot_idx, _tid, r_root, slot_on_rive, tier_s in state.list_rooted_tiles():
+        assert 0 <= r_root < n and slot_on_rive in (0, 1)
         assert tier_s in (1, 2)
 
     # Conservation stricte des machines normales : au début d'un tour (avant pioche) ou après 6.3

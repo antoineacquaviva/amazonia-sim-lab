@@ -127,7 +127,8 @@ def test_reve_activation_1_def_1_machine_and_telemetry() -> None:
         st.set_player_hand(3, 0, 0, 0, 0, 0)
         for s in range(n_defs):
             st.place_defender_reve_activation(s, 5, FACE_DEFINITIF)
-        st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3 (I présent)
+        st.set_parcel_nid(3, 2, 1)  # Ancre 4.2 (I présent)
+        st.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
         st.step = STEP_3_2_REVEAL
         trk = TelemetryTracker()
         res = step_until_decision(st, telemetry=trk)

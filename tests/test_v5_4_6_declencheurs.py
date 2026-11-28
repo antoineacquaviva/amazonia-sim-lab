@@ -37,7 +37,7 @@ from engine.state import (
     PIEGE_ACTIF,
     STEP_3_2_REVEAL,
     STEP_4_1_FURTIVITE,
-    STEP_4_3_MIGRATION,
+    STEP_4_2_NIDS,
     STEP_5_3_END_CHECK,
     TACTIQUES_SPEC,
     TILE_R_BASE,
@@ -89,7 +89,10 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
     trk = TelemetryTracker()
     st.step = STEP_3_2_REVEAL
     req = step_until_decision(st, telemetry=trk)
-    assert not isinstance(req, GameOver)
+    while isinstance(req, DecisionRequest) and req.decision_type == "SABOTAGE_CIBLE_3_2":
+        apply_choice(st, req.options[0], telemetry=trk)
+        req = step_until_decision(st, telemetry=trk)
+    assert isinstance(req, DecisionRequest)
     assert req.context.get("effect_kind") == "BUG_DEVIATION_SYNAPTIQUE_3_2"
     assert "M_PLUS_1" in req.options
 
@@ -97,7 +100,8 @@ def test_strict_partition_3_2_sabotage_gt_bug_insecte_gt_reve_and_4_1_no_trigger
     apply_choice(st, "M_PLUS_1", telemetry=trk)
     while st._continuation:
         res_c = _advance_continuation(st)
-        assert res_c is None
+        if isinstance(res_c, DecisionRequest):
+            apply_choice(st, res_c.options[0], telemetry=trk)
 
     # Vérification v6.2 (INV-09 & INV-15 / C3-04) :
     # - 3. Sabotage s'est allumée (siège 0/3) -> Gardien 3 consommé
@@ -251,8 +255,12 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
     st.set_parcel_nid(0, 1, 1, active_ce_tour=False)
     st.set_parcel_insectes(0, 1, 0)
 
-    # Production 4.2 (0 Insecte -> +1 Insecte) : NE DOIT PAS allumer 5. Insecte ni ouvrir le Gardien !
+    # Production 4.2 (0 Insecte -> +1 Insecte déployé sur le Nid) : NE DOIT PAS allumer 5. Insecte !
     _resolve_nid_block(st, 1)
+    while st._continuation:
+        r_nid = _advance_continuation(st)
+        if isinstance(r_nid, DecisionRequest):
+            apply_choice(st, ("FORET", 0, 1))
     assert st.get_parcel_insectes(0, 1) == 1
     assert not st.is_trigger_lit(5)
     assert st.count_gardien_pari_consumed_at_case(5) == 0
@@ -262,6 +270,10 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
     st.set_parcel_insectes(0, 1, 2)
     st.set_nid_activated(1, False)
     _resolve_nid_block(st, 1)
+    while st._continuation:
+        r_nid = _advance_continuation(st)
+        if isinstance(r_nid, DecisionRequest):
+            apply_choice(st, ("FORET", 0, 1))
     assert st.get_parcel_insectes(0, 1) == 4
     assert not st.is_trigger_lit(5)
     assert st.count_gardien_pari_consumed_at_case(5) == 0
@@ -269,10 +281,9 @@ def test_nid_4_2_production_never_lights_trigger_6_insecte() -> None:
 
 
 def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
-    """Case 6. Résonance (v6.2) sur la règle native DISTINCT_OPEN_1 (anti-boucle conservé)."""
+    """Case 6. Résonance (v6.4 INV-09) : s'allume uniquement sur dernier pari glissé en encoche (anti-boucle conservé)."""
     load_all_effects()
 
-    # 1re ouverture de chaque autre Gardien distinct allume 6 ; 2e ouverture du même NON
     cfg1 = GameConfig(
         n_players=5,
         mode=2,
@@ -288,19 +299,19 @@ def test_gardien_4_trigger_mode_locked_distinct_open_1() -> None:
     st1.place_defender_gardien_pari(3, 6, FACE_DEFINITIF)
     st1.place_defender_gardien_pari(4, 6, FACE_DEFINITIF)
 
-    # 1re ouverture case 1 -> allume 6 -> ouvre 6 (anti-boucle : 6 ne se ré-allume pas)
+    # 1re ouverture case 1 (2 -> 1 pari restant) : dessus NON vidé -> n'allume PAS 6 !
+    st1.light_trigger(1)
+    assert sweep_gardiens(st1) == 1
+    assert st1.count_gardien_pari_consumed_at_case(6) == 0
+    assert st1.count_gardien_pari_defenders_at_case(6) == 2
+
+    # 2e ouverture case 1 (1 -> 0 pari restant = dernier pari !) : allume 6 -> ouvre 6 (anti-boucle : 6 éteinte)
     st1.light_trigger(1)
     assert sweep_gardiens(st1) == 2
     assert st1.count_gardien_pari_consumed_at_case(6) == 1
     assert st1.count_gardien_pari_defenders_at_case(6) == 1
 
-    # 2e ouverture du MÊME Gardien (case 1) -> n'allume PAS 6 !
-    st1.light_trigger(1)
-    assert sweep_gardiens(st1) == 1
-    assert st1.count_gardien_pari_consumed_at_case(6) == 1
-    assert st1.count_gardien_pari_defenders_at_case(6) == 1
-
-    # 1re ouverture d'un 2e autre Gardien distinct (case 2) -> allume 6 -> consomme le 2e Déf sur 6 !
+    # Ouverture case 2 (1 -> 0 pari restant = dernier pari !) -> allume 6 -> consomme le 2e Déf sur 6 !
     st1.light_trigger(2)
     assert sweep_gardiens(st1) == 2
     assert st1.count_gardien_pari_consumed_at_case(6) == 2
@@ -338,14 +349,9 @@ def test_bouclier_de_lisiere_saves_tile_but_keeps_bet_lost_for_eveil() -> None:
     st.place_defender_gardien_pari(2, 2, FACE_DEFINITIF)
     st.place_defender_gardien_pari(3, 2, FACE_DEFINITIF)
 
-    # En 4.3, le Bouclier sur case 1 reste intact jusqu'en 5.3 (pas d'ouverture forcée)
-    st.set_parcel_insectes(3, 1, 1)  # Ancre 4.3
-    st.step = STEP_4_3_MIGRATION
-    req_43 = step_until_decision(st)
-    assert isinstance(req_43, DecisionRequest)
+    # En 4.2, le Bouclier sur case 1 reste intact jusqu'en 5.3 (pas d'ouverture forcée)
+    st.step = STEP_4_2_NIDS
     assert st.get_colonie_at_case(1) == 1
-    st._continuation.clear()
-    st.set_parcel_insectes(3, 1, 0)
 
     # 1 ouverture sur case 1 et 1 sur case 2 -> 1 Déf restant sur chaque case (paris perdus)
     st.light_trigger(1)

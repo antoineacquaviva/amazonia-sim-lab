@@ -81,7 +81,8 @@ def test_v6_furtivite_free_placement_and_1_vs_2_rives_execution() -> None:
     assert obs.furtivite_ray_rive_defs(0, 0) == 1
     assert obs.furtivite_ray_rive_defs(0, 1) == 1
 
-    st.set_parcel_insectes(3, 1, 1)
+    st.set_parcel_nid(3, 2, 1)
+    st.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st.step = STEP_4_1_FURTIVITE
     trk_a = TelemetryTracker()
     req_a = step_until_decision(st, telemetry=trk_a)
@@ -105,7 +106,8 @@ def test_v6_furtivite_free_placement_and_1_vs_2_rives_execution() -> None:
     assert ("FURTIVITE", 0, FURT_RIVE_PIEGE) not in legal_s3
     assert ("FURTIVITE", 0, FURT_RIVE_SABOTAGE) in legal_s3
 
-    st_b.set_parcel_insectes(3, 1, 1)
+    st_b.set_parcel_nid(3, 2, 1)
+    st_b.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st_b.step = STEP_4_1_FURTIVITE
     trk_b = TelemetryTracker()
     req_b = step_until_decision(st_b, telemetry=trk_b)
@@ -128,7 +130,8 @@ def test_v6_furtivite_free_placement_and_1_vs_2_rives_execution() -> None:
     st2.place_defender_furtivite(2, 1, 0, FURT_RIVE_PIEGE, FACE_DEFINITIF)
     st2.place_defender_furtivite(1, 0, 1, FURT_RIVE_SABOTAGE, FACE_DEFINITIF)
     st2.place_defender_furtivite(3, 1, 1, FURT_RIVE_SABOTAGE, FACE_DEFINITIF)
-    st2.set_parcel_insectes(3, 1, 1)
+    st2.set_parcel_nid(3, 2, 1)
+    st2.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
     st2.step = STEP_4_1_FURTIVITE
     trk_c = TelemetryTracker()
     sab_before = st2.sabotage_pending_count
@@ -200,9 +203,10 @@ def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
     st_blk.set_machine_tokens(1, MACHINE_BULLDOZER, rouges=2, bleus=0)
     st_blk.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     st_blk.set_player_hand(1, machine_card_code(1, MACHINE_BULLDOZER), 6, 6, 6, 0)
-    st_blk.set_player_hand(2, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_blk.set_player_hand(3, CARD_SABOTAGE, 0, 0, 0, 0)
-    st_blk.set_parcel_insectes(3, 1, 1)  # Ancre 4.3 (I présent)
+    st_blk.set_player_hand(2, 0, 0, 0, 0, 0)
+    st_blk.set_player_hand(3, 0, 0, 0, 0, 0)
+    st_blk.set_parcel_nid(3, 2, 1)  # Ancre 4.2 (I présent)
+    st_blk.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
 
     trk_blk = TelemetryTracker()
     st_blk.step = STEP_3_2_REVEAL
@@ -241,14 +245,20 @@ def test_v6_reves_block_only_in_socle_step5_execution_and_mode4_power() -> None:
     st_m4.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st_m4.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st_m4.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
+        st_m4.set_player_hand(s, 0, 0, 0, 0, 0)
     bugs_before = st_m4.get_bugs_at_case(6)
     st_m4.step = STEP_3_2_REVEAL
     _run_step_3_2(st_m4)
     while st_m4._continuation:
         rem = _advance_continuation(st_m4)
         if isinstance(rem, DecisionRequest):
-            apply_choice(st_m4, rem.options[0])
+            ek = rem.context.get("effect_kind", "")
+            if ek == "R10_BRANCH":
+                apply_choice(st_m4, ("SPECTRAL_BUG", 6))
+            elif ek == "R10_SPECTRAL_ALTER":
+                apply_choice(st_m4, ("ALTERER", 0, MACHINE_ABATTEUSE))
+            else:
+                apply_choice(st_m4, rem.options[0])
     assert st_m4.get_bugs_at_case(6) == bugs_before + 1
     assert st_m4.has_machine_alteration(0, MACHINE_ABATTEUSE) is True
 
@@ -370,7 +380,7 @@ def test_v6_1_manifest_plan_and_duckdb_digest_metrics(
         job_wall_sec=0.5,
     )
 
-    assert digest["active_core_rules"]["version"] == "6.2.0"
+    assert digest["active_core_rules"]["version"] == "6.4.0"
     assert digest["active_core_rules"]["chassis_canonique"]["profil_piste"] == "P4_2233"
     totals = digest["totals"]
     assert totals["count_charge_gains"] > 0

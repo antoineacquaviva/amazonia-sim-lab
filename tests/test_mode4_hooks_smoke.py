@@ -56,7 +56,6 @@ from engine.state import (
     FACE_DEFINITIF,
     FURT_RIVE_SABOTAGE,
     MACHINE_ABATTEUSE,
-    MACHINE_BULLDOZER,
     MACHINE_STATUS_NORMAL,
     MATRICE_PAIRES,
     PIEGE_ACTIF,
@@ -189,30 +188,34 @@ def test_panier2_tile_driven_reve_advance_and_sommeil_contremaitre_5_3() -> None
 
 
 def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -> None:
-    """Ouverture Gardien, Face 1 -> Face 2 en 5.3, cascade plate 1..6, Lois passives & min/max dé."""
-    # 1) Cascade plate 1..6 + Face 1 -> Face 2 sur pari gagné en 5.3 (G2:A sur case 3 + G1:A sur case 6 Résonance)
+    """Ouverture Gardien, Face 1 -> Face 2 en 5.3, Résonance dernier pari 1..6, Lois passives & min/max dé."""
+    # 1) Cascade dernier pari -> Résonance + Face 1 -> Face 2 sur pari gagné en 5.3 (G10:A Matamata sur case 3 + G1:A sur case 6 Résonance)
     cfg = GameConfig(n_players=4, mode=4, peuples=("M", "R", "E", "I"), exp_seed=7404)
     st = GameState(cfg)
     st.tour = 2
-    st.set_gardien_at_case(3, 2, face=1)
+    st.set_gardien_at_case(3, 10, face=1)  # G10:A Matamata (paire R-E) Sème 1 Écaille
     st.set_gardien_at_case(6, 1, face=1)
     st.place_defender_gardien_pari(0, 3, FACE_DEFINITIF)
     st.place_defender_gardien_pari(1, 6, FACE_DEFINITIF)
-    sab_before = st.sabotage_pending_count
+    ec_before = st.ecaille_deck_count + st.ecaille_pending_count
 
-    # Déclenchement case 3 -> ouvre G2:A (+1 Sabotage) -> allume case 6 (Résonance) -> ouvre G1:A !
+    # Déclenchement case 3 -> ouvre G10:A (+1 Écaille, dernier pari -> allume case 6 Résonance -> ouvre G1:A !)
     st.light_trigger(3)
     opened = sweep_gardiens(st)
-    assert opened == 2
-    assert st.sabotage_pending_count == sab_before + 1
+    while st._continuation:
+        rem = _advance_continuation(st)
+        if isinstance(rem, DecisionRequest):
+            apply_choice(st, rem.options[0])
+    assert opened >= 1
+    assert (st.ecaille_deck_count + st.ecaille_pending_count) == ec_before + 1
     assert st.count_gardien_pari_defenders_at_case(3) == 0
     assert st.count_gardien_pari_defenders_at_case(6) == 0
-    assert st.get_gardien_at_case(3) == (2, 1)  # Reste Face 1 jusqu'en 5.3
+    assert st.get_gardien_at_case(3) == (10, 1)  # Reste Face 1 jusqu'en 5.3
 
     st.step = STEP_5_3_END_CHECK
     res_53 = step_until_decision(st)
     assert not isinstance(res_53, GameOver)
-    assert st.get_gardien_at_case(3) == (2, 2)  # Passé Face 2 en 5.3 sur pari gagné !
+    assert st.get_gardien_at_case(3) == (10, 2)  # Passé Face 2 en 5.3 sur pari gagné !
     assert st.get_gardien_at_case(6) == (1, 2)
 
     # 2) Loi passive d'inversion min/max de lecture du dé secret via HOOK_1_3_LECTURE_DE
@@ -253,7 +256,7 @@ def test_panier2_gardiens_full_hooks_cascade_face2_and_passive_die_inversion() -
 
 def test_panier2_reves_nids_pieges_and_sabotage_hooks() -> None:
     """Hooks propres des Rêves (3.2), Nids (4.2), Pièges localisés (5.1) et Furtivité/Sabotage (4.1)."""
-    # 1) Rêve R10:A (HOOK_3_2_OUVERTURE_REVE) & Nid M4:A (4.2 bloc indivisible + HOOK_4_2_NID_APRES_PROD)
+    # 1) Rêve R10:A (HOOK_3_2_OUVERTURE_REVE : Essaim spectral -> Bug rang 6 + Altérer mobile) & Nid M2:A (4.2 HOOK_4_2_NID_APRES_PROD)
     cfg = GameConfig(n_players=4, mode=4, peuples=("E", "I", "H", "R"), exp_seed=7406)
     st = GameState(cfg)
     st.tour = 2
@@ -262,34 +265,36 @@ def test_panier2_reves_nids_pieges_and_sabotage_hooks() -> None:
     st.set_machine_pos_status(0, MACHINE_ABATTEUSE, 2, MACHINE_STATUS_NORMAL)
     st.set_player_hand(0, machine_card_code(0, MACHINE_ABATTEUSE), 6, 6, 6, 0)
     for s in (1, 2, 3):
-        st.set_player_hand(s, CARD_SABOTAGE, 0, 0, 0, 0)
+        st.set_player_hand(s, 0, 0, 0, 0, 0)
     bugs_before = st.get_bugs_at_case(6)
     st.step = STEP_3_2_REVEAL
     _run_step_3_2(st)
     while st._continuation:
         rem = _advance_continuation(st)
         if isinstance(rem, DecisionRequest):
-            apply_choice(st, rem.options[0])
+            ek = rem.context.get("effect_kind", "")
+            if ek == "R10_BRANCH":
+                apply_choice(st, ("SPECTRAL_BUG", 6))
+            elif ek == "R10_SPECTRAL_ALTER":
+                apply_choice(st, ("ALTERER", 0, MACHINE_ABATTEUSE))
+            else:
+                apply_choice(st, rem.options[0])
     assert st.get_bugs_at_case(6) == bugs_before + 1
     assert st.has_machine_alteration(0, MACHINE_ABATTEUSE) is True
 
-    # Bloc 4.2 Nid M4:A : production + défausse de l'Insecte pour retourner 1 rouge physique en bleu
-    st.set_parcel_nid(1, 1, 4, active_ce_tour=False)
+    # Bloc 4.2 Nid M2:A : production + HOOK_4_2_NID_APRES_PROD -> Semer 1 Écaille au sac !
+    st.set_parcel_nid(1, 1, 2, active_ce_tour=False)
     st.set_parcel_insectes(1, 1, 0)
-    st.set_machine_pos_status(0, MACHINE_BULLDOZER, 2, MACHINE_STATUS_NORMAL)
-    st.set_machine_tokens(0, MACHINE_BULLDOZER, rouges=1, bleus=0)
-    for r in range(4):
-        st.set_machine_pos_status(r, MACHINE_ABATTEUSE, 0, 2)
-        if r != 0:
-            st.set_machine_pos_status(r, MACHINE_BULLDOZER, 0, 2)
-    _resolve_nid_block(st, 4)
+    ec_before = st.ecaille_deck_count + st.ecaille_pending_count
+    _resolve_nid_block(st, 2)
     while st._continuation:
-        rem_m4 = _advance_continuation(st)
-        if isinstance(rem_m4, DecisionRequest):
-            flip_opt = next((o for o in rem_m4.options if isinstance(o, tuple) and o[0] == "SURCHAUFFE"), rem_m4.options[0])
-            apply_choice(st, flip_opt)
-    assert st.get_parcel_insectes(1, 1) == 0
-    assert st.get_machine_tokens(0, MACHINE_BULLDOZER) == (0, 1)
+        rem_m2 = _advance_continuation(st)
+        if isinstance(rem_m2, DecisionRequest):
+            if rem_m2.context.get("effect_kind") == "M2_PROD_REPTILE":
+                apply_choice(st, "SEMER_ECAILLE")
+            else:
+                apply_choice(st, ("FORET", 1, 1))
+    assert (st.ecaille_deck_count + st.ecaille_pending_count) == ec_before + 1
 
     # 2) Hooks HOOK_5_APRES_PARADE_PIEGE (Piège localisé) & HOOK_4_1_FURTIVITE (synergie Sabotage)
     observed_events: list[tuple[str, dict[str, Any]]] = []

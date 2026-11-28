@@ -143,9 +143,14 @@ def evaluate_horizon_state(state: GameState) -> float:
                 assets += 0.012
             elif state.is_slot_rooted(slot_idx):
                 rinfo = state.get_slot_rooted_info(slot_idx)
-                if rinfo is not None and not state.is_route_forestiere(rinfo[0], rinfo[1]):
-                    sch = state.get_parcel_souches(rinfo[0], rinfo[1])
-                    assets += 0.014 * min(sch, rinfo[2])
+                if rinfo is not None:
+                    r_rt, _, tier_rt, _ = rinfo
+                    sch_ray = sum(
+                        state.get_parcel_souches(r_rt, p_s)
+                        for p_s in range(1, p_max + 1)
+                        if not state.is_route_forestiere(r_rt, p_s)
+                    )
+                    assets += 0.014 * min(sch_ray, tier_rt) + 0.008
         for rk in range(TRACK_LEN):
             code = state.get_tactique_at_rank(rk)
             if is_reve_code(code):

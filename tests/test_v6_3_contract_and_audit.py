@@ -722,7 +722,7 @@ def test_v6_4_core_contracts_canon_passe2_and_markdown() -> None:
     canon64 = json.loads(V6_4_CONTRACT_PATH.read_text(encoding="utf-8"))
     assert is_v6_4_tiles_contract(canon64) is True
     assert canon64["_meta"]["schema_version"] == "6.4.0"
-    assert canon64["_meta"]["statut_global"] == "PANEL_30_AFFINE"
+    assert canon64["_meta"]["statut_global"] == "ACTIVE_VERIFIED"
     assert validate_tiles_canon_v6_4(canon64, strict=True) == []
 
     rep64 = audit_tiles_catalog_197(canon64, allow_draft=False)

@@ -189,13 +189,13 @@ def test_bot_effect_option_dispatch_no_tuple_or_int_collisions() -> None:
         decision_type=DEC_EFFET_TUILE,
         decideur=0,
         options=((0, MACHINE_BULLDOZER), (1, MACHINE_ABATTEUSE)),
-        context={"slot_id": "G6", "effect_kind": "G6_FLIP_RED"},
+        context={"slot_id": "G6", "effect_kind": "G6_REFROIDIR"},
     )
     sc_bull = _score_effect_option(obs, cfg, belief, req_mach, (0, MACHINE_BULLDOZER), is_b2=True)
     sc_abat = _score_effect_option(obs, cfg, belief, req_mach, (1, MACHINE_ABATTEUSE), is_b2=True)
     assert sc_bull > sc_abat
 
-    # 2. Glissement de pari Gardien (G4_SLIDE_NEIGHBOR : case avec 1 pari restant prioritaire sur 2 paris)
+    # 2. Glissement de pari Gardien (G4_FIRST_CRI : case avec 1 pari restant prioritaire sur 2 paris)
     st.set_gardien_at_case(2, 2, face=1)
     st.set_gardien_at_case(4, 3, face=1)
     st.place_defender_gardien_pari(0, 2, 1)
@@ -207,7 +207,7 @@ def test_bot_effect_option_dispatch_no_tuple_or_int_collisions() -> None:
         decision_type=DEC_EFFET_TUILE,
         decideur=0,
         options=(2, 4),
-        context={"slot_id": "G4", "effect_kind": "G4_SLIDE_NEIGHBOR"},
+        context={"slot_id": "G4", "effect_kind": "G4_FIRST_CRI", "g4_case": 1},
     )
     assert _score_effect_option(obs2, cfg, belief2, req_g4, 2, is_b2=True) > _score_effect_option(
         obs2, cfg, belief2, req_g4, 4, is_b2=True
@@ -395,8 +395,8 @@ def test_digest_active_core_rules_chronology_matches_v6_2() -> None:
     etapes = rules["spec_formelle"]["etapes_1_a_6"]
     keys = list(etapes.keys())
     assert keys[2] == "etape_3_CONSTRUCTION_ET_REVELATION"
-    assert keys[3] == "etape_4_FURTIVITE_NIDS_ET_MIGRATION"
-    assert "Construction" in etapes[keys[2]] and "Ouverture" in etapes[keys[2]]
+    assert keys[3] == "etape_4_FURTIVITE_ET_PRODUCTION_ESSAIM"
+    assert "Construction" in etapes[keys[2]] and "ouverture" in etapes[keys[2]].lower()
     assert "Furtivité" in etapes[keys[3]]
     assert not any("REVELATION_ET_FURTIVITE" in k for k in keys)
 
@@ -405,7 +405,7 @@ def test_digest_active_core_rules_chronology_matches_v6_2() -> None:
 # 5. Traçabilité complète (amazonia_data_v6_0.js + livret_v6_0.js + spec_bundle_sha256) & economie_bot
 # ---------------------------------------------------------------------------
 def test_traceability_hashes_and_economie_bot_fixes() -> None:
-    """Vérifie le verrouillage SHA-256 complet et les flux du graphe economie_bot Canon 0."""
+    """Vérifie le verrouillage SHA-256 complet et les flux du graphe economie_bot Canon v6.4."""
     lock = json.loads((ROOT / "data" / "studio_lock.json").read_text(encoding="utf-8"))
     js_sha = hashlib.sha256((ROOT / "docs" / "data" / "amazonia_data_v6_0.js").read_bytes()).hexdigest()
     livret_sha = hashlib.sha256((ROOT / "docs" / "data" / "livret_v6_0.js").read_bytes()).hexdigest()
@@ -430,15 +430,16 @@ def test_traceability_hashes_and_economie_bot_fixes() -> None:
     }
     assert len(profiles_by_key) == 30
     assert "RES_JETON_BLEU" in profiles_by_key[("G1", "A")]["outputs_produits"]
-    assert "RES_DEFENSEUR" in profiles_by_key[("G1", "A")]["outputs_produits"]
+    assert "RES_PIEGE" in profiles_by_key[("G1", "A")]["outputs_produits"]
     assert "RES_JETON_ROUGE" in profiles_by_key[("G6", "A")]["inputs_requis"]
     assert "RES_JETON_BLEU" in profiles_by_key[("G6", "A")]["outputs_produits"]
     assert "RES_INSECTE" in profiles_by_key[("G14", "A")]["inputs_requis"]
     assert "RES_PIEGE" in profiles_by_key[("G14", "A")]["outputs_produits"]
     assert "RES_DILUTION_SABOTAGE" in profiles_by_key[("G10", "A")]["outputs_produits"]
     assert "RES_INSECTE" in profiles_by_key[("M4", "A")]["inputs_requis"]
-    assert "RES_JETON_BLEU" in profiles_by_key[("M4", "A")]["outputs_produits"]
-    assert "RES_ARBRE" in profiles_by_key[("R6", "A")]["outputs_produits"]
+    assert "RES_DEFENSEUR" in profiles_by_key[("M4", "A")]["outputs_produits"]
+    assert "RES_SOUCHE" in profiles_by_key[("R2", "A")]["inputs_requis"]
+    assert "RES_ARBRE" in profiles_by_key[("R2", "A")]["outputs_produits"]
 
 
 # ---------------------------------------------------------------------------

@@ -21,7 +21,7 @@ from bots.bot_b0 import play_game_b0
 from bots.bot_b3_rh import BotB3, play_game_b3
 from bots.heuristic_engine import choose_b2, play_game_b1, play_game_b2
 from campaigns.designs import balanced_neighbor_mirror_tables
-from engine.core_engine import DEC_MIGRATION_INSECTE_4_3, step_until_decision
+from engine.core_engine import DEC_DEPLOIEMENT_NID_4_2, step_until_decision
 from engine.primitives import DecisionRequest
 from engine.state import (
     CARD_NONE,
@@ -34,7 +34,7 @@ from engine.state import (
     MACHINE_STATUS_RATISSAGE,
     PIEGE_ACTIF,
     STEP_2_2_DEF2,
-    STEP_4_3_MIGRATION,
+    STEP_4_2_NIDS,
     GameConfig,
     GameState,
     machine_card_code,
@@ -335,22 +335,16 @@ def test_b3_determinization_weighted_by_board_signals_and_isolated() -> None:
 
 def test_b3_dynamic_budget_allocation_adapts_to_uncertainty() -> None:
     """Budget adaptatif B3 : s'arrête tôt si l'écart est net, s'étend jusqu'à max_det si serré."""
-    st = _make_state(n_players=3, mode=2, seed=950)
+    cfg_b3 = GameConfig(n_players=4, mode=2, peuples=("M", "R", "O", "I"), exp_seed=950, rep_id=1)
+    st = GameState(cfg_b3)
+    st.tour = 2
     st.paravents_ouverts = True
-    st.step = STEP_4_3_MIGRATION
-    st.set_parcel_insectes(0, 2, 1)
-    # Créer une décision légale simple avec 3 options via continuation ENGINE
-    st._continuation.clear()
-    req = DecisionRequest(
-        decideur=0,
-        decision_type=DEC_MIGRATION_INSECTE_4_3,
-        options=(("RESTER",), ("FORET", 0, 3), ("FORET", 0, 1)),
-        context={"src": ("FORET", 0, 2)},
-    )
-    st._continuation.append(("MIGRATION_QUEUE_4_3", (("FORET", 0, 2),), 0))
-    st._continuation.insert(0, ("APPLY_MIGRATION_4_3", ("FORET", 0, 2)))
-    st._continuation.insert(0, ("WAIT_DECISION", req))
-    obs = st.get_observation(0)
+    st.set_parcel_nid(3, 2, 1)
+    st.place_defender_foret(3, 0, 3, 2, FACE_DEFINITIF)
+    st.step = STEP_4_2_NIDS
+    req = step_until_decision(st)
+    assert isinstance(req, DecisionRequest) and req.decision_type == DEC_DEPLOIEMENT_NID_4_2
+    obs = st.get_observation(req.decideur)
 
     # Cas 1 : seuil d'incertitude nul -> s'arrête dès min_determinizations=2 si écart > 0 ou 1.96*SE
     # Cas 2 : seuil d'incertitude élevé (10.0) -> étend jusqu'à max_determinizations=5 !

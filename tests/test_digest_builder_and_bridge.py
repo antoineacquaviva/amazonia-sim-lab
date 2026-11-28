@@ -26,7 +26,7 @@ from scripts_cloud.publish_digest import (
 
 def test_canonical_v6_2_active_core_rules() -> None:
     core = build_active_core_rules()
-    assert core["version"] == "6.2.0"
+    assert core["version"] == "6.4.0"
     assert "catalog_v6_0.json" in core["studio_sha256"]
     assert "spec_formelle_v6_0.json" in core["studio_sha256"]
     assert "livret_v6_0.js" in core["studio_sha256"]
@@ -58,7 +58,7 @@ def test_build_tested_tiles_rules() -> None:
     assert tiles[0]["slot"] == "G1"
     assert tiles[0]["profil"] == "A"
     assert tiles[0]["famille"] == "GARDIEN"
-    assert "jeton rouge en bleu" in tiles[0]["texte"]
+    assert "Refroidissez" in tiles[0]["texte"]
     assert tiles[1]["slot"] == "R5"
     assert tiles[1]["famille"] == "REVE"
     assert tiles[3]["slot"] == "G7"
@@ -214,5 +214,5 @@ def test_digest_size_budget_prioritizes_varying_tiles_and_warns_without_crashing
             max_bytes=1_000,
         )
     assert d_big.exists()
-    assert big_digest["active_core_rules"]["version"] == "6.2.0"
+    assert big_digest["active_core_rules"]["version"] == "6.4.0"
     assert len(d_big.read_bytes()) >= 1_000

@@ -1991,12 +1991,13 @@ def build_canon_v6_4_document() -> dict[str, Any]:
         # Normalize witness texts & bot heuristic typography
         for tm in src["temoins"]:
             tm["resume"] = _typo(tm["resume"])
+            tm["statut"] = "OK"
         src["heuristique_bot"] = _typo(src["heuristique_bot"])
         if src["double_ouverture"] is not None:
             src["double_ouverture"] = _typo(src["double_ouverture"])
 
-        src["statut_conception"] = "PASSE_2_AFFINE"
-        src["engine_sync_status"] = "REFINED_V6_4"
+        src["statut_conception"] = "VALIDE_V6_4"
+        src["engine_sync_status"] = "ACTIVE_VERIFIED"
         tuiles_out[sid] = src
 
     def _role_list(role_name: str) -> list[str]:
@@ -2012,8 +2013,8 @@ def build_canon_v6_4_document() -> dict[str, Any]:
             "schema_version": "6.4.0",
             "socle_verrouille": "6.4.0",
             "cadrage_source": "docs/cadrage_v6_4.md",
-            "etape_active": "JALON_2_PASSE_2_AFFINEE",
-            "statut_global": "PANEL_30_AFFINE",
+            "etape_active": "JALON_5_ENCODAGE_30_TUILES_V6_4",
+            "statut_global": "ACTIVE_VERIFIED",
             "genere_le": "2026-11-27",
             "slots_count": 30,
             "c02_supprime": True,

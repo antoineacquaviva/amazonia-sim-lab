@@ -1,6 +1,6 @@
-# Socle v6.2 (schema_version = 6.2.0) — Noyau scellé Chantier 5 (Canon 0 30 tuiles ACTIVE_VERIFIED, 35 témoins, INV-01..INV-22, 0 mem_debt Mode 4)
+# Socle v6.4 (schema_version = 6.4.0) — Noyau scellé Phase B Jalons 4 & 5 (Canon v6.4 30 tuiles ACTIVE_VERIFIED, 54 témoins, INV-01..INV-22, 0 mem_debt Mode 4)
 # Empreintes SHA-256 vérifiées par la porte [1/10] de verify_lot.py.
 ddf935cce779b6feef99a735c8ef511bd10879e5caffae72f4591a256bee91cd  engine/rng.py
-65079ea4879410a0e95bbdc36cb1ec292e78c6cd2e4bf04cc7fef3b586ca970f  engine/state.py
-c03f33c19f789ed9784424f05f012d96a82fa8364e0d16ed45242d6c4051ff7f  engine/primitives.py
-da70d67389c1174f5e6aa835cae0d59efef4a295154a077292649b2c5dff08b5  engine/core_engine.py
+a58830576bba131e60d59fffa16bec9f3bd6b50da0bd0f5f4af63efbab26662a  engine/state.py
+b931842c940968f260acd82156370d68d81a7a44daf9ed6eced1c1e3392642b4  engine/primitives.py
+8e5b5bfe4240c45b1268f5e75daad6554e321cfa9cd707fd4c978717d27674f3  engine/core_engine.py
